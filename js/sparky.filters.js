@@ -75,16 +75,18 @@
 				U: function(date) { return +date; },
 				w: function(date) { return date.getDay(); },
 				//W: function(date) { return ; },
-				y: function(date) { return date.getFullYear() % 100; },
+				y: function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
 				Y: function(date) { return date.getFullYear(); },
 				//z: function(date) { return ; },
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 			
+			var rletter = /([a-zA-Z])/g;
+			
 			return function date(format) {
 				var date = this instanceof Date ? this : new Date(this) ;
 				
-				return format.replace(/([a-zA-Z])/g, function($0, $1) {
+				return format.replace(rletter, function($0, $1) {
 					return formatters[$1](date);
 				});
 			};
