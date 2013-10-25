@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="author" content="" />
+	<meta name="description" content="" />
+	
+	<title>Bolt</title>
+	
+	<script>document.documentElement.className = 'js';</script>
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+	<!-- Force latest IE rendering engine & Chrome Frame -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<!-- Make IE recognise HTML5 elements for styling -->
+	<!--[if lte IE 8]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<noscript>
+		<strong>Warning!</strong>
+		Your browser does not support HTML5 so some elements on this page are simulated using JScript. Unfortunately your browser has JScript disabled. Please enable it in order to display this page.
+	</noscript>
+	<![endif]-->
+
+	<link rel="icon" type="image/png" href="images/favicon.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	
+	<link rel="stylesheet" href="css/bolt.normalise.css" />
+	<link rel="stylesheet" href="css/bolt.typography.css" />
+	<link rel="stylesheet" href="css/bolt.typography.15_24.css" />
+	<link rel="stylesheet" href="css/bolt.forms.css" />
+	<link rel="stylesheet" href="css/bolt.classes.css" />
+
+	<link rel="stylesheet" href="css/sparky.css" />
+
+	<style>
+		body {
+			padding: 3rem;
+		}
+		
+		.site-wrap {
+			max-width: 40rem;
+		}
+		
+		input {
+			max-width: 20rem;
+			border: 1px solid black;
+		}
+		
+		.state-0 {
+			background-color: yellow;
+		}
+		.state-1 {
+			background-color: orange;
+		}
+		.state-2 {
+			background-color: red;
+		}
+		
+		.sparky-block {
+			width: 30rem;
+			padding-top: 1rem;
+			padding-bottom: 1rem;
+			border-top: 1px solid black;
+			border-bottom: 1px solid black;
+		}
+	</style>
+</head>
+
+<body>
+
+<div class="site-wrap wrap">
+	<h1>Sparky</h1>
+	
+	<h3>
+		<strong>Sparky is a model-agnostic live data binding view layer for your html app.</strong>
+		Sparky enhances the existing DOM without replacing nodes,
+		renders multiple changes together at the browser framerate, and
+		renders data through Django template style filters.
+		It's also fast and light-weight, weighing in at under 10K compressed.
+	</h3>
+	
+	<!--h4>Features</h4>
+	
+	<ul>
+		<li><strong>The DOM don't change.</strong> Sparky updates the existing DOM tree live when your data changes - nodes are not removed or replaced, so you can attach event listeners to them without fear.</li>
+		<li><strong>Enhances existing HTML*.</strong> Render html on the server, enhance it with Sparky.</li>
+		<li><strong>Declarative data binding.</strong> HTML data attributes tell Sparky what data to observe.</li>
+		<li><strong>Template filters.</strong> Django template syntax for manipulating text, numbers, dates and lists.</li>
+	</ul>
+	
+	<p>*I can't believe I even have to list this as a feature, but some libraries prefer a JS-rendered DOM, so it seems noteable.</p-->
+	
+	<h2>Try it</h2>
+	
+	<p>
+		Open the console and try changing the properties of <code>data</code> to be rendered into the template below. You could try, say...
+		<ul>
+			<li><code>data.name = 'Sparky'</code>
+			<li><code>data.date = new Date()</code>
+			<li><code>data.list = ['Sparky', 'loves', 'you']</code>
+			<li><code>data.state = 1</code>
+			<li><code>data.number = 4</code>
+		</ul>
+	</p>
+	
+	<div class="sparky-block state-{{ state }}" data-data="data" id="template1">
+		<p>Hello {{ name }}.</p>
+		<p>It's {{ date | date: 'H:i' }} on the {{ date | date: 'dS F'}}.</p>
+		<p>{{ list | join: '...' }}</p>
+		<p>Here's a random pick from that list: {{ list | random }}</p>
+		<p>Change attributes of inputs:</p>
+		<input value="{{ value }}" />
+		<table>
+			<tr>
+				<td>{{ number }}</td>
+				<td>{{ number | add:1 }}</td>
+			</tr>
+			<tr>
+				<td>{{ number | multiply: 2 }}</td>
+				<td>{{ number | multiply: 2 | add: 1 }}</td>
+			</tr>
+			<tr>
+				<td>{{ number | multiply: 4 }}</td>
+				<td>{{ number | multiply: 4 | add: 1 }}</td>
+			</tr>
+			<tr>
+				<td>{{ number | multiply: 8 }}</td>
+				<td>{{ number | multiply: 8 | add: 1 }}</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<!--input value="{{value}}" data-app="input" data-context="input"/-->
+
+<script src="js/jquery-2.0.0b2.js"></script>
+<!--script src="js/app.js"></script-->
+<script src="js/observe.js"></script>
+
+<script src="js/sparky.js"></script>
+<script src="js/sparky.template.js"></script>
+<script src="js/sparky.filters.js"></script>
+<script>
+	window.data = {
+		name: '',
+		date: new Date(),
+		state: 4,
+		list: ['one', 'two', 'three']
+	};
+	
+	sparky.observe = observe;
+	sparky.unobserve = unobserve;
+	sparky.get = function(data, property) {
+		return data[property];
+	};
+	
+	sparky.data = {
+		data: window.data
+	};
+	
+	sparky();
+</script>
+
+</body>
+</html>

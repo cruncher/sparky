@@ -1,0 +1,523 @@
+/* template.forms.css
+ * 
+ * Stephen Band
+ * 
+ * Some inspiration from normalize.css:
+ * http://necolas.github.com/normalize.css/
+ */
+
+form,
+fieldset,
+label,
+legend,
+input,
+output,
+button,
+select,
+textarea {
+	-webkit-box-sizing: border-box;
+	   -moz-box-sizing: border-box;
+	    -ms-box-sizing: border-box;
+	        box-sizing: border-box;
+}
+
+form,
+fieldset {
+	/* Act as position parent */
+	position: relative;
+}
+
+
+form {
+	/* Correct margin displayed oddly in IE6/7 */
+	margin: 0;
+}
+
+fieldset {
+	/* Reset padding, argin, border */
+	padding: 0;
+	margin: 0 0 1.6667em 0;
+	border: 0;
+}
+
+legend      {
+	/* Correct color not being inherited (IE6/7/8/9) */
+	border: 0;
+	padding: 0;
+	/* Text should wrap (FF3) */
+	white-space: normal;
+	
+	font-weight: bold;
+	font-size: 1.1667em;
+}
+
+label,
+input,
+button,
+select,
+textarea {
+	display: inline-block;
+	/* Vertical align top to stop extra line space creeping into the vertical
+	   rhythm when inputs stack up. It also has the effect of removing the
+	   annoying extra margin-bottom that textareas have in webkit. */
+	vertical-align: top;
+	margin: 0;
+	/* FF and WebKit ignore line-height on inputs, automatically centring the
+	   text, but IE8 needs it. */
+	line-height: 1.6667em;
+}
+
+input,
+button,
+select,
+textarea {
+	margin: 0;
+	/* Font size is not automaticlly inherited in all browsers. */
+	font-family: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+
+	/* Make input shadows appear over the top of other elements. */
+	/* But this buggers up native validation message stacking...
+	   what's it for again? */
+	/*z-index: 2;
+	position: relative;*/
+}
+
+input,
+button,
+select {
+	height: 1.6667em;
+}
+
+label,
+input,
+textarea {
+	width: 100%;
+	border: 0;
+}
+
+input[type='time'] {
+	max-width: 6em;
+}
+
+input,
+textarea {
+	padding: 0 0.5em;
+	/* Nudge up the baseline position in FF3. Doesn't affect WebKit. */
+	padding-bottom: 0.077em;
+}
+
+label > [type="checkbox"],
+label > [type="radio"] {
+	/* Nested checkboxes inside labels */
+	margin-right: 0.5em;
+}
+
+textarea {
+	min-height: 6.6667em;
+	line-height: inherit;
+	/* Switch off resizing (Webkit) by default */
+	resize: none;
+}
+
+.resize_textarea {
+	resize: vertical;
+	/* Make sure the bottom right corner doesn't clip the resize icon */
+	-webkit-border-radius-bottomright:  2px !important;
+	   -moz-border-bottom-right-radius: 2px !important;
+}
+
+label[for],
+input[type="file"],
+input[type="button"],
+input[type="reset"],
+input[type="submit"],
+button,
+select {
+	/* Clickable stuff gets a pointer cursor... */
+	cursor: pointer;
+}
+
+button[disabled],
+input[disabled],
+select[disabled] {
+	/* ...unless it's disabled. */
+	cursor: default;
+}
+
+button,
+input[type="button"],
+input[type="reset"],
+input[type="submit"] {
+	/* Corrects inability to style clickable 'input' types in iOS */
+	-webkit-appearance: button;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+	margin-top: 0;
+	margin-bottom: 0;
+	vertical-align: top;
+	padding-left: 0;
+	padding-right: 0;
+	width: auto;
+	/* WebKit clips radio buttons edges slightly when not fully opaque. */
+	opacity: 1;
+}
+
+input[type="range"],
+input[type="image"] {
+	padding: 0;
+	opacity: 1;
+}
+
+input[type="file"] {
+	/* Part of the button is cut off without a little padding-left in WebKit. */
+	padding-left: 1px;
+}
+
+button::-moz-focus-inner,
+input::-moz-focus-inner {
+	/* Removes inner padding and border in FF3+
+	   www.sitepen.com/blog/2008/05/14/the-devils-in-the-details-fixing-dojos-toolbar-buttons/ */
+	border: 0;
+	padding: 0;
+}
+
+/* Make search fields appear as other inputs in WebKit. */
+@media (-webkit-min-device-pixel-ratio:0) {
+	input[type="search"] {
+		-webkit-appearance: textfield;
+		padding: 0;
+	}
+}
+
+/* File inputs. You're on your own. Good luck. The best way to handle
+   these, frankly, is to make them opacity 0, and overlay a label. You
+   don't get to display the filename, but at least you get some style. */
+input[type='file'] {
+	color: inherit;
+	background: none;
+}
+
+/* File inputs are especially problematic in FF. They
+   require a wrapper to get rid of their system border. */
+@-moz-document url-prefix() {
+	.file_wrap {
+		position: relative;
+		overflow: hidden;
+		width: 100%;
+	}
+
+	.file_wrap input[type='file'] {
+		position: relative;
+		top: -2px;
+		left: -1px;
+		margin-bottom: -3px;
+	}
+}
+
+.required:after {
+	content: ' *';
+	color: #ff8833;
+}
+
+/* Focus and error styles */
+
+/* IE hates having border-color applied to select boxes. It forces
+   them into a state where they have to be doubleclicked to open -
+   once to focus, once to open. Even IE10. We are forced to hack
+   around it with the @media screen hack, which nets Safari as well,
+   unfortunately.
+   
+   Chrome doesn't like having box-shadow applied to select boxes,
+   as it renders them with a bigger height. That's ok, I guess.
+   It's pretty difficult to have an error on a select box anyway. */
+
+label.focus,
+input:focus,
+textarea:focus,
+input.error:focus,
+textarea.error:focus {
+	/* In Webkit, outline doesn't fit the border curves, and in FF outline
+	   is ugly. Lets recreate it with box-shadow */
+	outline: none;
+	
+	/* Old Safari doesn't do blur radius */
+	-webkit-box-shadow: 0 0 12px #659DCB;
+	/* but Chrome does... */
+	-webkit-box-shadow: 0 0 1px 2px #659DCB, inset 0 0 1px 1px #659DCB;
+	/* Create webkit-like outlines for FF */
+	   -moz-box-shadow: 0 0 1px 2px #659DCB, inset 0 0 1px 1px #659DCB;
+			box-shadow: 0 0 1px 2px #659DCB, inset 0 0 1px 1px #659DCB;
+
+	border-color: #659DCB !important;
+}
+
+input.error,
+textarea.error {
+	/* \9 hack for IE8 and below. */
+	outline: 2px solid #ff5500\9;
+	
+	-webkit-box-shadow: 0 0 12px #ff5500;
+	-webkit-box-shadow: 0 0 1px 2px #ff5500, inset 0 0 1px #ff5500;
+	   -moz-box-shadow: 0 0 1px 2px #ff5500, inset 0 0 1px #ff5500;
+			box-shadow: 0 0 1px 2px #ff5500, inset 0 0 1px #ff5500;
+}
+
+@media screen { @media (min-width: 0px) {
+	/* Hack to apply border color but avoid IE, which hates
+	   having border-color applied to select boxes. Unfortunately
+	   this hack also ignores Safari. But that's ok. */
+	select:focus
+	select.error:focus {
+		border-color: #659DCB !important;
+	}
+
+	select.error {
+		border-color: #ff5500 !important;
+	}
+}}
+
+input::-webkit-validation-bubble-arrow,
+input::-webkit-validation-bubble-message {
+	background-color: #202020;
+	color: #ff5500;
+	border-width: 0;
+	-webkit-box-shadow: 0 0 12px #ff5500;
+	-webkit-box-shadow: 0 0 1px 2px #ff5500, inset 0 0 1px #ff5500;
+			box-shadow: 0 0 1px 2px #ff5500, inset 0 0 1px #ff5500;
+}
+
+select:focus {
+	/* In Webkit, select boxes don't accept box-shadow. Outline-style: auto
+	   kills the outline in FF, which is ok, because we re-created it (better)
+	   using a box-shadow (for non-system-style select boxes. FF ignores outline
+	   declarations for system-style select boxes, and uses system blue (Mac). Hey-ho.) */
+	outline: #639ACA auto 6px;
+	-moz-outline-color: #639ACA; 
+	outline-offset: -3px;
+}
+
+.error select {
+	outline: #ff5500 auto 6px;
+	-moz-outline-color: #ff5500; 
+	outline-offset: -3px;
+}
+
+.error select:focus {
+	outline: #ff5500 auto 6px;
+	-moz-outline-color: #ff5500; 
+	outline-offset: -3px;
+}
+
+.error_label {
+	line-height: 1.6667;
+	color: #dd3300;
+}
+
+
+/* Submit, reset and button inputs.
+   
+   Use pure attribute selectors because they are weak, and classes
+   are able to override them. Pure attribute selectors are a known
+   performance drag, so keep them to a minimum. */
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
+	width: auto;
+	opacity: 1;
+	text-indent: 0;
+	vertical-align: baseline;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+.error [type="button"],
+.error [type="reset"],
+.error [type="submit"] {
+	/* Negate error styles applied to inputs. */ 
+	-webkit-box-shadow: none;
+	   -moz-box-shadow: none;
+			box-shadow: none;
+}
+
+
+
+/* Range inputs.
+   
+   In WebKit, tracks and handles are styleable by setting
+   -webkit-appearance, however a value of slider-horizontal on the
+   input will overlay a default handle even when ::-webkit-slider-thumb
+   is set to none.
+   
+   Vertical sliders are considered to be an appearance of slider-vertical,
+   making them impossible to style non-natively (which requires
+   -webkit-appearance: none). Another approach would be to take a
+   horizontal slider and transform: rotate it. Opera correctly displays
+   a vertical slider when width < height. WebKit does not like % heights
+   on vertical range inputs.
+   
+   Opera styles range sliders completely differently from WebKit,
+   unfortunately. Where WebKit uses the input box as the track, and
+   you can style the track by styling the input, Opera renders the
+   track inside the input box. That would be fine, but Opera also has
+   an unchangeable overflow: hidden on the input box, so if you make it
+   small to style the WebKit track, it truncates the handle in Opera.
+   
+   The clever FF4 replacement technique for making range inputs, 
+   http://frankyan.com/labs/html5slider/, results in a similar rendering,
+   so I have come to regard it as the standard approach. Therefore,
+   to style the track in WebKit I use not the input box, but a
+   border-image or background-image inside the input box.
+   
+   In Opera, range inputs have a max-width of 160px when their width
+   is supplied by %, a limit you can't change. In fact percentages
+   other than 100% cause some odd behaviour, where the track is sized
+   but the input box remains at 100%. Setting inputs to display: block
+   resolves all these problems.
+   
+   Opera responds to :before and :after content on inputs where WebKit
+   and FF do not. So far I haven't found that useful. I just thought
+   it was worth mentioning.
+   
+   I think the overall moral of the story is: kill any designer who
+   suggests applying style to range inputs.
+*/
+
+/*input[type="range"] {
+  -webkit-appearance: none !important;
+  
+  cursor: pointer;
+  
+  background-color: transparent;
+  
+  /* Shows up in webkit, but not Opera */
+  /*-webkit-border-image: url('images/range2.png') 6 5 6 5 stretch stretch;
+		  border-image: url('images/range2.png') 6 5 6 5 stretch stretch;
+  
+  /* I don't know why this doesn't show up in Opera,
+	 but it doesn't. This is going to bite us in the future, though. */
+  /*border-left-width: 5px;
+  border-right-width: 5px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  
+  cursor: pointer;
+  
+  background: -webkit-linear-gradient( rgb(247,247,247), rgb(140,140,140) );
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgb(247,247,247)), color-stop(100%,rgb(140,140,140)));
+  
+  width: 10px;
+  height: 10px;
+  
+  -webkit-border-radius: 0.6em;
+	 -moz-border-radius: 0.6em;
+		  border-radius: 0.6em;
+  
+  -webkit-box-shadow: 0 1px 1px rgba(0,0,0,0.6), inset 0 -3px 6px rgba(204,204,204,1);
+	 -moz-box-shadow: 0 1px 1px rgba(0,0,0,0.6), inset 0 -3px 6px rgba(204,204,204,1);
+	   -o-box-shadow: 0 1px 1px rgba(0,0,0,0.6), inset 0 -3px 6px rgba(204,204,204,1);
+		  box-shadow: 0 1px 1px rgba(0,0,0,0.6), inset 0 -3px 6px rgba(204,204,204,1);
+}*/
+
+input[type="range"].y_range {
+	-webkit-appearance: slider-vertical !important;
+	
+	border-width: 0;
+	
+	height: 100%;
+	min-height: 32px;
+	width: 20px;
+}
+
+input[type="range"].y_range::-webkit-slider-thumb {
+  -webkit-appearance: sliderthumb-vertical !important;
+}
+
+
+/* Placeholders. */
+input::-webkit-input-placeholder {
+	/* No worky in WebKit ~2011. It was a bug:
+	 https://bugs.webkit.org/show_bug.cgi?id=54797 */
+	line-height: inherit;
+}
+
+input:-moz-placeholder {
+	line-height: inherit;
+}
+
+/* Simulate placeholder attribute with a label layered
+   over the top of the inputs. */
+
+.placeholder {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 0;
+	font-weight: normal;
+	opacity: 0.5;
+	text-align: left;
+	color: #666666;
+	/* Put it above imputs. */
+	z-index: 3;
+}
+
+input + .placeholder,
+textarea + .placeholder,
+input.empty:focus + .placeholder,
+textarea.empty:focus + .placeholder {
+	display: none;
+}
+
+input.empty + .placeholder,
+textarea.empty + .placeholder {
+	display: block;
+}
+
+
+/* Layout */
+
+/* .custom inputs must be followed by a styled label
+   that references them by for="id". */
+
+.custom_input {
+	/* We have to take it out of the flow and make it
+	   invisible, rather than adding display: none,
+	   because display: none stops keyboard from being
+	   able to focus it */
+	opacity: 0;
+	position: absolute;
+	left: -10000px;
+}
+
+
+/* form */
+
+.action_form {
+	padding-right: 3em;
+}
+
+.action_form > input,
+.action_form > .submit_button {
+	vertical-align: top;
+}
+
+.action_form > input {
+	position: relative;
+	width: 100%;
+	margin-right: -100%;
+	left: 0;
+}
+
+.action_form > .submit_button {
+	width: 3em;
+	margin-right: -3em;
+	padding-left: 0;
+	padding-right: 0;
+	left: 100%;
+}
