@@ -7,8 +7,24 @@ body {
 	max-width: 40rem;
 }
 
+pre,
+code {
+	font-family: 'Fira Mono';
+	font-weight: 400;
+}
+
 pre {
 	margin: 0;
+}
+
+code {
+	color: #444444;
+	font-size: 0.875rem;
+	padding: 2px;
+	padding-top: 3px;
+	border: 1px solid #e0e0e0;
+	background-color: #efefef;
+	border-radius: 4px;
 }
 
 .html-code,
