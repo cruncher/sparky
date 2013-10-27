@@ -1,3 +1,91 @@
-[data-template] {
-	display: none;
+body {
+	padding-top: 3rem;
+	padding-bottom: 3rem;
+}
+
+.site-wrap {
+	max-width: 40rem;
+}
+
+input {
+	max-width: 20rem;
+	border: 1px solid black;
+}
+
+h3 {
+	color: #666666;
+}
+
+h3 > strong {
+	color: #333333;
+}
+
+.state-0 {
+	background-color: yellow;
+}
+.state-1 {
+	background-color: orange;
+}
+.state-2 {
+	background-color: red;
+}
+
+.sparky-block {
+	width: 30rem;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+}
+
+
+
+
+script.visible {
+	font-size: 0.875rem;
+	width: 40rem;
+	display: block !important;
+	white-space: pre;
+	font-family: 'Andale Mono', monospace; 
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	background-color: #dee2e8;
+	overflow: hidden;
+	height: 100%;
+}
+
+.example-table th,
+.example-table td {
+	vertical-align: top;
+	margin: 0;
+	padding: 0;
+}
+
+.example-table th.html-td,
+.example-table td.html-td {
+	width: 100%;
+}
+
+.template-block {
+	width: 32rem;
+	overflow: auto;
+	height: 100%;
+}
+
+.template-block > pre {
+	font-size: 0.875rem;
+	font-family: 'Andale Mono', monospace; 
+	width: 60rem;
+	height: 100%;
+	overflow: auto;
+	text-align: left;
+	white-space: pre;
+	color: #b7babc;
+	background-color: #141617;
+	overflow: scroll;
+	padding-top: 1.5rem;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	margin-top: 0;
+	margin-bottom: 0;
 }

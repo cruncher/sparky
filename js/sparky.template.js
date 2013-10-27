@@ -30,77 +30,107 @@
 	
 	var debug = window.console && console.log ;
 	
+	// For debugging
+	var nodeCount = 0;
+	var textCount = 0;
+
 	var attributes = [
 		'href',
 		'title',
 		'id',
-		'class',
 		'style',
-		'value'
+		'value',
+		'src',
+		'alt'
 	];
 
 	var rname = /\{\{\s*([a-z]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
 	var filterCache = {};
 
-	// For debugging
-	var nodeCount = 0;
-	var textCount = 0;
-
 	var types = {
-		1: function domNode(node, bind, unbind, get) {
-			var a = attributes.length,
-			    unobservers = [],
-			    attribute, value;
+	    	1: domNode,
+	    	3: textNode,
+	    	11: fragmentNode
+	    };
+	
+	function domNode(node, bind, unbind, get) {
+		var unobservers = [];
 
-			while (a--) {
-				attribute = attributes[a];
-				value = node.getAttribute(attribute);
-
-				if (!value) { continue; }
-				
-				unobservers.push(bindAttribute(node, attribute, value, bind, unbind, get));
-			}
-
-			var children = node.childNodes,
-			    n = -1, 
-			    l = children.length,
-			    child;
-
-			// Loop forwards through the children
-			while (++n < l) {
-				child = children[n];
-				if (types[child.nodeType]) {
-					unobservers = unobservers.concat(types[child.nodeType](child, bind, unbind, get));
-				}
-			}
-
-			nodeCount++;
-
-			return unobservers;
-		},
-
-		3: function textNode(node, bind, unbind, get) {
-			var detachFn = bindText(node, bind, unbind, get);
-
-			textCount++;
-
-			return [detachFn];
-		}
-	};
-
-	function bindAttribute(node, attribute, value, bind, unbind, get) {
-		return observeProperties(value, bind, unbind, get, function(text) {
-			node.setAttribute(attribute, text);
-		});
+		bindClasses(node, bind, unbind, get, unobservers);
+		bindAttributes(node, bind, unbind, get, unobservers);
+		bindNodes(node, bind, unbind, get, unobservers);
+		
+		nodeCount++;
+		return unobservers;
 	}
 
-	function bindText(node, bind, unbind, get) {
-		var innerText = node.innerText ? 'innerText' : 'textContent';
-		
-		return observeProperties(node[innerText], bind, unbind, get, function(text) {
-			node[innerText] = text;
+	function textNode(node, bind, unbind, get) {
+		textCount++;
+
+		//var innerText = node.textContent === undefined ? 'innerText' : 'textContent' ;
+		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+			node.nodeValue = text;
 		});
+
+		return [detachFn];
+	}
+	
+	function fragmentNode(node, bind, unbind, get) {
+		var unobservers = [];
+		
+		bindNodes(node, bind, unbind, get, unobservers);
+		nodeCount++;
+		return unobservers;
+	}
+	
+	
+	function bindNodes(node, bind, unbind, get, unobservers) {
+		var nodes = node.childNodes,
+		    n = -1, 
+		    l = nodes.length,
+		    child;
+
+		// Loop forwards through the children
+		while (++n < l) {
+			child = nodes[n];
+			
+			console.log(child.nodeType, child, !!child, child.tagName);
+			
+			if (types[child.nodeType]) {
+				Array.prototype.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get));
+			}
+		}
+	}
+
+	function bindClasses(node, bind, unbind, get, unobservers) {
+		var value = node.className;
+
+		if (!value) { return; }
+		
+		var classList = value.trim().split(/\s+/);
+		// TODO: only replace classes we've previously set here
+		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
+			node.className = text;
+		}));
+	}
+
+	function bindAttributes(node, bind, unbind, get, unobservers) {
+		var a = attributes.length;
+		
+		while (a--) {
+			bindAttribute(node, attributes[a], bind, unbind, get, unobservers);
+		}
+	}
+
+	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
+		var value = node.getAttribute(attribute);
+
+		if (!value) { return; }
+		
+		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
+			node[attribute] = text;
+		}));
 	}
 
 	function extractProperties(str) {
@@ -187,7 +217,7 @@
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
-		var unobservers = types[1](node, observe, unobserve, get);
+		var unobservers = types[node.nodeType](node, observe, unobserve, get);
 
 		if (debug) {
 			console.log('dom nodes:  ' + nodeCount);

@@ -5,7 +5,7 @@
 	<meta name="author" content="" />
 	<meta name="description" content="" />
 	
-	<title>Bolt</title>
+	<title>Sparky</title>
 	
 	<script>document.documentElement.className = 'js';</script>
 	
@@ -31,39 +31,6 @@
 	<link rel="stylesheet" href="css/bolt.classes.css" />
 
 	<link rel="stylesheet" href="css/sparky.css" />
-
-	<style>
-		body {
-			padding: 3rem;
-		}
-		
-		.site-wrap {
-			max-width: 40rem;
-		}
-		
-		input {
-			max-width: 20rem;
-			border: 1px solid black;
-		}
-		
-		.state-0 {
-			background-color: yellow;
-		}
-		.state-1 {
-			background-color: orange;
-		}
-		.state-2 {
-			background-color: red;
-		}
-		
-		.sparky-block {
-			width: 30rem;
-			padding-top: 1rem;
-			padding-bottom: 1rem;
-			border-top: 1px solid black;
-			border-bottom: 1px solid black;
-		}
-	</style>
 </head>
 
 <body>
@@ -72,37 +39,28 @@
 	<h1>Sparky</h1>
 	
 	<h3>
-		<strong>Sparky is a model-agnostic live data binding view layer for your html app.</strong>
-		Sparky enhances the existing DOM without replacing nodes,
-		renders multiple changes together at the browser framerate, and
-		renders data through Django template style filters.
-		It's also fast and light-weight, weighing in at under 10K compressed.
+		<strong>Sparky is a model-agnostic live data binding view layer for your html5 app.</strong>
+		Sparky enhances the existing DOM with declarative data bindings,
+		passes data properties through Django-style template filters
+		and renders multiple changes in batches on browser frames.
+		
+		It's fast and light-weight, weighing in at under 10K compressed.
 	</h3>
 	
-	<!--h4>Features</h4>
+	<h2>Try it.</h2>
+	
+	<p>Open the console and try changing the properties of <code>data</code>, like, say:</p>
 	
 	<ul>
-		<li><strong>The DOM don't change.</strong> Sparky updates the existing DOM tree live when your data changes - nodes are not removed or replaced, so you can attach event listeners to them without fear.</li>
-		<li><strong>Enhances existing HTML*.</strong> Render html on the server, enhance it with Sparky.</li>
-		<li><strong>Declarative data binding.</strong> HTML data attributes tell Sparky what data to observe.</li>
-		<li><strong>Template filters.</strong> Django template syntax for manipulating text, numbers, dates and lists.</li>
+		<li><code>data.name = 'Sparky'</code>
+		<li><code>data.date = new Date()</code>
+		<li><code>data.list = ['Sparky', 'loves', 'you']</code>
+		<li><code>data.state = 1</code>
+		<li><code>data.number = 4</code>
 	</ul>
 	
-	<p>*I can't believe I even have to list this as a feature, but some libraries prefer a JS-rendered DOM, so it seems noteable.</p-->
-	
-	<h2>Try it</h2>
-	
-	<p>
-		Open the console and try changing the properties of <code>data</code> to be rendered into the template below. You could try, say...
-		<ul>
-			<li><code>data.name = 'Sparky'</code>
-			<li><code>data.date = new Date()</code>
-			<li><code>data.list = ['Sparky', 'loves', 'you']</code>
-			<li><code>data.state = 1</code>
-			<li><code>data.number = 4</code>
-		</ul>
-	</p>
-	
+	<p>Changes cause this unrendered template to update...</p>
+
 	<div class="sparky-block state-{{ state }}" data-data="data" id="template1">
 		<p>Hello {{ name }}.</p>
 		<p>It's {{ date | date: 'H:i' }} on the {{ date | date: 'dS F'}}.</p>
@@ -129,11 +87,51 @@
 			</tr>
 		</table>
 	</div>
+	
+	<p>All that was done by adding the attribute <code>data-data="data"</code></p>
+	
+	<h2>But I don't want to render directly from my data model.</h2>
+	
+	<p>
+		Sparky allows you to define a view function.
+		If that function returns an object then that object is used as the rendering context instead of the data object.
+		Here's a view function for a clock that updates every second.
+	</p>
+	
+	<pre>
+sparky.views.clock = function(node, data) {
+    var context = {};
+    
+    function update() {
+        context.time = new Date()
+    }
+    
+    setInterval(update, 1000);
+    update();
+    
+    // Use the context object as the rendering context.
+    return context;
+}
+	</pre>
+
+	<p>Add the attribute <code>data-view="clock"</code> to the template and Sparky calls this view.</p>
+
+	<div class="sparky-block block" data-view="clock" data-data="data" id="template2">
+		<p>{{ time | date: 'H:i.s' }}</p>
+	</div>
+
+	<p>
+		That view function is passed the node and the data object.
+		The <code>data</code> object is found at the path in the <code>data-data="path.to.data"</code> attribute.
+		This is where you put your data 'model': <code>sparky.data.path.to.data = {};</code>
+		If <code>data-data=""</code> is an emtpy string, the root data object, <code>sparky.data</code>, is returned.
+		If nothing is found, or where there is no <code>data-data</code> attribute, the data object is undefined.
+	</p>
 </div>
 
-<!--input value="{{value}}" data-app="input" data-context="input"/-->
 
 <script src="js/jquery-2.0.0b2.js"></script>
+<script src="js/window.requestanimationframe.js"></script>
 <!--script src="js/app.js"></script-->
 <script src="js/observe.js"></script>
 
@@ -157,9 +155,117 @@
 	sparky.data = {
 		data: window.data
 	};
+
+sparky.views = {};
+	
+sparky.views.clock = function(node, data) {
+	var context = {};
+	
+	function update() {
+		context.time = 1;//new Date()
+	}
+	
+	//setInterval(update, 1000);
+	update();
+	
+	return context;
+}
 	
 	sparky();
 </script>
+
+
+<table class="example-table" cellpadding="0" cellspacing="0">
+	<thead>
+		<tr>
+			<th>JS</th>
+			<th>HTML</th>
+			<th class="html-td">Result</th>
+			<th>Try</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>
+				<div class="template-block">
+					<script class="visible">
+(function(sparky) {
+    sparky.data.weather = {};
+
+    sparky.views['weather-block'] = function(node, data, destroy) {
+    	var elem = jQuery(node);
+    	
+    	elem.on('click', '.close-button', destroy);
+    };
+})(sparky);
+					</script>
+				</div>
+			</td>
+			<td>
+				<div class="template-block block">
+					<pre>
+<span style="color:#cc6666;">&lt;div </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather-block block&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-view</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather-block&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-data</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-template</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;#example-template&quot;</span><span style="color:#cc6666;"> &gt;</span>
+    <span style="color:#cc6666;">&lt;p&gt;</span>Loading...<span style="color:#cc6666;">&lt;/p&gt;</span>
+<span style="color:#cc6666;">&lt;/div&gt;</span>
+
+<span style="color:#cc6666;">&lt;template </span><span style="color:#de935f;">id</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;example-template&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;n{{temp|parseint}}-degrees&quot;</span><span style="color:#cc6666;">&gt;</span>
+    <span style="color:#cc6666;">&lt;p&gt;</span>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.<span style="color:#cc6666;">&lt;/p&gt;</span>
+    <span style="color:#cc6666;">&lt;img </span><span style="color:#de935f;">src</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;</span><span style="color:#636cff;">{{ url }}</span><span style="color:#b5bd68;">&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">alt</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;{{ description }}&quot;</span><span style="color:#cc6666;"> /&gt;</span>
+    <span style="color:#cc6666;">&lt;button </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;close-button button&quot;</span><span style="color:#cc6666;">&gt;</span>Close<span style="color:#cc6666;">&lt;/button&gt;</span>
+<span style="color:#cc6666;">&lt;/template&gt;</span>
+					</pre>
+				</div>
+			</td>
+			<td class="html-td">
+				<div class="weather-block block" data-view="weather-block" data-data="weather" data-template="example-template" >
+					<p>Loading...</p>
+				</div>
+				
+				<template id="example-template" class="n{{temp|parseint}}-degrees">
+					<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
+					<img src="{{ url }}" alt="{{ description }}" />
+					<button class="close-button button">Close</button>
+				</template>
+			</td>
+			<td>
+<button id="init-button">Initialize <code>sparky.data.weather</code></button>
+<script>
+	jQuery(document).ready(function() {
+		jQuery('#init-button').on('click', function() {
+			jQuery.extend(sparky.data.weather, {
+				temp: 8,
+				feel: 'cold',
+				date: new Date(),
+				url: 'images/guesswhere.jpg',
+				description: 'Guess where at guess@cruncher.ch.'
+			});
+		});
+	});
+</script>
+			</td>
+		</tr>
+
+	</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--input value="{{value}}" data-app="input" data-context="input"/-->
+
+
 
 </body>
 </html>

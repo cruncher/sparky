@@ -24,6 +24,8 @@
 // such as {{ prop }}.
 
 (function(jQuery, undefined){
+	"use strict";
+	
 	var debug = true,//false,
 	    
 	    doc = jQuery(document),
@@ -31,6 +33,10 @@
 	    rcomment = /\{\%\s*.+?\s*\%\}/g,
 	    rtag = /\{\{\s*(\w+)\s*\}\}/g;
 	
+	var map = Array.prototype.map;
+	var reduce = Array.prototype.reduce;
+	
+	function noop() {}
 	
 	// Pure functions
 	
@@ -40,6 +46,68 @@
 	
 	function isObject(obj) {
 		return obj instanceof Object;
+	}
+	
+	function returnArg(n) {
+		return n;
+	}
+	
+	// Feature detection
+	
+	function identify(node) {
+		var id = node.id;
+
+		if (!id) {
+			do { id = Math.ceil(Math.random() * 100000); }
+			while (document.getElementById(id));
+			node.id = id;
+		}
+
+		return id;
+	}
+	
+	function append(parent, child) {
+		parent.appendChild(child);
+		return parent;
+	}
+	
+	function replace(parent, child) {
+		// Remove all children.
+		while (parent.lastChild) {
+			parent.removeChild(parent.lastChild);
+		}
+		
+		// Append the template fragment.
+		parent.appendChild(child);
+		return parent;
+	}
+
+	function fragmentFromChildren(template) {
+		var children = map.call(template.childNodes, returnArg);
+		var fragment = document.createDocumentFragment();
+		return reduce.call(children, append, fragment);
+	}
+	
+	Sparky.features = {
+		template: 'content' in document.createElement('template')
+	};
+
+	var templateContent = Sparky.templateContent = Sparky.features.template ?
+		function(template) {
+			return template.content;
+		} : (function() {
+			var cache = {};
+
+			return function(template) {
+				var id = identify(template);
+				
+				return cache[id] ||
+					(cache[id] = fragmentFromChildren(template));
+			}
+		})() ;
+	
+	function cloneTemplate(template) {
+		return templateContent(template).cloneNode(true);
 	}
 	
 	
@@ -82,10 +150,31 @@
 		var view = viewPath && objFromPath(views, viewPath);
 		var data = dataPath ? objFromPath(datas, dataPath) : datas;
 		var context, untemplate;
+		var templateId = node.getAttribute('data-template');
+		var templateNode = templateId && document.getElementById(templateId);
+		var templateFragment = templateNode && cloneTemplate(templateNode);
 		
+		function insertTemplate() {
+			// Wait until the data is rendered ont he next animation frame
+			requestAnimationFrame(function() {
+				replace(node, templateFragment);
+			});
+			
+			insertTemplate = noop;
+		};
+
+		function insert() {
+			insertTemplate(node, templateFragment);
+		}
+
 		function observe(property, fn) {
 			//console.log('observing', context, property);
 			sparky.observe(context, property, fn);
+			
+			if (templateFragment) {
+				console.log(property);
+				sparky.observe(context, property, insert);
+			}
 		}
 		
 		function unobserve(property, fn) {
@@ -113,14 +202,15 @@
 		context = view && view(node, data, destroy) || data;
 		
 		console.log('context:', context);
+		console.log('template:', templateId);
 		
 		// The template function returns an untemplate function
-		untemplate = sparky.template(node, observe, unobserve, get);
+		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
 	}
 	
 	// Expose
 	
-	function App(node, settings) {
+	function Sparky(node, settings) {
 		// Accept a selector as the first argument
 		if (typeof node === 'string') {
 			node = jQuery(node)[0];
@@ -133,26 +223,26 @@
 		doc.ready(function(){
 			if (debug) var start = Date.now();
 			
-			jQuery('[data-template]', node).each(function() {
-				setupTemplate(templates, this);
-			});
+			//jQuery('[data-template]', node).each(function() {
+			//	setupTemplate(templates, this);
+			//});
 
-			jQuery('[data-data]', node).each(function() {
-				if (debug) { console.group('[sparky] template node', this.id); }
+			jQuery('[data-view], [data-data]', node).each(function() {
+				if (debug) { console.groupCollapsed('[sparky] template', this); }
 				
-				setupView(App.data, App.views, this, settings);
+				setupView(Sparky.data, Sparky.views, this, settings);
 				
 				if (debug) { console.groupEnd(); }
 			});
 			
-			if (debug) console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
+			console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
 		});
 	};
 	
 	if (window.require) {
-		module.exports = App;
+		module.exports = Sparky;
 	}
 	else {
-		window.sparky = App;
+		window.sparky = Sparky;
 	}
 })(jQuery);

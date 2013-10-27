@@ -16,6 +16,11 @@
 
 /* html5 */
 
+/* This is very important. We give his the strongest possible selector. */
+html > body template {
+	display: none !important;
+}
+
 article,
 aside,
 details,

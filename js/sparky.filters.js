@@ -159,6 +159,10 @@
 			return this * n;
 		},
 		
+		parseint: function() {
+			return parseInt(this, 10);
+		},
+		
 		//phone2numeric
 
 		pluralize: function() {
