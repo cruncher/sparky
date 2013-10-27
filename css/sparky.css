@@ -7,6 +7,120 @@ body {
 	max-width: 40rem;
 }
 
+pre {
+	margin: 0;
+}
+
+.html-code,
+.js-code {
+	font-size: 0.875rem;
+	overflow: auto;
+	padding: 1.5rem;
+	white-space: pre;
+}
+
+.html-block,
+.html-code {
+	color: #D1DDDF;
+	background-color: rgb(37, 65, 73);
+}
+
+.js-block,
+.js-code {
+	color: #081D24;
+	background-color: rgb(206, 214, 216);
+}
+
+.js-block > .js-code {
+	border-bottom: 1px solid white;
+}
+
+.run-code {
+	position: relative;
+	cursor: pointer;
+}
+
+.run-code:hover {
+	background-color: #D6DFE0;
+}
+
+.run-code:after {
+	position: absolute;
+	top: 50%;
+	margin-top: -1.25rem;
+	right: 0.75rem;
+	content: 'Click to run ↦';
+	opacity: 0;
+	padding-top: 0.75rem;
+	padding-bottom: 0.75rem;
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+	line-height: 1rem;
+	color: white;
+	background-color: rgba(63, 80, 82, 0.8);
+	border-radius: 10rem;
+}
+
+.run-code:hover:after {
+	opacity: 1;
+}
+
+.html-block {
+	overflow: auto;
+}
+
+.html-code {
+	width: 60rem;
+}
+
+.view-block {
+	padding: 1.5rem;
+	background-color: rgb(235, 235, 235);
+}
+
+.view-block img {
+	width: 100%;
+}
+
+.col-block {
+	margin-top: 3rem;
+	margin-left: 1px;
+	margin-right: 1px;
+}
+
+.site-wrap + .col-block,
+.col-block + .site-wrap {
+	margin-top: 3rem;
+}
+
+.col-block > .block {
+	display: inline-block;
+	min-height: 28rem;
+}
+
+.n3-col-block {
+	padding-right: 3px;
+}
+
+.n3-col-block > .block {
+	width: 33.3333%;
+	height: 100%;
+}
+
+.n3-col-block > .block + .block {
+	margin-left: 1px;
+	margin-right: -1px;
+}
+
+.n3-col-block > .block + .block + .block {
+	margin-left: 2px;
+	margin-right: -2px;
+}
+
+
+
+
+
 input {
 	max-width: 20rem;
 	border: 1px solid black;
@@ -19,6 +133,11 @@ h3 {
 h3 > strong {
 	color: #333333;
 }
+
+
+
+
+
 
 .state-0 {
 	background-color: yellow;
@@ -38,20 +157,8 @@ h3 > strong {
 	border-bottom: 1px solid black;
 }
 
-
-
-
-script.visible {
-	font-size: 0.875rem;
-	width: 40rem;
-	display: block !important;
-	white-space: pre;
-	font-family: 'Andale Mono', monospace; 
-	padding-left: 1.5rem;
-	padding-right: 1.5rem;
-	background-color: #dee2e8;
-	overflow: hidden;
-	height: 100%;
+.example-table {
+	background-color: #efefef;
 }
 
 .example-table th,
@@ -70,22 +177,4 @@ script.visible {
 	width: 32rem;
 	overflow: auto;
 	height: 100%;
-}
-
-.template-block > pre {
-	font-size: 0.875rem;
-	font-family: 'Andale Mono', monospace; 
-	width: 60rem;
-	height: 100%;
-	overflow: auto;
-	text-align: left;
-	white-space: pre;
-	color: #b7babc;
-	background-color: #141617;
-	overflow: scroll;
-	padding-top: 1.5rem;
-	padding-left: 1.5rem;
-	padding-right: 1.5rem;
-	margin-top: 0;
-	margin-bottom: 0;
 }

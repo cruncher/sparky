@@ -62,7 +62,8 @@ a, abbr, acronym, address, code, time,
 del, dfn, em, img, q, dl, dt, dd, ol, ul, li,
 table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, dialog, figure, footer, header,
-hgroup, nav, section {
+hgroup, nav, section,
+:before, :after {
 	/* Here's what makes Bolt a little different. Border box.
 	   It'a a breath of fresh air to work with.
 
@@ -93,15 +94,13 @@ hgroup, nav, section {
 	background-repeat: no-repeat;
 }
 
-:before,
-:after {
-	/* Default to backgrounds that don't repeat. */
-	background-repeat: no-repeat;
-}
-
 body {
 	padding: 0;
 	margin: 0;
+	
+	-moz-tab-size: 4;
+	  -o-tab-size: 4;
+	     tab-size: 4;
 }
 
 p,

@@ -143,6 +143,7 @@ sparky.views.clock = function(node, data) {
 		name: '',
 		date: new Date(),
 		state: 4,
+		number: 2,
 		list: ['one', 'two', 'three']
 	};
 	
@@ -162,93 +163,120 @@ sparky.views.clock = function(node, data) {
 	var context = {};
 	
 	function update() {
-		context.time = 1;//new Date()
+		context.time = new Date()
 	}
 	
-	//setInterval(update, 1000);
+	setInterval(update, 1000);
 	update();
 	
 	return context;
-}
+};
+
+sparky.views.code = function(node, data) {
+	var elem = jQuery('#' + node.getAttribute('data-source'));
+	jQuery(node).text(elem.html().trim());
+};
+
+sparky.views.run = function(node, data) {
+	var fn = new Function(node.innerHTML);
+	jQuery(node).on('click', fn);
+};
 	
 	sparky();
 </script>
 
+<div class="site-wrap wrap">
+	<h2>Some more examples</h2>
+	<p>
+		Sparky can use a template to replace the content of a view node.
+		Here a <code>data-template</code> attribute refers to the id of a template,
+		and the template is rendered into the view node as soon as data becomes available:
+	</p>
+</div>
 
-<table class="example-table" cellpadding="0" cellspacing="0">
-	<thead>
-		<tr>
-			<th>JS</th>
-			<th>HTML</th>
-			<th class="html-td">Result</th>
-			<th>Try</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td>
-				<div class="template-block">
-					<script class="visible">
-(function(sparky) {
-    sparky.data.weather = {};
+<div class="n3-col-block col-block block">
+	<div class="html-block block">
+		<pre class="html-code" data-view="code" data-source="weather-html"></pre>
+	</div
+	><div class="js-block block">
+		<pre class="js-code run-code" data-view="run">
+jQuery.extend(sparky.data.weather, {
+	feel: 'cold',
+	date: new Date(),
+	url: 'images/rowan.jpg',
+	description: 'Rowan berries in the snow.'
+});</pre>
+		<pre class="js-code run-code" data-view="run">sparky.data.weather.feel = 'very chilly';</pre>
+		<pre class="js-code run-code" data-view="run">
+jQuery.extend(sparky.data.weather, {
+	feel: 'toasty',
+	url: 'images/guesswhere.jpg',
+	description: 'Beach. But where?'
+});</pre>
+	</div
+	><div class="view-block block" id="weather-html">
+<div data-data="weather" data-template="weather-template" >
+	<p>Loading...</p>
+</div>
 
-    sparky.views['weather-block'] = function(node, data, destroy) {
-    	var elem = jQuery(node);
-    	
-    	elem.on('click', '.close-button', destroy);
-    };
-})(sparky);
-					</script>
-				</div>
-			</td>
-			<td>
-				<div class="template-block block">
-					<pre>
-<span style="color:#cc6666;">&lt;div </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather-block block&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-view</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather-block&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-data</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;weather&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">data-template</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;#example-template&quot;</span><span style="color:#cc6666;"> &gt;</span>
-    <span style="color:#cc6666;">&lt;p&gt;</span>Loading...<span style="color:#cc6666;">&lt;/p&gt;</span>
-<span style="color:#cc6666;">&lt;/div&gt;</span>
+<template id="weather-template">
+	<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
+	<img src="{{ url }}" alt="{{ description }}" />
+</template>
 
-<span style="color:#cc6666;">&lt;template </span><span style="color:#de935f;">id</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;example-template&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;n{{temp|parseint}}-degrees&quot;</span><span style="color:#cc6666;">&gt;</span>
-    <span style="color:#cc6666;">&lt;p&gt;</span>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.<span style="color:#cc6666;">&lt;/p&gt;</span>
-    <span style="color:#cc6666;">&lt;img </span><span style="color:#de935f;">src</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;</span><span style="color:#636cff;">{{ url }}</span><span style="color:#b5bd68;">&quot;</span><span style="color:#cc6666;"> </span><span style="color:#de935f;">alt</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;{{ description }}&quot;</span><span style="color:#cc6666;"> /&gt;</span>
-    <span style="color:#cc6666;">&lt;button </span><span style="color:#de935f;">class</span><span style="color:#cc6666;">=</span><span style="color:#b5bd68;">&quot;close-button button&quot;</span><span style="color:#cc6666;">&gt;</span>Close<span style="color:#cc6666;">&lt;/button&gt;</span>
-<span style="color:#cc6666;">&lt;/template&gt;</span>
-					</pre>
-				</div>
-			</td>
-			<td class="html-td">
-				<div class="weather-block block" data-view="weather-block" data-data="weather" data-template="example-template" >
-					<p>Loading...</p>
-				</div>
-				
-				<template id="example-template" class="n{{temp|parseint}}-degrees">
-					<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
-					<img src="{{ url }}" alt="{{ description }}" />
-					<button class="close-button button">Close</button>
-				</template>
-			</td>
-			<td>
-<button id="init-button">Initialize <code>sparky.data.weather</code></button>
 <script>
-	jQuery(document).ready(function() {
-		jQuery('#init-button').on('click', function() {
-			jQuery.extend(sparky.data.weather, {
-				temp: 8,
-				feel: 'cold',
-				date: new Date(),
-				url: 'images/guesswhere.jpg',
-				description: 'Guess where at guess@cruncher.ch.'
-			});
-		});
-	});
+	sparky.data.weather = {};
 </script>
-			</td>
-		</tr>
+	</div>
+</div>
 
-	</tbody>
-</table>
+<div class="site-wrap wrap">
+	<p>
+		Here's that example again, but this time we have served the page with html and data already in place:
+	</p>
+</div>
 
+<div class="n3-col-block col-block block">
+	<div class="html-block block">
+		<pre class="html-code" data-view="code" data-source="weather2-html"></pre>
+	</div
+	><div class="js-block block">
+		<pre class="js-code run-code" data-view="run">
+jQuery.extend(sparky.data.weather2, {
+	feel: 'cold',
+	date: new Date(),
+	url: 'images/rowan.jpg',
+	description: 'Rowan berries in the snow.'
+});</pre>
+		<pre class="js-code run-code" data-view="run">sparky.data.weather2.feel = 'very chilly';</pre>
+		<pre class="js-code run-code" data-view="run">
+jQuery.extend(sparky.data.weather2, {
+	feel: 'toasty',
+	url: 'images/guesswhere.jpg',
+	description: 'Beach. But where?'
+});</pre>
+	</div
+	><div class="view-block block" id="weather2-html">
+<div data-data="weather2" data-template="weather-template" >
+	<p>It's the 27th October and it's cold outside.</p>
+	<img src="images/rowan.jpg" alt="Rowan berries in the snow." />
+</div>
 
+<template id="weather-template">
+	<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
+	<img src="{{ url }}" alt="{{ description }}" />
+</template>
+
+<script>
+	sparky.data.weather2 = {
+		feel: 'cold',
+		date: new Date(),
+		url: 'images/rowan.jpg',
+		description: 'Rowan berries in the snow.'
+	};
+</script>
+	</div>
+</div>
 
 
 

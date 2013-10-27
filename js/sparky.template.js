@@ -28,7 +28,7 @@
 (function(sparky) {
 	"use strict";
 	
-	var debug = window.console && console.log ;
+	var debug = sparky.debug;
 	
 	// For debugging
 	var nodeCount = 0;
@@ -95,8 +95,6 @@
 		while (++n < l) {
 			child = nodes[n];
 			
-			console.log(child.nodeType, child, !!child, child.tagName);
-			
 			if (types[child.nodeType]) {
 				Array.prototype.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get));
 			}
@@ -151,8 +149,6 @@
 	function toFilter(filter) {
 		var parts = rfilter.exec(filter);
 		
-		//console.log(parts[2].replace(/\'/g, '\"'));
-		
 		return {
 			fn: sparky.filters[parts[1]],
 			args: parts[2] && JSON.parse('[' + parts[2].replace(/\'/g, '\"') + ']')
@@ -200,6 +196,9 @@
 		properties.forEach(function attach(property) {
 			bind(property, change);
 		});
+		
+		// Start of with populated nodes.
+		change();
 		
 		// Return a function that unobserves properties
 		return function() {

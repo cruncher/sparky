@@ -26,7 +26,7 @@
 (function(jQuery, undefined){
 	"use strict";
 	
-	var debug = true,//false,
+	var debug = false,
 	    
 	    doc = jQuery(document),
 	    
@@ -168,17 +168,14 @@
 		}
 
 		function observe(property, fn) {
-			//console.log('observing', context, property);
 			sparky.observe(context, property, fn);
 			
 			if (templateFragment) {
-				console.log(property);
 				sparky.observe(context, property, insert);
 			}
 		}
 		
 		function unobserve(property, fn) {
-			//console.log('unobserving', context, property);
 			sparky.unobserve(context, property, fn);
 		}
 
@@ -194,15 +191,19 @@
 		//if (!view) { throw new Error('\'' + viewPath + '\' not found in app.views'); }
 		if (data === undefined) { throw new Error('\'' + dataPath + '\' not found in sparky.data'); }
 		
-		console.log('view:', viewPath);
-		console.log('data:', dataPath, data);
+		if (debug) {
+			console.log('view:', viewPath);
+			console.log('data:', dataPath, data);
+		}
 		
 		// If a context object is returned by the view, we use that, otherwise
 		// we use the data object as context.
 		context = view && view(node, data, destroy) || data;
 		
-		console.log('context:', context);
-		console.log('template:', templateId);
+		if (debug) {
+			console.log('context:', context);
+			console.log('template:', templateId);
+		}
 		
 		// The template function returns an untemplate function
 		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
@@ -221,7 +222,7 @@
 		}
 
 		doc.ready(function(){
-			if (debug) var start = Date.now();
+			var start = Date.now();
 			
 			//jQuery('[data-template]', node).each(function() {
 			//	setupTemplate(templates, this);
@@ -238,6 +239,8 @@
 			console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
 		});
 	};
+	
+	Sparky.debug = debug;
 	
 	if (window.require) {
 		module.exports = Sparky;
