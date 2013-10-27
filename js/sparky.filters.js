@@ -155,7 +155,6 @@
 		//make_list 
 		
 		multiply: function(n) {
-			console.log(this, n, this * n);
 			return this * n;
 		},
 		

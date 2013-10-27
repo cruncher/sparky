@@ -138,24 +138,18 @@
 		return objTo(root, path.split('.'), obj);
 	}
 	
-	function setupTemplate(templates, node) {
-		objToPath(templates, node.getAttribute('data-template'), node);
-		node.removeAttribute('data-template');
-		node.parentNode.removeChild(node);
-	}
-	
 	function setupView(datas, views, node, settings) {
 		var viewPath = node.getAttribute('data-view');
 		var dataPath = node.getAttribute('data-data');
 		var view = viewPath && objFromPath(views, viewPath);
-		var data = dataPath ? objFromPath(datas, dataPath) : datas;
+		var data = isDefined(dataPath) && (objFromPath(datas, dataPath) || datas);
 		var context, untemplate;
 		var templateId = node.getAttribute('data-template');
 		var templateNode = templateId && document.getElementById(templateId);
 		var templateFragment = templateNode && cloneTemplate(templateNode);
 		
 		function insertTemplate() {
-			// Wait until the data is rendered ont he next animation frame
+			// Wait until the data is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
 			});
@@ -205,7 +199,10 @@
 			console.log('template:', templateId);
 		}
 		
-		// The template function returns an untemplate function
+		// If there's no data to bind, we need go no further.
+		if (!context) { return; }
+		
+		// The template function returns an untemplate function.
 		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
 	}
 	
@@ -223,10 +220,6 @@
 
 		doc.ready(function(){
 			var start = Date.now();
-			
-			//jQuery('[data-template]', node).each(function() {
-			//	setupTemplate(templates, this);
-			//});
 
 			jQuery('[data-view], [data-data]', node).each(function() {
 				if (debug) { console.groupCollapsed('[sparky] template', this); }
