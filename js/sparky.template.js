@@ -197,9 +197,6 @@
 			bind(property, change);
 		});
 		
-		// Start of with populated nodes.
-		change();
-		
 		// Return a function that unobserves properties
 		return function() {
 			properties.forEach(function detach(property) {

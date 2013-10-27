@@ -91,7 +91,7 @@
 	
 	<p>All that was done by adding the attribute <code>data-data="data"</code></p>
 	
-	<h2>But I don't want to render directly from my data model.</h2>
+	<h2>But... I don't want to render directly from a data model.</h2>
 	
 	<p>
 		Sparky allows you to define a view function.
@@ -99,23 +99,9 @@
 		Here's a view function for a clock that updates every second.
 	</p>
 	
-	<pre>
-sparky.views.clock = function(node, data) {
-    var context = {};
-    
-    function update() {
-        context.time = new Date()
-    }
-    
-    setInterval(update, 1000);
-    update();
-    
-    // Use the context object as the rendering context.
-    return context;
-}
-	</pre>
+	<pre data-view="code" data-source="clock-source"></pre>
 
-	<p>Add the attribute <code>data-view="clock"</code> to the template and Sparky calls this view.</p>
+	<p>Add the attribute <code>data-view="clock"</code> to a node, and Sparky calls this view function, passing in the node as the first argument.</p>
 
 	<div class="sparky-block block" data-view="clock" data-data="data" id="template2">
 		<p>{{ time | date: 'H:i.s' }}</p>
@@ -159,19 +145,6 @@ sparky.views.clock = function(node, data) {
 	};
 
 sparky.views = {};
-	
-sparky.views.clock = function(node, data) {
-	var context = {};
-	
-	function update() {
-		context.time = new Date()
-	}
-	
-	setInterval(update, 1000);
-	update();
-	
-	return context;
-};
 
 sparky.views.code = function(node, data) {
 	var elem = jQuery('#' + node.getAttribute('data-source'));
@@ -185,6 +158,21 @@ sparky.views.run = function(node, data) {
 };
 	
 	sparky();
+</script>
+
+<script id="clock-source">
+sparky.views.clock = function(node, data) {
+	var context = {};
+	
+	function update() {
+		context.time = new Date()
+	}
+	
+	setInterval(update, 1000);
+	update();
+	
+	return context;
+};
 </script>
 
 <div class="site-wrap wrap">

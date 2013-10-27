@@ -164,6 +164,9 @@
 		function observe(property, fn) {
 			sparky.observe(context, property, fn);
 			
+			// Start off with populated nodes
+			fn();
+			
 			if (templateFragment) {
 				sparky.observe(context, property, insert);
 			}
