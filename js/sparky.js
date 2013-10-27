@@ -55,8 +55,21 @@
 		return obj instanceof Object;
 	}
 	
+	// DOM helpers
 	
-	// Feature detection
+	function trigger(target, type) {
+		var e;
+		
+		if (document.createEventObject) {
+			e = document.createEventObject(window.event);
+			target.fireEvent('on' + type, e);
+		}
+		else {
+			e = document.createEvent('Event');
+			e.initEvent(type, true, true, null);
+			target.dispatchEvent(e);
+		}
+	}
 	
 	function append(parent, child) {
 		parent.appendChild(child);
@@ -141,6 +154,7 @@
 			// Wait until the data is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
+				trigger(node, 'sparkytemplated');
 			});
 			
 			insertTemplate = noop;
@@ -171,6 +185,8 @@
 		
 		function destroy() {
 			untemplate && untemplate();
+			untemplate = false;
+			trigger(node, 'sparkydestroyed');
 		}
 		
 		//if (debug) console.log('[app] view: "' + viewPath + (dataPath ? '" data: "' + dataPath + '"' : ''));
@@ -196,6 +212,8 @@
 		
 		// The template function returns an untemplate function.
 		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
+		
+		trigger(node, 'sparkyready');
 	}
 	
 	
