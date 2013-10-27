@@ -29,7 +29,8 @@
 	var doc = jQuery(document);
 	
 	var map = Array.prototype.map,
-	    reduce = Array.prototype.reduce;
+	    reduce = Array.prototype.reduce,
+	    slice = Array.prototype.slice;
 	
 	var rcomment = /\{\%\s*.+?\s*\%\}/g,
 	    rtag = /\{\{\s*(\w+)\s*\}\}/g;
@@ -54,9 +55,6 @@
 		return obj instanceof Object;
 	}
 	
-	function returnArg(n) {
-		return n;
-	}
 	
 	// Feature detection
 	
@@ -77,7 +75,7 @@
 	}
 
 	function fragmentFromChildren(template) {
-		var children = map.call(template.childNodes, returnArg);
+		var children = slice.apply(template.childNodes);
 		var fragment = document.createDocumentFragment();
 		return reduce.call(children, append, fragment);
 	}
@@ -200,43 +198,36 @@
 		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
 	}
 	
-	// Expose
 	
-	function Sparky(node, settings) {
-		// Accept a selector as the first argument
-		if (typeof node === 'string') {
-			node = jQuery(node)[0];
 
-			if (!node) {
-				throw new Error('Node not found from selector \'' + arguments[0] + '\'.');
-			}
-		}
+	doc.ready(function(){
+		var start = Date.now();
 
-		doc.ready(function(){
-			var start = Date.now();
-
-			jQuery('[data-view], [data-data]', node).each(function() {
-				if (debug) { console.groupCollapsed('[sparky] template', this); }
-				
-				setupView(Sparky.data, Sparky.views, this, settings);
-				
-				if (debug) { console.groupEnd(); }
-			});
+		jQuery('[data-view], [data-data]').each(function() {
+			if (debug) { console.groupCollapsed('[sparky] template', this); }
 			
-			console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
+			setupView(sparky.data, sparky.views, this);
+			
+			if (debug) { console.groupEnd(); }
 		});
-	};
+		
+		console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
+	});
 
-	Sparky.debug     = debug;
-	Sparky.views     = views;
-	Sparky.templates = templates;
-	Sparky.data      = data;
-	Sparky.features  = features;
+	// Expose
+
+	var sparky = {
+	    	debug: debug,
+	    	data: data,
+	    	views: views,
+	    	templates: templates,
+	    	features: features
+	    };
 
 	if (window.require) {
-		module.exports = Sparky;
+		module.exports = sparky;
 	}
 	else {
-		window.sparky = Sparky;
+		window.sparky = sparky;
 	}
 })(jQuery);
