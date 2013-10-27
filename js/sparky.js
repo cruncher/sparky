@@ -26,15 +26,21 @@
 (function(jQuery, undefined){
 	"use strict";
 	
-	var debug = false,
-	    
-	    doc = jQuery(document),
-	    
-	    rcomment = /\{\%\s*.+?\s*\%\}/g,
+	var doc = jQuery(document);
+	
+	var map = Array.prototype.map,
+	    reduce = Array.prototype.reduce;
+	
+	var rcomment = /\{\%\s*.+?\s*\%\}/g,
 	    rtag = /\{\{\s*(\w+)\s*\}\}/g;
 	
-	var map = Array.prototype.map;
-	var reduce = Array.prototype.reduce;
+	var debug     = false;
+	var views     = {};
+	var templates = {};
+	var data      = {};
+	var features  = {
+	    	template: 'content' in document.createElement('template')
+	    };
 	
 	function noop() {}
 	
@@ -53,18 +59,6 @@
 	}
 	
 	// Feature detection
-	
-	function identify(node) {
-		var id = node.id;
-
-		if (!id) {
-			do { id = Math.ceil(Math.random() * 100000); }
-			while (document.getElementById(id));
-			node.id = id;
-		}
-
-		return id;
-	}
 	
 	function append(parent, child) {
 		parent.appendChild(child);
@@ -88,26 +82,24 @@
 		return reduce.call(children, append, fragment);
 	}
 	
-	Sparky.features = {
-		template: 'content' in document.createElement('template')
-	};
-
-	var templateContent = Sparky.templateContent = Sparky.features.template ?
-		function(template) {
-			return template.content;
-		} : (function() {
-			var cache = {};
-
-			return function(template) {
-				var id = identify(template);
-				
-				return cache[id] ||
-					(cache[id] = fragmentFromChildren(template));
-			}
-		})() ;
+	function getTemplate(id) {
+		var node = document.getElementById(id);
+		
+		if (!node) { return; }
+		
+		// A template tag has a content property that gives us a document
+		// fragment. If that doesn't exist we must make a document fragment.
+		return node.content || fragmentFromChildren(node);
+	}
 	
-	function cloneTemplate(template) {
-		return templateContent(template).cloneNode(true);
+	function fetchTemplate(id) {
+		var template = templates[id] || (templates[id] = getTemplate(id));
+		
+		if (debug && !template) {
+			console.warn('[sparky] template #' + id + ' not found.');
+		}
+
+		return template && template.cloneNode(true);
 	}
 	
 	
@@ -143,10 +135,9 @@
 		var dataPath = node.getAttribute('data-data');
 		var view = viewPath && objFromPath(views, viewPath);
 		var data = isDefined(dataPath) && (objFromPath(datas, dataPath) || datas);
-		var context, untemplate;
 		var templateId = node.getAttribute('data-template');
-		var templateNode = templateId && document.getElementById(templateId);
-		var templateFragment = templateNode && cloneTemplate(templateNode);
+		var templateFragment = templateId && fetchTemplate(templateId);
+		var context, untemplate;
 		
 		function insertTemplate() {
 			// Wait until the data is rendered on the next animation frame
@@ -235,9 +226,13 @@
 			console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
 		});
 	};
-	
-	Sparky.debug = debug;
-	
+
+	Sparky.debug     = debug;
+	Sparky.views     = views;
+	Sparky.templates = templates;
+	Sparky.data      = data;
+	Sparky.features  = features;
+
 	if (window.require) {
 		module.exports = Sparky;
 	}

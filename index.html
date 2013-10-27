@@ -140,22 +140,18 @@
 		return data[property];
 	};
 	
-	sparky.data = {
-		data: window.data
+	sparky.data.data = window.data;
+
+	sparky.views.code = function(node, data) {
+		var elem = jQuery('#' + node.getAttribute('data-source'));
+		
+		jQuery(node).text(elem.html().trim());
 	};
-
-sparky.views = {};
-
-sparky.views.code = function(node, data) {
-	var elem = jQuery('#' + node.getAttribute('data-source'));
 	
-	jQuery(node).text(elem.html().trim());
-};
-
-sparky.views.run = function(node, data) {
-	var fn = new Function(node.innerHTML);
-	jQuery(node).on('click', fn);
-};
+	sparky.views.run = function(node, data) {
+		var fn = new Function(node.innerHTML);
+		jQuery(node).on('click', fn);
+	};
 	
 	sparky();
 </script>
