@@ -135,6 +135,18 @@ code {
 
 
 
+/* .thumb */
+
+.logo-thumb {
+	display: block;
+	width: 329px;
+	padding-top: 443px;
+	margin-left: auto;
+	margin-right: auto;
+	background-image: url('../images/logo.png');
+}
+
+
 
 
 input {
