@@ -221,11 +221,13 @@
 		}
 		
 		return function untemplate() {
+			var l = unobservers.length;
+			
 			while (l--) {
 				unobservers[l]();
 			}
 		};
 	}
 
-	sparky.template = traverse;
+	sparky.bind = traverse;
 })(window.sparky || require('sparky'));

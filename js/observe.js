@@ -118,4 +118,4 @@
 	
 	ns.observe = observe;
 	ns.unobserve = unobserve;
-})(window);
+})(window.sparky || window);

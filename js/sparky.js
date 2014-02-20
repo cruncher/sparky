@@ -44,7 +44,7 @@
 	    };
 	
 	function noop() {}
-	
+
 	// Pure functions
 	
 	function isDefined(val) {
@@ -53,6 +53,26 @@
 	
 	function isObject(obj) {
 		return obj instanceof Object;
+	}
+
+	// Object helpers
+
+	function extend(obj) {
+		var i = 0,
+		    length = arguments.length,
+		    obj2, key;
+
+		while (++i < length) {
+			obj2 = arguments[i];
+
+			for (key in obj2) {
+				if (obj2.hasOwnProperty(key)) {
+					obj[key] = obj2[key];
+				}
+			}
+		}
+
+		return obj;
 	}
 	
 	// DOM helpers
@@ -141,12 +161,24 @@
 		return objTo(root, path.split('.'), obj);
 	}
 	
-	function setupView(datas, views, node, settings) {
+	function setupView(node) {
 		var viewPath = node.getAttribute('data-view');
 		var dataPath = node.getAttribute('data-data');
-		var view = viewPath && objFromPath(views, viewPath);
-		var data = isDefined(dataPath) && (objFromPath(datas, dataPath) || datas);
-		var templateId = node.getAttribute('data-template');
+
+		sparky(node, dataPath, viewPath);
+	}
+
+	function sparky(node, dataPath, viewPath) {
+		var view = typeof viewPath === 'string' ? objFromPath(sparky.views, viewPath) : console.log('viewPath not a string') ;
+		var data = isDefined(dataPath) ?
+		    	typeof dataPath === 'string' ? 
+		    		dataPath === '' ?
+		    			sparky.data :
+		    			objFromPath(sparky.data, dataPath) :
+		    		dataPath :
+		    	undefined ;
+		
+		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
 		var context, untemplate;
 		
@@ -211,12 +243,10 @@
 		if (!context) { return; }
 		
 		// The template function returns an untemplate function.
-		untemplate = sparky.template(templateFragment || node, observe, unobserve, get);
+		untemplate = sparky.bind(templateFragment || node, observe, unobserve, get);
 		
 		trigger(node, 'sparkyready');
 	}
-	
-	
 
 	doc.ready(function(){
 		var start = Date.now();
@@ -224,7 +254,7 @@
 		jQuery('[data-view], [data-data]').each(function() {
 			if (debug) { console.groupCollapsed('[sparky] template', this); }
 			
-			setupView(sparky.data, sparky.views, this);
+			setupView(this);
 			
 			if (debug) { console.groupEnd(); }
 		});
@@ -234,13 +264,17 @@
 
 	// Expose
 
-	var sparky = {
-	    	debug: debug,
-	    	data: data,
-	    	views: views,
-	    	templates: templates,
-	    	features: features
-	    };
+	sparky.debug     = debug;
+	sparky.data      = data;
+	sparky.views     = views;
+	sparky.templates = templates;
+	sparky.features  = features;
+	sparky.template  = fetchTemplate;
+	sparky.extend    = extend;
+	
+	sparky.get       = function(data, property) {
+		return data[property];
+	};
 
 	if (window.require) {
 		module.exports = sparky;
