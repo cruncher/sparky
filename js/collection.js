@@ -22,9 +22,9 @@
 	function setListeners(data, i) {
 		if (!sub.on) { return; }
 		
-		sub
-		.on('change', this.trigger)
-		.on('destroy', this.remove);
+		//sub
+		//.on('change', this.trigger)
+		//.on('destroy', this.remove);
 	}
 
 	// Sort functions

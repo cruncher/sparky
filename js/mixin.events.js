@@ -13,7 +13,6 @@
 			types = types.split(/\s+/);
 			events = this.events || (this.events = {});
 			args = Array.prototype.slice.call(arguments, 2);
-			//args[0] = this;
 
 			while (type = types.shift()) {
 				if (events[type]) {
@@ -72,7 +71,7 @@
 		},
 
 		trigger: function(type) {
-			var listeners, i, l, args;
+			var listeners, i, l, args, argsLength;
 
 			if (!this.events || !this.events[type]) { return this; }
 
@@ -84,9 +83,14 @@
 			i = -1;
 			l = listeners.length;
 
+			args = arguments.length > 1 ?
+				Array.prototype.slice.call(arguments, 1) :
+				[] ;
+			
+			argsLength = args.length;
+
 			while (++i < l) {
-				args = Array.prototype.slice.call(arguments);
-				args[0] = this;
+				args.length = argsLength;
 				args.concat(listeners[i][1]);
 				listeners[i][0].apply(this, args);
 			}
