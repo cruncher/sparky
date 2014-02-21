@@ -23,7 +23,7 @@
 // context is an object with properties that match template tags
 // such as {{ prop }}.
 
-(function(jQuery, undefined){
+(function(jQuery, ns, undefined){
 	"use strict";
 	
 	var doc = jQuery(document);
@@ -272,14 +272,11 @@
 	sparky.template  = fetchTemplate;
 	sparky.extend    = extend;
 	
+	sparky.observe   = observe;
+	sparky.unobserve = unobserve;
 	sparky.get       = function(data, property) {
 		return data[property];
 	};
 
-	if (window.require) {
-		module.exports = sparky;
-	}
-	else {
-		window.sparky = sparky;
-	}
-})(jQuery);
+	ns.sparky = sparky;
+})(jQuery, this);

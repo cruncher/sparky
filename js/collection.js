@@ -1,8 +1,7 @@
-(function(object) {
+(function(ns, mixin) {
 	"use strict";
 
 	var debug = false;
-	var extend = object.extend;
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
@@ -14,23 +13,18 @@
 		return Array.prototype.slice.call(event, 0);
 	}
 
-	// Reduce functions
+	// Each functions
 
-	function setIndex(object, value, i) {
-		object[i] = value;
-		return object;
+	function setValue(value, i) {
+		this[i] = value;
 	}
 
-	function addListener(sub, pub) {
+	function setListeners(data, i) {
+		if (!sub.on) { return; }
+		
 		sub
-		.on('change', pub.trigger)
-		.on('destroy', pub.remove);
-
-		return sub;
-	}
-
-	function concat(arr1, arr2) {
-		return arr1.concat(arr2);
+		.on('change', this.trigger)
+		.on('destroy', this.remove);
 	}
 
 	// Sort functions
@@ -44,6 +38,26 @@
 	}
 
 	// Object functions
+
+	function extend(obj) {
+		var i = 0,
+		    length = arguments.length,
+		    obj2, key;
+
+		while (++i < length) {
+			obj2 = arguments[i];
+
+			for (key in obj2) {
+				if (obj2.hasOwnProperty(key)) {
+					obj[key] = obj2[key];
+				}
+			}
+		}
+
+		return obj;
+	}
+	
+	// Collection functions
 
 	function findById(collection, id) {
 		var l = collection.length;
@@ -84,25 +98,6 @@
 		return collection.map(toArray);
 	}
 
-	function populateBeats(data, beats) {
-		var n = data.length;
-		var beats = data._beats || [];
-		var event, beat;
-
-		beats.length = 0;
-
-		while (n--) {
-			event = data[n];
-
-			if (beat !== event.beat) {
-				beat = event.beat;
-				beats.push(beat);
-			}
-		}
-
-		return beats.sort(byGreater);
-	}
-
 	// Object constructor
 
 	var prototype = {
@@ -134,10 +129,10 @@
 		}
 	};
 
-	extend(prototype, sparky.mixin.array);
-	extend(prototype, sparky.mixin.events);
+	extend(prototype, mixin.array);
+	extend(prototype, mixin.events);
 
-	object.Collection = function(data) {
+	ns.Collection = function Collection(data) {
 		var collection = Object.create(prototype);
 
 		if (!(data instanceof Array)) {
@@ -145,19 +140,23 @@
 			return;
 		}
 
+		// Populate the collection
+		collection.length = data.length;
+
 		data
 		.slice()
 		.sort(byId)
-		.reduce(setIndex, collection);
-		
-		collection.length = data.length;
-		//collection.reduce(addListener, collection)
+		.forEach(setValue, collection);
+
+		// Delegate events
+		//collection
+		//.each(setListeners);
 
 		// Define caches
-		Object.defineProperties(collection, {
-
-		});
+		//Object.defineProperties(collection, {
+		//	
+		//});
 
 		return collection;
 	};
-})(window.sparky || window);
+})(this, this.mixin);

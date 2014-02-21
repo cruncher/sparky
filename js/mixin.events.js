@@ -94,4 +94,4 @@
 			return this;
 		}
 	};
-})(window.sparky || window);
+})(this);
