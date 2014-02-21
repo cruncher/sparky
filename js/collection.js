@@ -1,4 +1,4 @@
-(function(ns, mixin) {
+(function(ns, mixin, undefined) {
 	"use strict";
 
 	var debug = false;
