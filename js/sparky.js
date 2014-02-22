@@ -168,21 +168,22 @@
 		sparky(node, dataPath, viewPath);
 	}
 	
-	function observeOnFrame(context, property, fn) {
+	function onFrame(fn) {
 		var flag = false;
+		var context, args;
 		
 		function update() {
 			flag = false;
-			fn(context);
+			fn.apply(context, args);
 		}
 
-		function change() {
+		return function change() {
+			context = this;
+			args = arguments;
 			if (flag) { return; }
 			flag = true;
 			window.requestAnimationFrame(update);
 		}
-
-		observe(context, property, change);
 	}
 
 	function sparky(node, dataPath, viewPath) {
@@ -214,7 +215,7 @@
 		}
 
 		function observe(property, fn) {
-			sparky.observeOnFrame(context, property, fn);
+			sparky.observe(context, property, onFrame(fn));
 			
 			// Start off with populated nodes
 			fn();
@@ -281,14 +282,14 @@
 
 	// Expose
 
-	sparky.debug          = debug;
-	sparky.data           = data;
-	sparky.views          = views;
-	sparky.templates      = templates;
-	sparky.features       = features;
-	sparky.template       = fetchTemplate;
-	sparky.extend         = extend;
-	sparky.observeOnFrame = observeOnFrame;
+	sparky.debug     = debug;
+	sparky.data      = data;
+	sparky.views     = views;
+	sparky.templates = templates;
+	sparky.features  = features;
+	sparky.template  = fetchTemplate;
+	sparky.extend    = extend;
+	sparky.onFrame   = onFrame;
 	
 	sparky.observe   = observe;
 	sparky.unobserve = unobserve;
