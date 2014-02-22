@@ -71,7 +71,7 @@
 		},
 
 		trigger: function(type) {
-			var listeners, i, l, args, argsLength;
+			var listeners, i, l, args, params;
 
 			if (!this.events || !this.events[type]) { return this; }
 
@@ -87,12 +87,9 @@
 				Array.prototype.slice.call(arguments, 1) :
 				[] ;
 			
-			argsLength = args.length;
-
 			while (++i < l) {
-				args.length = argsLength;
-				args.concat(listeners[i][1]);
-				listeners[i][0].apply(this, args);
+				params = args.concat(listeners[i][1]);
+				listeners[i][0].apply(this, params);
 			}
 
 			return this;

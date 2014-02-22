@@ -170,8 +170,7 @@
 	}
 
 	function observeProperties(text, bind, unbind, get, fn) {
-		var properties = extractProperties(text),
-		    flag = false;
+		var properties = extractProperties(text);
 
 		function replaceText($0, $1, $2) {
 			var word = get($1);
@@ -182,19 +181,12 @@
 		}
 		
 		function update() {
-			flag = false;
 			fn(text.replace(rname, replaceText));
-		}
-
-		function change() {
-			if (flag) { return; }
-			flag = true;
-			window.requestAnimationFrame(update);
 		}
 
 		// Observe properties
 		properties.forEach(function attach(property) {
-			bind(property, change);
+			bind(property, update);
 		});
 		
 		// Return a function that unobserves properties

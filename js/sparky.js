@@ -167,6 +167,23 @@
 
 		sparky(node, dataPath, viewPath);
 	}
+	
+	function observeOnFrame(context, property, fn) {
+		var flag = false;
+		
+		function update() {
+			flag = false;
+			fn(context);
+		}
+
+		function change() {
+			if (flag) { return; }
+			flag = true;
+			window.requestAnimationFrame(update);
+		}
+
+		observe(context, property, change);
+	}
 
 	function sparky(node, dataPath, viewPath) {
 		var view = typeof viewPath === 'string' ? objFromPath(sparky.views, viewPath) : console.log('viewPath not a string') ;
@@ -197,7 +214,7 @@
 		}
 
 		function observe(property, fn) {
-			sparky.observe(context, property, fn);
+			sparky.observeOnFrame(context, property, fn);
 			
 			// Start off with populated nodes
 			fn();
@@ -264,13 +281,14 @@
 
 	// Expose
 
-	sparky.debug     = debug;
-	sparky.data      = data;
-	sparky.views     = views;
-	sparky.templates = templates;
-	sparky.features  = features;
-	sparky.template  = fetchTemplate;
-	sparky.extend    = extend;
+	sparky.debug          = debug;
+	sparky.data           = data;
+	sparky.views          = views;
+	sparky.templates      = templates;
+	sparky.features       = features;
+	sparky.template       = fetchTemplate;
+	sparky.extend         = extend;
+	sparky.observeOnFrame = observeOnFrame;
 	
 	sparky.observe   = observe;
 	sparky.unobserve = unobserve;
