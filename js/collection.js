@@ -21,7 +21,7 @@
 
 	function setListeners(data, i) {
 		if (!sub.on) { return; }
-		
+
 		//sub
 		//.on('change', this.trigger)
 		//.on('destroy', this.remove);
@@ -32,7 +32,7 @@
 	function byGreater(a, b) {
 		return a > b ? 1 : -1 ;
 	}
-	
+
 	function byId(a, b) {
 		return a.id > b.id ? 1 : -1 ;
 	}
@@ -56,7 +56,7 @@
 
 		return obj;
 	}
-	
+
 	// Collection functions
 
 	function findById(collection, id) {
@@ -100,7 +100,7 @@
 
 	// Object constructor
 
-	var prototype = {
+	var prototype = extend({}, mixin.events, mixin.array, {
 		add: function(item) {
 			invalidateCaches(this);
 			add(this, item);
@@ -115,7 +115,7 @@
 			}
 
 			invalidateCaches(this);
-			remove(this, item);
+			mixin.array.remove.apply(this, arguments);
 			this.trigger('remove', item);
 			return this;
 		},
@@ -127,10 +127,7 @@
 		toJSON: function() {
 			return toJSON(this);
 		}
-	};
-
-	extend(prototype, mixin.array);
-	extend(prototype, mixin.events);
+	});
 
 	ns.Collection = function Collection(data) {
 		var collection = Object.create(prototype);
@@ -154,7 +151,7 @@
 
 		// Define caches
 		//Object.defineProperties(collection, {
-		//	
+		//
 		//});
 
 		return collection;
