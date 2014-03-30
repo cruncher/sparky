@@ -134,7 +134,7 @@
 
 		if (!(data instanceof Array)) {
 			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
-			return;
+			data = [];
 		}
 
 		// Populate the collection
