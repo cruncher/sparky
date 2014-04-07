@@ -1,15 +1,15 @@
 // app.js
 // 
 // A simple app toolkit. No magic. Reads data attributes in
-// the DOM to bind dynamic data to views.
+// the DOM to bind dynamic data to controllers.
 // 
 // Views
 // 
-// <div data-view="name" data-data="path.to.data">
+// <div data-ctrl="name" data-model="path.to.data">
 //     <h1>Hello world</h1>
 // </div>
 // 
-// Where 'name' is the key of a view function in app.views and
+// Where 'name' is the key of a view function in app.controllers and
 // path.to.data points to an object in app.data.
 // 
 // Template
@@ -33,13 +33,15 @@
 	    slice = Array.prototype.slice;
 	
 	var rcomment = /\{\%\s*.+?\s*\%\}/g,
-	    rtag = /\{\{\s*(\w+)\s*\}\}/g;
+	    rtag = /\{\{\s*(\w+)\s*\}\}/g,
+	    rbracket = /\]$/,
+	    rpathsplitter = /\]?\.|\[/g;
 	
-	var debug     = false;
-	var views     = {};
-	var templates = {};
-	var data      = {};
-	var features  = {
+	var debug       = false;
+	var controllers = {};
+	var templates   = {};
+	var data        = {};
+	var features    = {
 	    	template: 'content' in document.createElement('template')
 	    };
 	
@@ -146,7 +148,7 @@
 	}
 	
 	function objFromPath(obj, path) {
-		return objFrom(obj, path.split('.'));
+		return objFrom(obj, path.replace(rbracket, '').split(rpathsplitter));
 	}
 	
 	function objTo(root, array, obj) {
@@ -162,8 +164,8 @@
 	}
 	
 	function setupView(node) {
-		var viewPath = node.getAttribute('data-view');
-		var dataPath = node.getAttribute('data-data');
+		var viewPath = node.getAttribute('data-ctrl');
+		var dataPath = node.getAttribute('data-model');
 
 		sparky(node, dataPath, viewPath);
 	}
@@ -187,7 +189,7 @@
 	}
 
 	function sparky(node, dataPath, viewPath) {
-		var view = typeof viewPath === 'string' ? objFromPath(sparky.views, viewPath) : console.log('viewPath not a string') ;
+		var view = typeof viewPath === 'string' ? objFromPath(sparky.controllers, viewPath) : console.log('viewPath not a string') ;
 		var data = isDefined(dataPath) ?
 		    	typeof dataPath === 'string' ? 
 		    		dataPath === '' ?
@@ -240,7 +242,7 @@
 		}
 		
 		//if (debug) console.log('[app] view: "' + viewPath + (dataPath ? '" data: "' + dataPath + '"' : ''));
-		//if (!view) { throw new Error('\'' + viewPath + '\' not found in app.views'); }
+		//if (!view) { throw new Error('\'' + viewPath + '\' not found in app.controllers'); }
 		if (data === undefined) { throw new Error('\'' + dataPath + '\' not found in sparky.data'); }
 		
 		if (debug) {
@@ -269,7 +271,7 @@
 	doc.ready(function(){
 		var start = Date.now();
 
-		jQuery('[data-view], [data-data]').each(function() {
+		jQuery('[data-ctrl], [data-model]').each(function() {
 			if (debug) { console.groupCollapsed('[sparky] template', this); }
 			
 			setupView(this);
@@ -277,23 +279,23 @@
 			if (debug) { console.groupEnd(); }
 		});
 		
-		console.log('[sparky] Initialised templates and views (' + (Date.now() - start) + 'ms)');
+		console.log('[sparky] Initialised templates and controllers (' + (Date.now() - start) + 'ms)');
 	});
 
 	// Expose
 
-	sparky.debug     = debug;
-	sparky.data      = data;
-	sparky.views     = views;
-	sparky.templates = templates;
-	sparky.features  = features;
-	sparky.template  = fetchTemplate;
-	sparky.extend    = extend;
-	sparky.onFrame   = onFrame;
+	sparky.debug       = debug;
+	sparky.data        = data;
+	sparky.controllers = controllers;
+	sparky.templates   = templates;
+	sparky.features    = features;
+	sparky.template    = fetchTemplate;
+	sparky.extend      = extend;
+	sparky.onFrame     = onFrame;
 	
-	sparky.observe   = observe;
-	sparky.unobserve = unobserve;
-	sparky.get       = function(data, property) {
+	sparky.observe     = observe;
+	sparky.unobserve   = unobserve;
+	sparky.get         = function(data, property) {
 		return data[property];
 	};
 

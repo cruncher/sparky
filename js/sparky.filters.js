@@ -92,6 +92,8 @@
 			};
 		})(settings),
 		
+		decimals: Number.prototype.toFixed,
+		
 		'default': function(value) {
 			return (this === undefined || this === null) ? value : this ;
 		},

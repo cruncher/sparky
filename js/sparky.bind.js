@@ -44,7 +44,7 @@
 		'alt'
 	];
 
-	var rname = /\{\{\s*([a-z]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+	var rname = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
 
 	var filterCache = {};
@@ -57,6 +57,13 @@
 
 	function domNode(node, bind, unbind, get) {
 		var unobservers = [];
+
+		if (debug) { console.log('[sparky] bind', '<' + node.tagName.toLowerCase() + '>'); }
+
+		// Skip SVGs for the moment.
+		if (node.tagName.toLowerCase() === 'svg') {
+			return unobservers;
+		}
 
 		bindClasses(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
@@ -151,6 +158,7 @@
 		var parts = rfilter.exec(filter);
 
 		return {
+			name: parts[1],
 			fn: sparky.filters[parts[1]],
 			args: parts[2] && JSON.parse('[' + parts[2].replace(/\'/g, '\"') + ']')
 		};
@@ -164,6 +172,11 @@
 		    n = -1;
 
 		while (++n < l) {
+			if (!filters[n].fn) {
+				throw new Error('[sparky] filter \'' + filters[n].name + '\' is not a sparky filter');
+			}
+			
+			console.log('[sparky] filter', filters[n].name, 'value', word, 'args', filters[n].args);
 			word = filters[n].fn.apply(word, filters[n].args);
 		}
 
@@ -176,8 +189,8 @@
 		function replaceText($0, $1, $2) {
 			var word = get($1);
 
-			return $2 ? applyFilters(word, $2) :
-				word === undefined ? '' :
+			return word === undefined ? '' :
+				$2 ? applyFilters(word, $2) :
 				word ;
 		}
 
