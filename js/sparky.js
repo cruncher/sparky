@@ -1,7 +1,7 @@
-// app.js
+// Sparky
 // 
-// A simple app toolkit. No magic. Reads data attributes in
-// the DOM to bind dynamic data to controllers.
+// Reads data attributes in the DOM to bind dynamic data to
+// controllers.
 // 
 // Views
 // 
@@ -9,19 +9,10 @@
 //     <h1>Hello world</h1>
 // </div>
 // 
-// Where 'name' is the key of a view function in app.controllers and
-// path.to.data points to an object in app.data.
-// 
-// Template
-// 
-// <div data-template="name">
-//     <h1>{{ prop }}</h1>
-// </div>
-// 
-// The template is stored as a DOM node in app.templates[name],
-// and can be rendered with app.render(name, scope), where
-// scope is an object with properties that match template tags
-// such as {{ prop }}.
+// Where 'name' is the key of a view function in
+// Sparky.controllers and path.to.data points to an object
+// in Sparky.data.
+
 
 (function(jQuery, ns, undefined){
 	"use strict";
@@ -44,6 +35,8 @@
 	var features    = {
 	    	template: 'content' in document.createElement('template')
 	    };
+	
+	var prototype = extend({}, ns.mixin.events);
 	
 	function noop() {}
 
@@ -78,21 +71,7 @@
 	}
 	
 	// DOM helpers
-	
-	function trigger(target, type) {
-		var e;
-		
-		if (document.createEventObject) {
-			e = document.createEventObject(window.event);
-			target.fireEvent('on' + type, e);
-		}
-		else {
-			e = document.createEvent('Event');
-			e.initEvent(type, true, true, null);
-			target.dispatchEvent(e);
-		}
-	}
-	
+
 	function append(parent, child) {
 		parent.appendChild(child);
 		return parent;
@@ -138,7 +117,13 @@
 	
 	// App
 	
-	function defaultCtrl(node, model) {
+	function destroyNode(node) {
+		node.parentNode.removeChild(node);
+	}
+	
+	function defaultCtrl(node, model, sparky) {
+		sparky.on('destroy', destroyNode, node);
+		
 		return model;
 	}
 	
@@ -195,8 +180,6 @@
 	function findByPath(obj, path) {
 		return path !== undefined && objFromPath(obj, path);
 	}
-	
-	var prototype = extend({}, ns.mixin.events);
 
 	function Sparky(node, model, ctrl) {
 		if (!model) {
@@ -223,7 +206,7 @@
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
-				sparky(node, 'templated');
+				sparky.trigger(node, 'templated');
 			});
 			
 			insertTemplate = noop;
