@@ -19,8 +19,8 @@
 // </div>
 // 
 // The template is stored as a DOM node in app.templates[name],
-// and can be rendered with app.render(name, context), where
-// context is an object with properties that match template tags
+// and can be rendered with app.render(name, scope), where
+// scope is an object with properties that match template tags
 // such as {{ prop }}.
 
 (function(jQuery, ns, undefined){
@@ -129,7 +129,7 @@
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
 		if (debug && !template) {
-			console.warn('[sparky] template #' + id + ' not found.');
+			console.warn('[Sparky] template #' + id + ' not found.');
 		}
 
 		return template && template.cloneNode(true);
@@ -137,6 +137,10 @@
 	
 	
 	// App
+	
+	function defaultCtrl(node, model) {
+		return model;
+	}
 	
 	function objFrom(obj, array) {
 		var val = obj[array[0]],
@@ -172,15 +176,15 @@
 	
 	function onFrame(fn) {
 		var flag = false;
-		var context, args;
+		var scope, args;
 		
 		function update() {
 			flag = false;
-			fn.apply(context, args);
+			fn.apply(scope, args);
 		}
 
 		return function change() {
-			context = this;
+			scope = this;
 			args = arguments;
 			if (flag) { return; }
 			flag = true;
@@ -188,25 +192,38 @@
 		}
 	}
 
-	function sparky(node, dataPath, viewPath) {
-		var view = typeof viewPath === 'string' ? objFromPath(sparky.controllers, viewPath) : console.log('viewPath not a string') ;
-		var data = isDefined(dataPath) ?
-		    	typeof dataPath === 'string' ? 
-		    		dataPath === '' ?
-		    			sparky.data :
-		    			objFromPath(sparky.data, dataPath) :
-		    		dataPath :
-		    	undefined ;
+	function findByPath(obj, path) {
+		return path !== undefined && objFromPath(obj, path);
+	}
+	
+	var prototype = extend({}, ns.mixin.events);
+
+	function Sparky(node, model, ctrl) {
+		if (!model) {
+			model = findByPath(Sparky.data, node.getAttribute('data-model'));
+		}
 		
+		if (!ctrl) {
+			ctrl = findByPath(Sparky.controllers, node.getAttribute('data-ctrl')) || defaultCtrl;
+		}
+		
+		var sparky = Object.create(prototype);
+		
+		setupSparky(sparky, node, model, ctrl);
+		
+		return sparky;
+	}
+
+	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
-		var context, untemplate;
+		var scope, untemplate;
 		
 		function insertTemplate() {
-			// Wait until the data is rendered on the next animation frame
+			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
-				trigger(node, 'sparkytemplated');
+				sparky(node, 'templated');
 			});
 			
 			insertTemplate = noop;
@@ -217,87 +234,88 @@
 		}
 
 		function observe(property, fn) {
-			sparky.observe(context, property, onFrame(fn));
+			Sparky.observe(scope, property, onFrame(fn));
 			
 			// Start off with populated nodes
 			fn();
 			
 			if (templateFragment) {
-				sparky.observe(context, property, insert);
+				Sparky.observe(scope, property, insert);
 			}
 		}
 		
 		function unobserve(property, fn) {
-			sparky.unobserve(context, property, fn);
+			Sparky.unobserve(scope, property, fn);
 		}
 
 		function get(property) {
-			return sparky.get(context, property);
+			return Sparky.get(scope, property);
 		}
 		
-		function destroy() {
+		sparky.node = node;
+		
+		sparky.destroy = function destroy() {
 			untemplate && untemplate();
 			untemplate = false;
-			trigger(node, 'sparkydestroyed');
-		}
+			sparky.trigger('destroy');
+		};
 		
-		//if (debug) console.log('[app] view: "' + viewPath + (dataPath ? '" data: "' + dataPath + '"' : ''));
-		//if (!view) { throw new Error('\'' + viewPath + '\' not found in app.controllers'); }
-		if (data === undefined) { throw new Error('\'' + dataPath + '\' not found in sparky.data'); }
+		if (model === undefined) { throw new Error('[Sparky] model not found in Sparky.data'); }
 		
 		if (debug) {
-			console.log('view:', viewPath);
-			console.log('data:', dataPath, data);
+			console.log('ctrl:', ctrl);
+			console.log('model:', model);
 		}
 		
-		// If a context object is returned by the view, we use that, otherwise
-		// we use the data object as context.
-		context = view && view(node, data, destroy) || data;
+		// If a scope object is returned by the ctrl, we use that, otherwise
+		// we use the model object as scope.
+		scope = ctrl && ctrl(node, model, sparky) || model;
 		
 		if (debug) {
-			console.log('context:', context);
+			console.log('scope:', scope);
 			console.log('template:', templateId);
 		}
 		
-		// If there's no data to bind, we need go no further.
-		if (!context) { return; }
+		// If there's no model to bind, we need go no further.
+		if (!scope) { return; }
 		
 		// The template function returns an untemplate function.
-		untemplate = sparky.bind(templateFragment || node, observe, unobserve, get);
+		untemplate = Sparky.bind(templateFragment || node, observe, unobserve, get);
 		
-		trigger(node, 'sparkyready');
+		sparky.trigger('ready');
 	}
 
 	doc.ready(function(){
 		var start = Date.now();
 
 		jQuery('[data-ctrl], [data-model]').each(function() {
-			if (debug) { console.groupCollapsed('[sparky] template', this); }
+			if (debug) { console.groupCollapsed('[Sparky] template', this); }
 			
-			setupView(this);
+			Sparky(this);
 			
 			if (debug) { console.groupEnd(); }
 		});
 		
-		console.log('[sparky] Initialised templates and controllers (' + (Date.now() - start) + 'ms)');
+		console.log('[Sparky] DOM initialised (' + (Date.now() - start) + 'ms)');
 	});
 
 	// Expose
 
-	sparky.debug       = debug;
-	sparky.data        = data;
-	sparky.controllers = controllers;
-	sparky.templates   = templates;
-	sparky.features    = features;
-	sparky.template    = fetchTemplate;
-	sparky.extend      = extend;
-	sparky.onFrame     = onFrame;
-	
-	sparky.observe     = observe;
-	sparky.unobserve   = unobserve;
-	sparky.get         = function(data, property) {
+	Sparky.mixin       = ns.mixin || (ns.mixin = {});
+	Sparky.events      = ns.events || (ns.events = {});
+	Sparky.observe     = ns.observe;
+	Sparky.unobserve   = ns.unobserve;
+	Sparky.get         = function(data, property) {
 		return data[property];
 	};
 
-	ns.sparky = sparky;
+	Sparky.debug       = debug;
+	Sparky.data        = data;
+	Sparky.controllers = controllers;
+	Sparky.templates   = templates;
+	Sparky.features    = features;
+	Sparky.template    = fetchTemplate;
+	Sparky.extend      = extend;
+
+	ns.sparky = Sparky;
 })(jQuery, this);
