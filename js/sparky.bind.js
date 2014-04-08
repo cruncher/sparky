@@ -55,13 +55,13 @@
 	    	11: fragmentNode
 	    };
 
-	function domNode(node, bind, unbind, get) {
+	function domNode(node, bind, unbind, get, root) {
 		var unobservers = [];
 
 		if (debug) { console.log('[sparky] bind', '<' + node.tagName.toLowerCase() + '>'); }
 
-		// Skip SVGs for the moment.
-		if (node.tagName.toLowerCase() === 'svg') {
+		// Don't bind child nodes that have their own sparky controllers.
+		if (!root && (node.getAttribute('data-ctrl') || node.getAttribute('data-model'))) {
 			return unobservers;
 		}
 
@@ -109,15 +109,24 @@
 		}
 	}
 
+	function getClassList(node) {
+		return node.classList || node.className.trim().split(/\s+/);
+	}
+
 	function bindClasses(node, bind, unbind, get, unobservers) {
-		var value = node.className;
-
+		var classList = getClassList(node);
+		var value = Array.prototype.join.call(classList, ' ');
+		
 		if (!value) { return; }
-
-		var classList = value.trim().split(/\s+/);
+		
 		// TODO: only replace classes we've previously set here
 		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
-			node.className = text;
+			if (node instanceof SVGElement) {
+				node.className.baseVal = text;
+			}
+			else {
+				node.className = text;
+			}
 		}));
 	}
 
@@ -176,7 +185,10 @@
 				throw new Error('[sparky] filter \'' + filters[n].name + '\' is not a sparky filter');
 			}
 			
-			console.log('[sparky] filter', filters[n].name, 'value', word, 'args', filters[n].args);
+			if (debug) {
+				console.log('[sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
+			}
+			
 			word = filters[n].fn.apply(word, filters[n].args);
 		}
 
@@ -219,7 +231,7 @@
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
-		var unobservers = types[node.nodeType](node, observe, unobserve, get);
+		var unobservers = types[node.nodeType](node, observe, unobserve, get, true);
 
 		if (debug) {
 			console.log('dom nodes:  ' + nodeCount);
