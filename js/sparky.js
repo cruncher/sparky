@@ -119,13 +119,12 @@
 	
 	// Sparky
 	
-	function destroyNode(node) {
+	function removeNode(node) {
 		node.parentNode.removeChild(node);
 	}
 	
 	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', destroyNode, node);
-		
+		sparky.on('destroy', removeNode, node);
 		return model;
 	}
 	
@@ -238,7 +237,9 @@
 		sparky.destroy = function destroy() {
 			unbind && unbind();
 			unbind = false;
+			
 			sparky.trigger('destroy');
+			sparky.off();
 		};
 		
 		if (model === undefined) { throw new Error('[Sparky] model not found in Sparky.data'); }
