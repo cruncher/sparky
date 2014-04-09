@@ -117,7 +117,7 @@
 	}
 	
 	
-	// App
+	// Sparky
 	
 	function destroyNode(node) {
 		node.parentNode.removeChild(node);
@@ -184,7 +184,7 @@
 	}
 
 	function Sparky(node, model, ctrl) {
-		if (debug) { console.groupCollapsed('[Sparky] <' + node.tagName.toLowerCase() + '>'); }
+		if (debug) { console.groupCollapsed('[Sparky]', node); }
 		
 		if (!model) {
 			model = findByPath(Sparky.data, node.getAttribute('data-model'));
@@ -193,8 +193,6 @@
 		if (!ctrl) {
 			ctrl = findByPath(Sparky.controllers, node.getAttribute('data-ctrl')) || defaultCtrl;
 		}
-		
-		if (debug) { console.log('[Sparky] node:', node); }
 		
 		var sparky = Object.create(prototype);
 		
@@ -208,20 +206,19 @@
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
-		var scope, untemplate;
+		var scope, unbind;
 		
-		function insertTemplate() {
+		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
 				sparky.trigger(node, 'templated');
 			});
-			
-			insertTemplate = noop;
 		};
 
 		function insert() {
-			insertTemplate(node, templateFragment);
+			insertTemplate(sparky, node, templateFragment);
+			insert = noop;
 		}
 
 		function observe(property, fn) {
@@ -246,8 +243,8 @@
 		sparky.node = node;
 		
 		sparky.destroy = function destroy() {
-			untemplate && untemplate();
-			untemplate = false;
+			unbind && unbind();
+			unbind = false;
 			sparky.trigger('destroy');
 		};
 		
@@ -265,8 +262,8 @@
 		// If there's no model to bind, we need go no further.
 		if (!scope) { return; }
 		
-		// The template function returns an untemplate function.
-		untemplate = Sparky.bind(templateFragment || node, observe, unobserve, get);
+		// The bind function returns an unbind function.
+		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get);
 		
 		sparky.trigger('ready');
 	}
