@@ -154,13 +154,6 @@
 		return objTo(root, path.split('.'), obj);
 	}
 	
-	function setupView(node) {
-		var viewPath = node.getAttribute('data-ctrl');
-		var dataPath = node.getAttribute('data-model');
-
-		sparky(node, dataPath, viewPath);
-	}
-	
 	function onFrame(fn) {
 		var flag = false;
 		var scope, args;
