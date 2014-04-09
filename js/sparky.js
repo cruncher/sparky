@@ -186,6 +186,11 @@
 			ctrl = findByPath(Sparky.controllers, node.getAttribute('data-ctrl')) || defaultCtrl;
 		}
 		
+		if (model.length !== undefined) {
+			// model is an array or collection
+			if (debug) { console.log('[Sparky] model is array or collection'); }
+		}
+		
 		var sparky = Object.create(prototype);
 		
 		setupSparky(sparky, node, model, ctrl);
