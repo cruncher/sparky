@@ -17,8 +17,6 @@
 (function(jQuery, ns, undefined){
 	"use strict";
 	
-	var doc = jQuery(document);
-	
 	var map = Array.prototype.map,
 	    reduce = Array.prototype.reduce,
 	    slice = Array.prototype.slice;
@@ -28,7 +26,7 @@
 	    rbracket = /\]$/,
 	    rpathsplitter = /\]?\.|\[/g;
 	
-	var debug       = false;
+	var debug       = true;//false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -48,6 +46,10 @@
 	
 	function isObject(obj) {
 		return obj instanceof Object;
+	}
+
+	function getProperty(obj, property) {
+		return obj[property];
 	}
 
 	// Object helpers
@@ -182,6 +184,8 @@
 	}
 
 	function Sparky(node, model, ctrl) {
+		if (debug) { console.groupCollapsed('[Sparky] <' + node.tagName.toLowerCase() + '>'); }
+		
 		if (!model) {
 			model = findByPath(Sparky.data, node.getAttribute('data-model'));
 		}
@@ -190,9 +194,13 @@
 			ctrl = findByPath(Sparky.controllers, node.getAttribute('data-ctrl')) || defaultCtrl;
 		}
 		
+		if (debug) { console.log('[Sparky] node:', node); }
+		
 		var sparky = Object.create(prototype);
 		
 		setupSparky(sparky, node, model, ctrl);
+		
+		if (debug) { console.groupEnd(); }
 		
 		return sparky;
 	}
@@ -232,7 +240,7 @@
 		}
 
 		function get(property) {
-			return Sparky.get(scope, property);
+			return getProperty(scope, property);
 		}
 		
 		sparky.node = node;
@@ -244,11 +252,6 @@
 		};
 		
 		if (model === undefined) { throw new Error('[Sparky] model not found in Sparky.data'); }
-		
-		if (debug) {
-			console.log('ctrl:', ctrl);
-			console.log('model:', model);
-		}
 		
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope.
@@ -268,29 +271,12 @@
 		sparky.trigger('ready');
 	}
 
-	doc.ready(function(){
-		var start = Date.now();
-
-		jQuery('[data-ctrl], [data-model]').each(function() {
-			if (debug) { console.groupCollapsed('[Sparky] template', this); }
-			
-			Sparky(this);
-			
-			if (debug) { console.groupEnd(); }
-		});
-		
-		console.log('[Sparky] DOM initialised (' + (Date.now() - start) + 'ms)');
-	});
-
 	// Expose
 
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.events      = ns.events || (ns.events = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
-	Sparky.get         = function(data, property) {
-		return data[property];
-	};
 
 	Sparky.debug       = debug;
 	Sparky.data        = data;
@@ -301,4 +287,24 @@
 	Sparky.extend      = extend;
 
 	ns.sparky = Sparky;
+
+
+	// Bind the DOM
+
+	if (!jQuery) { return; }
+
+	var doc = jQuery(document);
+
+	doc.ready(function(){
+		var start = Date.now();
+
+		if (debug) { console.groupCollapsed('[Sparky] DOM'); }
+		
+		jQuery('[data-ctrl], [data-model]').each(function() {
+			Sparky(this);
+		});
+		
+		if (debug) { console.groupEnd(); }
+		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
+	});
 })(jQuery, this);
