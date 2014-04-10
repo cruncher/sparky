@@ -30,6 +30,7 @@
 		push:    Array.prototype.push,
 		concat:  Array.prototype.concat,
 		sort:    Array.prototype.sort,
+		slice:   Array.prototype.slice,
 		splice:  Array.prototype.splice,
 		some:    Array.prototype.some,
 		indexOf: Array.prototype.indexOf,

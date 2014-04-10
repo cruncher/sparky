@@ -24,7 +24,9 @@
 	var rcomment = /\{\%\s*.+?\s*\%\}/g,
 	    rtag = /\{\{\s*(\w+)\s*\}\}/g,
 	    rbracket = /\]$/,
-	    rpathsplitter = /\]?\.|\[/g;
+	    rpathsplitter = /\]?\.|\[/g,
+	    // Check whether a path begins with '.' or '['
+	    rrelativepath = /^\.|^\[/;
 	
 	var debug       = true;//false;
 	var controllers = {};
@@ -36,9 +38,13 @@
 	
 	var prototype = extend({}, ns.mixin.events);
 	
+	// Pure functions
+	
 	function noop() {}
 
-	// Pure functions
+	function call(fn) {
+		fn();
+	}
 	
 	function isDefined(val) {
 		return val !== undefined && val !== null;
@@ -50,6 +56,10 @@
 
 	function getProperty(obj, property) {
 		return obj[property];
+	}
+
+	function getDestroy(obj) {
+		return obj.destroy;
 	}
 
 	// Object helpers
@@ -70,6 +80,10 @@
 		}
 
 		return obj;
+	}
+	
+	function isConfigurable(obj, prop) {
+		return Object.getOwnPropertyDescriptor(obj, prop).configurable;
 	}
 	
 	// DOM helpers
@@ -120,7 +134,11 @@
 	// Sparky
 	
 	function removeNode(node) {
-		node.parentNode.removeChild(node);
+		node.parentNode && node.parentNode.removeChild(node);
+	}
+	
+	function insertNode(node1, node2) {
+		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 	
 	function defaultCtrl(node, model, sparky) {
@@ -172,28 +190,125 @@
 	}
 
 	function findByPath(obj, path) {
-		return path !== undefined && objFromPath(obj, path);
+		return path !== undefined && objFromPath(obj, path.replace(rrelativepath, ''));
+	}
+	
+	function dirtyObserve(obj, prop, fn) {
+		var array = obj.slice();
+		
+		setInterval(function() {
+			if (obj.length === array.length) { return; }
+			array = obj.slice();
+			fn(obj);
+		}, 0);
+	}
+	
+	function setupCollection(node, model, ctrl) {
+		var startNode = document.createComment(' [Sparky] collection start ');
+		var endNode = document.createComment(' [Sparky] collection end ');
+		var nodes = [];
+		var sparkies = [];
+		var modelPath = node.getAttribute('data-model');
+		var cache = model.slice();
+		
+		function updateNodes(model) {
+			var n = -1;
+			var l = cache.length;
+			var map = {};
+			var i, obj;
+			
+			console.log('[Sparky] Update sparky collection');
+			
+			while (l--) {
+				obj = cache[l];
+				i = model.indexOf(obj);
+				
+				if (i === -1) {
+					removeNode(nodes[l]);
+					sparkies[l].destroy();
+				}
+				else if (nodes[l] && sparkies[l]) {
+					map[i] = [nodes[l], sparkies[l]];
+				}
+			}
+			
+			l = model.length;
+			
+			nodes.length = model.length;
+			sparkies.length = model.length;
+			cache.length = model.length;
+			
+			while(++n < l) {
+				cache[n] = model[n];
+				
+				if (map[n]) {
+					nodes[n] = map[n][0];
+					sparkies[n] = map[n][1];
+				}
+				else {
+					nodes[n] = node.cloneNode(true);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl);
+
+					if (isDefined(modelPath)) {
+						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
+					}
+				}
+				
+				insertNode(endNode, nodes[n]);
+			}
+		}
+		
+		// Put the marker nodes in place
+		insertNode(node, startNode);
+		insertNode(node, endNode);
+		
+		// Remove the node
+		removeNode(node);
+		
+		// Use try / catch because array.length cannot be observed by our
+		// observer. So we need to dirty check it for changes.
+		try {
+			observe(model, 'length', onFrame(updateNodes));
+		}
+		catch (e) {
+			console.log('[Sparky] using dirty observe. Object must be an actual array.');
+			dirtyObserve(model, 'length', onFrame(updateNodes));
+		}
+		
+		updateNodes(model);
+		
+		return {
+			destroy: function() {
+				sparkies.map(getDestroy).forEach(call);
+			}
+		};
 	}
 
 	function Sparky(node, model, ctrl) {
-		if (debug) { console.groupCollapsed('[Sparky]', node); }
+		var sparky;
 		
 		if (!model) {
-			model = findByPath(Sparky.data, node.getAttribute('data-model'));
+			var modelPath = node.getAttribute('data-model');
+			model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
 		}
 		
 		if (!ctrl) {
-			ctrl = findByPath(Sparky.controllers, node.getAttribute('data-ctrl')) || defaultCtrl;
+			var ctrlPath = node.getAttribute('data-ctrl');
+			ctrl = isDefined(ctrlPath) ?
+				findByPath(Sparky.controllers, ctrlPath) :
+				defaultCtrl ;
 		}
 		
 		if (model.length !== undefined) {
 			// model is an array or collection
-			if (debug) { console.log('[Sparky] model is array or collection'); }
+			if (debug) { console.groupCollapsed('[Sparky] collection:', node); }
+			sparky = setupCollection(node, model, ctrl);
 		}
-		
-		var sparky = Object.create(prototype);
-		
-		setupSparky(sparky, node, model, ctrl);
+		else {
+			if (debug) { console.groupCollapsed('[Sparky] node:', node); }
+			sparky = Object.create(prototype);
+			setupSparky(sparky, node, model, ctrl);
+		}
 		
 		if (debug) { console.groupEnd(); }
 		
@@ -237,11 +352,27 @@
 			return getProperty(scope, property);
 		}
 		
+		function create(node) {
+			var modelPath = node.getAttribute('data-model');
+			
+			if (modelPath === undefined) {
+				return Sparky(node);
+			}
+			
+			if (rrelativepath.test(modelPath)) {
+				return Sparky(node, findByPath(model, modelPath));
+			}
+			
+			return Sparky(node, findByPath(Sparky.data, modelPath));
+		}
+		
 		sparky.node = node;
 		
 		sparky.destroy = function destroy() {
-			unbind && unbind();
-			unbind = false;
+			if (unbind) {
+				unbind();
+				unbind = undefined;
+			}
 			
 			sparky.trigger('destroy');
 			sparky.off();
@@ -251,18 +382,25 @@
 		
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope.
-		scope = ctrl && ctrl(node, model, sparky) || model;
+		scope = ctrl && ctrl(node, model, sparky);
 		
-		if (debug) {
-			console.log('scope:', scope);
-			console.log('template:', templateId);
+		if (!scope) {
+			if (debug) { console.log('[Sparky] with model as scope:', model); }
+			scope = model;
+		}
+		else {
+			if (debug) { console.log('[Sparky] with controller scope:', scope); }
+		}
+		
+		if (debug && templateId) {
+			console.log('[Sparky] template:', templateId);
 		}
 		
 		// If there's no model to bind, we need go no further.
 		if (!scope) { return; }
 		
-		// The bind function returns an unbind function.
-		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get);
+		// The bind function returns an array of unbind functions.
+		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, create);
 		
 		sparky.trigger('ready');
 	}
@@ -294,13 +432,29 @@
 	doc.ready(function(){
 		var start = Date.now();
 
-		if (debug) { console.groupCollapsed('[Sparky] DOM'); }
+//		if (debug) { console.groupCollapsed('[Sparky] DOM'); }
 		
-		jQuery('[data-ctrl], [data-model]').each(function() {
-			Sparky(this);
+		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var n = -1;
+		var l = nodes.length;
+		var node;
+		var array = [];
+		
+		// Remove child sparkies
+		while (++n < l) {
+			node = nodes[n];
+			array.push(node);
+			while (++n < l && node.contains(nodes[n]));
+			--n;
+		}
+
+		if (debug) { console.log('[Sparky] DOM nodes to bind:', array); }
+		
+		array.forEach(function(node) {
+			Sparky(node);
 		});
 		
-		if (debug) { console.groupEnd(); }
+//		if (debug) { console.groupEnd(); }
 		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, this);

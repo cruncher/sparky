@@ -55,25 +55,28 @@
 	    	11: fragmentNode
 	    };
 
-	function domNode(node, bind, unbind, get, root) {
+	function call(fn) {
+		fn();
+	}
+	
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
+	function domNode(node, bind, unbind, get, create) {
 		var unobservers = [];
 
 		if (debug) { console.log('[sparky] bind', '<' + node.tagName.toLowerCase() + '>'); }
 
-		// Don't bind child nodes that have their own sparky controllers.
-		if (!root && (node.getAttribute('data-ctrl') || node.getAttribute('data-model'))) {
-			return unobservers;
-		}
-
 		bindClasses(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
-		bindNodes(node, bind, unbind, get, unobservers);
+		bindNodes(node, bind, unbind, get, create, unobservers);
 
 		nodeCount++;
 		return unobservers;
 	}
 
-	function textNode(node, bind, unbind, get) {
+	function textNode(node, bind, unbind, get, create) {
 		textCount++;
 
 		//var innerText = node.textContent === undefined ? 'innerText' : 'textContent' ;
@@ -84,27 +87,34 @@
 		return [detachFn];
 	}
 
-	function fragmentNode(node, bind, unbind, get) {
+	function fragmentNode(node, bind, unbind, get, create) {
 		var unobservers = [];
 
-		bindNodes(node, bind, unbind, get, unobservers);
+		bindNodes(node, bind, unbind, get, create, unobservers);
 		nodeCount++;
 		return unobservers;
 	}
 
 
-	function bindNodes(node, bind, unbind, get, unobservers) {
+	function bindNodes(node, bind, unbind, get, create, unobservers) {
 		var nodes = node.childNodes,
 		    n = -1,
 		    l = nodes.length,
-		    child;
+		    child, sparky;
 
 		// Loop forwards through the children
 		while (++n < l) {
 			child = nodes[n];
 
-			if (types[child.nodeType]) {
-				Array.prototype.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get));
+			// Don't bind child nodes that have their own sparky controllers.
+			if (child.getAttribute &&
+			   (isDefined(child.getAttribute('data-ctrl')) ||
+			    isDefined(child.getAttribute('data-model')))) {
+				sparky = create(child);
+				unobservers.push(sparky.destroy);
+			}
+			else if (types[child.nodeType]) {
+				unobservers.push(types[child.nodeType](child, bind, unbind, get, create));
 			}
 		}
 	}
@@ -113,21 +123,26 @@
 		return node.classList || node.className.trim().split(/\s+/);
 	}
 
+	function updateClassSVG(node, text) {
+		node.className.baseVal = text;
+	}
+	
+	function updateClassHTML(node, text) {
+		node.className = text;
+	}
+
 	function bindClasses(node, bind, unbind, get, unobservers) {
 		var classList = getClassList(node);
 		var value = Array.prototype.join.call(classList, ' ');
 		
 		if (!value) { return; }
 		
+		var update = node instanceof SVGElement ?
+				updateClassSVG.bind(this, node) :
+				updateClassHTML.bind(this, node) ;
+		
 		// TODO: only replace classes we've previously set here
-		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
-			if (node instanceof SVGElement) {
-				node.className.baseVal = text;
-			}
-			else {
-				node.className = text;
-			}
-		}));
+		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
 
 	function bindAttributes(node, bind, unbind, get, unobservers) {
@@ -223,7 +238,7 @@
 		};
 	}
 
-	function traverse(node, observe, unobserve, get) {
+	function traverse(node, observe, unobserve, get, create) {
 		nodeCount = 0;
 		textCount = 0;
 
@@ -231,19 +246,14 @@
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
-		var unobservers = types[node.nodeType](node, observe, unobserve, get, true);
+		var unobservers = types[node.nodeType](node, observe, unobserve, get, create);
 
 		if (debug) {
-			console.log('dom nodes:  ' + nodeCount);
-			console.log('text nodes: ' + textCount);
+			console.log('[Sparky] bound dom nodes:', nodeCount, 'text nodes:', textCount);
 		}
 
-		return function untemplate() {
-			var l = unobservers.length;
-			
-			while (l--) {
-				unobservers[l]();
-			}
+		return function unbind() {
+			unobservers.forEach(call);
 		};
 	}
 
