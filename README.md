@@ -1,6 +1,6 @@
 <h1>Sparky</h1>
 
-<strong>Sparky is a model-agnostic live data binding view layer for your html5 app.</strong>
+<strong>Sparky is a live data binding view-controller layer for your html5 app.</strong>
 
 <p>Sparky enhances the existing DOM with declarative data bindings,
 passes data properties through Django-style template filters
@@ -8,7 +8,7 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ### Binding the DOM to a model
 
-Give sparky some data:
+First let's give sparky some data:
 
     Sparky.data.text = {
         title: "Sparky",
@@ -73,7 +73,7 @@ You can use dots .prop for string properties and brackets [0] for numbered keys.
 
 Sparky has no syntax for looping over a collection.
 Instead, if data-model is an array or array-like collection object, Sparky
-automatically loops over it and copies the corresponding DOM node for all the
+automatically loops over it, cloning the corresponding DOM node for all the
 items in the collection.
 So the HTML:
 
@@ -158,69 +158,69 @@ You control them, so you can make them inherit from other scopes and organise th
 ### Use a controller to listen to DOM events
 
 
-### Define a <template> for a DOM node
+### Define a template for a DOM node
 
 
 ### Template filters
 
-add
-capfirst
-cut
-date
-decimals
-default
-escape
-first
-floatformat
-join
-json
-last
-length
-linebreaksbr
-lower
-multiply
-parseint
-pluralize
-random	
-replace
-safe
-slice
-slugify
-striptags
-striptagsexcept
-time
-truncatechars
-unordered_list
-yesno
+##### add
+##### capfirst
+##### cut
+##### date
+##### decimals
+##### default
+##### escape
+##### first
+##### floatformat
+##### join
+##### json
+##### last
+##### length
+##### linebreaksbr
+##### lower
+##### multiply
+##### parseint
+##### pluralize
+##### random	
+##### replace
+##### safe
+##### slice
+##### slugify
+##### striptags
+##### striptagsexcept
+##### time
+##### truncatechars
+##### unordered_list
+##### yesno
 
 #### not implemented
 
-//dictsort
-//dictsortreversed
-//divisibleby
-//filesizeformat
-//get_digit
-//iriencode
-//length_is
-//linebreaks
-//linenumbers
-//make_list 
-//phone2numeric
-//pprint
-//raw
-//removetags
-//reverse
-//safeseq
-//sort
-//stringformat
-//timesince
-//timeuntil
-//title
-//truncatewords
-//truncatewords_html
-//unique
-//urlencode
-//urlize
-//urlizetrunc
-//wordcount
-//wordwrap
+##### //dictsort
+##### //dictsortreversed
+##### //divisibleby
+##### //filesizeformat
+##### //get_digit
+##### //iriencode
+##### //length_is
+##### //linebreaks
+##### //linenumbers
+##### //make_list 
+##### //phone2numeric
+##### //pprint
+##### //raw
+##### //removetags
+##### //reverse
+##### //safeseq
+##### //sort
+##### //stringformat
+##### //timesince
+##### //timeuntil
+##### //title
+##### //truncatewords
+##### //truncatewords_html
+##### //unique
+##### //urlencode
+##### //urlize
+##### //urlizetrunc
+##### //wordcount
+##### //wordwrap
