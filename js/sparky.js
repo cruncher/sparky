@@ -160,6 +160,11 @@
 
 			model[prop] = value;
 		});
+
+		observe(model, prop, function() {
+			var value = model[prop];
+			node.value = isDefined(value) ? value : '' ;
+		});
 	}
 	
 	function selectCtrl(node, model, sparky) {
