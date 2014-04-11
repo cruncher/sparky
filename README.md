@@ -56,7 +56,7 @@ Display the date, formatted:
 Sparky has a number of filters for modifying and formatting data.
 You can also create your own.
 
-#### input, select and textarea elements
+#### &lt;input&gt;, &lt;select&gt; and &lt;textarea&gt;s
 
 Bind Sparky.data.text.username to a text input:
 
@@ -66,7 +66,7 @@ Inputs, selects and textareas get 2-way data binding.
 Text written into the input is stored at Sparky.data.text.username.
 Changes to Sparky.data.text.username also change the input's value.
 
-#### data-model absolute paths
+#### Absolute paths
 
 The data-model attribute understands absolute paths:
 
@@ -77,7 +77,7 @@ The data-model attribute understands absolute paths:
 The paths are standard JavaScript path notation.
 Use dots <code>.prop</code> for string properties and brackets <code>[0]</code> for numbered keys.
 
-#### data-model relative paths
+#### Relative paths
 
 The data-model attribute also understands relative paths:
 
