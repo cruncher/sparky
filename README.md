@@ -8,7 +8,7 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ## data-model
 
-First let's give sparky a data model:
+First let's give Sparky some data:
 
     Sparky.data.text = {
         title: "Sparky loves you",
@@ -29,7 +29,7 @@ First let's give sparky a data model:
         }
     };
 
-### Binding the DOM to a model
+### Bind a DOM node to the data
 
 Bind the text of a title to Sparky.data.text.title:
 
