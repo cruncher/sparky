@@ -132,7 +132,10 @@
 	ns.Collection = function Collection(data) {
 		var collection = Object.create(prototype);
 
-		if (!(data instanceof Array)) {
+		if (data === undefined) {
+			data = [];
+		}
+		else if (!(data instanceof Array)) {
 			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
 			data = [];
 		}

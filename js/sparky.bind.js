@@ -187,7 +187,7 @@
 		if (!value) { return; }
 
 		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
-			node[attribute] = text;
+			node.setAttribute(attribute, text);
 		}));
 	}
 

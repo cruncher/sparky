@@ -28,7 +28,7 @@
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 	
-	var debug       = true;//false;
+	var debug       = false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -214,7 +214,11 @@
 	}
 
 	function findByPath(obj, path) {
-		return path !== undefined && objFromPath(obj, path.replace(rrelativepath, ''));
+		if (!isDefined(path)) { return; }
+		
+		return path === '.' ?
+			obj :
+			objFromPath(obj, path.replace(rrelativepath, '')) ;
 	}
 	
 	function dirtyObserve(obj, prop, fn) {
@@ -240,8 +244,6 @@
 			var l = cache.length;
 			var map = {};
 			var i, obj;
-			
-			console.log('[Sparky] Update sparky collection');
 			
 			while (l--) {
 				obj = cache[l];
@@ -467,9 +469,6 @@
 
 	doc.ready(function(){
 		var start = Date.now();
-
-//		if (debug) { console.groupCollapsed('[Sparky] DOM'); }
-		
 		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
 		var n = -1;
 		var l = nodes.length;
@@ -494,7 +493,6 @@
 			doc.trigger('sparkyready');
 		});
 		
-//		if (debug) { console.groupEnd(); }
 		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, this);
