@@ -8,9 +8,7 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ## data-model
 
-### Binding the DOM to a model
-
-First let's give sparky some data:
+First let's give sparky a data model:
 
     Sparky.data.text = {
         title: "Sparky loves you",
@@ -31,6 +29,8 @@ First let's give sparky some data:
         }
     };
 
+### Binding the DOM to a model
+
 Bind the text of a title to Sparky.data.text.title:
 
     <h1 data-model="text">{{title}}</h1>
@@ -44,7 +44,7 @@ Bind a class to the lang property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
 
-#### Template filters
+### Template filters
 
 Display the date, formatted:
 
@@ -56,17 +56,20 @@ Display the date, formatted:
 Sparky has a number of filters for modifying and formatting data.
 You can also create your own.
 
-#### &lt;input&gt;, &lt;select&gt; and &lt;textarea&gt;s
-
-Bind Sparky.data.text.username to a text input:
-
-    <input type="text" name="username" data-model="text" />
+### Form fields
 
 Inputs, selects and textareas get 2-way data binding.
-Text written into the input is stored at Sparky.data.text.username.
-Changes to Sparky.data.text.username also change the input's value.
+When the model changes, their values are updated.
+When their values are changed, the model is updated.
+Bind Sparky.data.text.username to a text input:
 
-#### Absolute paths
+    <input type="text" name="username" data-model="text" value="" />
+
+The name attribute is used to tell Sparky which property of the model to update.
+Text written into the input is stored at Sparky.data.text.username.
+Changes to Sparky.data.text.username update the input's value.
+
+### Absolute paths
 
 The data-model attribute understands absolute paths:
 
@@ -77,7 +80,7 @@ The data-model attribute understands absolute paths:
 The paths are standard JavaScript path notation.
 Use dots <code>.prop</code> for string properties and brackets <code>[0]</code> for numbered keys.
 
-#### Relative paths
+### Relative paths
 
 The data-model attribute also understands relative paths:
 
@@ -91,7 +94,7 @@ The leading <code>.</code> makes Sparky look for the 'meta' object relative to
 the parent object, which in this case is Sparky.data.text. A leading opening
 bracket <code>[</code> would do the same thing.
 
-#### Looping over a collection
+### Looping over a collection
 
 Sparky has no syntax for looping over a collection.
 Instead, if data-model is an array or array-like collection object, Sparky
