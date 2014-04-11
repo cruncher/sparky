@@ -6,12 +6,14 @@
 passes data properties through Django-style template filters
 and renders multiple changes in batches on browser animation frames.</p>
 
-### Binding the DOM to a model
+## data-model
+
+#### Binding the DOM to a model
 
 First let's give sparky some data:
 
     Sparky.data.text = {
-        title: "Sparky",
+        title: "Sparky loves you",
         lang: "en",
         date: "2014-04-15",
         meta: {
@@ -33,9 +35,16 @@ Bind the text of a title to Sparky.data.text.title:
 
     <h1 data-model="text">{{title}}</h1>
 
+Now when Sparky.data.text.title is changed, the text content of this h1 is updated.
+Try it in the console:
+
+    Sparky.data.text.title = 'Sparky hugs you';
+
 Bind a class to the lang property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
+
+#### Template filters
 
 Display the date, formatted:
 
@@ -47,6 +56,8 @@ Display the date, formatted:
 Sparky has a number of filters for modifying and formatting data.
 You can also create your own.
 
+#### input, select and textarea elements
+
 Bind Sparky.data.text.username to a text input:
 
     <input type="text" name="username" data-model="text" />
@@ -54,6 +65,8 @@ Bind Sparky.data.text.username to a text input:
 Inputs, selects and textareas get 2-way data binding.
 Text written into the input is stored at Sparky.data.text.username.
 Changes to Sparky.data.text.username also change the input's value.
+
+#### data-model paths
 
 Define a model with a relative path:
 
@@ -70,6 +83,8 @@ The data-model attribute also takes absolute paths:
 
 The paths are standard JavaScript path notation.
 You can use dots .prop for string properties and brackets [0] for numbered keys.
+
+#### Looping over a collection
 
 Sparky has no syntax for looping over a collection.
 Instead, if data-model is an array or array-like collection object, Sparky
@@ -99,7 +114,7 @@ Results in a DOM that looks like this:
 The comment nodes are added automatically and are required by Sparky to maintain the collection.
 
 
-### Use a controller to create scope
+## data-ctrl
 
 All the above examples use the model directly as the context for rendering the DOM.
 Sparky uses the model by default, but you can create a scope object to use instead.
@@ -163,64 +178,64 @@ You control them, so you can make them inherit from other scopes and organise th
 
 ### Template filters
 
-##### add
-##### capfirst
-##### cut
-##### date
-##### decimals
-##### default
-##### escape
-##### first
-##### floatformat
-##### join
-##### json
-##### last
-##### length
-##### linebreaksbr
-##### lower
-##### multiply
-##### parseint
-##### pluralize
-##### random	
-##### replace
-##### safe
-##### slice
-##### slugify
-##### striptags
-##### striptagsexcept
-##### time
-##### truncatechars
-##### unordered_list
-##### yesno
+###### add
+###### capfirst
+###### cut
+###### date
+###### decimals
+###### default
+###### escape
+###### first
+###### floatformat
+###### join
+###### json
+###### last
+###### length
+###### linebreaksbr
+###### lower
+###### multiply
+###### parseint
+###### pluralize
+###### random	
+###### replace
+###### safe
+###### slice
+###### slugify
+###### striptags
+###### striptagsexcept
+###### time
+###### truncatechars
+###### unordered_list
+###### yesno
 
 #### not implemented
 
-##### //dictsort
-##### //dictsortreversed
-##### //divisibleby
-##### //filesizeformat
-##### //get_digit
-##### //iriencode
-##### //length_is
-##### //linebreaks
-##### //linenumbers
-##### //make_list 
-##### //phone2numeric
-##### //pprint
-##### //raw
-##### //removetags
-##### //reverse
-##### //safeseq
-##### //sort
-##### //stringformat
-##### //timesince
-##### //timeuntil
-##### //title
-##### //truncatewords
-##### //truncatewords_html
-##### //unique
-##### //urlencode
-##### //urlize
-##### //urlizetrunc
-##### //wordcount
-##### //wordwrap
+###### // dictsort
+###### // dictsortreversed
+###### // divisibleby
+###### // filesizeformat
+###### // get_digit
+###### // iriencode
+###### // length_is
+###### // linebreaks
+###### // linenumbers
+###### // make_list 
+###### // phone2numeric
+###### // pprint
+###### // raw
+###### // removetags
+###### // reverse
+###### // safeseq
+###### // sort
+###### // stringformat
+###### // timesince
+###### // timeuntil
+###### // title
+###### // truncatewords
+###### // truncatewords_html
+###### // unique
+###### // urlencode
+###### // urlize
+###### // urlizetrunc
+###### // wordcount
+###### // wordwrap
