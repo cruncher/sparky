@@ -100,7 +100,7 @@
 
 	// Object constructor
 
-	var prototype = extend({}, mixin.events, mixin.array, {
+	var prototype = extend({}, mixin.events, mixin.set, mixin.array, {
 		add: function(item) {
 			invalidateCaches(this);
 			add(this, item);
@@ -136,14 +136,28 @@
 			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
 			data = [];
 		}
+		
+		var length = collection.length = data.length;
 
 		// Populate the collection
-		collection.length = data.length;
 
 		data
 		.slice()
 		.sort(byId)
 		.forEach(setValue, collection);
+		
+		// Watch the length and delete indexes when the length becomes shorter
+		// like a nice array does.
+		
+		function lengthObserver(collection) {
+			while (length-- > collection.length) {
+				delete collection[length];
+			}
+				
+			length = collection.length;
+		}
+		
+		observe(collection, 'length', lengthObserver);
 
 		// Delegate events
 		//collection

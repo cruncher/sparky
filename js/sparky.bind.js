@@ -55,6 +55,29 @@
 	    	11: fragmentNode
 	    };
 
+	var tags = {
+	    	input: function(node, prop, bind, unbind, get) {
+	    		bind(prop, function() {
+	    			var value = get(prop);
+	    			node.value = isDefined(value) ? value : '' ;
+	    		});
+	    	},
+	    	
+	    	select: function(node, prop, bind, unbind, get) {
+	    		bind(node.name, function() {
+	    			var value = get(prop);
+	    			node.value = isDefined(value) ? value : '' ;
+	    		});
+	    	},
+	    	
+	    	textarea: function(node, prop, bind, unbind, get) {
+	    		bind(node.name, function() {
+	    			var value = get(prop);
+	    			node.value = isDefined(value) ? value : '' ;
+	    		});
+	    	}
+	    };
+
 	function call(fn) {
 		fn();
 	}
@@ -65,12 +88,17 @@
 
 	function domNode(node, bind, unbind, get, create) {
 		var unobservers = [];
+		var tag = node.tagName.toLowerCase();
 
-		if (debug) { console.log('[sparky] bind', '<' + node.tagName.toLowerCase() + '>'); }
+		if (debug) { console.log('[sparky] bind', '<' + tag + '>'); }
 
 		bindClasses(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, create, unobservers);
+
+		if (tags[tag]) {
+			tags[tag](node, node.name, bind, unbind, get);
+		}
 
 		nodeCount++;
 		return unobservers;
@@ -114,7 +142,7 @@
 				unobservers.push(sparky.destroy);
 			}
 			else if (types[child.nodeType]) {
-				unobservers.push(types[child.nodeType](child, bind, unbind, get, create));
+				unobservers.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get, create));
 			}
 		}
 	}
@@ -233,7 +261,7 @@
 		// Return a function that unobserves properties
 		return function() {
 			properties.forEach(function detach(property) {
-				unbind(property, change);
+				unbind(property, update);
 			});
 		};
 	}

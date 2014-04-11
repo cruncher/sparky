@@ -146,6 +146,30 @@
 		return model;
 	}
 	
+	function inputCtrl(node, model, sparky) {
+		var prop = node.name;
+		
+		if (!isDefined(prop)) { return; }
+		
+		var type = node.type;
+		
+		jQuery(node).on('change', function changeInput(e) {
+			var value = type === 'number' || type === 'range' ?
+					parseFloat(e.target.value) :
+					e.target.value ;
+
+			model[prop] = value;
+		});
+	}
+	
+	function selectCtrl(node, model, sparky) {
+		
+	}
+	
+	function textareaCtrl(node, model, sparky) {
+		
+	}
+	
 	function objFrom(obj, array) {
 		var val = obj[array[0]],
 		    slice = array.slice(1);
@@ -168,7 +192,7 @@
 	}
 	
 	function objToPath(root, path, obj) {
-		return objTo(root, path.split('.'), obj);
+		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
 	
 	function onFrame(fn) {
@@ -200,7 +224,7 @@
 			if (obj.length === array.length) { return; }
 			array = obj.slice();
 			fn(obj);
-		}, 0);
+		}, 16);
 	}
 	
 	function setupCollection(node, model, ctrl) {
@@ -264,14 +288,22 @@
 		
 		// Remove the node
 		removeNode(node);
-		
-		// Use try / catch because array.length cannot be observed by our
-		// observer. So we need to dirty check it for changes.
-		try {
+
+		// Observe length and update the DOM on next
+		// animation frame if it changes.
+		if (isConfigurable(model, 'length')) {
 			observe(model, 'length', onFrame(updateNodes));
 		}
-		catch (e) {
-			console.log('[Sparky] using dirty observe. Object must be an actual array.');
+		
+		// model.length cannot be observed by our observer.
+		// So we need to dirty check it for changes.
+		else {
+			if (debug) {
+				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array./n' +
+				             '         dirtyObserve() isnt very performant. You might want to consider/n' +
+				             '         using a Collection([]) in place of the array.');
+			}
+			
 			dirtyObserve(model, 'length', onFrame(updateNodes));
 		}
 		
@@ -294,8 +326,12 @@
 		
 		if (!ctrl) {
 			var ctrlPath = node.getAttribute('data-ctrl');
-			ctrl = isDefined(ctrlPath) ?
-				findByPath(Sparky.controllers, ctrlPath) :
+			var tag;
+			
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.controllers, ctrlPath) :
+				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
+				tag === 'select' ? selectCtrl :
+				tag === 'textarea' ? textareaCtrl :
 				defaultCtrl ;
 		}
 		
