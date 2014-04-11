@@ -154,16 +154,11 @@
 		var type = node.type;
 		
 		jQuery(node).on('change', function changeInput(e) {
-			var value = type === 'number' || type === 'range' ?
-					parseFloat(e.target.value) :
+			var value = type === 'number' || type === 'range' ? parseFloat(e.target.value) :
+					type === 'radio' || type === 'checkox' ? e.target.checked && e.target.value :
 					e.target.value ;
 
 			model[prop] = value;
-		});
-
-		observe(model, prop, function() {
-			var value = model[prop];
-			node.value = isDefined(value) ? value : '' ;
 		});
 	}
 	
