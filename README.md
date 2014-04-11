@@ -66,23 +66,30 @@ Inputs, selects and textareas get 2-way data binding.
 Text written into the input is stored at Sparky.data.text.username.
 Changes to Sparky.data.text.username also change the input's value.
 
-#### data-model paths
+#### data-model absolute paths
 
-Define a model with a relative path:
-
-    <h1 class="language-{{lang}}" data-model="text">
-        {{title}}
-        <p data-model=".meta">author: {{author}}, words: {{word_count}}</p>
-    </h1>
-
-The '.' makes Sparky look for the 'meta' object in the parent object, Sparky.data.text.
-
-The data-model attribute also takes absolute paths:
+The data-model attribute understands absolute paths:
 
     <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
+    <h2>First contributor</h2>
+    <p data-model="text.meta.contributors[0]">{{name}}</p>
 
 The paths are standard JavaScript path notation.
-You can use dots .prop for string properties and brackets [0] for numbered keys.
+Use dots <code>.prop</code> for string properties and brackets <code>[0]</code> for numbered keys.
+
+#### data-model relative paths
+
+The data-model attribute also understands relative paths:
+
+    <div class="language-{{lang}}" data-model="text">
+        <p data-model=".meta">author: {{author}}, words: {{word_count}}</p>
+        <h2>First contributor</h2>
+        <p data-model=".meta.contributors[0]">{{name}}</p>
+    </div>
+
+The leading <code>.</code> makes Sparky look for the 'meta' object relative to
+the parent object, which in this case is Sparky.data.text. A leading opening
+bracket <code>[</code> would do the same thing.
 
 #### Looping over a collection
 
