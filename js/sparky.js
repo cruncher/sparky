@@ -490,6 +490,10 @@
 			Sparky(node);
 		});
 		
+		window.requestAnimationFrame(function sparkyready() {
+			doc.trigger('sparkyready');
+		});
+		
 //		if (debug) { console.groupEnd(); }
 		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
