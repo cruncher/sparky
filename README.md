@@ -8,7 +8,7 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ## data-model
 
-#### Binding the DOM to a model
+### Binding the DOM to a model
 
 First let's give sparky some data:
 
