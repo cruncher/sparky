@@ -274,6 +274,6 @@
 
 		yesno: function(truthy, falsy) {
 			return this ? truthy : falsy ;
-		}		
+		}
 	};
 })(window.sparky || require('sparky'));
