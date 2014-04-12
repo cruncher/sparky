@@ -153,6 +153,7 @@
 		//linenumbers
 
 		lower: String.prototype.toLowerCase,
+		lowercase: String.prototype.toLowerCase,
 		
 		//make_list 
 		

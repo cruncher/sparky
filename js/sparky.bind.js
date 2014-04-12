@@ -43,6 +43,8 @@
 		'src',
 		'alt'
 	];
+	
+	var xlink = 'http://www.w3.org/1999/xlink';
 
 	var rname = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
@@ -159,6 +161,14 @@
 		node.className = text;
 	}
 
+	function updateAttributeSVG(node, attribute, value) {
+		node.setAttributeNS(xlink, attribute, value);
+	}
+	
+	function updateAttributeHTML(node, attribute, value) {
+		node.setAttribute(attribute, value);
+	}
+
 	function bindClasses(node, bind, unbind, get, unobservers) {
 		var classList = getClassList(node);
 		var value = Array.prototype.join.call(classList, ' ');
@@ -182,13 +192,19 @@
 	}
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
-		var value = node.getAttribute(attribute);
-
-		if (!value) { return; }
-
-		unobservers.push(observeProperties(value, bind, unbind, get, function(text) {
-			node.setAttribute(attribute, text);
-		}));
+		var isSVG = node instanceof SVGElement;
+		var value = isSVG ?
+		    	node.getAttributeNS(xlink, attribute) :
+		    	node.getAttribute(attribute) ;
+		var update;
+		
+		if (!isDefined(value) || value === '') { return; }
+		
+		update = isSVG ?
+			updateAttributeSVG.bind(this, node, attribute) :
+			updateAttributeHTML.bind(this, node, attribute) ;
+		
+		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
 
 	function extractProperties(str) {
