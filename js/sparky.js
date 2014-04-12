@@ -21,8 +21,7 @@
 	    reduce = Array.prototype.reduce,
 	    slice = Array.prototype.slice;
 	
-	var rcomment = /\{\%\s*.+?\s*\%\}/g,
-	    rtag = /\{\{\s*(\w+)\s*\}\}/g,
+	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
 	    rbracket = /\]$/,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
@@ -36,7 +35,58 @@
 	    	template: 'content' in document.createElement('template')
 	    };
 	
-	var prototype = extend({}, ns.mixin.events);
+	var empty = [];
+	
+	var prototype = extend({
+		//observe: function observe(property, fn) {
+		//	var scope = this.scope;
+		//	
+		//	Sparky.observe(scope, property, onFrame(fn));
+		//	
+		//	// Start off with populated nodes
+		//	fn();
+		//	
+		//	if (templateFragment) {
+		//		Sparky.observe(scope, property, insert);
+		//	}
+		//},
+		//
+		//unobserve: function unobserve(property, fn) {
+		//	Sparky.unobserve(scope, property, fn);
+		//},
+
+		//get: function get(property) {
+		//	return getProperty(scope, property);
+		//},
+		//
+		//create: function create(node) {
+		//	var scope = this.scope;
+		//	var model = this.model;
+		//	var path = node.getAttribute('data-model');
+		//	
+		//	if (!isDefined(path)) {
+		//		return Sparky(node, scope);
+		//	}
+		//	
+		//	if (path === '.') {
+		//		return Sparky(node, model);
+		//	}
+		//	
+		//	if (rrelativepath.test(path)) {
+		//		// Remove the leading '.' or '['
+		//		path = path.replace(rrelativepath, '');
+		//		return Sparky(node, findByPath(model, path));
+		//	}
+		//	
+		//	if (rtag.test(path)) {
+		//		// Remove the tag brackets {{}}
+		//		path = rtag.exec(path)[1];
+		//		return Sparky(node, findByPath(scope, path));
+		//	}
+		//	
+		//	return Sparky(node, findByPath(Sparky.data, path));
+		//}
+	}, ns.mixin.events);
 	
 	// Pure functions
 	
@@ -214,11 +264,11 @@
 	}
 
 	function findByPath(obj, path) {
-		if (!isDefined(path)) { return; }
+		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
 		
 		return path === '.' ?
 			obj :
-			objFromPath(obj, path.replace(rrelativepath, '')) ;
+			objFromPath(obj, path) ;
 	}
 	
 	function dirtyObserve(obj, prop, fn) {
@@ -303,7 +353,7 @@
 			if (debug) {
 				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array./n' +
 				             '         dirtyObserve() isnt very performant. You might want to consider/n' +
-				             '         using a Collection([]) in place of the array.');
+				             '         using a Sparky.Collection() in place of the array.');
 			}
 			
 			dirtyObserve(model, 'length', onFrame(updateNodes));
@@ -337,7 +387,7 @@
 				defaultCtrl ;
 		}
 		
-		if (model.length !== undefined) {
+		if (model && model.length !== undefined) {
 			// model is an array or collection
 			if (debug) { console.groupCollapsed('[Sparky] collection:', node); }
 			sparky = setupCollection(node, model, ctrl);
@@ -391,17 +441,29 @@
 		}
 		
 		function create(node) {
-			var modelPath = node.getAttribute('data-model');
+			var path = node.getAttribute('data-model');
 			
-			if (modelPath === undefined) {
-				return Sparky(node);
+			if (!isDefined(path)) {
+				return Sparky(node, scope);
 			}
 			
-			if (rrelativepath.test(modelPath)) {
-				return Sparky(node, findByPath(model, modelPath));
+			if (path === '.') {
+				return Sparky(node, model);
 			}
 			
-			return Sparky(node, findByPath(Sparky.data, modelPath));
+			if (rrelativepath.test(path)) {
+				// Remove the leading '.' or '['
+				path = path.replace(rrelativepath, '');
+				return Sparky(node, findByPath(model, path));
+			}
+			
+			if (rtag.test(path)) {
+				// Remove the tag brackets {{}}
+				path = rtag.exec(path)[1];
+				return Sparky(node, findByPath(scope, path));
+			}
+			
+			return Sparky(node, findByPath(Sparky.data, path));
 		}
 		
 		sparky.node = node;
@@ -446,9 +508,9 @@
 	// Expose
 
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.events      = ns.events || (ns.events = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
+	Sparky.Collection  = ns.Collection;
 
 	Sparky.debug       = debug;
 	Sparky.data        = data;
@@ -458,7 +520,7 @@
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
 
-	ns.sparky = Sparky;
+	ns.Sparky = Sparky;
 
 
 	// Bind the DOM

@@ -25,10 +25,10 @@
 // or model.
 
 
-(function(sparky) {
+(function(Sparky) {
 	"use strict";
 
-	var debug = sparky.debug;
+	var debug = Sparky.debug;
 
 	// For debugging
 	var nodeCount = 0;
@@ -46,7 +46,7 @@
 	
 	var xlink = 'http://www.w3.org/1999/xlink';
 
-	var rname = /\{\{\s*([a-zA-Z0-9_]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+	var rname = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
 
 	var filterCache = {};
@@ -91,13 +91,15 @@
 	function domNode(node, bind, unbind, get, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
+		var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[sparky] bind', '<' + tag + '>'); }
+		if (debug) { console.log('[Sparky] bind', '<' + tag + '>'); }
 
 		bindClasses(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, create, unobservers);
 
+		// Set up name-value databinding for form elements 
 		if (tags[tag]) {
 			tags[tag](node, node.name, bind, unbind, get);
 		}
@@ -136,7 +138,7 @@
 		while (++n < l) {
 			child = nodes[n];
 
-			// Don't bind child nodes that have their own sparky controllers.
+			// Don't bind child nodes that have their own Sparky controllers.
 			if (child.getAttribute &&
 			   (isDefined(child.getAttribute('data-ctrl')) ||
 			    isDefined(child.getAttribute('data-model')))) {
@@ -227,7 +229,7 @@
 
 		return {
 			name: parts[1],
-			fn: sparky.filters[parts[1]],
+			fn: Sparky.filters[parts[1]],
 			args: parts[2] && JSON.parse('[' + parts[2].replace(/\'/g, '\"') + ']')
 		};
 	}
@@ -241,11 +243,11 @@
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('[sparky] filter \'' + filters[n].name + '\' is not a sparky filter');
+				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
 			
 			if (debug) {
-				console.log('[sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
+				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 			
 			word = filters[n].fn.apply(word, filters[n].args);
@@ -301,5 +303,5 @@
 		};
 	}
 
-	sparky.bind = traverse;
-})(window.sparky || require('sparky'));
+	Sparky.bind = traverse;
+})(window.Sparky || require('sparky'));

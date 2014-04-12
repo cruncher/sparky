@@ -1,9 +1,9 @@
 
-(function(sparky, undefined) {
+(function(Sparky, undefined) {
 	"use strict";
 
-	var debug = sparky.debug;
-	var settings = (sparky.settings = sparky.settings || {});
+	var debug = Sparky.debug;
+	var settings = (Sparky.settings = Sparky.settings || {});
 	
 	settings.months      = ('January February March April May June July August September October November December').split(' ');
 	settings.days        = ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' ');
@@ -25,7 +25,7 @@
 		31: 'st'
 	});
 	
-	sparky.filters = {
+	Sparky.filters = {
 		add: function(n) {
 			return parseFloat(this) + n ;
 		},
@@ -277,4 +277,4 @@
 			return this ? truthy : falsy ;
 		}
 	};
-})(window.sparky || require('sparky'));
+})(window.Sparky || require('sparky'));
