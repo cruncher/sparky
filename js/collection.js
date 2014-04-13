@@ -119,6 +119,20 @@
 			this.trigger('remove', item);
 			return this;
 		},
+		
+		update: function(obj) {
+			if (!isDefined(obj.id)) { console.log('[Collection] update() obj has no id', obj); }
+			var item = findById(this, obj.id);
+			
+			if (item) {
+				extend(item, obj);
+			}
+			else {
+				this.add(obj);
+			}
+			
+			return this;
+		},
 
 		find: function(id) {
 			return findById(this, id);

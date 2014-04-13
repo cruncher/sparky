@@ -18,10 +18,7 @@ and renders multiple changes in batches on browser animation frames.</p>
     };
 
     Sparky.controllers['my-ctrl'] = function(node, model) {
-        // Return a scope object to use that in place of the model
-        // for updating the DOM.
-        // var scope = {};
-        // return scope;
+        
     };
 
 Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
@@ -209,7 +206,11 @@ Listen to changes on the model to update the scope:
                 model.lang ;
         }
         
+        // Observe changes t the model
         Sparky.observe(model, 'lang', updateLang);
+        
+        // Initialise the scope
+        updateLang(model);
         
         // Return the scope object to use it for DOM rendering
         return scope;
@@ -233,66 +234,85 @@ You can make them inherit from other scopes and organise them however you like.
 ### Define a template for a DOM node
 
 
-### Template filters
+### Templating
 
-###### add
-###### capfirst
-###### cut
-###### date
-###### decimals
-###### default
-###### escape
-###### first
-###### floatformat
-###### join
-###### json
-###### last
-###### length
-###### linebreaksbr
-###### lower
-###### multiply
-###### parseint
-###### pluralize
-###### random	
-###### replace
-###### safe
-###### slice
-###### slugify
-###### striptags
-###### striptagsexcept
-###### time
-###### truncatechars
-###### unordered_list
-###### yesno
+Sparky filters work just like
+<a href="http://docs.django.com/templates">Django template</a> filters:
 
-#### not implemented
+    <p>{{ date|date:'d M Y' }}</p>
 
-###### // dictsort
-###### // dictsortreversed
-###### // divisibleby
-###### // filesizeformat
-###### // get_digit
-###### // iriencode
-###### // length_is
-###### // linebreaks
-###### // linenumbers
-###### // make_list 
-###### // phone2numeric
-###### // pprint
-###### // raw
-###### // removetags
-###### // reverse
-###### // safeseq
-###### // sort
-###### // stringformat
-###### // timesince
-###### // timeuntil
-###### // title
-###### // truncatewords
-###### // truncatewords_html
-###### // unique
-###### // urlencode
-###### // urlize
-###### // urlizetrunc
-###### // wordcount
-###### // wordwrap
+Sparky has a subset of the Django filters:
+
+- add
+- capfirst
+- cut
+- date
+- decimals
+- default
+- escape
+- first
+- floatformat
+- join
+- json
+- last
+- length
+- linebreaksbr
+- lower
+- multiply
+- parseint
+- pluralize
+- random	
+- replace
+- safe
+- slice
+- slugify
+- striptags
+- striptagsexcept
+- time
+- truncatechars
+- unordered_list
+- yesno
+
+
+## Techniques
+
+### Observing
+
+#### Sparky.observe(object, property, fn);
+
+Sparky.observe observes changes to the property of an object by
+reconfiguring it as a getter/setter. This is very fast but has a
+limitation or two.
+
+Sparky.observe can't listen for changes to the length of an array,
+as arrays don't allow the length property to be configured. But it
+can listen for changes to the length of a collection object:
+
+    var collection = Sparky.Collection(array);
+
+(Sparky can handle arrays, but uses dirty checking internally to observe
+the length. You get better performance from a collection object.)
+
+#### Sparky.unobserve(object, property, fn);
+
+Unbind an observer fn from the object property.
+
+#### Adapt Sparky to your data models
+
+If you want to use a different means of observing changes to data,
+overwrite Sparky.observe and Sparky.unobserve with your own functions.
+Say your models emit events, and you bind to them with .on() and .off()
+methods:
+
+   Sparky.observe = function(object, property, fn) {
+       object.on(property, fn);
+   };
+
+Don't forget the unobserver:
+
+   Sparky.unobserve = function(object, property, fn) {
+       object.off(property, fn);
+   }
+
+
+

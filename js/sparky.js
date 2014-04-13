@@ -27,7 +27,7 @@
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 	
-	var debug       = false;
+	var debug       = true;//false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -37,56 +37,7 @@
 	
 	var empty = [];
 	
-	var prototype = extend({
-		//observe: function observe(property, fn) {
-		//	var scope = this.scope;
-		//	
-		//	Sparky.observe(scope, property, onFrame(fn));
-		//	
-		//	// Start off with populated nodes
-		//	fn();
-		//	
-		//	if (templateFragment) {
-		//		Sparky.observe(scope, property, insert);
-		//	}
-		//},
-		//
-		//unobserve: function unobserve(property, fn) {
-		//	Sparky.unobserve(scope, property, fn);
-		//},
-
-		//get: function get(property) {
-		//	return getProperty(scope, property);
-		//},
-		//
-		//create: function create(node) {
-		//	var scope = this.scope;
-		//	var model = this.model;
-		//	var path = node.getAttribute('data-model');
-		//	
-		//	if (!isDefined(path)) {
-		//		return Sparky(node, scope);
-		//	}
-		//	
-		//	if (path === '.') {
-		//		return Sparky(node, model);
-		//	}
-		//	
-		//	if (rrelativepath.test(path)) {
-		//		// Remove the leading '.' or '['
-		//		path = path.replace(rrelativepath, '');
-		//		return Sparky(node, findByPath(model, path));
-		//	}
-		//	
-		//	if (rtag.test(path)) {
-		//		// Remove the tag brackets {{}}
-		//		path = rtag.exec(path)[1];
-		//		return Sparky(node, findByPath(scope, path));
-		//	}
-		//	
-		//	return Sparky(node, findByPath(Sparky.data, path));
-		//}
-	}, ns.mixin.events);
+	var prototype = extend({}, ns.mixin.events);
 	
 	// Pure functions
 	
@@ -282,14 +233,15 @@
 	}
 	
 	function setupCollection(node, model, ctrl) {
-		var startNode = document.createComment(' [Sparky] collection start ');
-		var endNode = document.createComment(' [Sparky] collection end ');
+		var endNode = document.createComment(' [Sparky] collection');
 		var nodes = [];
 		var sparkies = [];
 		var modelPath = node.getAttribute('data-model');
 		var cache = model.slice();
 		
-		function updateNodes(model) {
+		function updateNodes() {
+			if (debug) { console.log('[Sparky] collection updateNodes()', model); }
+			
 			var n = -1;
 			var l = cache.length;
 			var map = {};
@@ -323,6 +275,7 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
+
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl);
 
 					if (isDefined(modelPath)) {
@@ -335,7 +288,6 @@
 		}
 		
 		// Put the marker nodes in place
-		insertNode(node, startNode);
 		insertNode(node, endNode);
 		
 		// Remove the node
@@ -343,23 +295,41 @@
 
 		// Observe length and update the DOM on next
 		// animation frame if it changes.
-		if (isConfigurable(model, 'length')) {
+		try {
+			console.log('OBSERVE');
 			observe(model, 'length', onFrame(updateNodes));
 		}
-		
-		// model.length cannot be observed by our observer.
-		// So we need to dirty check it for changes.
-		else {
+		catch (e) {
+			console.log('ERROR', e);
 			if (debug) {
-				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array./n' +
-				             '         dirtyObserve() isnt very performant. You might want to consider/n' +
-				             '         using a Sparky.Collection() in place of the array.');
+				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array. ' +
+				             'dirtyObserve() isnt very performant. You might want to consider ' +
+				             'using a Sparky.Collection() in place of the array.');
 			}
 			
 			dirtyObserve(model, 'length', onFrame(updateNodes));
 		}
 		
-		updateNodes(model);
+		
+		//if (isConfigurable(model, 'length')) {
+		//	observe(model, 'length', onFrame(updateNodes));
+		//}
+		//
+		//// model.length cannot be observed by our observer.
+		//// So we need to dirty check it for changes.
+		//else {
+		//	if (debug) {
+		//		console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array. ' +
+		//		             'dirtyObserve() isnt very performant. You might want to consider ' +
+		//		             'using a Sparky.Collection() in place of the array.');
+		//	}
+		//	
+		//	dirtyObserve(model, 'length', onFrame(updateNodes));
+		//}
+
+
+		onFrame(updateNodes);
+		//updateNodes(model);
 		
 		return {
 			destroy: function() {
@@ -369,6 +339,13 @@
 	}
 
 	function Sparky(node, model, ctrl) {
+		if (debug) {
+			console.groupCollapsed('[Sparky] Sparky(', node, ',',
+				(model && ('model#' + model.id)), ',',
+				(ctrl && 'ctrl'), ')'
+			);
+		}
+		
 		var sparky;
 		
 		if (!model) {
@@ -389,11 +366,11 @@
 		
 		if (model && model.length !== undefined) {
 			// model is an array or collection
-			if (debug) { console.groupCollapsed('[Sparky] collection:', node); }
+			if (debug) { console.log('[Sparky] collection'); }
 			sparky = setupCollection(node, model, ctrl);
 		}
 		else {
-			if (debug) { console.groupCollapsed('[Sparky] node:', node); }
+			if (debug) { console.log('[Sparky] node'); }
 			sparky = Object.create(prototype);
 			setupSparky(sparky, node, model, ctrl);
 		}
@@ -454,6 +431,7 @@
 			if (rrelativepath.test(path)) {
 				// Remove the leading '.' or '['
 				path = path.replace(rrelativepath, '');
+				console.log('RELATIVE PATH', path, model);
 				return Sparky(node, findByPath(model, path));
 			}
 			
@@ -484,12 +462,11 @@
 		// we use the model object as scope.
 		scope = ctrl && ctrl(node, model, sparky);
 		
+		if (debug && scope) { console.log('[Sparky] with controller scope:', scope); }
+		
 		if (!scope) {
 			if (debug) { console.log('[Sparky] with model as scope:', model); }
 			scope = model;
-		}
-		else {
-			if (debug) { console.log('[Sparky] with controller scope:', scope); }
 		}
 		
 		if (debug && templateId) {
