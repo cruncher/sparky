@@ -6,6 +6,31 @@
 passes data properties through Django-style template filters
 and renders multiple changes in batches on browser animation frames.</p>
 
+## Quick start
+
+    <div class="{{type}}-block block" data-ctrl="my-ctrl" data-model="my-data">
+        <p>{{title}}</p>
+    </div>
+
+    Sparky.data['my-data'] = {
+        title: 'My data',
+        type: 'data'
+    };
+
+    Sparky.controllers['my-ctrl'] = function(node, model) {
+        // Return a scope object to use that in place of the model
+        // for updating the DOM.
+        // var scope = {};
+        // return scope;
+    };
+
+Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
+If a change is made, Sparky will update only those nodes in the DOM that
+need it. Sparky manipulates the DOM on browser animation frames, so
+multiple changes to the same data don't cause multiple changes to the DOM.
+
+Sparky also understands how to bind to SVG placed inside HTML.
+
 ## data-model
 
 First let's give Sparky some data:
@@ -61,13 +86,18 @@ You can also create your own.
 Inputs, selects and textareas get 2-way data binding.
 When the model changes, their values are updated.
 When their values are changed, the model is updated.
-Bind Sparky.data.text.username to a text input:
 
-    <input type="text" name="username" data-model="text" value="" />
+Bind an <code>input[type="text"]</code> to
+<code>Sparky.data.text.username</code>:
 
-The name attribute is used to tell Sparky which property of the model to update.
-Text written into the input is stored at Sparky.data.text.username.
-Changes to Sparky.data.text.username update the input's value.
+    <form class="user-form" data-model="text">
+        <input type="text" name="username" value="" />
+    </form>
+
+The <code>name</code> attribute is used to tell Sparky which
+property of the model to update. Text written into the input
+is stored at Sparky.data.text.username. Changes to
+Sparky.data.text.username update the input's value.
 
 ### Absolute paths
 
