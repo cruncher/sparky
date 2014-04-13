@@ -25,9 +25,10 @@ and renders multiple changes in batches on browser animation frames.</p>
     };
 
 Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
-If a change is made, Sparky will update only those nodes in the DOM that
-need it. Sparky manipulates the DOM on browser animation frames, so
-multiple changes to the same data don't cause multiple changes to the DOM.
+If a change is made, Sparky will update only those elements in the DOM
+that need it. Sparky manipulates the DOM on browser animation frames,
+so multiple changes to the same data don't cause multiple changes to
+the DOM.
 
 Sparky also understands how to bind to SVG placed inside HTML.
 
@@ -43,9 +44,9 @@ First let's give Sparky some data:
             author: "stephband",
             word_count: 140,
             contributors: [{
-                name: "Stephen",
-                username: "stephband",
-                url: "http://cruncher.ch"
+                name: "Sparky",
+                username: "sparky",
+                url: "http://github.com/cruncher/sparky"
             }, {
                 name: "Marco",
                 username: "mbi",
@@ -60,10 +61,10 @@ Bind the text of a title to Sparky.data.text.title:
 
     <h1 data-model="text">{{title}}</h1>
 
-Now when Sparky.data.text.title is changed, the text content of this h1 is updated.
-Try it in the console:
+Now when Sparky.data.text.title is changed, the text content
+of this h1 is updated. Try it in the console:
 
-    Sparky.data.text.title = 'Sparky hugs you';
+    Sparky.data.text.title = 'Sparky huggy you';
 
 Bind a class to the lang property:
 
@@ -96,7 +97,7 @@ Bind an <code>input[type="text"]</code> to
 
 The <code>name</code> attribute is used to tell Sparky which
 property of the model to update. Text written into the input
-is stored at Sparky.data.text.username. Changes to
+is stored at <code>Sparky.data.text.username</code>, and changes to
 Sparky.data.text.username update the input's value.
 
 ### Absolute paths
@@ -124,6 +125,26 @@ The leading <code>.</code> makes Sparky look for the 'meta' object relative to
 the parent object, which in this case is Sparky.data.text. A leading opening
 bracket <code>[</code> would do the same thing.
 
+### Using JavaScript
+
+#### Sparky(node, model, ctrl)
+
+A node doesn't have to be in the DOM for Sparky to bind to it. You can bind
+it using Sparky, then insert it into the DOM:
+
+    var node = document.createElement('p');
+    
+    node.innerText = 'Sparky loves you, {{username}}';
+    
+    Sparky(node, Sparky.data.text);
+    
+    // Now update the model whenever data comes in, and insert the node
+    // into the DOM. Job's a good 'un.
+    Sparky.data.text.username = "Marco";
+    body.appendChild(node);
+
+Sparky can also take a documentFragment as the first argument.
+
 ### Looping over a collection
 
 Sparky has no syntax for looping over a collection.
@@ -143,7 +164,7 @@ Results in a DOM that looks like this:
     <ul>
         <!-- [Sparky] collection start -->
         <li data-model="text.meta.contributors[0]">
-            <a href="http://cruncher.ch">Stephen</a>
+            <a href="http://github.com/cruncher/sparky">Sparky</a>
         </li>
         <li data-model="text.meta.contributors[1]">
             <a href="http://cruncher.ch">Marco</a>
@@ -173,7 +194,7 @@ But where a controller returns an object, that object is used as scope for rende
 
 Tell Sparky to use the controller:
 
-    <p data-ctrl="my-controller">{{ problem }}</p>
+    <p data-ctrl="my-controller" data-model="text">{{ problem }}</p>
 
 The controller is passed the DOM node, and the model where a data-model is defined.
 Listen to changes on the model to update the scope:
@@ -196,18 +217,14 @@ Listen to changes on the model to update the scope:
 
 And take the data-model 'text' and pass it to my-controller:
 
-    <p data-model="text" data-ctrl="my-controller">I speak {{ lang }}</p>
+    <p data-ctrl="my-controller" data-model="text">I speak {{ lang }}</p>
 
 Try updating the model in the console:
 
     Sparky.data.text.lang = 'dp';
 
-And you will see the text of the paragraph change:
-
-    I speak Dolphin
-
 In Sparky scope objects are just objects you create.
-You control them, so you can make them inherit from other scopes and organise them however you like.
+You can make them inherit from other scopes and organise them however you like.
 
 
 ### Use a controller to listen to DOM events
