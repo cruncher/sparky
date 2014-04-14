@@ -97,7 +97,7 @@
 		var tag = node.tagName.toLowerCase();
 		var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[Sparky] bind', '<' + tag + '>'); }
+		if (debug) { console.log('[Sparky] <' + tag + '>'); }
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, create, unobservers);

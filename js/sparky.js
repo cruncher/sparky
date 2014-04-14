@@ -27,7 +27,7 @@
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 	
-	var debug       = true;//false;
+	var debug       = false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -386,11 +386,9 @@
 		
 		if (model && model.length !== undefined) {
 			// model is an array or collection
-			if (debug) { console.log('[Sparky] collection'); }
 			sparky = setupCollection(node, model, ctrl);
 		}
 		else {
-			if (debug) { console.log('[Sparky] node'); }
 			sparky = Object.create(prototype);
 			setupSparky(sparky, node, model, ctrl);
 		}
