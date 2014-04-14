@@ -7,8 +7,8 @@
 	function matches(node, selector) {
 		return node.matches ? node.matches(selector) :
 			node.matchesSelector ? node.matchesSelector(selector) :
-			node.webkitMatchesSelector ? node.webkitMatchesSele(selector) :
-			node.mozMatchesSelector ? node.mozMatchesSelecto(selector) :
+			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
+			node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
 			node.msMatchesSelector ? node.msMatchesSelector(selector) :
 			node.oMatchesSelector ? node.oMatchesSelector(selector) :
 			node.tagName.toLowerCase() === selector ;

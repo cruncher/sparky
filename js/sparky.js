@@ -27,7 +27,7 @@
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 	
-	var debug       = false;
+	var debug       = true;//false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
