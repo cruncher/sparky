@@ -27,7 +27,7 @@
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 	
-	var debug       = true;//false;
+	var debug       = false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -172,11 +172,15 @@
 	}
 	
 	function objFrom(obj, array) {
-		var val = obj[array[0]],
-		    slice = array.slice(1);
+		var key = array.shift();
+		var val = obj[key];
 		
-		return isDefined(val) && slice.length ?
-			objFrom(val, slice) :
+		//if (val === undefined) {
+		//	val = obj[key] = {};
+		//}
+		
+		return isDefined(val) && array.length ?
+			objFrom(val, array) :
 			val ;
 	}
 	
@@ -233,14 +237,19 @@
 	}
 	
 	function setupCollection(node, model, ctrl) {
-		var endNode = document.createComment(' [Sparky] collection');
+		var startNode = document.createComment(' [Sparky] collection start ');
+		var endNode = document.createComment(' [Sparky] collection end ');
 		var nodes = [];
 		var sparkies = [];
 		var modelPath = node.getAttribute('data-model');
-		var cache = model.slice();
+		var cache = [];
 		
 		function updateNodes() {
-			if (debug) { console.log('[Sparky] collection updateNodes()', model); }
+			var t = +new Date();
+			
+			if (debug) {
+				console.groupCollapsed('[Sparky] collection update', model.length);
+			}
 			
 			var n = -1;
 			var l = cache.length;
@@ -275,9 +284,8 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl);
-
+					
 					if (isDefined(modelPath)) {
 						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
 					}
@@ -285,9 +293,17 @@
 				
 				insertNode(endNode, nodes[n]);
 			}
+			
+			if (debug) {
+				console.log('[Sparky] collection of ' + model.length + ' updated in ' + (+new Date() - t) + 'ms');
+				console.groupEnd();
+			}
 		}
 		
+		var updateFn = onFrame(updateNodes);
+		
 		// Put the marker nodes in place
+		insertNode(node, startNode);
 		insertNode(node, endNode);
 		
 		// Remove the node
@@ -296,8 +312,7 @@
 		// Observe length and update the DOM on next
 		// animation frame if it changes.
 		try {
-			console.log('OBSERVE');
-			observe(model, 'length', onFrame(updateNodes));
+			observe(model, 'length', updateFn);
 		}
 		catch (e) {
 			console.log('ERROR', e);
@@ -307,7 +322,7 @@
 				             'using a Sparky.Collection() in place of the array.');
 			}
 			
-			dirtyObserve(model, 'length', onFrame(updateNodes));
+			dirtyObserve(model, 'length', updateFn);
 		}
 		
 		
@@ -327,9 +342,7 @@
 		//	dirtyObserve(model, 'length', onFrame(updateNodes));
 		//}
 
-
-		onFrame(updateNodes);
-		//updateNodes(model);
+		updateNodes();
 		
 		return {
 			destroy: function() {
@@ -350,7 +363,14 @@
 		
 		if (!model) {
 			var modelPath = node.getAttribute('data-model');
-			model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
+			
+			if (isDefined(modelPath)) {
+				model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
+				
+				if (model === undefined) {
+					throw new Error('[Sparky] ' + modelPath + ' not found in Sparky.data');
+				}
+			}
 		}
 		
 		if (!ctrl) {
@@ -419,6 +439,7 @@
 		
 		function create(node) {
 			var path = node.getAttribute('data-model');
+			var data;
 			
 			if (!isDefined(path)) {
 				return Sparky(node, scope);
@@ -429,15 +450,22 @@
 			}
 			
 			if (rrelativepath.test(path)) {
-				// Remove the leading '.' or '['
-				path = path.replace(rrelativepath, '');
-				console.log('RELATIVE PATH', path, model);
-				return Sparky(node, findByPath(model, path));
+				data = findByPath(model, path.replace(rrelativepath, ''));
+				
+				if (!data) {
+					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
+				}
+				
+				return Sparky(node, data);
 			}
 			
 			if (rtag.test(path)) {
-				// Remove the tag brackets {{}}
-				path = rtag.exec(path)[1];
+				data = findByPath(model, rtag.exec(path)[1]);
+
+				if (!data) {
+					throw new Error('[Sparky] No object at path \'' + path + '\' of parent scope');
+				}
+
 				return Sparky(node, findByPath(scope, path));
 			}
 			
@@ -456,16 +484,14 @@
 			sparky.off();
 		};
 		
-		if (model === undefined) { throw new Error('[Sparky] model not found in Sparky.data'); }
-		
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope.
 		scope = ctrl && ctrl(node, model, sparky);
 		
-		if (debug && scope) { console.log('[Sparky] with controller scope:', scope); }
+		//if (debug && scope) { console.log('[Sparky] with controller scope:', scope); }
 		
 		if (!scope) {
-			if (debug) { console.log('[Sparky] with model as scope:', model); }
+			//if (debug) { console.log('[Sparky] with model as scope:', model); }
 			scope = model;
 		}
 		

@@ -45,6 +45,10 @@
 	];
 	
 	var xlink = 'http://www.w3.org/1999/xlink';
+	var xsvg  = 'http://www.w3.org/2000/svg';
+
+	window.xlink = xlink;
+	window.xsvg = xsvg;
 
 	var rname = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
@@ -93,9 +97,8 @@
 		var tag = node.tagName.toLowerCase();
 		var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[Sparky] bind', '<' + tag + '>'); }
-
-		bindClasses(node, bind, unbind, get, unobservers);
+		//if (debug) { console.log('[Sparky] bind', '<' + tag + '>'); }
+		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, create, unobservers);
 
@@ -156,7 +159,9 @@
 	}
 
 	function updateClassSVG(node, text) {
-		node.className.baseVal = text;
+		// Trying to use className sets a bunch of other
+		// attributes on the node, bizarrely.
+		node.setAttribute('class', text);
 	}
 	
 	function updateClassHTML(node, text) {
@@ -171,9 +176,8 @@
 		node.setAttribute(attribute, value);
 	}
 
-	function bindClasses(node, bind, unbind, get, unobservers) {
-		var classList = getClassList(node);
-		var value = Array.prototype.join.call(classList, ' ');
+	function bindClass(node, bind, unbind, get, unobservers) {
+		var value = node.getAttribute('class');
 		
 		if (!value) { return; }
 		
