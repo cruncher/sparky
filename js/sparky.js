@@ -323,23 +323,6 @@
 			
 			dirtyObserve(model, 'length', updateFn);
 		}
-		
-		
-		//if (isConfigurable(model, 'length')) {
-		//	observe(model, 'length', onFrame(updateNodes));
-		//}
-		//
-		//// model.length cannot be observed by our observer.
-		//// So we need to dirty check it for changes.
-		//else {
-		//	if (debug) {
-		//		console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array. ' +
-		//		             'dirtyObserve() isnt very performant. You might want to consider ' +
-		//		             'using a Sparky.Collection() in place of the array.');
-		//	}
-		//	
-		//	dirtyObserve(model, 'length', onFrame(updateNodes));
-		//}
 
 		updateNodes();
 		
