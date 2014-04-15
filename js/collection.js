@@ -122,6 +122,12 @@
 		
 		update: function(obj) {
 			if (!isDefined(obj.id)) { console.log('[Collection] update() obj has no id', obj); }
+			
+			if (isDefined(obj.length)) {
+				Array.prototype.forEach.call(obj, this.update, this);
+				return;
+			}
+			
 			var item = findById(this, obj.id);
 			
 			if (item) {
@@ -134,8 +140,10 @@
 			return this;
 		},
 
-		find: function(id) {
-			return findById(this, id);
+		find: function(obj) {
+			return typeof obj === 'string' || typeof obj === 'number' ?
+				findById(this, obj) :
+				findById(this, obj.id);
 		},
 
 		toJSON: function() {

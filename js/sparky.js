@@ -361,7 +361,7 @@
 		
 		var sparky;
 		
-		if (!model) {
+		if (!model && node.getAttribute) {
 			var modelPath = node.getAttribute('data-model');
 			
 			if (isDefined(modelPath)) {
@@ -373,7 +373,7 @@
 			}
 		}
 		
-		if (!ctrl) {
+		if (!ctrl && node.getAttribute) {
 			var ctrlPath = node.getAttribute('data-ctrl');
 			var tag;
 			
