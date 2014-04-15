@@ -4,7 +4,13 @@
 // SVG DOM.
 
 (function(ns) {
+	"use strict";
+	
 	function matches(node, selector) {
+		console.log(node, selector);
+		
+		window.n = node;
+		
 		return node.matches ? node.matches(selector) :
 			node.matchesSelector ? node.matchesSelector(selector) :
 			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
@@ -34,6 +40,8 @@
 		
 		return function(e) {
 			var node = closest(e.target, e.currentTarget, selector);
+			
+			console.log(e.type, e);
 			
 			if (!node) { return; }
 			

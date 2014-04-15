@@ -530,6 +530,12 @@
 
 	var doc = jQuery(document);
 
+	function isInTemplate(node) {
+		if (node.tagName.toLowerCase() === 'template') { return true; }
+		if (node === document.body) { return false; }
+		return isInTemplate(node.parentNode);
+	}
+
 	doc.ready(function(){
 		var start = Date.now();
 		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
@@ -544,6 +550,17 @@
 			array.push(node);
 			while (++n < l && node.contains(nodes[n]));
 			--n;
+		}
+		
+		if (!Sparky.features.template) {
+			// Remove descendents of templates
+			n = array.length;
+			
+			while (n--) {
+				if (isInTemplate(array[n])) {
+					array.splice(n, 1);
+				}
+			}
 		}
 
 		if (debug) { console.log('[Sparky] DOM nodes to bind:', array); }
