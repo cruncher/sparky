@@ -31,9 +31,6 @@
 	var debug = Sparky.debug;
 
 	// For debugging
-	var nodeCount = 0;
-	var textCount = 0;
-
 	var attributes = [
 		'href',
 		'title',
@@ -97,7 +94,8 @@
 		var tag = node.tagName.toLowerCase();
 		var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[Sparky] <' + tag + '>'); }
+		if (debug) { console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length); }
+		
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, create, unobservers);
@@ -107,14 +105,10 @@
 			tags[tag](node, node.name, bind, unbind, get);
 		}
 
-		nodeCount++;
 		return unobservers;
 	}
 
 	function textNode(node, bind, unbind, get, create) {
-		textCount++;
-
-		//var innerText = node.textContent === undefined ? 'innerText' : 'textContent' ;
 		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
 		});
@@ -126,17 +120,20 @@
 		var unobservers = [];
 
 		bindNodes(node, bind, unbind, get, create, unobservers);
-		nodeCount++;
+
 		return unobservers;
 	}
 
-
 	function bindNodes(node, bind, unbind, get, create, unobservers) {
-		var nodes = node.childNodes,
-		    n = -1,
-		    l = nodes.length,
-		    child, sparky;
+		var nodes = [];
+		var n = -1;
+		var l, child, sparky;
 
+		// childNodes is a live list, and we don't want it to be because we may
+		// be about to modify the DOM. Copy it.
+		nodes.push.apply(nodes, node.childNodes);
+		l = nodes.length;
+		
 		// Loop forwards through the children
 		while (++n < l) {
 			child = nodes[n];
@@ -289,18 +286,11 @@
 	}
 
 	function traverse(node, observe, unobserve, get, create) {
-		nodeCount = 0;
-		textCount = 0;
-
 		// Assume this is a DOM node, and set the binder off. The
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
 		var unobservers = types[node.nodeType](node, observe, unobserve, get, create);
-
-		if (debug) {
-			console.log('[Sparky] bound dom nodes:', nodeCount, 'text nodes:', textCount);
-		}
 
 		return function unbind() {
 			unobservers.forEach(call);

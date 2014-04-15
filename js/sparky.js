@@ -248,7 +248,7 @@
 			var t = +new Date();
 			
 			if (debug) {
-				console.groupCollapsed('[Sparky] collection update', model.length);
+				console.log('[Sparky] collection of ' + model.length + ' update');
 			}
 			
 			var n = -1;
@@ -296,7 +296,6 @@
 			
 			if (debug) {
 				console.log('[Sparky] collection of ' + model.length + ' updated in ' + (+new Date() - t) + 'ms');
-				console.groupEnd();
 			}
 		}
 		
@@ -532,7 +531,7 @@
 
 	function isInTemplate(node) {
 		if (node.tagName.toLowerCase() === 'template') { return true; }
-		if (node === document.body) { return false; }
+		if (node === document.documentElement) { return false; }
 		return isInTemplate(node.parentNode);
 	}
 

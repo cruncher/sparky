@@ -121,8 +121,6 @@
 		},
 		
 		update: function(obj) {
-			if (!isDefined(obj.id)) { console.log('[Collection] update() obj has no id', obj); }
-			
 			if (isDefined(obj.length)) {
 				Array.prototype.forEach.call(obj, this.update, this);
 				return;
