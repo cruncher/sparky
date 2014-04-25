@@ -480,11 +480,11 @@
 		return sparky;
 	}
 
+	Sparky.debug       = debug;
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
 	Sparky.Collection  = ns.Collection;
-	Sparky.debug       = debug;
 	Sparky.data        = data;
 	Sparky.controllers = controllers;
 	Sparky.templates   = templates;
@@ -545,7 +545,7 @@
 			}
 		}
 
-		if (debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
+		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
 		
 		array.forEach(function(node) {
 			Sparky(node);
