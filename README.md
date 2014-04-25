@@ -1,6 +1,7 @@
 <h1>Sparky</h1>
 
-<strong>Sparky is a live data binding view-controller layer for HTML5 projects.</strong>
+<strong>Sparky is a live data binding template-view-controller layer for HTML5
+projects.</strong>
 
 <p>Sparky enhances the existing DOM with declarative data bindings,
 passes data properties through Django-style template filters
