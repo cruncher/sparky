@@ -54,6 +54,8 @@ First let's give Sparky some data:
 
 ### Bind a DOM node to the data
 
+Bind some text to the <code>title</code> property:
+
     <h1 data-model="text">{{ title }}</h1>
 
 Sparky looks for the model <code>text</code> inside <code>Sparky.data</code> and
@@ -61,7 +63,7 @@ renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
 Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
 re-rendered.
 
-Bind a class to the lang property:
+Bind a class to the <code>lang</code> property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
 
