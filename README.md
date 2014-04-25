@@ -140,10 +140,10 @@ Sparky.data.text.username update the input's value.
 
 ### Looping over a collection
 
-Sparky has no special syntax for looping over a collection. If data-model is an
-array or array-like collection object, Sparky automatically loops over it,
-cloning the corresponding DOM node for all the items in the collection. So the
-HTML:
+Sparky has no special syntax for looping over a collection, but where
+<code>data-model</code> resolves to an array or array-like collection object,
+Sparky automatically loops over it, cloning the corresponding DOM node for all
+the items in the collection. So the HTML:
 
     <ul>
         <li data-model="text.meta.contributors">
