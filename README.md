@@ -54,8 +54,6 @@ First let's give Sparky some data:
 
 ### Bind a DOM node to the data
 
-Bind the text of a title to Sparky.data.text.title:
-
     <h1 data-model="text">{{ title }}</h1>
 
 Sparky looks for the model <code>text</code> inside <code>Sparky.data</code> and
@@ -67,11 +65,11 @@ Bind a class to the lang property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
 
-Sparky can render tags in text nodes or DOM element attributes. The attributes
-Sparky looks at are limited to <code>href</code>, <code>title</code>,
-<code>id</code>, <code>style</code>, <code>value</code>, <code>src</code> and
-<code>alt</code>. (You can change that by modifying to the array
-<code>Sparky.attributes</code>.)
+Sparky can render template tags in text nodes or DOM element attributes. The
+attributes Sparky looks for template tags in are normally limited to
+<code>href</code>, <code>title</code>, <code>id</code>, <code>style</code>,
+<code>value</code>, <code>src</code> and <code>alt</code>. You can change that
+by modifying to the array <code>Sparky.attributes</code>.
 
 ### Template filters
 
