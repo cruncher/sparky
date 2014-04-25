@@ -5,18 +5,19 @@
 
 	mixin.storage = {
 		store: function(name) {
-			window.localStorage[name] = JSON.stringify(this);
+			window.localStorage[name] = JSON.stringify(this, this.keys);
 			return this;
 		},
-		
-		fetch: function(name, overwrite) {
+
+		retrieve: function(name, overwrite) {
 			var data = JSON.parse(window.localStorage[name]);
 			var n = data.length;
 			
 			if (typeof n === 'number') {
 				if (!overwrite && this.length > 0) {
-					console.log('[mixin.store] Cannot fetch into a non-empty collection.\n' +
-					            'Use .fetch(name, true) to overwrite existing data.');
+					console.log('[mixin.store] Cannot retrieve storage into a ' +
+					            'non-empty collection. Use .retrieve(name, true) ' +
+					            'to force overwrite of existing data.');
 					return this;
 				}
 				
