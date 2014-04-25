@@ -298,4 +298,5 @@
 	}
 
 	Sparky.bind = traverse;
+	Sparky.attribtues = attributes;
 })(window.Sparky || require('sparky'));

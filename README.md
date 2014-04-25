@@ -22,10 +22,10 @@ and renders multiple changes in batches on browser animation frames.</p>
     };
 
 Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
-If a change is made, Sparky will update only those elements in the DOM
-that need it. Sparky manipulates the DOM on browser animation frames,
-so multiple changes to the same data don't cause multiple changes to
-the DOM.
+When a change is made, Sparky re-renders only those text nodes and attributes
+that depend on the data being changed. Sparky manipulates the DOM on browser
+animation frames, so multiple changes to the same data cause just a single
+re-rendering of the DOM.
 
 Sparky also understands how to bind to SVG placed inside HTML.
 
@@ -56,16 +56,22 @@ First let's give Sparky some data:
 
 Bind the text of a title to Sparky.data.text.title:
 
-    <h1 data-model="text">{{title}}</h1>
+    <h1 data-model="text">{{ title }}</h1>
 
-Now when Sparky.data.text.title is changed, the text content
-of this h1 is updated. Try it in the console:
-
-    Sparky.data.text.title = 'Sparky huggy you';
+Sparky looks for the model <code>text</code> inside <code>Sparky.data</code> and
+renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
+Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
+re-rendered.
 
 Bind a class to the lang property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
+
+Sparky can render tags in text nodes or DOM element attributes. The attributes
+Sparky looks at are limited to <code>href</code>, <code>title</code>,
+<code>id</code>, <code>style</code>, <code>value</code>, <code>src</code> and
+<code>alt</code>. (You can change that by modifying to the array
+<code>Sparky.attributes</code>.)
 
 ### Template filters
 
