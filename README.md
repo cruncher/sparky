@@ -52,7 +52,7 @@ First let's give Sparky some data:
         }
     };
 
-### Bind a DOM node to the data
+### Bind a DOM node to some data
 
 Bind some text to the <code>title</code> property:
 
@@ -98,7 +98,7 @@ The leading <code>.</code> makes Sparky look for the <code>meta</code> object
 relative to the parent object <code>text</code>. A leading opening bracket
 <code>[</code> has the same effect.
 
-#### Using JavaScript
+#### Sparky(node, model, ctrl)
 
 A node doesn't have to be in the DOM for Sparky to bind to it. It can bound
 using Sparky then inserted into the DOM later:
