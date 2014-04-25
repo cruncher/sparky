@@ -73,7 +73,7 @@ Normally, Sparky looks in the attributes <code>href</code>, <code>title</code>,
 <code>alt</code>. You can change the list of attributes by modifying to the
 array <code>Sparky.attributes</code>.
 
-#### Absolute paths
+### Absolute paths
 
 The data-model attribute understands absolute paths to models inside
 <code>Sparky.data</code>:
@@ -85,7 +85,7 @@ The data-model attribute understands absolute paths to models inside
 The paths are standard JavaScript object notation. Use dots <code>.prop</code>
 for string properties and brackets <code>[0]</code> for numbered keys.
 
-#### Relative paths
+### Relative paths
 
 The data-model attribute also understands relative paths to models inside
 parent models:
@@ -98,7 +98,7 @@ The leading <code>.</code> makes Sparky look for the <code>meta</code> object
 relative to the parent object <code>text</code>. A leading opening bracket
 <code>[</code> has the same effect.
 
-#### Sparky(node, model, ctrl)
+### Sparky(node, model, ctrl)
 
 A node doesn't have to be in the DOM for Sparky to bind to it. Sparky can bind
 to the data and the node inserted into the DOM later:
@@ -118,18 +118,6 @@ to the data and the node inserted into the DOM later:
     data.username = "Marco";
 
 Sparky can also take a documentFragment as the first argument.
-
-### Template filters
-
-Display the date, formatted:
-
-    <h1 class="language-{{lang}}" data-model="text">
-        {{title}}
-        <time>{{date|date:'d M Y'}}</time>
-    </h1>
-
-Sparky has a number of filters for modifying and formatting data.
-You can also create your own.
 
 ### Form fields
 
@@ -151,11 +139,10 @@ Sparky.data.text.username update the input's value.
 
 ### Looping over a collection
 
-Sparky has no syntax for looping over a collection.
-Instead, if data-model is an array or array-like collection object, Sparky
-automatically loops over it, cloning the corresponding DOM node for all the
-items in the collection.
-So the HTML:
+Sparky has no special syntax for looping over a collection. If data-model is an
+array or array-like collection object, Sparky automatically loops over it,
+cloning the corresponding DOM node for all the items in the collection. So the
+HTML:
 
     <ul>
         <li data-model="text.meta.contributors">
@@ -176,35 +163,40 @@ Results in a DOM that looks like this:
         <!-- [Sparky] collection end -->
     </ul>
 
-The comment nodes are added automatically and are required by Sparky to maintain the collection.
-
+The comment nodes are added automatically and are required by Sparky to maintain
+the collection.
 
 ## data-ctrl
 
-All the above examples use the model directly as the context for rendering the DOM.
-Sparky uses the model by default, but you can create a scope object to use instead.
+All the above examples use the model directly as the context for rendering the
+DOM. Sparky uses the model by default, but you can create a scope object to use
+instead.
 
     Sparky.controllers['my-controller'] = function(node, model) {
         var scope = {
-            problem: 'I seem to be having enormous difficulty with my lifestyle'
+            lang: 'No language set'
         };
         
         // Return the scope object to use it for DOM rendering
         return scope;
     };
 
-Where a controller returns undefined, the model is used as scope.
-But where a controller returns an object, that object is used as scope for rendering the DOM.
+Where a controller returns undefined, the model is used as scope. But where a
+controller returns an object, that object is used as scope for rendering the
+DOM.
 
 Tell Sparky to use the controller:
 
-    <p data-ctrl="my-controller" data-model="text">{{ problem }}</p>
+    <p data-ctrl="my-controller" data-model="text">I speak {{ lang }}</p>
 
-The controller is passed the DOM node, and the model where a data-model is defined.
-Listen to changes on the model to update the scope:
+The controller is passed the DOM node, and the model (where a
+<code>data-model</code> is defined, otherwise model is undefined). Listen to
+changes on the model to update the scope:
 
     Sparky.controllers['my-controller'] = function(node, model) {
-        var scope = {};
+        var scope = {
+            lang: 'No language set'
+        };
         
         function updateLang(model) {
             scope.lang = model.lang === 'en' ? 'English' :
@@ -213,7 +205,7 @@ Listen to changes on the model to update the scope:
                 model.lang ;
         }
         
-        // Observe changes t the model
+        // Observe changes to the model
         Sparky.observe(model, 'lang', updateLang);
         
         // Initialise the scope
@@ -223,28 +215,25 @@ Listen to changes on the model to update the scope:
         return scope;
     };
 
-And take the data-model 'text' and pass it to my-controller:
-
-    <p data-ctrl="my-controller" data-model="text">I speak {{ lang }}</p>
-
-Try updating the model in the console:
+Try updating the model:
 
     Sparky.data.text.lang = 'dp';
 
-In Sparky scope objects are just objects you create.
-You can make them inherit from other scopes and organise them however you like.
+In Sparky scope objects are just objects you create. You can make them inherit
+from other scopes and organise them however you like.
 
+## Template filters
 
-### Use a controller to listen to DOM events
+Display the date, formatted:
 
+    <h1 class="language-{{lang}}" data-model="text">
+        {{title}}
+        <time>{{date|date:'d M Y'}}</time>
+    </h1>
 
-### Define a template for a DOM node
-
-
-### Templating
-
-Sparky filters work just like
-<a href="http://docs.django.com/templates">Django template</a> filters:
+Sparky has a number of template filters for modifying and formatting data. You
+can also create your own. Sparky template filter syntax is the same as
+<a href="http://docs.django.com/templates">Django template</a> filter syntax:
 
     <p>{{ date|date:'d M Y' }}</p>
 
