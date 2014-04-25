@@ -100,8 +100,7 @@ relative to the parent object <code>text</code>. A leading opening bracket
 
 ### Sparky(node, model, ctrl)
 
-A node doesn't have to be in the DOM for Sparky to bind to it. Sparky can bind
-to the data and the node inserted into the DOM later:
+A node doesn't have to be in the DOM for Sparky to bind to it.
 
     var node = document.createElement('p');
     var data = {
@@ -117,7 +116,9 @@ to the data and the node inserted into the DOM later:
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-Sparky can also take a documentFragment as the first argument.
+Here we use the <code>Sparky()</code> function to bind the node to the data, and
+then insert the node into the DOM. Sparky also accepts a documentFragment as a
+first argument.
 
 ### Form fields
 
