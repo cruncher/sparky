@@ -67,11 +67,10 @@ Bind a class to the <code>lang</code> property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
 
-Sparky can render template tags in text nodes or DOM element attributes. The
-attributes Sparky looks for template tags in are normally limited to
+Sparky renders template tags found in text nodes or in the DOM element attributes
 <code>href</code>, <code>title</code>, <code>id</code>, <code>style</code>,
-<code>value</code>, <code>src</code> and <code>alt</code>. You can change that
-by modifying to the array <code>Sparky.attributes</code>.
+<code>value</code>, <code>src</code> and <code>alt</code>. You can change the
+list of attributes by modifying to the array <code>Sparky.attributes</code>.
 
 ### Template filters
 
