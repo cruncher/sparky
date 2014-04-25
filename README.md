@@ -275,6 +275,18 @@ Sparky has a subset of the Django filters:
 - unordered_list
 - yesno
 
+### Using Sparky with Django
+
+If you do happen to be using Django, Sparky's template tags will clash with
+Django's. To avoid Sparky templates being read by Django, wrap them in Django's
+<code>{% verbatim %}</code> tag:
+
+    {% verbatim %}
+    <h1 class="language-{{lang}}" data-model="text">
+        {{title}}
+        <time>{{date|date:'d M Y'}}</time>
+    </h1>
+    {% endverbatim %}
 
 ## Techniques
 
