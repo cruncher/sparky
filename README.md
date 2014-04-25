@@ -73,6 +73,54 @@ Normally, Sparky looks in the attributes <code>href</code>, <code>title</code>,
 <code>alt</code>. You can change the list of attributes by modifying to the
 array <code>Sparky.attributes</code>.
 
+### Absolute paths
+
+The data-model attribute understands absolute paths to models inside
+<code>Sparky.data</code>:
+
+    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
+    <h2>First contributor</h2>
+    <p data-model="text.meta.contributors[0]">{{name}}</p>
+
+The paths are standard JavaScript object notation. Use dots <code>.prop</code>
+for string properties and brackets <code>[0]</code> for numbered keys.
+
+### Relative paths
+
+The data-model attribute also understands relative paths to models inside
+parent models:
+
+    <div class="language-{{lang}}" data-model="text">
+        <p data-model=".meta">author: {{author}}, words: {{word_count}}</p>
+    </div>
+
+The leading <code>.</code> makes Sparky look for the <code>meta</code> object
+relative to the parent object <code>text</code>. A leading opening bracket
+<code>[</code> has the same effect.
+
+### Using JavaScript
+
+#### Sparky(node, model, ctrl)
+
+A node doesn't have to be in the DOM for Sparky to bind to it. You can bind
+it using Sparky, then insert it into the DOM:
+
+    var node = document.createElement('p');
+    var data = {
+            username: 'Arthur'
+        };
+    
+    node.innerText = 'Sparky loves you, {{username}}';
+    
+    // Bind the node to data and insert into the DOM
+    Sparky(node, data);
+    body.appendChild(node);
+    
+    // The node is updated whenever data is changed
+    data.username = "Marco";
+
+Sparky can also take a documentFragment as the first argument.
+
 ### Template filters
 
 Display the date, formatted:
@@ -102,51 +150,6 @@ The <code>name</code> attribute is used to tell Sparky which
 property of the model to update. Text written into the input
 is stored at <code>Sparky.data.text.username</code>, and changes to
 Sparky.data.text.username update the input's value.
-
-### Absolute paths
-
-The data-model attribute understands absolute paths:
-
-    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
-    <h2>First contributor</h2>
-    <p data-model="text.meta.contributors[0]">{{name}}</p>
-
-The paths are standard JavaScript path notation.
-Use dots <code>.prop</code> for string properties and brackets <code>[0]</code> for numbered keys.
-
-### Relative paths
-
-The data-model attribute also understands relative paths:
-
-    <div class="language-{{lang}}" data-model="text">
-        <p data-model=".meta">author: {{author}}, words: {{word_count}}</p>
-        <h2>First contributor</h2>
-        <p data-model=".meta.contributors[0]">{{name}}</p>
-    </div>
-
-The leading <code>.</code> makes Sparky look for the 'meta' object relative to
-the parent object, which in this case is Sparky.data.text. A leading opening
-bracket <code>[</code> would do the same thing.
-
-### Using JavaScript
-
-#### Sparky(node, model, ctrl)
-
-A node doesn't have to be in the DOM for Sparky to bind to it. You can bind
-it using Sparky, then insert it into the DOM:
-
-    var node = document.createElement('p');
-    
-    node.innerText = 'Sparky loves you, {{username}}';
-    
-    Sparky(node, Sparky.data.text);
-    
-    // Now update the model whenever data comes in, and insert the node
-    // into the DOM. Job's a good 'un.
-    Sparky.data.text.username = "Marco";
-    body.appendChild(node);
-
-Sparky can also take a documentFragment as the first argument.
 
 ### Looping over a collection
 
