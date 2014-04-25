@@ -100,7 +100,7 @@ relative to the parent object <code>text</code>. A leading opening bracket
 
 ### Sparky(node, model, ctrl)
 
-A node doesn't have to be in the DOM for Sparky to bind to it.
+A node doesn't have to be in the DOM for Sparky to bind to it:
 
     var node = document.createElement('p');
     var data = {
