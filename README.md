@@ -12,6 +12,7 @@ and renders multiple changes in batches on browser animation frames.</p>
         <p>{{title}}</p>
     </div>
 
+
     Sparky.data['my-data'] = {
         title: 'My data',
         type: 'data'
