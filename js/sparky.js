@@ -14,19 +14,9 @@
 // in Sparky.data.
 
 
-(function(jQuery, ns, undefined){
+(function(ns){
 	"use strict";
-	
-	var map = Array.prototype.map,
-	    reduce = Array.prototype.reduce,
-	    slice = Array.prototype.slice;
-	
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rbracket = /\]$/,
-	    rpathsplitter = /\]?\.|\[/g,
-	    // Check whether a path begins with '.' or '['
-	    rrelativepath = /^\.|^\[/;
-	
+
 	var debug       = false;
 	var controllers = {};
 	var templates   = {};
@@ -34,34 +24,28 @@
 	var features    = {
 	    	template: 'content' in document.createElement('template')
 	    };
-	
+
+	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
+	    rbracket = /\]$/,
+	    rpathsplitter = /\]?\.|\[/g,
+	    // Check whether a path begins with '.' or '['
+	    rrelativepath = /^\.|^\[/;
+
 	var empty = [];
-	
+
+	var reduce = Array.prototype.reduce,
+	    slice = Array.prototype.slice;
+
 	var prototype = extend({}, ns.mixin.events);
-	
+
 	// Pure functions
-	
+
 	function noop() {}
-
-	function call(fn) {
-		fn();
-	}
-	
-	function isDefined(val) {
-		return val !== undefined && val !== null;
-	}
-	
-	function isObject(obj) {
-		return obj instanceof Object;
-	}
-
-	function getProperty(obj, property) {
-		return obj[property];
-	}
-
-	function getDestroy(obj) {
-		return obj.destroy;
-	}
+	function call(fn) { fn(); }
+	function isDefined(val) { return val !== undefined && val !== null; }
+	function isObject(obj) { return obj instanceof Object; }
+	function getProperty(obj, property) { return obj[property]; }
+	function getDestroy(obj) { return obj.destroy; }
 
 	// Object helpers
 
@@ -333,53 +317,6 @@
 		};
 	}
 
-	function Sparky(node, model, ctrl) {
-		if (debug) {
-			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && ('model#' + model.id)), ',',
-				(ctrl && 'ctrl'), ')'
-			);
-		}
-		
-		var sparky;
-		
-		if (!model && node.getAttribute) {
-			var modelPath = node.getAttribute('data-model');
-			
-			if (isDefined(modelPath)) {
-				model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
-				
-				if (model === undefined) {
-					throw new Error('[Sparky] ' + modelPath + ' not found in Sparky.data');
-				}
-			}
-		}
-		
-		if (!ctrl && node.getAttribute) {
-			var ctrlPath = node.getAttribute('data-ctrl');
-			var tag;
-			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.controllers, ctrlPath) :
-				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
-				tag === 'select' ? selectCtrl :
-				tag === 'textarea' ? textareaCtrl :
-				defaultCtrl ;
-		}
-		
-		if (model && model.length !== undefined) {
-			// model is an array or collection
-			sparky = setupCollection(node, model, ctrl);
-		}
-		else {
-			sparky = Object.create(prototype);
-			setupSparky(sparky, node, model, ctrl);
-		}
-		
-		if (debug) { console.groupEnd(); }
-		
-		return sparky;
-	}
-
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -488,13 +425,65 @@
 		sparky.trigger('ready');
 	}
 
-	// Expose
+	// The Sparky function
+
+	function Sparky(node, model, ctrl) {
+		var sparky, modelPath, ctrlPath, tag;
+		
+		// If node is a string, assume it is the id of a template
+		if (typeof node === 'string') {
+			node = Sparky.template(node);
+		}
+
+		// Where model not defined look for the data-model attribute
+		if (!model && node.getAttribute) {
+			modelPath = node.getAttribute('data-model');
+			
+			if (isDefined(modelPath)) {
+				model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
+				
+				if (model === undefined) {
+					throw new Error('[Sparky] ' + modelPath + ' not found in Sparky.data');
+				}
+			}
+		}
+
+		// Where ctrl is not defined look for the data-ctrl attribute
+		if (!ctrl && node.getAttribute) {
+			ctrlPath = node.getAttribute('data-ctrl');
+			
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.controllers, ctrlPath) :
+				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
+				tag === 'select' ? selectCtrl :
+				tag === 'textarea' ? textareaCtrl :
+				defaultCtrl ;
+		}
+
+		// Where model is an array or array-like object with a length property,
+		// set up Sparky to clone node for every object in the array.
+		if (model && model.length !== undefined) {
+			return setupCollection(node, model, ctrl);
+		}
+		
+		if (debug) {
+			console.groupCollapsed('[Sparky] Sparky(', node, ',',
+				(model && ('model#' + model.id)), ',',
+				(ctrl && 'ctrl'), ')'
+			);
+		}
+		
+		sparky = Object.create(prototype);
+		setupSparky(sparky, node, model, ctrl);
+		
+		if (debug) { console.groupEnd(); }
+		
+		return sparky;
+	}
 
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
 	Sparky.Collection  = ns.Collection;
-
 	Sparky.debug       = debug;
 	Sparky.data        = data;
 	Sparky.controllers = controllers;
@@ -504,10 +493,16 @@
 	Sparky.extend      = extend;
 
 	ns.Sparky = Sparky;
+})(window);
 
 
-	// Bind the DOM
 
+// Sparky onload
+//
+// If jQuery is present and when the DOM is ready, traverse it looking for
+// data-model and data-ctrl attributes and use them to instantiate Sparky.
+
+(function(jQuery, Sparky) {
 	if (!jQuery) { return; }
 
 	var doc = jQuery(document);
@@ -519,7 +514,10 @@
 	}
 
 	doc.ready(function(){
-		var start = Date.now();
+		var start;
+		
+		if (window.console) { start = Date.now(); }
+		
 		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
 		var n = -1;
 		var l = nodes.length;
@@ -534,8 +532,10 @@
 			--n;
 		}
 		
+		// Normally <template>s are inert, but if they are not a supported
+		// feature their content is part of the DOM so we have to remove those,
+		// too. 
 		if (!Sparky.features.template) {
-			// Remove descendents of templates
 			n = array.length;
 			
 			while (n--) {
@@ -545,7 +545,7 @@
 			}
 		}
 
-		if (debug) { console.log('[Sparky] DOM nodes to bind:', array); }
+		if (debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
 		
 		array.forEach(function(node) {
 			Sparky(node);
@@ -557,4 +557,4 @@
 		
 		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
-})(jQuery, this);
+})(jQuery, Sparky);
