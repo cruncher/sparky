@@ -69,8 +69,8 @@ Bind a class to the <code>lang</code> property:
 
 Sparky renders template tags found in text nodes or in the DOM element attributes
 <code>href</code>, <code>title</code>, <code>id</code>, <code>style</code>,
-<code>value</code>, <code>src</code> and <code>alt</code>. You can change the
-list of attributes by modifying to the array <code>Sparky.attributes</code>.
+<code>value</code>, <code>src</code> and <code>alt</code>. (You can change the
+list of attributes by modifying to the array <code>Sparky.attributes</code>.)
 
 ### Template filters
 
