@@ -1,7 +1,7 @@
 // delegate
 //
 // An event delegate function that understands both HTML and
-// SVG DOM.
+// SVG DOM (jQuery's delegator cannot handle SVG DOM).
 
 (function(ns) {
 	"use strict";
