@@ -73,7 +73,7 @@ Normally, Sparky looks in the attributes <code>href</code>, <code>title</code>,
 <code>alt</code>. You can change the list of attributes by modifying to the
 array <code>Sparky.attributes</code>.
 
-### Absolute paths
+#### Absolute paths
 
 The data-model attribute understands absolute paths to models inside
 <code>Sparky.data</code>:
@@ -85,7 +85,7 @@ The data-model attribute understands absolute paths to models inside
 The paths are standard JavaScript object notation. Use dots <code>.prop</code>
 for string properties and brackets <code>[0]</code> for numbered keys.
 
-### Relative paths
+#### Relative paths
 
 The data-model attribute also understands relative paths to models inside
 parent models:
@@ -98,12 +98,10 @@ The leading <code>.</code> makes Sparky look for the <code>meta</code> object
 relative to the parent object <code>text</code>. A leading opening bracket
 <code>[</code> has the same effect.
 
-### Using JavaScript
+#### Using JavaScript
 
-#### Sparky(node, model, ctrl)
-
-A node doesn't have to be in the DOM for Sparky to bind to it. You can bind
-it using Sparky, then insert it into the DOM:
+A node doesn't have to be in the DOM for Sparky to bind to it. It can bound
+using Sparky then inserted into the DOM later:
 
     var node = document.createElement('p');
     var data = {
