@@ -8,12 +8,6 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ## Quick start
 
-HTML:
-
-    <div class="{{type}}-block block" data-ctrl="my-ctrl" data-model="my-data">
-        <p>{{title}}</p>
-    </div>
-
 JS:
 
     Sparky.data['my-data'] = {
@@ -24,6 +18,12 @@ JS:
     Sparky.controllers['my-ctrl'] = function(node, model) {
         
     };
+
+HTML:
+
+    <div class="{{type}}-block block" data-ctrl="my-ctrl" data-model="my-data">
+        <p>{{title}}</p>
+    </div>
 
 Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
 When a change is made, Sparky re-renders only those text nodes and attributes
