@@ -8,9 +8,13 @@ and renders multiple changes in batches on browser animation frames.</p>
 
 ## Quick start
 
+HTML:
+
     <div class="{{type}}-block block" data-ctrl="my-ctrl" data-model="my-data">
         <p>{{title}}</p>
     </div>
+
+JS:
 
     Sparky.data['my-data'] = {
         title: 'My data',
