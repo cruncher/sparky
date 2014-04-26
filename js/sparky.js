@@ -17,7 +17,7 @@
 (function(ns){
 	"use strict";
 
-	var debug       = true;//false;
+	var debug       = false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
