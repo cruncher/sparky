@@ -5,7 +5,7 @@
 
 	mixin.storage = {
 		store: function(name) {
-			window.localStorage[name] = JSON.stringify(this, this.keys);
+			window.localStorage[name] = JSON.stringify(this);
 			return this;
 		},
 

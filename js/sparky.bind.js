@@ -92,9 +92,9 @@
 	function domNode(node, bind, unbind, get, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
-		var isSVG = node instanceof SVGElement;
+		//var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length); }
+		if (debug) { console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes)); }
 		
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);

@@ -17,7 +17,7 @@
 (function(ns){
 	"use strict";
 
-	var debug       = false;
+	var debug       = true;//false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -232,7 +232,7 @@
 			var t = +new Date();
 			
 			if (debug) {
-				console.log('[Sparky] collection of ' + model.length + ' update');
+				console.log('[Sparky] collection start (length: ' + model.length + ')');
 			}
 			
 			var n = -1;
@@ -268,6 +268,7 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
+					
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl);
 					
 					if (isDefined(modelPath)) {
@@ -279,7 +280,7 @@
 			}
 			
 			if (debug) {
-				console.log('[Sparky] collection of ' + model.length + ' updated in ' + (+new Date() - t) + 'ms');
+				console.log('[Sparky] collection end   (render time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 		
@@ -491,6 +492,7 @@
 	Sparky.features    = features;
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
+	Sparky.throttle    = onFrame;
 
 	ns.Sparky = Sparky;
 })(window);
