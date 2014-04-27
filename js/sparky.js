@@ -228,16 +228,12 @@
 		var cache = [];
 		
 		function updateNodes() {
-			var t = +new Date();
-			
-			if (Sparky.debug) {
-				console.log('[Sparky] collection start (length: ' + model.length + ')');
-			}
-			
 			var n = -1;
 			var l = cache.length;
 			var map = {};
 			var i, obj;
+			
+			if (Sparky.debug) { var t = +new Date(); }
 			
 			while (l--) {
 				obj = cache[l];
@@ -279,7 +275,7 @@
 			}
 			
 			if (Sparky.debug) {
-				console.log('[Sparky] collection end   (render time: ' + (+new Date() - t) + 'ms)');
+				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 		
@@ -345,7 +341,7 @@
 				Sparky.observe(scope, property, insert);
 			}
 		}
-		
+
 		function unobserve(property, fn) {
 			Sparky.unobserve(scope, property, fn);
 		}
@@ -353,54 +349,57 @@
 		function get(property) {
 			return getProperty(scope, property);
 		}
-		
+
 		function create(node) {
 			var path = node.getAttribute('data-model');
 			var data;
-			
+
 			if (!isDefined(path)) {
 				return Sparky(node, scope);
 			}
-			
+
 			if (path === '.') {
 				return Sparky(node, model);
 			}
-			
+
 			if (rrelativepath.test(path)) {
 				data = findByPath(model, path.replace(rrelativepath, ''));
-				
+
 				if (!data) {
 					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
 				}
-				
+
 				return Sparky(node, data);
 			}
-			
+
+			rtag.lastIndex = 0;
 			if (rtag.test(path)) {
-				data = findByPath(model, rtag.exec(path)[1]);
+				
+				rtag.lastIndex = 0;
+				data = findByPath(scope, rtag.exec(path)[1]);
 
 				if (!data) {
 					throw new Error('[Sparky] No object at path \'' + path + '\' of parent scope');
 				}
 
-				return Sparky(node, findByPath(scope, path));
+				return Sparky(node, data);
 			}
-			
+
 			return Sparky(node, findByPath(Sparky.data, path));
 		}
-		
+
 		sparky.node = node;
-		
+
 		sparky.destroy = function destroy() {
 			if (unbind) {
 				unbind();
 				unbind = undefined;
 			}
-			
+
 			sparky.trigger('destroy');
 			sparky.off();
 		};
-		
+
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope.
 		scope = ctrl && ctrl(node, model, sparky);
@@ -465,7 +464,7 @@
 			return setupCollection(node, model, ctrl);
 		}
 		
-		if (Sparky.debug) {
+		if (Sparky.debug === 'verbose') {
 			console.groupCollapsed('[Sparky] Sparky(', node, ',',
 				(model && ('model#' + model.id)), ',',
 				(ctrl && 'ctrl'), ')'
@@ -475,7 +474,7 @@
 		sparky = Object.create(prototype);
 		setupSparky(sparky, node, model, ctrl);
 		
-		if (Sparky.debug) { console.groupEnd(); }
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
 		
 		return sparky;
 	}
