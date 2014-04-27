@@ -245,7 +245,7 @@
 				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
 			
-			if (Sparky.debug) {
+			if (Sparky.debug === 'filters') {
 				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 			
