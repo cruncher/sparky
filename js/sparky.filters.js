@@ -2,7 +2,6 @@
 (function(Sparky, undefined) {
 	"use strict";
 
-	var debug = Sparky.debug;
 	var settings = (Sparky.settings = Sparky.settings || {});
 	
 	settings.months      = ('January February March April May June July August September October November December').split(' ');

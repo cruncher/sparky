@@ -28,8 +28,6 @@
 (function(Sparky) {
 	"use strict";
 
-	var debug = Sparky.debug;
-
 	// For debugging
 	var attributes = [
 		'href',
@@ -94,7 +92,7 @@
 		var tag = node.tagName.toLowerCase();
 		//var isSVG = node instanceof SVGElement;
 
-		if (debug) { console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes)); }
+		if (Sparky.debug) { console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes)); }
 		
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
@@ -247,7 +245,7 @@
 				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
 			
-			if (debug) {
+			if (Sparky.debug) {
 				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 			

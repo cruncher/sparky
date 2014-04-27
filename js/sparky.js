@@ -17,7 +17,6 @@
 (function(ns){
 	"use strict";
 
-	var debug       = false;
 	var controllers = {};
 	var templates   = {};
 	var data        = {};
@@ -108,7 +107,7 @@
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
-		if (debug && !template) {
+		if (Sparky.debug && !template) {
 			console.warn('[Sparky] template #' + id + ' not found.');
 		}
 
@@ -231,7 +230,7 @@
 		function updateNodes() {
 			var t = +new Date();
 			
-			if (debug) {
+			if (Sparky.debug) {
 				console.log('[Sparky] collection start (length: ' + model.length + ')');
 			}
 			
@@ -279,7 +278,7 @@
 				insertNode(endNode, nodes[n]);
 			}
 			
-			if (debug) {
+			if (Sparky.debug) {
 				console.log('[Sparky] collection end   (render time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
@@ -300,7 +299,7 @@
 		}
 		catch (e) {
 			console.log('ERROR', e);
-			if (debug) {
+			if (Sparky.debug) {
 				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array. ' +
 				             'dirtyObserve() isnt very performant. You might want to consider ' +
 				             'using a Sparky.Collection() in place of the array.');
@@ -406,14 +405,14 @@
 		// we use the model object as scope.
 		scope = ctrl && ctrl(node, model, sparky);
 		
-		//if (debug && scope) { console.log('[Sparky] with controller scope:', scope); }
+		//if (Sparky.debug && scope) { console.log('[Sparky] with controller scope:', scope); }
 		
 		if (!scope) {
-			//if (debug) { console.log('[Sparky] with model as scope:', model); }
+			//if (Sparky.debug) { console.log('[Sparky] with model as scope:', model); }
 			scope = model;
 		}
 		
-		if (debug && templateId) {
+		if (Sparky.debug && templateId) {
 			console.log('[Sparky] template:', templateId);
 		}
 		
@@ -466,7 +465,7 @@
 			return setupCollection(node, model, ctrl);
 		}
 		
-		if (debug) {
+		if (Sparky.debug) {
 			console.groupCollapsed('[Sparky] Sparky(', node, ',',
 				(model && ('model#' + model.id)), ',',
 				(ctrl && 'ctrl'), ')'
@@ -476,12 +475,12 @@
 		sparky = Object.create(prototype);
 		setupSparky(sparky, node, model, ctrl);
 		
-		if (debug) { console.groupEnd(); }
+		if (Sparky.debug) { console.groupEnd(); }
 		
 		return sparky;
 	}
 
-	Sparky.debug       = debug;
+	Sparky.debug       = false;
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
