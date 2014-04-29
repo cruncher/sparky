@@ -518,7 +518,7 @@
 		
 		if (window.console) { start = Date.now(); }
 		
-		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var nodes = document.querySelectorAll(Sparky.config.selector);
 		var n = -1;
 		var l = nodes.length;
 		var node;
