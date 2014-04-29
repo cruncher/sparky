@@ -486,7 +486,6 @@
 	}
 
 	Sparky.debug       = false;
-	Sparky.config      = {};
 	Sparky.settings    = {};
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
@@ -499,6 +498,14 @@
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
 	Sparky.throttle    = onFrame;
+
+	Sparky.config = {
+		// Selector for finding root elements to automatically sparkify
+		rootSelector: '[data-model], [data-ctrl]',
+		
+		// Use polling to observe changes to the length of arrays
+		dirtyObserveArrays: false
+	};
 
 	ns.Sparky = Sparky;
 })(window);
@@ -526,7 +533,7 @@
 		
 		if (window.console) { start = Date.now(); }
 		
-		var nodes = document.querySelectorAll(Sparky.config.selector);
+		var nodes = document.querySelectorAll(Sparky.config.rootSelector);
 		var n = -1;
 		var l = nodes.length;
 		var node;
