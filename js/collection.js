@@ -148,9 +148,18 @@
 			return toJSON(this);
 		}
 	});
+	
+	var properties = {
+		length: {
+			value: 0,
+			enumerable: false,
+			writable: true,
+			configurable: true
+		}
+	};
 
 	ns.Collection = function Collection(data) {
-		var collection = Object.create(prototype);
+		var collection = Object.create(prototype, properties);
 
 		if (data === undefined) {
 			data = [];

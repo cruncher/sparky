@@ -20,11 +20,11 @@
 		array[0].apply(null, array[1]);
 	}
 	
-	function replaceProperty(obj, prop, observer, call) {
+	function replaceProperty(obj, prop, desc, observer, call) {
 		var v = obj[prop],
 		    observers = [observer],
 		    descriptor = {
-		    	enumerable: true,
+		    	enumerable: !!desc && desc.enumerable,
 		    	configurable: false,
 		    	
 		    	get: function() {
@@ -61,7 +61,7 @@
 			return;
 		}
 		
-		replaceProperty(obj, prop, observer, call);
+		replaceProperty(obj, prop, desc, observer, call);
 	}
 	
 	function observe(obj, prop, fn) {

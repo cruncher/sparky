@@ -45,7 +45,7 @@
 	window.xlink = xlink;
 	window.xsvg = xsvg;
 
-	var rname = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+	var rname   = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
 
 	var filterCache = {};
@@ -55,6 +55,8 @@
 	    	3: textNode,
 	    	11: fragmentNode
 	    };
+	
+	var empty = [];
 
 	var tags = {
 	    	input: function(node, prop, bind, unbind, get) {
@@ -64,10 +66,28 @@
 	    		});
 	    	},
 	    	
-	    	select: function(node, prop, bind, unbind, get) {
-	    		bind(node.name, function() {
+	    	select: function(node, name, bind, unbind, get, set) {
+	    		var prop = (rname.exec(node.name) || empty)[1];
+	    		
+	    		// Only bind to fields that have a sparky {{tag}} in their
+	    		// name attribute.
+	    		if (!prop) { return; }
+	    		
+	    		var value = get(prop);
+	    		
+	    		// If the model property does not yet exist, set it from the
+	    		// node's value.
+	    		if (!isDefined(value)) {
+	    			set(prop, normalise(node.value));
+	    		}
+	    		
+	    		bind(prop, function() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
+	    		});
+	    		
+	    		node.addEventListener('change', function(e) {
+	    			set(prop, normalise(node.value));
 	    		});
 	    	},
 	    	
@@ -79,6 +99,12 @@
 	    	}
 	    };
 
+	function normalise(value) {
+		// isNaN() coerces non-empty strings to numbers before asking if they
+		// are NaN. Number.isNaN() (ES6) does not, so beware.
+		return value === '' || isNaN(value) ? value : parseFloat(value) ;
+	}
+
 	function call(fn) {
 		fn();
 	}
@@ -87,7 +113,7 @@
 		return val !== undefined && val !== null;
 	}
 
-	function domNode(node, bind, unbind, get, create) {
+	function domNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
 		//var isSVG = node instanceof SVGElement;
@@ -98,17 +124,17 @@
 		
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
-		bindNodes(node, bind, unbind, get, create, unobservers);
+		bindNodes(node, bind, unbind, get, set, create, unobservers);
 
 		// Set up name-value databinding for form elements 
 		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get);
+			tags[tag](node, node.name, bind, unbind, get, set);
 		}
 
 		return unobservers;
 	}
 
-	function textNode(node, bind, unbind, get, create) {
+	function textNode(node, bind, unbind, get, set, create) {
 		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
 		});
@@ -116,7 +142,7 @@
 		return [detachFn];
 	}
 
-	function fragmentNode(node, bind, unbind, get, create) {
+	function fragmentNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
 
 		bindNodes(node, bind, unbind, get, create, unobservers);
@@ -124,7 +150,7 @@
 		return unobservers;
 	}
 
-	function bindNodes(node, bind, unbind, get, create, unobservers) {
+	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
 		var nodes = [];
 		var n = -1;
 		var l, child, sparky;
@@ -146,7 +172,7 @@
 				unobservers.push(sparky.destroy);
 			}
 			else if (types[child.nodeType]) {
-				unobservers.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get, create));
+				unobservers.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
 	}
@@ -285,12 +311,12 @@
 		};
 	}
 
-	function traverse(node, observe, unobserve, get, create) {
+	function traverse(node, observe, unobserve, get, set, create) {
 		// Assume this is a DOM node, and set the binder off. The
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
-		var unobservers = types[node.nodeType](node, observe, unobserve, get, create);
+		var unobservers = types[node.nodeType](node, observe, unobserve, get, set, create);
 
 		return function unbind() {
 			unobservers.forEach(call);
