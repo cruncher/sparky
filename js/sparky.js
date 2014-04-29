@@ -294,14 +294,16 @@
 			observe(model, 'length', updateFn);
 		}
 		catch (e) {
-			console.log('ERROR', e);
 			if (Sparky.debug) {
-				console.warn('[Sparky] Using dirtyObserve(). Object is probably an actual array. ' +
-				             'dirtyObserve() isnt very performant. You might want to consider ' +
-				             'using a Sparky.Collection() in place of the array.');
+				console.warn('[Sparky] Are you trying to observe an array? You should set ' +
+				             'Sparky.config.dirtyObserveArrays = true;\n' +
+				             '         Dirty observation is not particularly performant. ' +
+				             'Consider using a Sparky.Collection() in place of the array.');
 			}
 			
-			dirtyObserve(model, 'length', updateFn);
+			if (Sparky.config.dirtyObserveArrays === true) {
+				dirtyObserve(model, 'length', updateFn);
+			}
 		}
 
 		updateNodes();
@@ -347,7 +349,11 @@
 		}
 
 		function get(property) {
-			return getProperty(scope, property);
+			return scope[property];
+		}
+
+		function set(property, value) {
+			scope[property] = value;
 		}
 
 		function create(node) {
@@ -419,7 +425,7 @@
 		if (!scope) { return; }
 		
 		// The bind function returns an array of unbind functions.
-		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, create);
+		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
 		
 		sparky.trigger('ready');
 	}
@@ -480,6 +486,8 @@
 	}
 
 	Sparky.debug       = false;
+	Sparky.config      = {};
+	Sparky.settings    = {};
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;

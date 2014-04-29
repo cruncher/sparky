@@ -4,6 +4,9 @@
 
 	var settings = (Sparky.settings = Sparky.settings || {});
 	
+	// A reuseable array.
+	var array = [];
+	
 	settings.months      = ('January February March April May June July August September October November December').split(' ');
 	settings.days        = ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' ');
 	settings.ordinals    = (function(ordinals) {
@@ -35,6 +38,24 @@
 
 		cut: function(string) {
 			return this.replace(RegExp(string, 'g'), '');
+		},
+
+		prepad: function(n) {
+			var string = this.toString();
+			var l = string.length;
+			array.length = 0;
+			array.length = n - l;
+			array.push(string);
+			return l < n ? array.join(' ') : this ;
+		},
+
+		postpad: function(n) {
+			var string = this.toString();
+			var l = string.length;
+			array.length = 0;
+			array.push(string);
+			array.length = n - l;
+			return l < n ? array.join(' ') : this ;
 		},
 
 		date: (function(M, F, D, l, s) {
