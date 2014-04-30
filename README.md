@@ -1,4 +1,4 @@
-<h1>Sparky</h1>
+<img src="images/logo.png?raw=true" width="346" height="auto" style="display: block; margin-left: auto; margin-right: auto;" />
 
 <strong>Sparky is a live data binding template-view-controller layer for HTML5
 projects.</strong>
