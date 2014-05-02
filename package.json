@@ -1,0 +1,37 @@
+{
+  "name": "sparky",
+  "title": "Sparky",
+  "description": "",
+  "version": "0.3.1",
+  "main": "js/sparky.js",
+  "homepage": "http://github.com/cruncher/sparky",
+  "author": {
+    "name": "Stephen Band"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cruncher/sparky.git"
+  },
+  "keywords": [
+    "javascript",
+    "browser",
+    "library"
+  ],
+  "bugs": {
+    "url": "https://github.com/cruncher/sparky/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jquery/jquery/blob/master/MIT-LICENSE.txt"
+    }
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "grunt-contrib-concat": "0.8.0",
+    "grunt-contrib-uglify": "0.3.2"
+  },
+  "scripts": {
+    "build": "npm install && grunt"
+  }
+}
