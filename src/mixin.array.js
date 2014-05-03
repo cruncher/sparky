@@ -7,6 +7,7 @@
 		filter:  Array.prototype.filter,
 		map:     Array.prototype.map,
 		reduce:  Array.prototype.reduce,
+		pop:     Array.prototype.pop,
 		push:    Array.prototype.push,
 		concat:  Array.prototype.concat,
 		sort:    Array.prototype.sort,
