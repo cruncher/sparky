@@ -84,6 +84,21 @@
 	    				set(prop, node.checked ? value2 : undefined);
 	    			});
 	    		}
+	    		else if (node.type === 'radio') {
+	    			// If the model property does not yet exist and this input
+	    			// is checked, set model property from node's value.
+	    			if (!isDefined(value1) && node.checked) {
+	    				set(prop, value2);
+	    			}
+	    			
+	    			bind(prop, function() {
+	    				node.checked = get(prop) === value2;
+	    			});
+	    			
+	    			node.addEventListener('change', function(e) {
+	    				if (node.checked) { set(prop, value2); }
+	    			});
+	    		}
 	    	},
 	    	
 	    	select: function(node, name, bind, unbind, get, set) {
