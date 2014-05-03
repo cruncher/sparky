@@ -36,6 +36,8 @@
 	    slice = Array.prototype.slice;
 
 	var prototype = extend({}, ns.mixin.events);
+	
+	var changeEvent = new window.CustomEvent('change');
 
 	// Pure functions
 
@@ -272,6 +274,12 @@
 				}
 				
 				insertNode(endNode, nodes[n]);
+			}
+			
+			if (nodes.length && node.tagName.toLowerCase() === 'option') {
+				// We have populated a <select>. It's value may have changed.
+				// Trigger a change event to make sure we pick up the change.
+				nodes[0].parentNode.dispatchEvent(changeEvent);
 			}
 			
 			if (Sparky.debug) {
