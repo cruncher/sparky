@@ -1238,9 +1238,9 @@
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-
-		bindNodes(node, bind, unbind, get, create, unobservers);
-
+		
+		bindNodes(node, bind, unbind, get, set, create, unobservers);
+		
 		return unobservers;
 	}
 
