@@ -421,6 +421,43 @@
 				findById(this, obj.id);
 		},
 
+		contains: function(object) {
+			return this.indexOf(object) !== -1;
+		},
+
+		get: function(property) {
+			// Returns a value if all the objects in the selection
+			// have the same value for this property, otherwise
+			// returns undefined.
+			var n = this.length;
+
+			if (n === 0) { return; }
+
+			while (--n) {
+				if (this[n][property] !== this[n - 1][property]) {
+					return;
+				}
+			}
+
+			return this[n][property];
+		},
+		
+		set: function(property, value) {
+			if (arguments.length !== 2) {
+				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
+				return;
+			}
+
+			// For every object in the selection set property = value.
+			var n = this.length;
+
+			while (n--) {
+				this[n][property] = value;
+			}
+
+			return this;
+		},
+
 		toJSON: function() {
 			return toJSON(this);
 		}
