@@ -59,11 +59,46 @@
 	var empty = [];
 
 	var tags = {
-	    	input: function(node, prop, bind, unbind, get) {
-	    		bind(prop, function() {
-	    			var value = get(prop);
-	    			node.value = isDefined(value) ? value : '' ;
-	    		});
+	    	input: function(node, name, bind, unbind, get, set) {
+	    		var prop = (rname.exec(node.name) || empty)[1];
+	    		
+	    		// Only bind to fields that have a sparky {{tag}} in their
+	    		// name attribute.
+	    		if (!prop) { return; }
+	    		
+	    		var value1 = get(prop);
+	    		var value2 = normalise(node.value);
+	    		
+	    		if (node.type === 'checkbox') {
+	    			// If the model property does not yet exist and this input
+	    			// is checked, set model property from node's value.
+	    			if (!isDefined(value1) && node.checked) {
+	    				set(prop, value2);
+	    			}
+	    			
+	    			bind(prop, function() {
+	    				node.checked = get(prop) === value2;
+	    			});
+	    			
+	    			node.addEventListener('change', function(e) {
+	    				set(prop, node.checked ? value2 : undefined);
+	    			});
+	    		}
+	    		else if (node.type === 'radio') {
+	    			// If the model property does not yet exist and this input
+	    			// is checked, set model property from node's value.
+	    			if (!isDefined(value1) && node.checked) {
+	    				set(prop, value2);
+	    			}
+	    			
+	    			bind(prop, function() {
+	    				node.checked = get(prop) === value2;
+	    			});
+	    			
+	    			node.addEventListener('change', function(e) {
+	    				if (node.checked) { set(prop, value2); }
+	    			});
+	    		}
 	    	},
 	    	
 	    	select: function(node, name, bind, unbind, get, set) {
@@ -100,8 +135,8 @@
 	    };
 
 	function normalise(value) {
-		// isNaN() coerces non-empty strings to numbers before asking if they
-		// are NaN. Number.isNaN() (ES6) does not, so beware.
+		// window.isNaN() coerces non-empty strings to numbers before asking if
+		// they are NaN. Number.isNaN() (ES6) does not, so beware.
 		return value === '' || isNaN(value) ? value : parseFloat(value) ;
 	}
 
@@ -144,9 +179,9 @@
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-
-		bindNodes(node, bind, unbind, get, create, unobservers);
-
+		
+		bindNodes(node, bind, unbind, get, set, create, unobservers);
+		
 		return unobservers;
 	}
 
