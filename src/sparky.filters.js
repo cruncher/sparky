@@ -187,10 +187,16 @@
 		
 		//phone2numeric
 
-		pluralize: function(str1, str2) {
+		pluralize: function(str1, str2, lang) {
 			str1 = str1 || '';
 			str2 = str2 || 's';
-			return this === 1 ? str1 : str2;
+			
+			if (lang === 'fr') {
+				return this < 2 ? str1 : str2;
+			}
+			else {
+				return this === 1 ? str1 : str2;
+			}
 		},
 
 		//pprint
