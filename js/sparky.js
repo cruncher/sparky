@@ -1563,7 +1563,7 @@
 			
 			var rletter = /([a-zA-Z])/g;
 			
-			return function date(format) {
+			return function formatDate(format) {
 				var date = this instanceof Date ? this : new Date(this) ;
 				
 				return format.replace(rletter, function($0, $1) {
@@ -1647,8 +1647,10 @@
 		
 		//phone2numeric
 
-		pluralize: function() {
-			return this === 1 ? '' : 's';
+		pluralize: function(str1, str2) {
+			str1 = str1 || '';
+			str2 = str2 || 's';
+			return this === 1 ? str1 : str2;
 		},
 
 		//pprint
