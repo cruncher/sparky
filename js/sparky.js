@@ -1658,6 +1658,10 @@
 			return this + (this > 1 ? 's' : '') ;
 		},
 
+		plural: function() {
+			return this === 1 ? '' : 's' ;
+		},
+
 		//pprint
 
 		random: function() {

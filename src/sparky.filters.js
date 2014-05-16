@@ -188,7 +188,7 @@
 		//phone2numeric
 
 		pluralize: function() {
-			return this + (this > 1 ? 's' : '') ;
+			return this === 1 ? '' : 's';
 		},
 
 		//pprint
