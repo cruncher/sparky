@@ -448,12 +448,12 @@
 			node = Sparky.template(node);
 		}
 
-		// Where model not defined look for the data-model attribute
-		if (!model && node.getAttribute) {
+		// Where model is not defined look for the data-model attribute
+		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-model');
 			
 			if (isDefined(modelPath)) {
-				model = isDefined(modelPath) && findByPath(Sparky.data, modelPath);
+				model = findByPath(Sparky.data, modelPath);
 				
 				if (model === undefined) {
 					throw new Error('[Sparky] ' + modelPath + ' not found in Sparky.data');
@@ -477,7 +477,7 @@
 		if (model && model.length !== undefined) {
 			return setupCollection(node, model, ctrl);
 		}
-		
+
 		if (Sparky.debug === 'verbose') {
 			console.groupCollapsed('[Sparky] Sparky(', node, ',',
 				(model && ('model#' + model.id)), ',',

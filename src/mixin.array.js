@@ -19,8 +19,6 @@
 		each: function each() {
 			Array.prototype.forEach.apply(this, arguments);
 			return this;
-		},
-
-		length: 0
+		}
 	};
 })(this);
