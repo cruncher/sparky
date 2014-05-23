@@ -34,6 +34,7 @@
 	}
 
 	function byId(a, b) {
+		console.log(this);
 		return a.id > b.id ? 1 : -1 ;
 	}
 
@@ -59,11 +60,12 @@
 
 	// Collection functions
 
-	function findById(collection, id) {
+	function findByIndex(collection, id) {
+		var index = collection.index;
 		var l = collection.length;
 
 		while (l--) {
-			if (collection[l].id === id) {
+			if (collection[l][index] === id) {
 				return collection[l];
 			}
 		}
@@ -79,15 +81,14 @@
 		collection.splice(l + 1, 0, item);
 	}
 
-	function remove(collection, item) {
-		var i = collection.indexOf(item);
+	function remove(array, obj, i) {
+		if (i === undefined) { i = -1; }
 
-		if (i === -1) {
-			console.log('Collection.remove(item) - item doesnt exist.');
-			return;
+		while (++i < array.length) {
+			if (obj === array[i]) {
+				array.splice(i, 1);
+			}
 		}
-
-		collection.splice(i, 1);
 	}
 
 	function invalidateCaches(collection) {
@@ -115,7 +116,7 @@
 			}
 
 			invalidateCaches(this);
-			mixin.array.remove.apply(this, arguments);
+			remove(this, item);
 			this.trigger('remove', item);
 			return this;
 		},
@@ -126,7 +127,7 @@
 				return;
 			}
 			
-			var item = findById(this, obj.id);
+			var item = findByIndex(this, obj[this.index]);
 			
 			if (item) {
 				extend(item, obj);
@@ -139,9 +140,48 @@
 		},
 
 		find: function(obj) {
+			var index = this.index;
+			
 			return typeof obj === 'string' || typeof obj === 'number' ?
-				findById(this, obj) :
-				findById(this, obj.id);
+				findByIndex(this, obj) :
+				findByIndex(this, obj[index]);
+		},
+
+		contains: function(object) {
+			return this.indexOf(object) !== -1;
+		},
+
+		get: function(property) {
+			// Returns a value if all the objects in the selection
+			// have the same value for this property, otherwise
+			// returns undefined.
+			var n = this.length;
+
+			if (n === 0) { return; }
+
+			while (--n) {
+				if (this[n][property] !== this[n - 1][property]) {
+					return;
+				}
+			}
+
+			return this[n][property];
+		},
+		
+		set: function(property, value) {
+			if (arguments.length !== 2) {
+				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
+				return;
+			}
+
+			// For every object in the selection set property = value.
+			var n = this.length;
+
+			while (n--) {
+				this[n][property] = value;
+			}
+
+			return this;
 		},
 
 		toJSON: function() {
@@ -158,8 +198,20 @@
 		}
 	};
 
-	ns.Collection = function Collection(data) {
+	ns.Collection = function Collection(data, index) {
 		var collection = Object.create(prototype, properties);
+
+		index = index || 'id';
+
+		function byIndex(a, b) {
+			return a[index] > b[index] ? 1 : -1 ;
+		}
+
+		Object.defineProperties(collection, {
+			// Define the name of the property that will be used to sort and
+			// index this collection.
+			index: { value: index }
+		});
 
 		if (data === undefined) {
 			data = [];
@@ -168,28 +220,28 @@
 			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
 			data = [];
 		}
-		
+
 		var length = collection.length = data.length;
 
 		// Populate the collection
+		data.forEach(setValue, collection);
 
-		data
-		.slice()
-		.sort(byId)
-		.forEach(setValue, collection);
-		
+		// Sort the collection
+		collection.sort(byIndex);
+
 		// Watch the length and delete indexes when the length becomes shorter
 		// like a nice array does.
-		
-		function lengthObserver(collection) {
+		observe(collection, 'length', function(collection) {
 			while (length-- > collection.length) {
-				delete collection[length];
+				if (typeof collection[length] !== 'undefined') {
+					// JIT compiler notes suggest that setting undefined is
+					// quicker than deleting a property.
+					collection[length] = undefined;
+				}
 			}
-				
+
 			length = collection.length;
-		}
-		
-		observe(collection, 'length', lengthObserver);
+		});
 
 		// Delegate events
 		//collection

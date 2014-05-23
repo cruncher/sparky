@@ -3,6 +3,14 @@
 
 	var mixin = ns.mixin || (ns.mixin = {});
 
+	function getEvents(object) {
+		return object.events ?
+			object.events :
+			Object.defineProperty(object, 'events', {
+				value: {}
+			}).events ;
+	}
+
 	mixin.events = {
 		// Events
 		on: function(types, fn) {
@@ -11,7 +19,7 @@
 			if (!fn) { return this; }
 
 			types = types.split(/\s+/);
-			events = this.events || (this.events = {});
+			events = getEvents(this);
 			args = Array.prototype.slice.call(arguments, 2);
 
 			while (type = types.shift()) {
