@@ -33,6 +33,7 @@
 		'href',
 		'title',
 		'id',
+		'for',
 		'style',
 		'value',
 		'src',
@@ -359,5 +360,5 @@
 	}
 
 	Sparky.bind = traverse;
-	Sparky.attribtues = attributes;
+	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));
