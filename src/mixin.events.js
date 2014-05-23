@@ -40,15 +40,16 @@
 		off: function(types, fn) {
 			var type, calls, list, i;
 
-			// No events, or removing *all* events.
+			// No events.
 			if (!this.events) { return this; }
 
+			// Remove all events.
 			if (!(types || fn)) {
 				for (type in this.events) {
 					this.events[type].length = 0;
+					delete this.events[type];
 				}
 
-				delete this.events;
 				return this;
 			}
 
