@@ -99,9 +99,7 @@
 		return collection.map(toArray);
 	}
 
-	// Object constructor
-
-	var prototype = extend({}, mixin.events, mixin.set, mixin.array, {
+	mixin.collection = {
 		add: function(item) {
 			invalidateCaches(this);
 			add(this, item);
@@ -187,7 +185,11 @@
 		toJSON: function() {
 			return toJSON(this);
 		}
-	});
+	};
+
+	// Object constructor
+
+	var prototype = extend({}, mixin.events, mixin.set, mixin.array, mixin.collection);
 	
 	var properties = {
 		length: {

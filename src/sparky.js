@@ -279,7 +279,7 @@
 			if (nodes.length && node.tagName.toLowerCase() === 'option') {
 				// We have populated a <select>. It's value may have changed.
 				// Trigger a change event to make sure we pick up the change.
-				nodes[0].parentNode.dispatchEvent(changeEvent);
+				nodes[0].parentNode && nodes[0].parentNode.dispatchEvent(changeEvent);
 			}
 			
 			if (Sparky.debug) {
@@ -361,6 +361,7 @@
 		}
 
 		function set(property, value) {
+			console.log(scope);
 			scope[property] = value;
 		}
 
@@ -539,12 +540,21 @@
 		var l = nodes.length;
 		var node;
 		var array = [];
+		var modelPath;
 		
 		// Remove child sparkies
 		while (++n < l) {
 			node = nodes[n];
 			array.push(node);
-			while (++n < l && node.contains(nodes[n]));
+			while (++n < l && node.contains(nodes[n])) {
+				// But do add children that have absolute model paths.
+
+				modelPath = nodes[n].getAttribute('data-model');
+
+				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
+					array.push(nodes[n]);
+				}
+			};
 			--n;
 		}
 		

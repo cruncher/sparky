@@ -63,6 +63,8 @@
 	    	input: function(node, name, bind, unbind, get, set) {
 	    		var prop = (rname.exec(node.name) || empty)[1];
 	    		
+	    		console.log('INPUT', node.type, prop);
+	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
 	    		if (!prop) { return; }
@@ -98,6 +100,23 @@
 	    			
 	    			node.addEventListener('change', function(e) {
 	    				if (node.checked) { set(prop, value2); }
+	    			});
+	    		}
+	    		else {
+	    			// If the model property does not yet exist and this input
+	    			// has value, set model property from node's value.
+	    			if (!isDefined(value1) && node.value) {
+	    				console.log();
+	    				set(prop, node.value);
+	    			}
+
+	    			bind(prop, function() {
+	    				var value = get(prop);
+	    				node.value = isDefined(value) ? value : '' ;
+	    			});
+
+	    			node.addEventListener('change', function(e) {
+	    				set(prop, node.value);
 	    			});
 	    		}
 	    	},
