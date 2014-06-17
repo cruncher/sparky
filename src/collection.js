@@ -71,14 +71,21 @@
 		}
 	}
 
-	function add(collection, item) {
+	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
-		var id = item.id;
+		var index = collection.index;
+
+		// If the object does not have an index key, push it
+		// to the end of the collection.
+		if (!isDefined(object[index])) {
+			collection.push(object);
+			return;
+		}
+
 		var l = collection.length;
 
-		while (collection[--l] && collection[l].id > id);
-
-		collection.splice(l + 1, 0, item);
+		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
+		collection.splice(l + 1, 0, object);
 	}
 
 	function remove(array, obj, i) {
@@ -142,14 +149,14 @@
 			
 			return typeof obj === 'string' || typeof obj === 'number' ?
 				findByIndex(this, obj) :
-				findByIndex(this, obj[index]);
+				isDefined(obj[index]) && findByIndex(this, obj[index]) ;
 		},
 
 		contains: function(object) {
 			return this.indexOf(object) !== -1;
 		},
 
-		get: function(property) {
+		getProperty: function(property) {
 			// Returns a value if all the objects in the selection
 			// have the same value for this property, otherwise
 			// returns undefined.
@@ -166,7 +173,7 @@
 			return this[n][property];
 		},
 		
-		set: function(property, value) {
+		setProperty: function(property, value) {
 			if (arguments.length !== 2) {
 				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
 				return;
