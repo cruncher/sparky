@@ -71,6 +71,14 @@
 		}
 	}
 
+	function findByObject(collection, object) {
+		var i = collection.indexOf(object);
+		
+		if (i === -1) { return; }
+		
+		return collection[i];
+	}
+
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
 		var index = collection.index;
@@ -148,8 +156,10 @@
 			var index = this.index;
 			
 			return typeof obj === 'string' || typeof obj === 'number' ?
-				findByIndex(this, obj) :
-				isDefined(obj[index]) && findByIndex(this, obj[index]) ;
+					findByIndex(this, obj) :
+				isDefined(obj[index]) ?
+					findByIndex(this, obj[index]) :
+					findByObject(this, obj) ;
 		},
 
 		contains: function(object) {

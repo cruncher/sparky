@@ -223,7 +223,7 @@
 		slice: Array.prototype.slice,
 		
 		slugify: function() {
-			return this.trim().toLowerCase.replace(/\W/g, '').replace(/_/g, '-');
+			return this.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
 		},
 
 		//sort
