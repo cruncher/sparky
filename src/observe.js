@@ -24,13 +24,13 @@
 		var v = obj[prop],
 		    observers = [observer],
 		    descriptor = {
-		    	enumerable: !!desc && desc.enumerable,
+		    	enumerable: desc ? desc.enumerable : true,
 		    	configurable: false,
-		    	
+
 		    	get: function() {
 		    		return v;
 		    	},
-		    	
+
 		    	set: function(u) {
 		    		if (u === v) { return; }
 		    		v = u;
@@ -38,10 +38,10 @@
 		    		observers.forEach(call);
 		    	}
 		    };
-		
+
 		// Store the observers so that future observers can be added.
 		descriptor.set.observers = observers;
-		
+
 		Object.defineProperty(obj, prop, descriptor);
 	}
 	
