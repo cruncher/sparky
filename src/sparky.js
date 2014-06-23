@@ -462,6 +462,11 @@
 			}
 		}
 
+		// If ctrl is a string, assume it is the name of a controller
+		if (typeof ctrl === 'string') {
+			ctrl = Sparky.controllers[ctrl];
+		}
+
 		// Where ctrl is not defined look for the data-ctrl attribute
 		if (!ctrl && node.getAttribute) {
 			ctrlPath = node.getAttribute('data-ctrl');
@@ -552,7 +557,7 @@
 				modelPath = nodes[n].getAttribute('data-model');
 
 				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
-					array.push(nodes[n]);
+					//array.push(nodes[n]);
 				}
 			};
 			--n;
@@ -572,7 +577,7 @@
 		}
 
 		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
-		
+
 		array.forEach(function(node) {
 			Sparky(node);
 		});
