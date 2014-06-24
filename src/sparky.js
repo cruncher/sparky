@@ -457,7 +457,7 @@
 				model = findByPath(Sparky.data, modelPath);
 				
 				if (model === undefined) {
-					throw new Error('[Sparky] ' + modelPath + ' not found in Sparky.data');
+					throw new Error('[Sparky] \'' + modelPath + '\' not found in Sparky.data');
 				}
 			}
 		}
