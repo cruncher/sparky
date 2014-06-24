@@ -47,7 +47,7 @@
 	window.xsvg = xsvg;
 
 	var rname   = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
-	var rfilter = /\s*([a-zA-Z0-9_]+)\s*(?:\:(.+))?/;
+	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
 
 	var filterCache = {};
 
