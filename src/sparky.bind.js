@@ -63,7 +63,7 @@
 	    	input: function(node, name, bind, unbind, get, set) {
 	    		var prop = (rname.exec(node.name) || empty)[1];
 	    		
-	    		console.log('INPUT', node.type, prop);
+	    		//console.log('INPUT', node.type, prop);
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.

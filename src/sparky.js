@@ -323,6 +323,27 @@
 		};
 	}
 
+	function nodeToText(node) {
+		return ['<', node.tagName.toLowerCase(),
+			(node.className ?
+				' class="' + node.className + '"' :
+				''),
+			(node.getAttribute('href') ?
+				' href="' + node.getAttribute('href') + '"' :
+				''),
+			(node.getAttribute('data-ctrl') ?
+				' data-ctrl="' + node.getAttribute('data-ctrl') + '"' :
+				''),
+			(node.getAttribute('data-model') ?
+				' data-model="' + node.getAttribute('data-model') + '"' :
+				''),
+			(node.id ?
+				' id="' + node.id + '"' :
+				''),
+			'>'
+		].join('');
+	}
+
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -361,7 +382,6 @@
 		}
 
 		function set(property, value) {
-			console.log(scope);
 			scope[property] = value;
 		}
 
@@ -394,7 +414,8 @@
 				data = findByPath(scope, rtag.exec(path)[1]);
 
 				if (!data) {
-					throw new Error('[Sparky] No object at path \'' + path + '\' of parent scope');
+					rtag.lastIndex = 0;
+					throw new Error('[Sparky] Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 				}
 
 				return Sparky(node, data);
