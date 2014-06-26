@@ -124,9 +124,11 @@
 
 		remove: function(item) {
 			// A bit weird. Review.
-			if (typeof item === 'string') {
-				return this.find(item).destroy();
-			}
+			//if (typeof item === 'string') {
+			//	return this.find(item).destroy();
+			//}
+
+			item = this.find(item);
 
 			invalidateCaches(this);
 			remove(this, item);
