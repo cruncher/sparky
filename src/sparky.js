@@ -249,16 +249,16 @@
 					map[i] = [nodes[l], sparkies[l]];
 				}
 			}
-			
+
 			l = model.length;
-			
+
 			nodes.length = model.length;
 			sparkies.length = model.length;
 			cache.length = model.length;
-			
+
 			while(++n < l) {
 				cache[n] = model[n];
-				
+
 				if (map[n]) {
 					nodes[n] = map[n][0];
 					sparkies[n] = map[n][1];
@@ -272,27 +272,27 @@
 						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
 					}
 				}
-				
+
 				insertNode(endNode, nodes[n]);
 			}
-			
+
 			if (nodes.length && node.tagName.toLowerCase() === 'option') {
 				// We have populated a <select>. It's value may have changed.
 				// Trigger a change event to make sure we pick up the change.
 				nodes[0].parentNode && nodes[0].parentNode.dispatchEvent(changeEvent);
 			}
-			
+
 			if (Sparky.debug) {
 				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
-		
+
 		var updateFn = onFrame(updateNodes);
-		
+
 		// Put the marker nodes in place
 		insertNode(node, startNode);
 		insertNode(node, endNode);
-		
+
 		// Remove the node
 		removeNode(node);
 
@@ -315,10 +315,22 @@
 		}
 
 		updateNodes();
-		
+
+		// Return a pseudo-sparky that delegates events to all
+		// sparkies in the collection.
 		return {
-			destroy: function() {
-				sparkies.map(getDestroy).forEach(call);
+			destroy: {
+				value: function() {
+					sparkies.map(getDestroy).forEach(call);
+				}
+			},
+
+			trigger: function() {
+				var l = sparkies.length;
+				var n = -1;
+				while (++n < l) {
+					sparkies[n].trigger.apply(sparkies[n], arguments);
+				}
 			}
 		};
 	}
@@ -385,16 +397,36 @@
 			scope[property] = value;
 		}
 
+		function slaveSparky(masterSparky, slaveSparky) {
+			// When sparky is ready, overwrite the trigger method
+			// to trigger all events on the slave sparky immediately
+			// following the trigger on the master.
+			//masterSparky.on('ready', function() {
+				var trigger = masterSparky.trigger;
+
+				masterSparky.trigger = function(type) {
+					trigger.apply(masterSparky, arguments);
+
+					console.log(slaveSparky);
+
+					slaveSparky.trigger.apply(slaveSparky, arguments);
+					return this;
+				};
+			//});
+
+			return slaveSparky;
+		}
+
 		function create(node) {
 			var path = node.getAttribute('data-model');
 			var data;
 
 			if (!isDefined(path)) {
-				return Sparky(node, scope);
+				return slaveSparky(sparky, Sparky(node, scope));
 			}
 
 			if (path === '.') {
-				return Sparky(node, model);
+				return slaveSparky(sparky, Sparky(node, model));
 			}
 
 			if (rrelativepath.test(path)) {
@@ -404,7 +436,7 @@
 					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
 				}
 
-				return Sparky(node, data);
+				return slaveSparky(sparky, Sparky(node, data));
 			}
 
 			rtag.lastIndex = 0;
@@ -421,7 +453,7 @@
 				return Sparky(node, data);
 			}
 
-			return Sparky(node, findByPath(Sparky.data, path));
+			return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 		}
 
 		sparky.node = node;
@@ -511,12 +543,12 @@
 				(ctrl && 'ctrl'), ')'
 			);
 		}
-		
+
 		sparky = Object.create(prototype);
 		setupSparky(sparky, node, model, ctrl);
-		
+
 		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-		
+
 		return sparky;
 	}
 
@@ -534,6 +566,7 @@
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
 	Sparky.throttle    = onFrame;
+	Sparky.prototype   = prototype;
 
 	ns.Sparky = Sparky;
 })(window);

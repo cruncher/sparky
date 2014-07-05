@@ -34,7 +34,6 @@
 	}
 
 	function byId(a, b) {
-		console.log(this);
 		return a.id > b.id ? 1 : -1 ;
 	}
 
@@ -156,7 +155,7 @@
 
 		find: function(obj) {
 			var index = this.index;
-			
+
 			return typeof obj === 'string' || typeof obj === 'number' ?
 					findByIndex(this, obj) :
 				isDefined(obj[index]) ?
@@ -242,10 +241,10 @@
 			data = [];
 		}
 
-		var length = collection.length = data.length;
-
 		// Populate the collection
 		data.forEach(setValue, collection);
+
+		var length = collection.length = data.length;
 
 		// Sort the collection
 		collection.sort(byIndex);
