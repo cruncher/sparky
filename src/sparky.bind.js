@@ -46,7 +46,10 @@
 	window.xlink = xlink;
 	window.xsvg = xsvg;
 
+	// Matches a sparky template tag, capturing (tag name, filter string)
 	var rname   = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+
+	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
 
 	var filterCache = {};
@@ -365,9 +368,11 @@
 		function replaceText($0, $1, $2) {
 			var word = get($1);
 
-			return !isDefined(word) ? '' :
-				$2 ? applyFilters(word, $2) :
-				word ;
+			if (!isDefined(word)) {
+				word === '';
+			}
+
+			return $2 ? applyFilters(word, $2) : word ;
 		}
 
 		function update() {
