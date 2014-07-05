@@ -298,7 +298,9 @@
 
 		// Observe length and update the DOM on next
 		// animation frame if it changes.
-		if (Object.getOwnPropertyDescriptor(model, 'length').configurable) {
+		var descriptor = Object.getOwnPropertyDescriptor(model, 'length');
+
+		if (descriptor.get || descriptor.configurable) {
 			observe(model, 'length', updateFn);
 		}
 		else {
