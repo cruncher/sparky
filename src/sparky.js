@@ -298,10 +298,10 @@
 
 		// Observe length and update the DOM on next
 		// animation frame if it changes.
-		try {
+		if (Object.getOwnPropertyDescriptor(model, 'length').configurable) {
 			observe(model, 'length', updateFn);
 		}
-		catch (e) {
+		else {
 			if (Sparky.debug) {
 				console.warn('[Sparky] Are you trying to observe an array? You should set ' +
 				             'Sparky.config.dirtyObserveArrays = true;\n' +
