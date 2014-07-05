@@ -114,9 +114,11 @@
 
 		decimals: Number.prototype.toFixed,
 
-		'default': function(value) {
-			return (this === '' || this === undefined || this === null) ? value : this ;
-		},
+		// .default() can't work, because Sparky does not send undefined or null
+		// values to be filtered. 
+		//'default': function(value) {
+		//	return (this === '' || this === undefined || this === null) ? value : this ;
+		//},
 
 		//dictsort
 		//dictsortreversed

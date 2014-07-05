@@ -368,8 +368,9 @@
 		function replaceText($0, $1, $2) {
 			var word = get($1);
 
-			if (!isDefined(word)) { word = ''; }
-			return $2 ? applyFilters(word, $2) : word ;
+			return !isDefined(word) ? '' :
+				$2 ? applyFilters(word, $2) :
+				word ;
 		}
 
 		function update() {
