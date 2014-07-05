@@ -111,15 +111,13 @@
 				});
 			};
 		})(settings),
-		
+
 		decimals: Number.prototype.toFixed,
-		
+
 		'default': function(value) {
-			console.log('DEFAULT', value);
-			console.log(this);
 			return (this === '' || this === undefined || this === null) ? value : this ;
 		},
-		
+
 		//dictsort
 		//dictsortreversed
 		//divisibleby
