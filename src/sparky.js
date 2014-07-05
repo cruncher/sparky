@@ -401,18 +401,15 @@
 			// When sparky is ready, overwrite the trigger method
 			// to trigger all events on the slave sparky immediately
 			// following the trigger on the master.
-			//masterSparky.on('ready', function() {
+			masterSparky.on('ready', function() {
 				var trigger = masterSparky.trigger;
 
 				masterSparky.trigger = function(type) {
 					trigger.apply(masterSparky, arguments);
-
-					console.log(slaveSparky);
-
 					slaveSparky.trigger.apply(slaveSparky, arguments);
 					return this;
 				};
-			//});
+			});
 
 			return slaveSparky;
 		}
