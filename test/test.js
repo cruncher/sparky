@@ -19,7 +19,7 @@ var module = (function(QUnit) {
 			}
 		});
 		
-		fn2 && fn2(fixture);
+		if (fn2) { fn2(fixture); }
 	}
 })(QUnit);
 
