@@ -1,29 +1,3 @@
-var module = (function(QUnit) {
-	var fixture = document.createElement('div');
-	var rcomment = /\s*\/\*([\s\S]*)\*\/\s*/;
-
-	function multiline(fn) {
-		if (typeof fn !== 'function') { throw new TypeError('multiline(fn) expects a function.'); }
-		var match = rcomment.exec(fn.toString());
-		if (!match) { throw new TypeError('Multiline comment missing.'); }
-		return match[1];
-	}
-
-	fixture.id = 'qunit-fixture';
-	document.body.appendChild(fixture);
-
-	return function module(name, fn1, fn2) {
-		QUnit.module(name, {
-			setup: function() {
-				if (fn1) { fixture.innerHTML = multiline(fn1); }
-			}
-		});
-		
-		if (fn2) { fn2(fixture); }
-	}
-})(QUnit);
-
-
 module('Controller', function() {
 /*
 	<div data-ctrl="test-ctrl">{{property}}</div>
@@ -36,7 +10,7 @@ module('Controller', function() {
 			ok(model === undefined);
 			return { property: 'peas' };
 		});
-	
+
 		ok(node.innerHTML === 'peas');
 	});
 	
@@ -47,8 +21,8 @@ module('Controller', function() {
 			ok(model === undefined);
 			return { property: 'peas' };
 		};
-		
 		Sparky(node);
+
 		ok(node.innerHTML === 'peas');
 	});
 });
@@ -59,14 +33,26 @@ module('Model', function() {
 	<div data-model="test-model">{{property}}</div>
 */
 }, function(fixture) {
-	Sparky.data['test-model'] = {
-		property: 'juice'
-	};
-	
 	test("{{tag}} is replaced with model property", function() {
 		var node = fixture.querySelector('div');
+		
+		Sparky.data['test-model'] = { property: 'juice' };
 		Sparky(node);
+
 		ok(node.innerHTML === 'juice');
+	});
+});
+
+module('Template', function() {
+/*
+	<template id="test-template">{{property}}</template>
+*/
+}, function(fixture) {
+	test('Sparky.template() clones templates to documentFragments', function() {
+		var result = Sparky.template('test-template');
+		ok(result);
+		ok(result !== fixture.querySelector('template'));
+		ok(result.nodeType === 11);
 	});
 });
 

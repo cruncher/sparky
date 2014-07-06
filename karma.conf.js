@@ -25,7 +25,7 @@ module.exports = function(config) {
       'src/sparky.bind.js',
       'src/sparky.filters.js',
 
-      'test/*.html',
+      'test/module.js',
       'test/*.js'
     ],
 
