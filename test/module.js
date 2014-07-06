@@ -15,10 +15,10 @@ var module = (function(QUnit) {
 	return function module(name, fn1, fn2) {
 		QUnit.module(name, {
 			setup: function() {
-				if (fn1) { fixture.innerHTML = multiline(fn1); }
+				if (fn2) { fixture.innerHTML = multiline(fn2); }
 			}
 		});
 		
-		if (fn2) { fn2(fixture); }
+		if (fn1) { fn1(fixture); }
 	}
 })(QUnit);
