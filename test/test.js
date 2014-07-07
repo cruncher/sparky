@@ -51,23 +51,23 @@ module('Child sparky', function(fixture) {
 				'sub-model-2': { property: 'sub-2' }
 			};
 		};
-		
+
 		Sparky.controllers['test-ctrl-1'] = function(node, model, sparky) {
 			return { property: 'value-1' };
 		};
-		
+
 		Sparky.controllers['test-ctrl-2'] = function(node, model, sparky) {
 			return { property: 'value-2' };
 		};
-		
+
 		Sparky.data['test-model-1'] = {
 			property: 'value-3'
 		};
-		
+
 		Sparky.data['test-model-2'] = {
 			property: 'value-4'
 		};
-	
+
 		var div1 = fixture.querySelector('[data-ctrl="test-ctrl"]');
 		var p1   = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
 		var p2   = fixture.querySelector('[data-ctrl="test-ctrl-2"]');
