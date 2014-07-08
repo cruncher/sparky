@@ -35,7 +35,23 @@
 	var reduce = Array.prototype.reduce,
 	    slice = Array.prototype.slice;
 
-	var prototype = extend({}, ns.mixin.events);
+	var prototype = extend({
+		get: function() {
+			
+		},
+		
+		set: function() {
+			
+		},
+		
+		create: function() {
+			
+		},
+
+		destroy: function() {
+			
+		}
+	}, ns.mixin.events);
 	
 	var changeEvent = new window.CustomEvent('change');
 
@@ -185,22 +201,39 @@
 		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
 	
-	function onFrame(fn) {
-		var flag = false;
-		var scope, args;
-		
+	function throttle(fn) {
+		var queued, scope, args;
+
 		function update() {
-			flag = false;
+			queued = false;
 			fn.apply(scope, args);
 		}
 
-		return function change() {
+		function change() {
+			// Store the latest scope and arguments
 			scope = this;
 			args = arguments;
-			if (flag) { return; }
-			flag = true;
+
+			// Don't queue update if it's already queued
+			if (change.queued) { return; }
+
+			// Queue update
 			window.requestAnimationFrame(update);
+			queued = true;
 		}
+
+		function cancel() {
+			// If changes are queued apply them now
+			if (queued) { update(); }
+			
+			// Don't permit further changes
+			fn = noop;
+		}
+
+		change.cancel = cancel;
+		update();
+
+		return change;
 	}
 
 	function findByPath(obj, path) {
@@ -287,7 +320,7 @@
 			}
 		}
 
-		var updateFn = onFrame(updateNodes);
+		var updateFn = Sparky.throttle(updateNodes);
 
 		// Put the marker nodes in place
 		insertNode(node, startNode);
@@ -367,7 +400,7 @@
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
 				replace(node, templateFragment);
-				sparky.trigger(node, 'templated');
+				sparky.trigger('template', node);
 			});
 		};
 
@@ -377,11 +410,8 @@
 		}
 
 		function observe(property, fn) {
-			Sparky.observe(scope, property, onFrame(fn));
-			
-			// Start off with populated nodes
-			fn();
-			
+			Sparky.observe(scope, property, fn);
+
 			if (templateFragment) {
 				Sparky.observe(scope, property, insert);
 			}
@@ -564,7 +594,7 @@
 	Sparky.features    = features;
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
-	Sparky.throttle    = onFrame;
+	Sparky.throttle    = throttle;
 	Sparky.prototype   = prototype;
 
 	ns.Sparky = Sparky;

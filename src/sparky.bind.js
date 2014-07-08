@@ -178,6 +178,8 @@
 	    	}
 	    };
 
+	function noop() {}
+
 	function normalise(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
@@ -377,16 +379,24 @@
 			fn(text.replace(rname, replaceText));
 		}
 
+		// Start throttling changes. The first update is immediate.
+		var throttle = Sparky.throttle(update);
+
 		// Observe properties
 		properties.forEach(function attach(property) {
-			bind(property, update);
+			bind(property, throttle);
 		});
 
-		// Return a function that unobserves properties
+		// Return a function that destroys live bindings
 		return function() {
 			properties.forEach(function detach(property) {
-				unbind(property, update);
+				// Unobserve properties
+				unbind(property, throttle);
 			});
+
+			// Cancel already bound updates. If updates are queued,
+			// the throttle applies them before bowing out.
+			throttle.cancel();
 		};
 	}
 

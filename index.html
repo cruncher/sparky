@@ -24,13 +24,13 @@
 	<link rel="icon" type="image/png" href="images/favicon.png" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	
-	<link rel="stylesheet" href="css/bolt.normalise.css" />
+	<!--link rel="stylesheet" href="css/bolt.normalise.css" />
 	<link rel="stylesheet" href="css/bolt.typography.css" />
 	<link rel="stylesheet" href="css/bolt.typography.15_24.css" />
 	<link rel="stylesheet" href="css/bolt.forms.css" />
 	<link rel="stylesheet" href="css/bolt.classes.css" />
 
-	<link rel="stylesheet" href="fonts/fira.css" />
+	<link rel="stylesheet" href="fonts/fira.css" /-->
 	<link rel="stylesheet" href="css/sparky.css" />
 </head>
 
@@ -117,14 +117,14 @@
 </div>
 
 
-<script src="js/jquery-2.1.1.js"></script>
-<script src="js/window.requestanimationframe.js"></script>
-<!--script src="js/app.js"></script-->
-<script src="js/observe.js"></script>
+<script src="src/jquery-2.1.1.js"></script>
+<script src="src/window.requestanimationframe.js"></script>
+<script src="src/mixin.events.js"></script>
+<script src="src/observe.js"></script>
 
-<script src="js/sparky.js"></script>
-<script src="js/sparky.template.js"></script>
-<script src="js/sparky.filters.js"></script>
+<script src="src/sparky.js"></script>
+<script src="src/sparky.bind.js"></script>
+<script src="src/sparky.filters.js"></script>
 <script>
 	window.data = {
 		name: '',
@@ -134,28 +134,28 @@
 		list: ['one', 'two', 'three']
 	};
 	
-	sparky.observe = observe;
-	sparky.unobserve = unobserve;
-	sparky.get = function(data, property) {
+	Sparky.observe = observe;
+	Sparky.unobserve = unobserve;
+	Sparky.get = function(data, property) {
 		return data[property];
 	};
 	
-	sparky.data.data = window.data;
+	Sparky.data.data = window.data;
 
-	sparky.views.code = function(node, data) {
+	Sparky.controllers.code = function(node, data) {
 		var elem = jQuery('#' + node.getAttribute('data-source'));
 		
 		jQuery(node).text(elem.html().trim());
 	};
 	
-	sparky.views.run = function(node, data) {
+	Sparky.controllers.run = function(node, data) {
 		var fn = new Function(node.innerHTML);
 		jQuery(node).on('click', fn);
 	};
 </script>
 
 <script id="clock-source">
-sparky.views.clock = function(node, data) {
+Sparky.controllers.clock = function(node, data) {
 	var context = {};
 	
 	function update() {
@@ -209,7 +209,7 @@ jQuery.extend(sparky.data.weather, {
 </template>
 
 <script>
-	sparky.data.weather = {};
+	Sparky.data.weather = {};
 </script>
 	</div>
 </div>
@@ -252,7 +252,7 @@ jQuery.extend(sparky.data.weather2, {
 </template>
 
 <script>
-	sparky.data.weather2 = {
+	Sparky.data.weather2 = {
 		feel: 'cold',
 		date: new Date(),
 		url: 'images/rowan.jpg',

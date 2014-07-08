@@ -43,8 +43,6 @@ module('mixin.events', function(fixture) {
 		object
 		.on(assign);
 		
-		console.log(object.events['*'], object.events);
-		
 		object
 		.trigger('name');
 
@@ -91,5 +89,21 @@ module('mixin.events', function(fixture) {
 		object
 		.on('name', callback, 2, 3)
 		.trigger('name', 1);
+
+		object
+		.off(callback)
+		// Should not trigger anything
+		.trigger('name')
+		.trigger('other');
+		
+		object
+		.on(callback, 2, 3)
+		.trigger('name', 1);
+		
+		object
+		.off(callback)
+		// Should not trigger anything
+		.trigger('name')
+		.trigger('other');
 	});
 });

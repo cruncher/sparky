@@ -21,30 +21,33 @@
 	mixin.events = {
 		// Events
 		on: function(types, fn) {
-			var type, args;
 			var events = getEvents(this);
-			var args = Array.prototype.slice.call(arguments, 2);
+			var type, item;
 
-			if (!fn) {
+			if (typeof types === 'string') {
+				types = types.split(/\s+/);
+				item = [fn, Array.prototype.slice.call(arguments, 2)];
+			}
+			else {
 				if (types) {
-					fn = types;
-					events['*'].push([fn, args]);
+					item = [types, Array.prototype.slice.call(arguments, 1)];
 					types = Object.keys(events);
+					events['*'].push(item);
 				}
 				else {
 					return this;
 				}
 			}
-			else {
-				types = types.split(/\s+/);
-			}
 
 			while (type = types.shift()) {
+				// If the event has no listener queue, create one using a copy
+				// of the all events listener array.
 				if (!events[type]) {
 					events[type] = events['*'].slice();
 				}
 
-				events[type].push([fn, args]);
+				// Store the listener in th queue
+				events[type].push(item);
 			}
 
 			return this;
@@ -119,10 +122,8 @@
 			i = -1;
 			l = listeners.length;
 
-			args = arguments.length > 1 ?
-				Array.prototype.slice.call(arguments, 1) :
-				[] ;
-			
+			args = Array.prototype.slice.call(arguments, 1);
+
 			while (++i < l) {
 				params = args.concat(listeners[i][1]);
 				listeners[i][0].apply(this, params);
