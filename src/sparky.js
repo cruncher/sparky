@@ -201,25 +201,12 @@
 		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
 	
-	function throttle(fn) {
+	function Throttle(fn) {
 		var queued, scope, args;
 
 		function update() {
 			queued = false;
 			fn.apply(scope, args);
-		}
-
-		function change() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
-			// Don't queue update if it's already queued
-			if (change.queued) { return; }
-
-			// Queue update
-			window.requestAnimationFrame(update);
-			queued = true;
 		}
 
 		function cancel() {
@@ -230,10 +217,23 @@
 			fn = noop;
 		}
 
-		change.cancel = cancel;
+		function throttle() {
+			// Store the latest scope and arguments
+			scope = this;
+			args = arguments;
+
+			// Don't queue update if it's already queued
+			if (throttle.queued) { return; }
+
+			// Queue update
+			window.requestAnimationFrame(update);
+			queued = true;
+		}
+
+		throttle.cancel = cancel;
 		update();
 
-		return change;
+		return throttle;
 	}
 
 	function findByPath(obj, path) {
@@ -320,8 +320,6 @@
 			}
 		}
 
-		var updateFn = Sparky.throttle(updateNodes);
-
 		// Put the marker nodes in place
 		insertNode(node, startNode);
 		insertNode(node, endNode);
@@ -329,12 +327,14 @@
 		// Remove the node
 		removeNode(node);
 
+		var throttle = Sparky.Throttle(updateNodes);
+
 		// Observe length and update the DOM on next
 		// animation frame if it changes.
 		var descriptor = Object.getOwnPropertyDescriptor(model, 'length');
 
 		if (descriptor.get || descriptor.configurable) {
-			observe(model, 'length', updateFn);
+			observe(model, 'length', throttle);
 		}
 		else {
 			if (Sparky.debug) {
@@ -345,11 +345,9 @@
 			}
 			
 			if (Sparky.config.dirtyObserveArrays === true) {
-				dirtyObserve(model, 'length', updateFn);
+				dirtyObserve(model, 'length', throttle);
 			}
 		}
-
-		updateNodes();
 
 		// Return a pseudo-sparky that delegates events to all
 		// sparkies in the collection.
@@ -594,7 +592,7 @@
 	Sparky.features    = features;
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
-	Sparky.throttle    = throttle;
+	Sparky.Throttle    = Throttle;
 	Sparky.prototype   = prototype;
 
 	ns.Sparky = Sparky;

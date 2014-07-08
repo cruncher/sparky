@@ -380,7 +380,7 @@
 		}
 
 		// Start throttling changes. The first update is immediate.
-		var throttle = Sparky.throttle(update);
+		var throttle = Sparky.Throttle(update);
 
 		// Observe properties
 		properties.forEach(function attach(property) {
