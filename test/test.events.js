@@ -39,6 +39,41 @@ module('mixin.events', function(fixture) {
 		.trigger('name');
 
 		ok(n === 2, 'Listeners are unbound by .off(typesString)');
+
+		object
+		.on(assign);
+		
+		console.log(object.events['*'], object.events);
+		
+		object
+		.trigger('name');
+
+		ok(n === 3, 'Listeners are bound by .on(fn)');
+
+		function decrement() {
+			--n;
+		}
+
+		object
+		.off('name', assign)
+		.on('name', decrement)
+		.trigger('name');
+
+		ok(n === 2, 'Listeners unbound by .on(types, fn)');
+
+		object
+		.trigger('other');
+
+		ok(n === 3, '* listeners still bound');
+
+		object
+		.trigger('name')
+		.off(decrement)
+		.off(assign)
+		.trigger('name')
+		.trigger('other');
+		
+		ok(n === 2, '* listeners unbound by .off(fn)');
 	});
 
 	test("events callback arguments", function() {

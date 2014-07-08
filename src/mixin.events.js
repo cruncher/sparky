@@ -3,32 +3,48 @@
 
 	var mixin = ns.mixin || (ns.mixin = {});
 
+	var prototype = {};
+	var properties = {
+	    	'*': {
+	    		value: []
+	    	}
+	    };
+
 	function getEvents(object) {
-		return object.events ?
-			object.events :
-			Object.defineProperty(object, 'events', {
-				value: {}
-			}).events ;
+		if (!object.events) {
+			object.events = Object.create(prototype, properties);
+		}
+
+		return object.events;
 	}
 
 	mixin.events = {
 		// Events
 		on: function(types, fn) {
-			var type, events, args;
+			var type, args;
+			var events = getEvents(this);
+			var args = Array.prototype.slice.call(arguments, 2);
 
-			if (!fn) { return this; }
-
-			types = types.split(/\s+/);
-			events = getEvents(this);
-			args = Array.prototype.slice.call(arguments, 2);
-
-			while (type = types.shift()) {
-				if (events[type]) {
-					events[type].push([fn, args]);
+			if (!fn) {
+				if (types) {
+					fn = types;
+					events['*'].push([fn, args]);
+					types = Object.keys(events);
 				}
 				else {
-					events[type] = [[fn, args]];
+					return this;
 				}
+			}
+			else {
+				types = types.split(/\s+/);
+			}
+
+			while (type = types.shift()) {
+				if (!events[type]) {
+					events[type] = events['*'].slice();
+				}
+
+				events[type].push([fn, args]);
 			}
 
 			return this;
@@ -54,11 +70,16 @@
 			}
 
 			if (typeof types === 'string') {
+				// .off(types, fn)
 				types = types.split(/\s+/);
 			}
 			else {
+				// .off(fn)
 				fn = types;
 				types = Object.keys(this.events);
+				
+				// Include the all '*' listeners
+				types.push('*');
 			}
 
 			while (type = types.shift()) {
@@ -86,11 +107,13 @@
 		trigger: function(type) {
 			var listeners, i, l, args, params;
 
-			if (!this.events || !this.events[type]) { return this; }
+			if (!this.events) { return this; }
 
 			// Use a copy of the event list in case it gets mutated while we're
 			// triggering the callbacks.
-			listeners = this.events[type].slice();
+			listeners = (this.events[type] ?
+				this.events[type] :
+				this.events['*']).slice();
 
 			// Execute event callbacks.
 			i = -1;
