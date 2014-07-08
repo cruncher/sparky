@@ -253,11 +253,9 @@
 		// like a nice array does.
 		observe(collection, 'length', function(collection) {
 			while (length-- > collection.length) {
-				if (typeof collection[length] !== 'undefined') {
-					// JIT compiler notes suggest that setting undefined is
-					// quicker than deleting a property.
-					collection[length] = undefined;
-				}
+				// JIT compiler notes suggest that setting undefined is
+				// quicker than deleting a property.
+				collection[length] = undefined;
 			}
 
 			length = collection.length;
