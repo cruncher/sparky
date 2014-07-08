@@ -92,6 +92,19 @@ module('Child sparky', function(fixture) {
 		ok(p5.innerHTML === 'value-3');
 		ok(p6.innerHTML === 'value-4');
 	});
+
+
+
+	asyncTest( "asynchronous test: one second later!", function(assert) {
+		setTimeout(function() {
+			assert.ok( true, "Passed and ready to resume!" );
+			QUnit.start();
+		}, 1000);
+	});
+
+
+
+
 }, function() {/*
 
 <div data-ctrl="test-ctrl">
