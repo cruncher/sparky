@@ -26,7 +26,13 @@
 		23: 'rd',
 		31: 'st'
 	});
-	
+
+	function spaces(n) {
+		var s = '';
+		while (n--) { s += ' ' }
+		return s;
+	}
+
 	Sparky.filters = {
 		add: function(n) {
 			return parseFloat(this) + n ;
@@ -52,10 +58,11 @@
 		postpad: function(n) {
 			var string = this.toString();
 			var l = string.length;
-			array.length = 0;
-			array.push(string);
-			array.length = n - l;
-			return l < n ? array.join(' ') : this ;
+			var m = parseInt(n, 10);
+
+			return m === l ? this :
+				m > l ? string + spaces(m-l) :
+				string.substring(0, m) ;
 		},
 
 		date: (function(M, F, D, l, s) {

@@ -443,7 +443,7 @@
 				
 				rtag.lastIndex = 0;
 				data = findByPath(scope, rtag.exec(path)[1]);
-console.log('DATA', path, scope);
+
 				if (!data) {
 					rtag.lastIndex = 0;
 					throw new Error('[Sparky] Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));

@@ -93,17 +93,42 @@ module('Child sparky', function(fixture) {
 		ok(p6.innerHTML === 'value-4');
 	});
 
+	asyncTest("Test property changes update the DOM on animation frames.", function(assert) {
+		// Reset Sparky
+		Sparky.data = {};
+		Sparky.controllers = {};
 
+		var model  = Sparky.data['test-model']   = {};
+		var model1 = Sparky.data['test-model-1'] = {};
+		var model2 = Sparky.data['test-model-2'] = {};
+		var div2 = fixture.querySelector('[data-model="test-model"]');
+		var p5   = fixture.querySelector('[data-model="test-model-1"]');
+		var p6   = fixture.querySelector('[data-model="test-model-2"]');
 
-	asyncTest( "asynchronous test: one second later!", function(assert) {
-		setTimeout(function() {
-			assert.ok( true, "Passed and ready to resume!" );
+		Sparky(div2);
+
+		assert.ok(p5.innerHTML === '', 'p5 is empty.');
+		model1.property = 'Hello duckies';
+		assert.ok(p5.innerHTML === '', 'DOM is not updated immediately.');
+
+		window.requestAnimationFrame(function() {
+			assert.ok(p5.innerHTML === 'Hello duckies', "DOM is updated on animation frame.");
+		});
+
+		assert.ok(p6.innerHTML === '', 'p6 is empty.');
+		model2.property = 'Goodbye friends';
+
+		window.requestAnimationFrame(function() {
+			assert.ok(p6.innerHTML === 'Pass the carrot', "DOM is updated to latest value.");
+		});
+
+		model2.property = 'Pass the carrot';
+
+		// Restart QUnit
+		window.requestAnimationFrame(function() {
 			QUnit.start();
-		}, 1000);
+		});
 	});
-
-
-
 
 }, function() {/*
 
