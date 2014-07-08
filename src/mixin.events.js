@@ -38,12 +38,12 @@
 		// with that function. If `callback` is null, removes all callbacks for the
 		// event. If `events` is null, removes all bound callbacks for all events.
 		off: function(types, fn) {
-			var type, calls, list, i;
+			var type, calls, list, i, listeners;
 
 			// No events.
 			if (!this.events) { return this; }
 
-			// Remove all events.
+			// Remove all events from all types.
 			if (!(types || fn)) {
 				for (type in this.events) {
 					this.events[type].length = 0;
@@ -53,9 +53,13 @@
 				return this;
 			}
 
-			types = types ?
-				types.split(/\s+/) :
-				Object.keys(this.events) ;
+			if (typeof types === 'string') {
+				types = types.split(/\s+/);
+			}
+			else {
+				fn = types;
+				types = Object.keys(this.events);
+			}
 
 			while (type = types.shift()) {
 				listeners = this.events[type];

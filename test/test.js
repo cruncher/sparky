@@ -130,6 +130,39 @@ module('Child sparky', function(fixture) {
 		});
 	});
 
+
+// TODO .destroy() appears not to be working. What gives?
+
+//	asyncTest("Tests .destroy()", function(assert) {
+//		// Reset Sparky
+//		Sparky.data = {};
+//		Sparky.controllers = {};
+//
+//		var model  = Sparky.data['test-model']   = {};
+//		var model1 = Sparky.data['test-model-1'] = {};
+//		var model2 = Sparky.data['test-model-2'] = {};
+//		var div2 = fixture.querySelector('[data-model="test-model"]');
+//		var p5   = fixture.querySelector('[data-model="test-model-1"]');
+//		var p6   = fixture.querySelector('[data-model="test-model-2"]');
+//
+//		var sparky = Sparky(p5);
+//
+//		assert.ok(p5.innerHTML === '', 'p5 is empty.');
+//		model1.property = 'Hello duckies';
+//		sparky.destroy();
+//		model1.property = 'Poop';
+//
+//		window.requestAnimationFrame(function() {
+//			console.log(p5.innerHTML);
+//			assert.ok(p5.innerHTML === 'Hello duckies', ".destroy()");
+//		});
+//
+//		// Restart QUnit
+//		window.requestAnimationFrame(function() {
+//			QUnit.start();
+//		});
+//	});
+
 }, function() {/*
 
 <div data-ctrl="test-ctrl">
