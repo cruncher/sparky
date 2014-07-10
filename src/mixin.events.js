@@ -1,28 +1,45 @@
-// .on(types, fn, args...)
-//
-// Binds a function to be called on events in types.
+// mixin.events
 
-// .on(fn, args...)
-//
-// Binds a function to be called on all events.
+// .on(types, fn, [args...])
+// Binds a function to be called on events in types. The
+// callback fn is called with this object as the first
+// argument, followed by arguments passed to .trigger(),
+// followed by arguments passed to .on().
 
 // .on(object)
-//
-// Propagates all events from the target object to the
-// passed object. Handlers for the passed object are called
-// with 'this' set to the target object.
+// Registers object as a propagation target. Handlers bound
+// to the propagation target are called with 'this' set to
+// this object, and the target object as the first argument.
+
+// .off(types, fn)
+// Unbinds fn from given event types.
+
+// .off(types)
+// Unbinds all functions from given event types.
+
+// .off(fn)
+// Unbinds fn from all event types.
+
+// .off(object)
+// Stops propagation of all events to given object.
+
+// .off()
+// Unbinds all functions and removes all propagation targets.
+
+// .trigger(type, [args...])
+// Triggers event of type.
+
 
 (function(ns) {
 	"use strict";
 
 	var mixin = ns.mixin || (ns.mixin = {});
 	var eventObject = {};
-	var prototype = {};
 
 	function getEvents(object) {
 		if (!object.events) {
 			Object.defineProperty(object, 'events', {
-				value: Object.create(prototype, { '*': { value: [] }})
+				value: {}
 			});
 		}
 
@@ -85,16 +102,14 @@
 				item = [fn, Array.prototype.slice.call(arguments, 2)];
 			}
 			else {
-				item = [types, Array.prototype.slice.call(arguments, 1)];
-				types = Object.keys(events);
-				events['*'].push(item);
+				return this;
 			}
 
 			while (type = types.shift()) {
 				// If the event has no listener queue, create one using a copy
 				// of the all events listener array.
 				if (!events[type]) {
-					events[type] = events['*'].slice();
+					events[type] = [];
 				}
 
 				// Store the listener in the queue
@@ -142,9 +157,6 @@
 				// .off(fn)
 				fn = types;
 				types = Object.keys(this.events);
-				
-				// Include the all '*' listeners
-				types.push('*');
 			}
 
 			while (type = types.shift()) {
@@ -183,22 +195,20 @@
 
 			var events = getEvents(this);
 
-			// Use a copy of the event list in case it gets mutated while we're
-			// triggering the callbacks.
-			listeners = (events[type] ?
-				events[type] :
-				events['*']).slice();
-
-			// Execute event callbacks.
-			i = -1;
-			l = listeners.length;
-
 			args = Array.prototype.slice.apply(arguments);
-			args[0] = this;
 
-			while (++i < l) {
-				params = args.concat(listeners[i][1]);
-				listeners[i][0].apply(target, params);
+			if (events[type]) {
+				// Use a copy of the event list in case it gets mutated while
+				// we're triggering the callbacks.
+				listeners = events[type].slice();
+				i = -1;
+				l = listeners.length;
+				args[0] = this;
+
+				while (++i < l) {
+					params = args.concat(listeners[i][1]);
+					listeners[i][0].apply(target, params);
+				}
 			}
 
 			// Propagate to dependents
@@ -212,7 +222,7 @@
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
 				// as trigger calls are synchronous, and the object is internal,
-				// it does not get exposed.
+				// so it does not get exposed.
 				args[0] = eventObject;
 				eventObject.type = type;
 				eventObject.target = target;
