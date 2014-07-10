@@ -38,7 +38,10 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'src/*.js': ['coverage']
+      'src/sparky*.js': ['coverage'],
+      'src/mixin*.js': ['coverage'],
+      'src/observe.js': ['coverage'],
+      'src/collection.js': ['coverage']
     },
 
     // test results reporter to use

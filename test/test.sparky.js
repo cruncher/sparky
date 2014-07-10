@@ -1,8 +1,8 @@
 module('Controller', function(fixture) {
-	test("ctrl found in Sparky.controllers and {{tag}} replaced with scope property", function() {
+	test("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
 		var node = fixture.querySelector('div');
 		
-		Sparky.controllers['test-ctrl'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
 			ok(model === undefined);
 			return { property: 'peas' };
 		};
@@ -45,18 +45,18 @@ module('Model', function(fixture) {
 
 module('Child sparky', function(fixture) {
 	test('Children instantiated with correct controllers and models', function() {
-		Sparky.controllers['test-ctrl'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
 			return {
 				'sub-model-1': { property: 'sub-1' },
 				'sub-model-2': { property: 'sub-2' }
 			};
 		};
 
-		Sparky.controllers['test-ctrl-1'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl-1'] = function(node, model, sparky) {
 			return { property: 'value-1' };
 		};
 
-		Sparky.controllers['test-ctrl-2'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl-2'] = function(node, model, sparky) {
 			return { property: 'value-2' };
 		};
 
@@ -96,7 +96,7 @@ module('Child sparky', function(fixture) {
 	asyncTest("Test property changes update the DOM on animation frames.", function(assert) {
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.controllers = {};
+		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
@@ -133,7 +133,7 @@ module('Child sparky', function(fixture) {
 	asyncTest("Tests .destroy()", function(assert) {
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.controllers = {};
+		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
@@ -163,7 +163,7 @@ module('Child sparky', function(fixture) {
 		
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.controllers = {};
+		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};

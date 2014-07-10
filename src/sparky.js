@@ -10,16 +10,14 @@
 // </div>
 // 
 // Where 'name' is the key of a view function in
-// Sparky.controllers and path.to.data points to an object
+// Sparky.ctrl and path.to.data points to an object
 // in Sparky.data.
 
 
 (function(ns){
 	"use strict";
 
-	var controllers = {};
 	var templates   = {};
-	var data        = {};
 	var features    = {
 	    	template: 'content' in document.createElement('template')
 	    };
@@ -142,9 +140,11 @@
 	function insertNode(node1, node2) {
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
+
 	
+
 	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', removeNode, node);
+		sparky.on('destroy', function(sparky) { removeNode(node) }, node);
 		return model;
 	}
 	
@@ -200,7 +200,7 @@
 	function objToPath(root, path, obj) {
 		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
-	
+
 	function Throttle(fn) {
 		var queued, scope, args;
 
@@ -210,24 +210,31 @@
 		}
 
 		function cancel() {
-			// If changes are queued apply them now
+			// Don't permit further changes to be queued
+			queue = noop;
+
+			// If there is an update queued apply it now
 			if (queued) { update(); }
-			
-			// Don't permit further changes
+
+			// Make the queued update do nothing
 			fn = noop;
 		}
 
-		function throttle() {
+		function queue() {
 			// Store the latest scope and arguments
 			scope = this;
 			args = arguments;
 
 			// Don't queue update if it's already queued
-			if (throttle.queued) { return; }
+			if (queued) { return; }
 
 			// Queue update
 			window.requestAnimationFrame(update);
 			queued = true;
+		}
+
+		function throttle() {
+			queue.apply(this, arguments);
 		}
 
 		throttle.cancel = cancel;
@@ -544,14 +551,14 @@
 
 		// If ctrl is a string, assume it is the name of a controller
 		if (typeof ctrl === 'string') {
-			ctrl = Sparky.controllers[ctrl];
+			ctrl = Sparky.ctrl[ctrl];
 		}
 
 		// Where ctrl is not defined look for the data-ctrl attribute
 		if (!ctrl && node.getAttribute) {
 			ctrlPath = node.getAttribute('data-ctrl');
 			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.controllers, ctrlPath) :
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
 				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
 				tag === 'select' ? selectCtrl :
 				tag === 'textarea' ? textareaCtrl :
@@ -582,17 +589,17 @@
 	Sparky.debug       = false;
 	Sparky.config      = {};
 	Sparky.settings    = {};
+	Sparky.data        = {};
+	Sparky.ctrl        = {};
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
+	Sparky.Throttle    = Throttle;
 	Sparky.Collection  = ns.Collection;
-	Sparky.data        = data;
-	Sparky.controllers = controllers;
 	Sparky.templates   = templates;
 	Sparky.features    = features;
 	Sparky.template    = fetchTemplate;
 	Sparky.extend      = extend;
-	Sparky.Throttle    = Throttle;
 	Sparky.prototype   = prototype;
 
 	ns.Sparky = Sparky;

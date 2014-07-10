@@ -142,20 +142,20 @@
 	
 	Sparky.data.data = window.data;
 
-	Sparky.controllers.code = function(node, data) {
+	Sparky.ctrl.code = function(node, data) {
 		var elem = jQuery('#' + node.getAttribute('data-source'));
 		
 		jQuery(node).text(elem.html().trim());
 	};
 	
-	Sparky.controllers.run = function(node, data) {
+	Sparky.ctrl.run = function(node, data) {
 		var fn = new Function(node.innerHTML);
 		jQuery(node).on('click', fn);
 	};
 </script>
 
 <script id="clock-source">
-Sparky.controllers.clock = function(node, data) {
+Sparky.ctrl.clock = function(node, data) {
 	var context = {};
 	
 	function update() {

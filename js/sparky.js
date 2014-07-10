@@ -530,7 +530,7 @@
 // </div>
 // 
 // Where 'name' is the key of a view function in
-// Sparky.controllers and path.to.data points to an object
+// Sparky.ctrl and path.to.data points to an object
 // in Sparky.data.
 
 
@@ -985,7 +985,7 @@
 		if (!ctrl && node.getAttribute) {
 			ctrlPath = node.getAttribute('data-ctrl');
 			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.controllers, ctrlPath) :
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
 				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
 				tag === 'select' ? selectCtrl :
 				tag === 'textarea' ? textareaCtrl :
@@ -1021,7 +1021,7 @@
 	Sparky.unobserve   = ns.unobserve;
 	Sparky.Collection  = ns.Collection;
 	Sparky.data        = data;
-	Sparky.controllers = controllers;
+	Sparky.ctrl = controllers;
 	Sparky.templates   = templates;
 	Sparky.features    = features;
 	Sparky.template    = fetchTemplate;

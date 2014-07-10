@@ -167,7 +167,7 @@
 			return this.indexOf(object) !== -1;
 		},
 
-		getProperty: function(property) {
+		get: function(property) {
 			// Returns a value if all the objects in the selection
 			// have the same value for this property, otherwise
 			// returns undefined.
@@ -184,7 +184,7 @@
 			return this[n][property];
 		},
 		
-		setProperty: function(property, value) {
+		set: function(property, value) {
 			if (arguments.length !== 2) {
 				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
 				return;
