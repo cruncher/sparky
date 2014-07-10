@@ -1,14 +1,23 @@
+// .on(types, fn, args...)
+//
+// Binds a function to be called on events in types.
+
+// .on(fn, args...)
+//
+// Binds a function to be called on all events.
+
+// .on(object)
+//
+// Propagates all events from the target object to the
+// passed object. Handlers for the passed object are called
+// with 'this' set to the target object.
+
 (function(ns) {
 	"use strict";
 
 	var mixin = ns.mixin || (ns.mixin = {});
-
+	var eventObject = {};
 	var prototype = {};
-	var properties = {
-	    	'*': {
-	    		value: []
-	    	}
-	    };
 
 	function getEvents(object) {
 		if (!object.events) {
@@ -22,7 +31,7 @@
 
 	function getDependents(object) {
 		if (!object.dependents) {
-			object.dependents = Object.defineProperty(object, 'dependents', {
+			Object.defineProperty(object, 'dependents', {
 				value: []
 			});
 		}
@@ -30,23 +39,44 @@
 		return object.dependents;
 	}
 
+	function setupPropagation(object1, object2) {
+		var dependents = getDependents(object1);
+
+		// Make sure dependents stays unique
+		if (dependents.indexOf(object2) === -1) {
+			dependents.push(object2);
+		}
+	}
+
+	function teardownPropagation(object1, object2) {
+		var dependents = getDependents(object1);
+
+		if (object2 === undefined) {
+			dependents.length = 0;
+			return;
+		}
+
+		var i = dependents.indexOf(object2);
+
+		if (i === -1) { return; }
+
+		dependents.splice(i, 1);
+	}
+
+
 	mixin.events = {
-		propagate: function(object) {
-			var dependents = getDependents(this);
-
-			// Make sure dependents stays unique
-			if (dependents.indexOf(object) === -1) {
-				dependents.push(object);
-			}
-
-			return this;
-		},
-
 		// .on(type, fn)
 		// 
 		// Callback fn is called with this set to the current object
 		// and the arguments (target, triggerArgs..., onArgs...).
 		on: function(types, fn) {
+			// If types is an object with a trigger method, set it up so that
+			// events propagate from this object.
+			if (arguments.length === 1 && types.trigger) {
+				setupPropagation(this, types);
+				return this;
+			}
+
 			var events = getEvents(this);
 			var type, item;
 
@@ -55,14 +85,9 @@
 				item = [fn, Array.prototype.slice.call(arguments, 2)];
 			}
 			else {
-				if (types) {
-					item = [types, Array.prototype.slice.call(arguments, 1)];
-					types = Object.keys(events);
-					events['*'].push(item);
-				}
-				else {
-					return this;
-				}
+				item = [types, Array.prototype.slice.call(arguments, 1)];
+				types = Object.keys(events);
+				events['*'].push(item);
 			}
 
 			while (type = types.shift()) {
@@ -72,7 +97,7 @@
 					events[type] = events['*'].slice();
 				}
 
-				// Store the listener in th queue
+				// Store the listener in the queue
 				events[type].push(item);
 			}
 
@@ -85,18 +110,29 @@
 		off: function(types, fn) {
 			var type, calls, list, i, listeners;
 
-			// No events.
-			if (!this.events) { return this; }
+			// If no arguments passed in, unbind everything.
+			if (arguments.length === 0) {
+				teardownPropagation(this);
 
-			// Remove all events from all types.
-			if (!(types || fn)) {
-				for (type in this.events) {
-					this.events[type].length = 0;
-					delete this.events[type];
+				if (this.events) {
+					for (type in this.events) {
+						this.events[type].length = 0;
+						this.events[type] = undefined;
+					}
 				}
 
 				return this;
 			}
+			
+			// If types is an object with a trigger method, stop propagating
+			// events to it.
+			if (arguments.length === 1 && types.trigger) {
+				teardownPropagation(this, types);
+				return this;
+			}
+
+			// No events.
+			if (!this.events) { return this; }
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
@@ -119,7 +155,7 @@
 				}
 
 				if (!fn) {
-					delete this.events[type];
+					this.events[type] = undefined;
 					continue;
 				}
 
@@ -158,11 +194,11 @@
 			l = listeners.length;
 
 			args = Array.prototype.slice.apply(arguments);
-			args[0] = target;
+			args[0] = this;
 
 			while (++i < l) {
 				params = args.concat(listeners[i][1]);
-				listeners[i][0].apply(this, params);
+				listeners[i][0].apply(target, params);
 			}
 
 			// Propagate to dependents
@@ -174,14 +210,16 @@
 			l = dependents.length;
 
 			if (typeof e === 'string') {
-				// Create an event object
-				args[0] = {};
-				args[0].type = type;
-				args[0].target = target;
+				// Prepare the event object. It's ok to reuse a single object,
+				// as trigger calls are synchronous, and the object is internal,
+				// it does not get exposed.
+				args[0] = eventObject;
+				eventObject.type = type;
+				eventObject.target = target;
 			}
 
 			while (++i < l) {
-				listeners[i].trigger.apply(listeners[i], args);
+				dependents[i].trigger.apply(dependents[i], args);
 			}
 
 			// Return this for chaining

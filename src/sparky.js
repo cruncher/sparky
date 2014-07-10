@@ -60,7 +60,6 @@
 	function isDefined(val) { return val !== undefined && val !== null; }
 	function isObject(obj) { return obj instanceof Object; }
 	function getProperty(obj, property) { return obj[property]; }
-	function getDestroy(obj) { return obj.destroy; }
 
 	// Object helpers
 
@@ -358,10 +357,14 @@
 
 		// Return a pseudo-sparky that delegates events to all
 		// sparkies in the collection.
+		//return Object.create(prototype);
+		
 		return {
-			destroy: {
-				value: function() {
-					sparkies.map(getDestroy).forEach(call);
+			destroy: function() {
+				var l = sparkies.length;
+				var n = -1;
+				while (++n < l) {
+					sparkies[n].destroy();
 				}
 			},
 
@@ -441,11 +444,13 @@
 			masterSparky.on('ready', function() {
 				var trigger = masterSparky.trigger;
 
-				masterSparky.trigger = function(type) {
-					trigger.apply(masterSparky, arguments);
-					slaveSparky.trigger.apply(slaveSparky, arguments);
-					return this;
-				};
+				masterSparky.on(slaveSparky);
+
+				//masterSparky.trigger = function(type) {
+				//	trigger.apply(masterSparky, arguments);
+				//	slaveSparky.trigger.apply(slaveSparky, arguments);
+				//	return this;
+				//};
 			});
 
 			return slaveSparky;
@@ -498,8 +503,9 @@
 				unbind = undefined;
 			}
 
-			sparky.trigger('destroy');
-			sparky.off();
+			return this
+				.trigger('destroy')
+				.off();
 		};
 
 		// If a scope object is returned by the ctrl, we use that, otherwise

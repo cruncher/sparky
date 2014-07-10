@@ -78,8 +78,8 @@ module('mixin.events', function(fixture) {
 		var n;
 
 		function callback($0, $1, $2, $3, $4) {
-			ok(this === object, 'Listeners are called with object as \'this\'');
-			ok(this === $0, 'Listeners are called with target as first argument');
+			ok(this === object, 'Listeners are called with target as \'this\'');
+			ok($0 === object, 'Listeners are called with current object as first argument');
 			ok($1 === 1);
 			ok($2 === 2);
 			ok($3 === 3);
@@ -108,36 +108,23 @@ module('mixin.events', function(fixture) {
 	});
 
 	test("events.propagate()", function() {
-		var object = Object.create(mixin.events);
+		var object1 = Object.create(mixin.events);
+		var object2 = Object.create(mixin.events);
 		var n;
 
 		function callback($0, $1, $2, $3, $4) {
-			ok(this === object, 'Listeners are called with object as \'this\'');
-			ok(this === $0, 'Listeners are called with target as first argument');
+			ok(this === object1, 'Listeners are called with target as \'this\'');
+			ok($0 === object2, 'Listeners are called with current object as first argument');
 			ok($1 === 1);
 			ok($2 === 2);
 			ok($3 === 3);
 			ok($4 === undefined, 'Listeners are given trailing arguments from .trigger(type, arg1, arg2,...) then .on(type, fn, arg3, arg4,...)');
 		}
 
-		object
-		.on('name', callback, 2, 3)
-		.trigger('name', 1);
+		object2.on('name', callback, 2, 3);
 
-		object
-		.off(callback)
-		// Should not trigger anything
-		.trigger('name')
-		.trigger('other');
-		
-		object
-		.on(callback, 2, 3)
+		object1
+		.on(object2)
 		.trigger('name', 1);
-		
-		object
-		.off(callback)
-		// Should not trigger anything
-		.trigger('name')
-		.trigger('other');
 	});
 });

@@ -1,21 +1,31 @@
 module('Event propogation', function(fixture) {
 	test("Tests .destroy() of sparky's children", function(assert) {
-		expect(1);
+		expect(5);
+
+		var n = 0;
+		var sparky1;
 
 		// Reset Sparky
 		Sparky.data = {};
 		Sparky.ctrl = {};
 
 		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+			sparky.on('boo', function(sparky) {
+				ok(sparky === this, 'sparky is target');
+				ok(n++ === 0, 'This event called first');
+			});
+
 			return {};
 		};
 
 		Sparky.ctrl['test-ctrl-1'] = function(node, model, sparky) {
-			sparky.on('boo', function(target) {
-				ok(true);
-//				ok(target !== this, 'target is not this');
+			sparky1 = sparky;
+
+			sparky.on('boo', function(sparky) {
+				ok(sparky !== this, 'sparky is not target');
+				ok(n++ === 1, 'This event called second');
 			});
-			
+
 			return {};
 		};
 
@@ -27,6 +37,19 @@ module('Event propogation', function(fixture) {
 		var p1  = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
 		var sparky = Sparky(div);
 
+		ok(sparky !== sparky1)
+
+		sparky
+		.trigger('boo')
+		.destroy()
+		.trigger('boo');
+
+		sparky1.on('boo', function(sparky) {
+			ok(false, 'This should never be called');
+		});
+
+		// Should not call sparky1 handlers, as propagation should have
+		// been destroyed.
 		sparky.trigger('boo');
 	});
 }, function() {/*

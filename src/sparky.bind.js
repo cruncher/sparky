@@ -250,7 +250,7 @@
 			   (isDefined(child.getAttribute('data-ctrl')) ||
 			    isDefined(child.getAttribute('data-model')))) {
 				sparky = create(child);
-				unobservers.push(sparky.destroy);
+				unobservers.push(sparky.destroy.bind(sparky));
 			}
 			else if (types[child.nodeType]) {
 				unobservers.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get, set, create));
