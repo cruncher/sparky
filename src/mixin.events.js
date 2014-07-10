@@ -29,12 +29,12 @@
 // .trigger(type, [args...])
 // Triggers event of type.
 
-
 (function(ns) {
 	"use strict";
 
 	var mixin = ns.mixin || (ns.mixin = {});
 	var eventObject = {};
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
 	function getEvents(object) {
 		if (!object.events) {
@@ -99,7 +99,7 @@
 
 			if (typeof types === 'string') {
 				types = types.split(/\s+/);
-				item = [fn, Array.prototype.slice.call(arguments, 2)];
+				item = [fn, slice(arguments, 2)];
 			}
 			else {
 				return this;
@@ -195,7 +195,7 @@
 
 			var events = getEvents(this);
 
-			args = Array.prototype.slice.apply(arguments);
+			args = slice(arguments);
 
 			if (events[type]) {
 				// Use a copy of the event list in case it gets mutated while
