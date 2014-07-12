@@ -490,10 +490,8 @@
 		sparky.node = node;
 
 		sparky.destroy = function destroy() {
-			if (unbind) {
-				unbind();
-				unbind = undefined;
-			}
+			this.detach();
+			this.detach = noop;
 
 			return this
 				.trigger('destroy')
@@ -513,7 +511,7 @@
 		//if (!scope) { return; }
 
 		// The bind function returns an array of unbind functions.
-		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
+		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
 
 		sparky.trigger('ready');
 	}
