@@ -94,8 +94,8 @@ module('mixin.events', function(fixture) {
 		var n;
 
 		function callback($0, $1, $2, $3, $4) {
-			ok(this === object1, 'Listeners are called with target as \'this\'');
-			ok($0 === object2, 'Listeners are called with current object as first argument');
+			ok(this === object2, 'Listeners are called with target as \'this\'');
+			ok($0 === object1, 'Listeners are called with current object as first argument');
 			ok($1 === 1);
 			ok($2 === 2);
 			ok($3 === 3);
