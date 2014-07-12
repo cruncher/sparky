@@ -399,6 +399,17 @@
 		].join('');
 	}
 
+	function slaveSparky(masterSparky, slaveSparky) {
+		// When sparky is ready, overwrite the trigger method
+		// to trigger all events on the slave sparky immediately
+		// following the trigger on the master.
+		masterSparky.on('ready', function() {
+			masterSparky.on(slaveSparky);
+		});
+
+		return slaveSparky;
+	}
+
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -435,25 +446,6 @@
 
 		function set(property, value) {
 			scope[property] = value;
-		}
-
-		function slaveSparky(masterSparky, slaveSparky) {
-			// When sparky is ready, overwrite the trigger method
-			// to trigger all events on the slave sparky immediately
-			// following the trigger on the master.
-			masterSparky.on('ready', function() {
-				var trigger = masterSparky.trigger;
-
-				masterSparky.on(slaveSparky);
-
-				//masterSparky.trigger = function(type) {
-				//	trigger.apply(masterSparky, arguments);
-				//	slaveSparky.trigger.apply(slaveSparky, arguments);
-				//	return this;
-				//};
-			});
-
-			return slaveSparky;
 		}
 
 		function create(node) {
@@ -509,26 +501,20 @@
 		};
 
 		// If a scope object is returned by the ctrl, we use that, otherwise
-		// we use the model object as scope.
-		scope = ctrl && ctrl(node, model, sparky);
-		
-		//if (Sparky.debug && scope) { console.log('[Sparky] with controller scope:', scope); }
-		
-		if (!scope) {
-			//if (Sparky.debug) { console.log('[Sparky] with model as scope:', model); }
-			scope = model;
-		}
-		
+		// we use the model object as scope, and if that doesn't exist use an
+		// empty object.
+		scope = ctrl && ctrl(node, model, sparky) || model || {};
+
 		if (Sparky.debug && templateId) {
 			console.log('[Sparky] template:', templateId);
 		}
-		
+
 		// If there's no model to bind, we need go no further.
-		if (!scope) { return; }
-		
+		//if (!scope) { return; }
+
 		// The bind function returns an array of unbind functions.
 		unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
-		
+
 		sparky.trigger('ready');
 	}
 
