@@ -113,28 +113,34 @@
 		return collection.map(toArray);
 	}
 
-	mixin.collection = {
-		add: function(item) {
+	function multiarg(fn) {
+		return function(data) {
+			var n = -1;
+			var l = arguments.length;
+
 			invalidateCaches(this);
+
+			while (++n < l) {
+				fn.call(this, arguments[n]);
+			}
+
+			return this;
+		}
+	}
+
+
+	mixin.collection = {
+		add: multiarg(function(item) {
 			add(this, item);
 			this.trigger('add', item);
-			return this;
-		},
+		}),
 
-		remove: function(item) {
-			// A bit weird. Review.
-			//if (typeof item === 'string') {
-			//	return this.find(item).destroy();
-			//}
-
+		remove: multiarg(function(item) {
 			item = this.find(item);
-
-			invalidateCaches(this);
 			remove(this, item);
 			this.trigger('remove', item);
-			return this;
-		},
-		
+		}),
+
 		update: function(obj) {
 			if (isDefined(obj.length)) {
 				Array.prototype.forEach.call(obj, this.update, this);

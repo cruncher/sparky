@@ -132,7 +132,7 @@
 				if (this.events) {
 					for (type in this.events) {
 						this.events[type].length = 0;
-						this.events[type] = undefined;
+						delete this.events[type];
 					}
 				}
 
@@ -167,7 +167,8 @@
 				}
 
 				if (!fn) {
-					this.events[type] = undefined;
+					this.events[type].length = 0;
+					delete this.events[type];
 					continue;
 				}
 
