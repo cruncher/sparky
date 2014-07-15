@@ -37,11 +37,11 @@
 		get: function() {
 			
 		},
-		
+
 		set: function() {
 			
 		},
-		
+
 		create: function() {
 			
 		},
@@ -80,7 +80,11 @@
 
 		return obj;
 	}
-	
+
+	function copy(array1, array2) {
+		Array.prototype.push.apply(array2, array1);
+	}
+
 	function isConfigurable(obj, prop) {
 		return Object.getOwnPropertyDescriptor(obj, prop).configurable;
 	}
@@ -379,22 +383,14 @@
 	}
 
 	function nodeToText(node) {
-		return ['<', node.tagName.toLowerCase(),
-			(node.className ?
-				' class="' + node.className + '"' :
-				''),
-			(node.getAttribute('href') ?
-				' href="' + node.getAttribute('href') + '"' :
-				''),
-			(node.getAttribute('data-ctrl') ?
-				' data-ctrl="' + node.getAttribute('data-ctrl') + '"' :
-				''),
-			(node.getAttribute('data-model') ?
-				' data-model="' + node.getAttribute('data-model') + '"' :
-				''),
-			(node.id ?
-				' id="' + node.id + '"' :
-				''),
+		return [
+			'<',
+			node.tagName.toLowerCase(),
+			(node.className ? ' class="' + node.className + '"' : ''),
+			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
+			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
+			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
+			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
 		].join('');
 	}
@@ -403,7 +399,7 @@
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
 		var scope, unbind;
-		
+
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
@@ -495,7 +491,15 @@
 			return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 		}
 
-		sparky.node = node;
+		if (node.nodeType === 11) {
+			// node is a document fragment. Copy all it's children
+			// onto sparky.
+			copy(node.childNodes, sparky);
+		}
+		else {
+			sparky[0] = node;
+			sparky.length = 1;
+		}
 
 		sparky.destroy = function destroy() {
 			if (unbind) {
@@ -542,7 +546,9 @@
 			node = Sparky.template(node);
 		}
 
-		// Where model is not defined look for the data-model attribute
+		// Where model is not defined look for the data-model
+		// attribute. Docuent fragments do not have a getAttribute
+		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-model');
 			
@@ -560,12 +566,15 @@
 			ctrl = Sparky.ctrl[ctrl];
 		}
 
-		// Where ctrl is not defined look for the data-ctrl attribute
+		// Where ctrl is not defined look for the data-ctrl
+		// attribute. Docuent fragments do not have a getAttribute
+		// method.
 		if (!ctrl && node.getAttribute) {
 			ctrlPath = node.getAttribute('data-ctrl');
+			tag = node.tagName.toLowerCase();
 			
 			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
-				(tag = node.tagName.toLowerCase()) === 'input' ? inputCtrl :
+				tag === 'input' ? inputCtrl :
 				tag === 'select' ? selectCtrl :
 				tag === 'textarea' ? textareaCtrl :
 				defaultCtrl ;

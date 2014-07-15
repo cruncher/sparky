@@ -74,6 +74,7 @@
 	    		
 	    		var value1 = get(prop);
 	    		var value2 = normalise(node.value);
+	    		var flag = false;
 	    		
 	    		if (node.type === 'checkbox') {
 	    			// If the model property does not yet exist and this input
@@ -113,12 +114,21 @@
 	    			}
 
 	    			bind(prop, function() {
+	    				if (flag) { return; }
 	    				var value = get(prop);
 	    				node.value = isDefined(value) ? value : '' ;
 	    			});
 
 	    			node.addEventListener('change', function(e) {
+	    				flag = true;
 	    				set(prop, node.value);
+	    				flag = false;
+	    			});
+
+	    			node.addEventListener('input', function(e) {
+	    				flag = true;
+	    				set(prop, node.value);
+	    				flag = false;
 	    			});
 	    		}
 	    	},
@@ -267,7 +277,7 @@
 		// attributes on the node, bizarrely.
 		node.setAttribute('class', text);
 	}
-	
+
 	function updateClassHTML(node, text) {
 		node.className = text;
 	}
@@ -275,20 +285,20 @@
 	function updateAttributeSVG(node, attribute, value) {
 		node.setAttributeNS(xlink, attribute, value);
 	}
-	
+
 	function updateAttributeHTML(node, attribute, value) {
 		node.setAttribute(attribute, value);
 	}
 
 	function bindClass(node, bind, unbind, get, unobservers) {
 		var value = node.getAttribute('class');
-		
+
 		if (!value) { return; }
-		
+
 		var update = node instanceof SVGElement ?
 				updateClassSVG.bind(this, node) :
 				updateClassHTML.bind(this, node) ;
-		
+
 		// TODO: only replace classes we've previously set here
 		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
@@ -307,13 +317,13 @@
 		    	node.getAttributeNS(xlink, attribute) :
 		    	node.getAttribute(attribute) ;
 		var update;
-		
+
 		if (!isDefined(value) || value === '') { return; }
-		
+
 		update = isSVG ?
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
-		
+
 		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
 
