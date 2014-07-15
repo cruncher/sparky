@@ -204,11 +204,11 @@
 				listeners = events[type].slice();
 				i = -1;
 				l = listeners.length;
-				args[0] = this;
+				args[0] = target;
 
 				while (++i < l) {
 					params = args.concat(listeners[i][1]);
-					listeners[i][0].apply(target, params);
+					listeners[i][0].apply(this, params);
 				}
 			}
 
