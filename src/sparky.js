@@ -48,6 +48,14 @@
 
 		destroy: function() {
 			
+		},
+
+		appendTo: function(node) {
+			var n = -1;
+			while (++n < this.length) {
+				node.appendChild(this[n]);
+			}
+			return this;
 		}
 	}, ns.mixin.events);
 	
