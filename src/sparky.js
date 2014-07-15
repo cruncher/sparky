@@ -522,11 +522,18 @@
 	// The Sparky function
 
 	function Sparky(node, model, ctrl) {
-		var sparky, modelPath, ctrlPath, tag;
+		var sparky, modelPath, ctrlPath, tag, id;
 		
-		// If node is a string, assume it is the id of a template
+		// If node is a string, assume it is the id of a template,
+		// and if it is not a template, assume it is the id of a
+		// node in the DOM. 
 		if (typeof node === 'string') {
-			node = Sparky.template(node);
+			id = node;
+			node = Sparky.template(id);
+
+			if (!node) {
+				node = document.getElementById(id);
+			}
 		}
 
 		// Where model is not defined look for the data-model
