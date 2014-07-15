@@ -504,15 +504,14 @@
 
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope, and if that doesn't exist use an
-		// empty object.
+		// empty object. This means we can launch sparky on a node where a
+		// model is not defined and it will nonetheless pick up and spark
+		// child nodes.
 		scope = ctrl && ctrl(node, model, sparky) || model || {};
 
 		if (Sparky.debug && templateId) {
 			console.log('[Sparky] template:', templateId);
 		}
-
-		// If there's no model to bind, we need go no further.
-		//if (!scope) { return; }
 
 		// The bind function returns an array of unbind functions.
 		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
