@@ -66,8 +66,6 @@
 	    	input: function(node, name, bind, unbind, get, set) {
 	    		var prop = (rname.exec(node.name) || empty)[1];
 	    		
-	    		//console.log('INPUT', node.type, prop);
-	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
 	    		if (!prop) { return; }
@@ -75,6 +73,12 @@
 	    		var value1 = get(prop);
 	    		var value2 = normalise(node.value);
 	    		var flag = false;
+	    		
+	    		function setProperty() {
+	    			flag = true;
+	    			set(prop, node.value);
+	    			flag = false;
+	    		}
 	    		
 	    		if (node.type === 'checkbox') {
 	    			// If the model property does not yet exist and this input
@@ -110,7 +114,7 @@
 	    			// If the model property does not yet exist and this input
 	    			// has value, set model property from node's value.
 	    			if (!isDefined(value1) && node.value) {
-	    				set(prop, node.value);
+	    				setProperty();
 	    			}
 
 	    			bind(prop, function() {
@@ -119,17 +123,8 @@
 	    				node.value = isDefined(value) ? value : '' ;
 	    			});
 
-	    			node.addEventListener('change', function(e) {
-	    				flag = true;
-	    				set(prop, node.value);
-	    				flag = false;
-	    			});
-
-	    			node.addEventListener('input', function(e) {
-	    				flag = true;
-	    				set(prop, node.value);
-	    				flag = false;
-	    			});
+	    			node.addEventListener('change', setProperty);
+	    			node.addEventListener('input', setProperty);
 	    		}
 	    	},
 	    	
@@ -190,18 +185,18 @@
 
 	function noop() {}
 
+	function call(fn) {
+		fn();
+	}
+
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
 	function normalise(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
 		return value === '' || isNaN(value) ? value : parseFloat(value) ;
-	}
-
-	function call(fn) {
-		fn();
-	}
-	
-	function isDefined(val) {
-		return val !== undefined && val !== null;
 	}
 
 	function domNode(node, bind, unbind, get, set, create) {
@@ -216,6 +211,9 @@
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
 		bindNodes(node, bind, unbind, get, set, create, unobservers);
+
+		// TODO: We may want to skip bindNodes for form elements, as
+		// we a re about to do something special with them.
 
 		// Set up name-value databinding for form elements 
 		if (tags[tag]) {
