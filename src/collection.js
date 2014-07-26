@@ -278,4 +278,6 @@
 
 		return collection;
 	};
+
+	ns.Collection.prototype = prototype;
 })(this, this.mixin);

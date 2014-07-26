@@ -47,7 +47,7 @@
 	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rname   = /\{\{\s*([\w\-]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+	var rname   = /\{\{\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;

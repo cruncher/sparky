@@ -317,7 +317,7 @@
 				else {
 					nodes[n] = node.cloneNode(true);
 					
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
 					
 					if (isDefined(modelPath)) {
 						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
@@ -445,10 +445,12 @@
 		}
 
 		function get(property) {
+			//return objFromPath(scope, property);
 			return scope[property];
 		}
 
 		function set(property, value) {
+			//objToPath(scope, property, value);
 			scope[property] = value;
 		}
 
@@ -529,9 +531,13 @@
 
 	// The Sparky function
 
-	function Sparky(node, model, ctrl) {
+	function Sparky(node, model, ctrl, loop) {
 		var sparky, modelPath, ctrlPath, tag, id;
-		
+
+		if (loop !== false) {
+			loop = true;
+		}
+
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
 		// node in the DOM. 
@@ -580,7 +586,7 @@
 
 		// Where model is an array or array-like object with a length property,
 		// set up Sparky to clone node for every object in the array.
-		if (model && model.length !== undefined) {
+		if (loop && model && model.length !== undefined) {
 			return setupCollection(node, model, ctrl);
 		}
 
