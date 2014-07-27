@@ -27,14 +27,16 @@
 		    	enumerable: desc ? desc.enumerable : true,
 		    	configurable: false,
 
-		    	get: function() {
+		    	get: desc && desc.get ? desc.get : function() {
 		    		return v;
 		    	},
 
-		    	set: function(u) {
+		    	set: desc && desc.set ? function(u) {
+		    		desc.set.call(this, u);
+		    		observers.forEach(call);
+		    	} : function(u) {
 		    		if (u === v) { return; }
 		    		v = u;
-
 		    		observers.forEach(call);
 		    	}
 		    };

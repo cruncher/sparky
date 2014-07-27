@@ -140,6 +140,10 @@
 
 		floatformat: Number.prototype.toFixed,
 
+		get: function(name) {
+			return this[name];
+		},
+
 		//get_digit
 		//iriencode
 
