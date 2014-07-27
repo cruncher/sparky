@@ -27,6 +27,10 @@
 		31: 'st'
 	});
 
+	var log10 = Math.log10 || (function log10(n) {
+	    	return Math.log(n) / Math.LN10;
+	    });
+
 	function spaces(n) {
 		var s = '';
 		while (n--) { s += ' ' }
@@ -44,25 +48,6 @@
 
 		cut: function(string) {
 			return this.replace(RegExp(string, 'g'), '');
-		},
-
-		prepad: function(n) {
-			var string = this.toString();
-			var l = string.length;
-			array.length = 0;
-			array.length = n - l;
-			array.push(string);
-			return l < n ? array.join(' ') : this ;
-		},
-
-		postpad: function(n) {
-			var string = this.toString();
-			var l = string.length;
-			var m = parseInt(n, 10);
-
-			return m === l ? this :
-				m > l ? string + spaces(m-l) :
-				string.substring(0, m) ;
 		},
 
 		date: (function(M, F, D, l, s) {
@@ -118,6 +103,10 @@
 				});
 			};
 		})(settings),
+
+		decibels: function() {
+			return 20 * log10(this);
+		},
 
 		decimals: Number.prototype.toFixed,
 
@@ -193,7 +182,11 @@
 		parseint: function() {
 			return parseInt(this, 10);
 		},
-		
+
+		percent: function() {
+			return this * 100;
+		},
+
 		//phone2numeric
 
 		pluralize: function(str1, str2, lang) {
@@ -209,6 +202,29 @@
 		},
 
 		//pprint
+
+		prepad: function(n) {
+			var string = this.toString();
+			var l = string.length;
+
+			// String is longer then padding: let it through unprocessed
+			if (n - l < 1) { return this; }
+
+			array.length = 0;
+			array.length = n - l;
+			array.push(string);
+			return array.join(' ');
+		},
+
+		postpad: function(n) {
+			var string = this.toString();
+			var l = string.length;
+			var m = parseInt(n, 10);
+
+			return m === l ? this :
+				m > l ? string + spaces(m-l) :
+				string.substring(0, m) ;
+		},
 
 		random: function() {
 			return this[Math.floor(Math.random() * this.length)];
@@ -269,6 +285,22 @@
 				return result;
 			};
 		})(),
+
+		symbolise: function() {
+			// Takes infinity values and convert them to infinity symbol
+			var string = this + '';
+			var infinity = Infinity + '';
+			
+			if (string === infinity) {
+				return '∞';
+			}
+
+			if (string === ('-' + infinity)) {
+				return '-∞';
+			}
+
+			return this;
+		},
 
 		time: function() {
 			

@@ -56,11 +56,18 @@
 		// If an observers list is already defined, this property is
 		// already being observed, and all we have to do is add our
 		// fn to the queue.
-		if (desc && desc.set && desc.set.observers) {
-			desc.set.observers.push(observer);
-			return;
+		if (desc) {
+			if (desc.set && desc.set.observers) {
+				desc.set.observers.push(observer);
+				return;
+			}
+			
+			if (desc.configurable === false) {
+				console.warn('Property \"' + prop + '\" is not observable: configurable === false. Ignoring.');
+				return;
+			}
 		}
-		
+
 		replaceProperty(obj, prop, desc, observer, call);
 	}
 	

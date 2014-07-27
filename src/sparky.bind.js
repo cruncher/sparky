@@ -71,28 +71,29 @@
 	    		if (!prop) { return; }
 	    		
 	    		var value1 = get(prop);
-	    		var value2 = normalise(node.value);
+	    		var value2 = normalise(node.getAttribute('value'));
 	    		var flag = false;
+	    		var throttle;
 	    		
 	    		function setProperty() {
-	    			flag = true;
-	    			set(prop, node.value);
-	    			flag = false;
+	    			set(prop, normalise(node.value));
 	    		}
-	    		
+
 	    		if (node.type === 'checkbox') {
 	    			// If the model property does not yet exist and this input
 	    			// is checked, set model property from node's value.
-	    			if (!isDefined(value1) && node.checked) {
+	    			if (node.checked && !isDefined(value1)) {
 	    				set(prop, value2);
 	    			}
 	    			
-	    			bind(prop, function() {
-	    				node.checked = get(prop) === value2;
+	    			throttle = Sparky.Throttle(function setChecked() {
+	    				node.checked = node.value === (get(prop) + '');
 	    			});
 	    			
+	    			bind(prop, throttle);
+	    			
 	    			node.addEventListener('change', function(e) {
-	    				set(prop, node.checked ? value2 : undefined);
+	    				set(prop, node.checked ? normalise(node.value) : undefined);
 	    			});
 	    		}
 	    		else if (node.type === 'radio') {
@@ -102,27 +103,36 @@
 	    				set(prop, value2);
 	    			}
 	    			
-	    			bind(prop, function() {
-	    				node.checked = get(prop) === value2;
+	    			throttle = Sparky.Throttle(function setChecked() {
+	    				node.checked = node.value === (get(prop) + '');
 	    			});
 	    			
+	    			bind(prop, throttle);
+	    			
 	    			node.addEventListener('change', function(e) {
-	    				if (node.checked) { set(prop, value2); }
+	    				if (node.checked) { set(prop, normalise(node.value)); }
 	    			});
 	    		}
 	    		else {
-	    			// If the model property does not yet exist and this input
-	    			// has value, set model property from node's value.
-	    			if (!isDefined(value1) && node.value) {
+	    			// Where the node has a value attribute and the model does
+	    			// not have value for the named property, give the model the
+	    			// node's value
+	    			if (value2 && !isDefined(value1)) {
 	    				setProperty();
 	    			}
 
-	    			bind(prop, function() {
-	    				if (flag) { return; }
-	    				var value = get(prop);
-	    				node.value = isDefined(value) ? value : '' ;
+	    			throttle = Sparky.Throttle(function setValue() {
+	    				var val = get(prop);
+	    				var value = isDefined(val) ? val : '' ;
+	
+	    				// Avoid setting where the node already has this value, that
+	    				// causes the cursor to jump in text fields
+	    				if (node.value !== (value + '')) {
+	    					node.value = value;
+	    				}
 	    			});
 
+	    			bind(prop, throttle);
 	    			node.addEventListener('change', setProperty);
 	    			node.addEventListener('input', setProperty);
 	    		}
