@@ -56,6 +56,14 @@
 				node.appendChild(this[n]);
 			}
 			return this;
+		},
+
+		removeFrom: function(node) {
+			var n = -1;
+			while (++n < this.length) {
+				node.removeChild(this[n]);
+			}
+			return this;
 		}
 	}, ns.mixin.events);
 	
@@ -585,8 +593,9 @@
 		}
 
 		// Where model is an array or array-like object with a length property,
-		// set up Sparky to clone node for every object in the array.
-		if (loop && model && model.length !== undefined) {
+		// but not a function, set up Sparky to clone node for every object in
+		// the array.
+		if (loop && model && model.length !== undefined && typeof model !== 'function') {
 			return setupCollection(node, model, ctrl);
 		}
 

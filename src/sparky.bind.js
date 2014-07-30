@@ -37,7 +37,9 @@
 		'style',
 		'value',
 		'src',
-		'alt'
+		'alt',
+		'min',
+		'max'
 	];
 	
 	var xlink = 'http://www.w3.org/1999/xlink';
