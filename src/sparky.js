@@ -310,7 +310,6 @@
 		var endNode = document.createComment(' [Sparky] collection end ');
 		var nodes = [];
 		var sparkies = [];
-		var modelPath = node.getAttribute('data-model');
 		var cache = [];
 
 		function updateNodes() {
@@ -349,12 +348,7 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
-
-					if (isDefined(modelPath)) {
-						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
-					}
 				}
 
 				insertNode(endNode, nodes[n]);
