@@ -537,55 +537,27 @@
 		// empty object. This means we can launch sparky on a node where a
 		// model is not defined and it will nonetheless pick up and spark
 		// child nodes.
-		scope = ctrl && ctrl(node, model, sparky) || model || {};
+		scope = ctrl && ctrl(node, model, sparky);
+		
+		// A controller returning false is telling us not to use data binding.
+		if (scope === false) { return; }
+
+		scope = scope || model || {};
 
 		if (Sparky.debug && templateId) {
 			console.log('[Sparky] template:', templateId);
 		}
 
-		var observe, unobserve;
+		function observe(property, fn) {
+			Sparky.observe(scope, property, fn);
 
-		// AudioParams objects must be polled, as they cannot be reconfigured
-		// to getters/setters, nor can they be Object.observed. And they fail
-		// to do both of those completely silently. So we test the scope to see
-		// if it is an AudioParam and set the observe and unobserve functions
-		// to poll.
-		if (window.AudioParam && window.AudioParam.prototype.isPrototypeOf(scope)) {
-			var unpollers = [];
+			if (templateFragment) {
+				Sparky.observe(scope, property, insert);
+			}
+		}
 
-			observe = function poll(property, fn) {
-				unpollers.push([property, fn, Poll(scope, property, fn)]);
-
-				if (templateFragment) {
-					Poll(scope, property, insert);
-				}
-			};
-
-			unobserve = function unpoll(property, fn) {
-				var n = unpollers.length;
-				var unpoller;
-				
-				while (n--) {
-					unpoller = unpollers[n];
-
-					if (property === unpoller[0] && fn === unpoller[1]) {
-						unpoller[2]();
-						return;
-					}
-				}
-			};
-		} else {
-			observe = function observe(property, fn) {
-				Sparky.observe(scope, property, fn);
-
-				if (templateFragment) {
-					Sparky.observe(scope, property, insert);
-				}
-			};
-
-			unobserve = function unobserve(property, fn) {
-				Sparky.unobserve(scope, property, fn);
-			};
+		function unobserve(property, fn) {
+			Sparky.unobserve(scope, property, fn);
 		}
 
 		// The bind function returns an array of unbind functions.
@@ -671,14 +643,53 @@
 		return sparky;
 	}
 
+	function isAudioParam(object) {
+		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	}
+
+	var unpollers = [];
+
+	Sparky.observe = function(object, property, fn) {
+		// AudioParams objects must be polled, as they cannot be reconfigured
+		// to getters/setters, nor can they be Object.observed. And they fail
+		// to do both of those completely silently. So we test the scope to see
+		// if it is an AudioParam and set the observe and unobserve functions
+		// to poll.
+		if (isAudioParam(object)) {
+			unpollers.push([object, property, fn, Poll(object, property, fn)]);
+			return object;
+		}
+
+		return observe(object, property, fn);
+	};
+
+	Sparky.unobserve = function(object, property, fn) {
+		if (isAudioParam(object)) {
+			var n = unpollers.length;
+			var unpoller;
+			
+			while (n--) {
+				unpoller = unpollers[n];
+
+				if (object === unpoller[0] && property === unpoller[1] && fn === unpoller[2]) {
+					unpoller[3]();
+					unpollers.splice(n, 1);
+					return object;
+				}
+			}
+
+			return object;
+		}
+
+		return unobserve(object, property, fn);
+	};
+
 	Sparky.debug       = false;
 	Sparky.config      = {};
 	Sparky.settings    = {};
 	Sparky.data        = {};
 	Sparky.ctrl        = {};
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.observe     = ns.observe;
-	Sparky.unobserve   = ns.unobserve;
 	Sparky.Poll        = Poll;
 	Sparky.Throttle    = Throttle;
 	Sparky.Collection  = ns.Collection;
