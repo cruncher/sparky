@@ -67,16 +67,16 @@
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set) {
 	    		var prop = (rname.exec(node.name) || empty)[1];
-	    		
+
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
 	    		if (!prop) { return; }
-	    		
+
 	    		var value1 = get(prop);
 	    		var value2 = normalise(node.getAttribute('value'));
 	    		var flag = false;
 	    		var throttle;
-	    		
+
 	    		function setProperty() {
 	    			set(prop, normalise(node.value));
 	    		}
@@ -168,8 +168,6 @@
 	    	textarea: function(node, prop, bind, unbind, get, set) {
 	    		var prop = (rname.exec(node.name) || empty)[1];
 	    		
-	    		//console.log('INPUT', node.type, prop);
-	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
 	    		if (!prop) { return; }
@@ -189,7 +187,6 @@
 	    		});
 
 	    		node.addEventListener('change', function(e) {
-	    			console.log('TEXT CHANGE');
 	    			set(prop, node.value);
 	    		});
 	    	}

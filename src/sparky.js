@@ -262,6 +262,32 @@
 		return throttle;
 	}
 
+	function Poll(object, property, fn) {
+		var v1 = object[property];
+		var active = true;
+
+		function frame() {
+			var v2 = object[property];
+
+			if (v1 !== v2) {
+				v1 = v2;
+				fn();
+			}
+
+			if (!active) { return; } 
+
+			window.requestAnimationFrame(frame);
+		};
+
+		function cancel() {
+			active = false;
+		}
+
+		window.requestAnimationFrame(frame);
+
+		return cancel;
+	}
+
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
 		
@@ -438,18 +464,6 @@
 			insert = noop;
 		}
 
-		function observe(property, fn) {
-			Sparky.observe(scope, property, fn);
-
-			if (templateFragment) {
-				Sparky.observe(scope, property, insert);
-			}
-		}
-
-		function unobserve(property, fn) {
-			Sparky.unobserve(scope, property, fn);
-		}
-
 		function get(property) {
 			//return objFromPath(scope, property);
 			return scope[property];
@@ -527,6 +541,51 @@
 
 		if (Sparky.debug && templateId) {
 			console.log('[Sparky] template:', templateId);
+		}
+
+		var observe, unobserve;
+
+		// AudioParams objects must be polled, as they cannot be reconfigured
+		// to getters/setters, nor can they be Object.observed. And they fail
+		// to do both of those completely silently. So we test the scope to see
+		// if it is an AudioParam and set the observe and unobserve functions
+		// to poll.
+		if (window.AudioParam && window.AudioParam.prototype.isPrototypeOf(scope)) {
+			var unpollers = [];
+
+			observe = function poll(property, fn) {
+				unpollers.push([property, fn, Sparky.poll(scope, property, fn)]);
+
+				if (templateFragment) {
+					Sparky.poll(scope, property, insert);
+				}
+			};
+
+			unobserve = function unpoll(property, fn) {
+				var n = unpollers.length;
+				var unpoller;
+				
+				while (n--) {
+					unpoller = unpollers[n];
+
+					if (property === unpoller[0] && fn === unpoller[1]) {
+						unpoller[2]();
+						return;
+					}
+				}
+			};
+		} else {
+			observe = function observe(property, fn) {
+				Sparky.observe(scope, property, fn);
+
+				if (templateFragment) {
+					Sparky.observe(scope, property, insert);
+				}
+			};
+
+			unobserve = function unobserve(property, fn) {
+				Sparky.unobserve(scope, property, fn);
+			};
 		}
 
 		// The bind function returns an array of unbind functions.
@@ -620,6 +679,8 @@
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
+	Sparky.poll        = poll;
+	Sparky.unpoll      = unpoll;
 	Sparky.Throttle    = Throttle;
 	Sparky.Collection  = ns.Collection;
 	Sparky.templates   = templates;
