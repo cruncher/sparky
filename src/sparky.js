@@ -554,10 +554,10 @@
 			var unpollers = [];
 
 			observe = function poll(property, fn) {
-				unpollers.push([property, fn, Sparky.poll(scope, property, fn)]);
+				unpollers.push([property, fn, Poll(scope, property, fn)]);
 
 				if (templateFragment) {
-					Sparky.poll(scope, property, insert);
+					Poll(scope, property, insert);
 				}
 			};
 
@@ -679,8 +679,7 @@
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
 	Sparky.observe     = ns.observe;
 	Sparky.unobserve   = ns.unobserve;
-	Sparky.poll        = poll;
-	Sparky.unpoll      = unpoll;
+	Sparky.Poll        = Poll;
 	Sparky.Throttle    = Throttle;
 	Sparky.Collection  = ns.Collection;
 	Sparky.templates   = templates;
