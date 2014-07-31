@@ -81,15 +81,27 @@
 	});
 
 	Sparky.ctrl['input-pow-2'] = createInputCtrl(function to(value) {
-		return pow(value, n2p2);
+		return pow(value, 2);
 	}, function from(value) {
-		return pow(value, 1/n2p2);
+		return pow(value, 1/2);
 	});
 
 	Sparky.ctrl['input-pow-3'] = createInputCtrl(function to(value) {
 		return pow(value, n2p3);
 	}, function from(value) {
 		return pow(value, 1/n2p3);
+	});
+
+	Sparky.ctrl['input-pow-4'] = createInputCtrl(function to(value) {
+		return pow(value, n2p4);
+	}, function from(value) {
+		return pow(value, 1/n2p4);
+	});
+
+	Sparky.ctrl['input-pow-5'] = createInputCtrl(function to(value) {
+		return pow(value, n2p5);
+	}, function from(value) {
+		return pow(value, 1/n2p5);
 	});
 
 	Sparky.ctrl['input-log10'] = createInputCtrl(function to(value) {
