@@ -279,27 +279,26 @@
 			fn(obj);
 		}, 16);
 	}
-	
+
 	function setupCollection(node, model, ctrl) {
-		var startNode = document.createComment(' [Sparky] collection start ');
 		var endNode = document.createComment(' [Sparky] collection end ');
 		var nodes = [];
 		var sparkies = [];
 		var modelPath = node.getAttribute('data-model');
 		var cache = [];
-		
+
 		function updateNodes() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};
 			var i, obj;
-			
+
 			if (Sparky.debug) { var t = +new Date(); }
-			
+
 			while (l--) {
 				obj = cache[l];
 				i = model.indexOf(obj);
-				
+
 				if (i === -1) {
 					removeNode(nodes[l]);
 					sparkies[l].destroy();
@@ -324,9 +323,9 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-					
+
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
-					
+
 					if (isDefined(modelPath)) {
 						nodes[n].setAttribute('data-model', modelPath + '[' + n + ']');
 					}
@@ -347,7 +346,6 @@
 		}
 
 		// Put the marker nodes in place
-		insertNode(node, startNode);
 		insertNode(node, endNode);
 
 		// Remove the node
