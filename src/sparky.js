@@ -473,7 +473,11 @@
 			var data;
 
 			if (!isDefined(path)) {
-				return slaveSparky(sparky, Sparky(node, scope));
+				// We know that model is not defined, and we don't want child
+				// sparkies to loop unless explicitly told to do so, so stop
+				// it from looping. TODO: I really must clean up Sparky's
+				// looping behaviour.
+				return slaveSparky(sparky, Sparky(node, scope, undefined, false));
 			}
 
 			if (path === '.') {
