@@ -35,7 +35,7 @@
 		'id',
 		'for',
 		'style',
-		'value',
+	//	'value',
 		'src',
 		'alt',
 		'min',
@@ -49,7 +49,7 @@
 	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rname   = /\{\{\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}\}/g;
+	var rname   = /(\{\{\{?)\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}\}\}?/g;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
@@ -219,14 +219,15 @@
 		
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers);
-		bindNodes(node, bind, unbind, get, set, create, unobservers);
 
-		// TODO: We may want to skip bindNodes for form elements, as
-		// we a re about to do something special with them.
-
-		// Set up name-value databinding for form elements 
+		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
 			tags[tag](node, node.name, bind, unbind, get, set);
+		}
+
+		// Or sparkify the child nodes
+		else {
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
 		}
 
 		return unobservers;
@@ -334,21 +335,6 @@
 		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
 
-	function extractProperties(str) {
-		var propertiesCache = {},
-		    properties = [];
-
-		str.replace(rname, function($0, $1, $2){
-			// Make sure properties are only added once.
-			if (!propertiesCache[$1]) {
-				propertiesCache[$1] = true;
-				properties.push($1);
-			}
-		});
-
-		return properties;
-	}
-
 	function toFilter(filter) {
 		var parts = rfilter.exec(filter);
 
@@ -381,14 +367,28 @@
 		return word;
 	}
 
+	function extractProperties(str) {
+		var properties = [];
+
+		str.replace(rname, function($0, $1, $2){
+			// And properties that are to be live updated,
+			// and make sure properties are only added once.
+			if ($1.length === 2 && properties.indexOf($2) === -1) {
+				properties.push($2);
+			}
+		});
+
+		return properties;
+	}
+
 	function observeProperties(text, bind, unbind, get, fn) {
 		var properties = extractProperties(text);
 
-		function replaceText($0, $1, $2) {
-			var word = get($1);
+		function replaceText($0, $1, $2, $3) {
+			var word = get($2);
 
 			return !isDefined(word) ? '' :
-				$2 ? applyFilters(word, $2) :
+				$3 ? applyFilters(word, $3) :
 				word ;
 		}
 
@@ -399,7 +399,7 @@
 		// Start throttling changes. The first update is immediate.
 		var throttle = Sparky.Throttle(update);
 
-		// Observe properties
+		// Observe properties that are to be live updated
 		properties.forEach(function attach(property) {
 			bind(property, throttle);
 		});
