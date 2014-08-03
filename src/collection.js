@@ -9,8 +9,8 @@
 
 	// Map functions
 
-	function toArray(event) {
-		return Array.prototype.slice.call(event, 0);
+	function returnArg(arg) {
+		return arg;
 	}
 
 	// Each functions
@@ -207,7 +207,7 @@
 		},
 
 		toJSON: function() {
-			return toJSON(this);
+			return this.map(returnArg);
 		}
 	};
 

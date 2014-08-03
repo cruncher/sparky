@@ -66,7 +66,7 @@
 
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set) {
-	    		var prop = (rname.exec(node.name) || empty)[1];
+	    		var prop = (rname.exec(node.name) || empty)[2];
 
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
@@ -141,7 +141,7 @@
 	    	},
 	    	
 	    	select: function(node, name, bind, unbind, get, set) {
-	    		var prop = (rname.exec(node.name) || empty)[1];
+	    		var prop = (rname.exec(node.name) || empty)[2];
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
@@ -166,7 +166,7 @@
 	    	},
 	    	
 	    	textarea: function(node, prop, bind, unbind, get, set) {
-	    		var prop = (rname.exec(node.name) || empty)[1];
+	    		var prop = (rname.exec(node.name) || empty)[2];
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
