@@ -35,7 +35,6 @@
 		'id',
 		'for',
 		'style',
-	//	'value',
 		'src',
 		'alt',
 		'min',
@@ -65,7 +64,7 @@
 	var empty = [];
 
 	var tags = {
-	    	input: function(node, name, bind, unbind, get, set) {
+	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		var prop = (rname.exec(node.name) || empty)[2];
 
 	    		// Only bind to fields that have a sparky {{tag}} in their
@@ -140,32 +139,39 @@
 	    		}
 	    	},
 	    	
-	    	select: function(node, name, bind, unbind, get, set) {
+	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
+
 	    		var prop = (rname.exec(node.name) || empty)[2];
-	    		
+
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
 	    		if (!prop) { return; }
-	    		
+
 	    		var value = get(prop);
-	    		
+
 	    		// If the model property does not yet exist, set it from the
 	    		// node's value.
 	    		if (!isDefined(value)) {
 	    			set(prop, normalise(node.value));
 	    		}
-	    		
+
 	    		bind(prop, function() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
 	    		});
-	    		
+
 	    		node.addEventListener('change', function(e) {
 	    			set(prop, normalise(node.value));
 	    		});
 	    	},
-	    	
-	    	textarea: function(node, prop, bind, unbind, get, set) {
+
+	    	option: function(node, name, bind, unbind, get, set, create, unobservers) {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['value']);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
+	    	},
+
+	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers) {
 	    		var prop = (rname.exec(node.name) || empty)[2];
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
@@ -218,11 +224,11 @@
 		}
 		
 		bindClass(node, bind, unbind, get, unobservers);
-		bindAttributes(node, bind, unbind, get, unobservers);
+		bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
 		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get, set);
+			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers);
 		}
 
 		// Or sparkify the child nodes
@@ -311,7 +317,7 @@
 		unobservers.push(observeProperties(value, bind, unbind, get, update));
 	}
 
-	function bindAttributes(node, bind, unbind, get, unobservers) {
+	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
 		var a = attributes.length;
 
 		while (a--) {
