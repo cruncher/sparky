@@ -141,23 +141,18 @@
 			this.trigger('remove', item);
 		}),
 
-		update: function(obj) {
-			if (isDefined(obj.length)) {
-				Array.prototype.forEach.call(obj, this.update, this);
-				return;
-			}
-			
-			var item = findByIndex(this, obj[this.index]);
-			
+		update: multiarg(function(obj) {
+			var item = this.find(obj);
+
 			if (item) {
 				extend(item, obj);
 			}
 			else {
 				this.add(obj);
 			}
-			
+
 			return this;
-		},
+		}),
 
 		find: function(obj) {
 			var index = this.index;
@@ -208,6 +203,25 @@
 
 		toJSON: function() {
 			return this.map(returnArg);
+		},
+
+		toObject: function(key) {
+			var object = {};
+			var prop, type;
+
+			while (n--) {
+				prop = this[n][key];
+				type = typeof prop;
+
+				if (type === 'string' || type === 'number' && prop > -Infinity && prop < Infinity) {
+					object[prop] = this[n];
+				}
+				else {
+					console.warn('Collection.toObject() ' + prop + ' cannot be used as a key.');
+				}
+			}
+
+			return object;
 		}
 	};
 
