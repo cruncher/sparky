@@ -55,7 +55,7 @@
 
 	var filterCache = {};
 
-	var types = {
+	var nodeTypes = {
 	    	1: domNode,
 	    	3: textNode,
 	    	11: fragmentNode
@@ -74,11 +74,7 @@
 	    		var value1 = get(prop);
 	    		var value2 = normalise(node.getAttribute('value'));
 	    		var flag = false;
-	    		var throttle;
-
-	    		function setProperty() {
-	    			set(prop, normalise(node.value));
-	    		}
+	    		var throttle, change;
 
 	    		if (node.type === 'checkbox') {
 	    			// If the model property does not yet exist and this input
@@ -93,9 +89,11 @@
 	    			
 	    			bind(prop, throttle);
 	    			
-	    			node.addEventListener('change', function(e) {
+	    			change = function change(e) {
 	    				set(prop, node.checked ? normalise(node.value) : undefined);
-	    			});
+	    			};
+	    			
+	    			node.addEventListener('change', change);
 	    		}
 	    		else if (node.type === 'radio') {
 	    			// If the model property does not yet exist and this input
@@ -110,16 +108,22 @@
 	    			
 	    			bind(prop, throttle);
 	    			
-	    			node.addEventListener('change', function(e) {
+	    			change = function change(e) {
 	    				if (node.checked) { set(prop, normalise(node.value)); }
-	    			});
+	    			};
+	    			
+	    			node.addEventListener('change', change);
 	    		}
 	    		else {
+	    			change = function change() {
+	    				set(prop, normalise(node.value));
+	    			}
+
 	    			// Where the node has a value attribute and the model does
 	    			// not have value for the named property, give the model the
 	    			// node's value
 	    			if (value2 && !isDefined(value1)) {
-	    				setProperty();
+	    				change();
 	    			}
 
 	    			throttle = Sparky.Throttle(function setValue() {
@@ -133,10 +137,16 @@
 	    				}
 	    			});
 
-	    			bind(prop, throttle);
-	    			node.addEventListener('change', setProperty);
-	    			node.addEventListener('input', setProperty);
+	    			node.addEventListener('change', change);
+	    			node.addEventListener('input', change);
 	    		}
+	    		
+	    		unobservers.push(function() {
+	    			unbind(prop, throttle);
+	    			throttle.cancel();
+	    			node.removeEventListener('change', change);
+	    			node.removeEventListener('input', change);
+	    		});
 	    	},
 	    	
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
@@ -150,19 +160,29 @@
 
 	    		var value = get(prop);
 
+	    		var change = function change(e) {
+	    		    	set(prop, normalise(node.value));
+	    		    };
+
 	    		// If the model property does not yet exist, set it from the
 	    		// node's value.
 	    		if (!isDefined(value)) {
-	    			set(prop, normalise(node.value));
+	    			change();
 	    		}
 
-	    		bind(prop, function() {
+	    		var throttle = Sparky.Throttle(function setValue() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
 	    		});
 
-	    		node.addEventListener('change', function(e) {
-	    			set(prop, normalise(node.value));
+	    		bind(prop, throttle);
+
+	    		node.addEventListener('change', change);
+
+	    		unobservers.push(function() {
+	    			unbind(prop, throttle);
+	    			throttle.cancel();
+	    			node.removeEventListener('change', change);
 	    		});
 	    	},
 
@@ -180,20 +200,34 @@
 
 	    		var value1 = get(prop);
 	    		var value2 = node.value;
+	    		var change = function change(e) {
+	    			set(prop, node.value);
+	    		};
 
 	    		// If the model property does not yet exist and this input
 	    		// has value, set model property from node's value.
 	    		if (!isDefined(value1) && value2) {
-	    			set(prop, node.value);
+	    			change();
 	    		}
 
-	    		bind(prop, function() {
+	    		var throttle = Sparky.Throttle(function setValue() {
 	    			var value = get(prop);
-	    			node.value = isDefined(value) ? value : '' ;
+
+	    			// Avoid setting where the node already has this value, that
+	    			// causes the cursor to jump in text fields
+	    			if (node.value !== (value + '')) {
+	    				node.value = isDefined(value) ? value : '' ;
+	    			}
 	    		});
 
-	    		node.addEventListener('change', function(e) {
-	    			set(prop, node.value);
+	    		bind(prop, throttle);
+
+	    		node.addEventListener('change', change);
+
+	    		unobservers.push(function() {
+	    			unbind(prop, throttle);
+	    			throttle.cancel();
+	    			node.removeEventListener('change', change);
 	    		});
 	    	}
 	    };
@@ -276,8 +310,8 @@
 				sparky = create(child);
 				unobservers.push(sparky.destroy.bind(sparky));
 			}
-			else if (types[child.nodeType]) {
-				unobservers.push.apply(unobservers, types[child.nodeType](child, bind, unbind, get, set, create));
+			else if (nodeTypes[child.nodeType]) {
+				unobservers.push.apply(unobservers, nodeTypes[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
 	}
@@ -428,7 +462,7 @@
 		// binder returns an array of unobserve functions that
 		// should be kept around in case the DOM element is removed
 		// and the bindings should be thrown away.
-		var unobservers = types[node.nodeType](node, observe, unobserve, get, set, create);
+		var unobservers = nodeTypes[node.nodeType](node, observe, unobserve, get, set, create);
 
 		return function unbind() {
 			unobservers.forEach(call);
