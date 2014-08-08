@@ -148,8 +148,8 @@
 
 		return template && template.cloneNode(true);
 	}
-	
-	
+
+
 	// Sparky
 	
 	function removeNode(node) {
@@ -160,37 +160,11 @@
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	
-
 	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', function(sparky) { removeNode(node) }, node);
+		sparky.on('destroy', function(sparky, node) { removeNode(node) }, node);
 		return model;
 	}
-	
-	function inputCtrl(node, model, sparky) {
-		var prop = node.name;
-		
-		if (!isDefined(prop)) { return; }
-		
-		var type = node.type;
-		
-		jQuery(node).on('change', function changeInput(e) {
-			var value = type === 'number' || type === 'range' ? parseFloat(e.target.value) :
-					type === 'radio' || type === 'checkox' ? e.target.checked && e.target.value :
-					e.target.value ;
 
-			model[prop] = value;
-		});
-	}
-	
-	function selectCtrl(node, model, sparky) {
-		
-	}
-	
-	function textareaCtrl(node, model, sparky) {
-		
-	}
-	
 	function objFrom(obj, array) {
 		var key = array.shift();
 		var val = obj[key];
@@ -203,11 +177,11 @@
 			objFrom(val, array) :
 			val ;
 	}
-	
+
 	function objFromPath(obj, path) {
 		return objFrom(obj, path.replace(rbracket, '').split(rpathsplitter));
 	}
-	
+
 	function objTo(root, array, obj) {
 		var key = array[0];
 		
@@ -215,7 +189,7 @@
 			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
 			(root[key] = obj) ;
 	}
-	
+
 	function objToPath(root, path, obj) {
 		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
@@ -285,7 +259,8 @@
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
-
+//console.log('setupCollection', model);
+//debugger;
 		function updateNodes() {
 			var n = -1;
 			var l = cache.length;
@@ -378,6 +353,9 @@
 				while (++n < l) {
 					sparkies[n].destroy();
 				}
+
+				throttle.cancel();
+				Sparky.unobserve(model, 'length', throttle);
 			},
 
 			trigger: function() {
@@ -587,9 +565,6 @@
 			tag = node.tagName.toLowerCase();
 			
 			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
-				tag === 'input' ? inputCtrl :
-				tag === 'select' ? selectCtrl :
-				tag === 'textarea' ? textareaCtrl :
 				defaultCtrl ;
 		}
 
