@@ -65,12 +65,30 @@
 			return poll(object, property, fn);
 		}
 
+		if (property === 'length') {
+			// Observe length and update the DOM on next
+			// animation frame if it changes.
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+
+			if (!descriptor.get && !descriptor.configurable) {
+				console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+				return poll(object, property, fn);
+			}
+		}
+
 		return observe(object, property, fn);
 	};
 
 	Sparky.unobserve = function(object, property, fn) {
 		if (isAudioParam(object)) {
 			return unpoll(object, property, fn);
+		}
+
+		if (property === 'length') {
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			if (!descriptor.get && !descriptor.configurable) {
+				return unpoll(object, property, fn);
+			}
 		}
 
 		return unobserve(object, property, fn);

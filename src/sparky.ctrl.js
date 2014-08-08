@@ -64,6 +64,11 @@
 		Sparky.observe(model, name, updateScope);
 		Sparky.observe(scope, name, updateModel);
 		updateScope();
+
+		sparky.on('destroy', function() {
+			Sparky.unobserve(model, name, updateScope);
+			Sparky.unobserve(scope, name, updateModel);
+		});
 	};
 
 	function createInputCtrl(to, from) {
@@ -115,4 +120,15 @@
 	}, function from(value) {
 		return pow(value, 1/Math.E);
 	});
+})();
+
+(function() {
+	"use strict";
+	
+	var n = 0;
+	
+	Sparky.ctrl['debug'] = function(node, model) {
+		console.log('DEBUG', n++);
+		debugger;
+	};
 })();

@@ -129,13 +129,15 @@
 	    			throttle = Sparky.Throttle(function setValue() {
 	    				var val = get(prop);
 	    				var value = isDefined(val) ? val : '' ;
-	
+
 	    				// Avoid setting where the node already has this value, that
 	    				// causes the cursor to jump in text fields
 	    				if (node.value !== (value + '')) {
 	    					node.value = value;
 	    				}
 	    			});
+
+	    			bind(prop, throttle);
 
 	    			node.addEventListener('change', change);
 	    			node.addEventListener('input', change);

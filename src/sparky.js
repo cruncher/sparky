@@ -194,48 +194,6 @@
 		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
 	}
 
-	function Throttle(fn) {
-		var queued, scope, args;
-
-		function update() {
-			queued = false;
-			fn.apply(scope, args);
-		}
-
-		function cancel() {
-			// Don't permit further changes to be queued
-			queue = noop;
-
-			// If there is an update queued apply it now
-			if (queued) { update(); }
-
-			// Make the queued update do nothing
-			fn = noop;
-		}
-
-		function queue() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
-			// Don't queue update if it's already queued
-			if (queued) { return; }
-
-			// Queue update
-			window.requestAnimationFrame(update);
-			queued = true;
-		}
-
-		function throttle() {
-			queue.apply(this, arguments);
-		}
-
-		throttle.cancel = cancel;
-		update();
-
-		return throttle;
-	}
-
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
 		
@@ -255,12 +213,12 @@
 	}
 
 	function setupCollection(node, model, ctrl) {
-		var endNode = document.createComment(' [Sparky] collection end ');
+		var modelName = node.getAttribute('data-model');
+		var endNode = document.createComment(' [Sparky] data-model="' + modelName + '" ');
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
-//console.log('setupCollection', model);
-//debugger;
+
 		function updateNodes() {
 			var n = -1;
 			var l = cache.length;
@@ -284,9 +242,9 @@
 
 			l = model.length;
 
-			nodes.length = model.length;
-			sparkies.length = model.length;
-			cache.length = model.length;
+			nodes.length = l;
+			sparkies.length = l;
+			cache.length = l;
 
 			while(++n < l) {
 				cache[n] = model[n];
@@ -303,49 +261,29 @@
 				insertNode(endNode, nodes[n]);
 			}
 
-			if (nodes.length && node.tagName.toLowerCase() === 'option') {
-				// We have populated a <select>. It's value may have changed.
-				// Trigger a change event to make sure we pick up the change.
-				nodes[0].parentNode && nodes[0].parentNode.dispatchEvent(changeEvent);
-			}
-
 			if (Sparky.debug) {
 				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 
-		// Put the marker nodes in place
+		// Put the marker node in place
 		insertNode(node, endNode);
 
 		// Remove the node
 		removeNode(node);
 
+		// Remove anything that would make Sparky to bind the node
+		// again. This can happen when a collection is appended
+		// by a controller without waiting for it's 'ready' event.
+		node.removeAttribute('data-model');
+		node.removeAttribute('data-ctrl');
+
 		var throttle = Sparky.Throttle(updateNodes);
 
-		// Observe length and update the DOM on next
-		// animation frame if it changes.
-		var descriptor = Object.getOwnPropertyDescriptor(model, 'length');
-
-		if (descriptor.get || descriptor.configurable) {
-			Sparky.observe(model, 'length', throttle);
-		}
-		else {
-			if (Sparky.debug) {
-				console.warn('[Sparky] Are you trying to observe an array? You should set ' +
-				             'Sparky.config.dirtyObserveArrays = true;\n' +
-				             '         Dirty observation is not particularly performant. ' +
-				             'Consider using a Sparky.Collection() in place of the array.');
-			}
-			
-			if (Sparky.config.dirtyObserveArrays === true) {
-				dirtyObserve(model, 'length', throttle);
-			}
-		}
+		Sparky.observe(model, 'length', throttle);
 
 		// Return a pseudo-sparky that delegates events to all
 		// sparkies in the collection.
-		//return Object.create(prototype);
-		
 		return {
 			destroy: function() {
 				var l = sparkies.length;
@@ -392,6 +330,10 @@
 		return slaveSparky;
 	}
 
+	function isAudioParam(object) {
+		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	}
+
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -411,12 +353,10 @@
 		}
 
 		function get(property) {
-			//return objFromPath(scope, property);
 			return scope[property];
 		}
 
 		function set(property, value) {
-			//objToPath(scope, property, value);
 			scope[property] = value;
 		}
 
@@ -488,7 +428,7 @@
 		// model is not defined and it will nonetheless pick up and spark
 		// child nodes.
 		scope = ctrl && ctrl(node, model, sparky);
-		
+
 		// A controller returning false is telling us not to use data binding.
 		if (scope === false) { return; }
 
@@ -519,6 +459,10 @@
 	// The Sparky function
 
 	function Sparky(node, model, ctrl, loop) {
+		if (Sparky.debug === 'verbose') {
+			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
+		}
+
 		var sparky, modelPath, ctrlPath, tag, id;
 
 		if (loop !== false) {
@@ -590,15 +534,12 @@
 		return sparky;
 	}
 
-
-
 	Sparky.debug       = false;
 	Sparky.config      = {};
 	Sparky.settings    = {};
 	Sparky.data        = {};
 	Sparky.ctrl        = {};
 	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.Throttle    = Throttle;
 	Sparky.Collection  = ns.Collection;
 	Sparky.templates   = templates;
 	Sparky.features    = features;
