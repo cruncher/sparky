@@ -71,7 +71,7 @@
 			var descriptor = Object.getOwnPropertyDescriptor(object, property);
 
 			if (!descriptor.get && !descriptor.configurable) {
-				console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+				console.warn('[Sparky] "' + property + '" - are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object);
 				return poll(object, property, fn);
 			}
 		}
