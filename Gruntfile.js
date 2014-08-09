@@ -8,9 +8,11 @@ module.exports = function(grunt) {
 				'src/observe.js',
 				'src/collection.js',
 				'src/sparky.js',
+				'src/sparky.observe.js',
+				'src/sparky.throttle.js',
 				'src/sparky.bind.js',
-				'src/sparky.filters.js',
-				'src/sparky.ready.js'
+				'src/sparky.ctrl.js',
+				'src/sparky.filters.js'
 			]
 		},
 
