@@ -1,12 +1,12 @@
 {
   "name": "sparky",
   "title": "Sparky",
-  "description": "",
+  "description": "Live data binding templating library for the DOM.",
   "version": "0.5.0",
-  "main": "js/sparky.js",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
-    "name": "Stephen Band"
+    "name": "Stephen Band",
+    "twitter": "stephband"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,6 @@
   "licenses": [{
       "type": "MIT"
   }],
-  "dependencies": {},
   "devDependencies": {
     "grunt-contrib-concat": "0.8.0",
     "grunt-contrib-uglify": "0.3.2",
