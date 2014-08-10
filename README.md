@@ -293,17 +293,27 @@ Plus some of it's own:
 
 - decibels
 
-    Takes a number as a ratio of power and renders it on the decibel scale
+    Takes a number as a ratio of powers and performs 20log10(number) to
+    render it on the decibel scale. Useful when working with WebAudio parameters.
 
-- get:'path'
+- get:'propertyName'
 
-    
+    Takes an object and renders the named property.
 
 - lowercase
+
+    Alias of lower.
+
 - percent
+
+    Takes a number and multiplies by 100 to render it as a percentage.
+
 - prepad
 - postpad
 - symbolise
+
+    Converts common values to symbolic equivalents: JavaScript's number Infinity
+    becomes '∞'.
 
 
 ### Using Sparky with Django
