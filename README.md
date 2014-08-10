@@ -289,6 +289,23 @@ Sparky has a subset of the Django filters:
 - unordered_list
 - yesno
 
+Plus some of it's own:
+
+- decibels
+
+    Takes a number as a ratio of power and renders it on the decibel scale
+
+- get:'path'
+
+    
+
+- lowercase
+- percent
+- prepad
+- postpad
+- symbolise
+
+
 ### Using Sparky with Django
 
 If you do happen to be using Django, Sparky's template tags will clash with
