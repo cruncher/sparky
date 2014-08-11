@@ -1,7 +1,9 @@
 // delegate
 //
 // An event delegate function that understands both HTML and
-// SVG DOM (jQuery's delegator cannot handle SVG DOM).
+// SVG DOM (jQuery's delegator cannot handle SVG DOM). Usage:
+//
+// document.addEventListener(event, delegate(selector, fn));
 
 (function(ns) {
 	"use strict";
