@@ -124,7 +124,7 @@
 			desc.set.observers.length = 0;
 		}
 	}
-	
+
 	ns.observe = observe;
 	ns.unobserve = unobserve;
-})(window.sparky || window);
+})(window);
