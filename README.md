@@ -108,29 +108,29 @@ The tag is not re-rendered when <code>text.title</code> changes:
 
 ### Absolute paths
 
-The data-model attribute understands absolute paths to models inside
-<code>Sparky.data</code>:
+The data-model attribute understands absolute paths in JavaScript object notation
+to models inside <code>Sparky.data</code>:
 
     <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
     <h2>First contributor</h2>
     <p data-model="text.meta.contributors[0]">{{name}}</p>
 
-The paths are standard JavaScript object notation. Use dots <code>.prop</code>
-for string properties and brackets <code>[0]</code> for numbered keys.
+Properties in a path can contain dashes (<code>-</code>).
+
+    <p data-model="text.spoken-lang">...</p>
 
 ### Relative paths
 
 The data-model attribute also understands relative paths to models inside
-parent models:
+parent models. Putting the <code>{{meta}}</code> tag inside of <code>data-model</code>
+makes Sparky look for the <code>meta</code> object insdie the parent object,
+the <code>text</code> object.
 
     <div class="language-{{lang}}" data-model="text">
         <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
     </div>
 
-Putting the <code>{{meta}}</code> tag inside of <code>data-model</code> makes Sparky
-look for the <code>meta</code> object insdie the parent object, the <code>text</code> object.
-
-### Sparky(node, model, ctrl)
+## Sparky(node, model, ctrl)
 
 Sparky is also used to bind a DOM node to a model and a controller in JS.
 
@@ -138,7 +138,7 @@ Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
-<strong>model is an object</strong>.
+### model is an object
 
 Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used as scope to render the node.
 
@@ -153,7 +153,7 @@ Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used a
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-<strong>ctrl is a function.</strong>
+### ctrl is a function
 
 Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
 is used as scope to render the node. In Sparky scope objects are just objects you
@@ -194,7 +194,7 @@ and string names of controllers in <code>Sparky.ctrls</code>.
     // Bind the node to data
     Sparky(node, 'user', 'user-card');
 
-<strong>Sparky creates a sparky object</strong>
+### Sparky(node, model, ctrl) creates a sparky object
 
 The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. The
 sparky object is passed to the controller, and returned from the <code>Sparky</code>
@@ -231,6 +231,9 @@ function. Use it to listen to lifecycle events.
     
     // Insert into the DOM
     sparky.appendTo(body);
+    
+    // Unbind the model from the DOM
+    sparky.destoy();
 
 
 ### Form fields
@@ -280,62 +283,6 @@ Results in a DOM that looks like this:
 the collection. This technique is nicked from AngularJS. One way Sparky and Angular
 differ is that Angular runs a digest loop to detect when data has changed, and
 Sparky queues a re-render as soon as a change in data is observed.)
-
-## data-ctrl
-
-All the above examples use the model directly as the context for rendering the
-DOM. Sparky uses the model by default, but you can create a scope object to use
-instead.
-
-    Sparky.ctrls['my-controller'] = function(node, model) {
-        var scope = {
-            lang: 'No language set'
-        };
-        
-        // Return the scope object to use it for DOM rendering
-        return scope;
-    };
-
-Where a controller returns undefined, the model is used as scope. But where a
-controller returns an object, that object is used as scope for rendering the
-DOM.
-
-Tell Sparky to use the controller:
-
-    <p data-ctrl="my-controller" data-model="text">I speak {{ lang }}</p>
-
-The controller is passed the DOM node, and the model (where a
-<code>data-model</code> is defined, otherwise model is undefined). Listen to
-changes on the model to update the scope:
-
-    Sparky.ctrls['my-controller'] = function(node, model) {
-        var scope = {
-            lang: 'No language set'
-        };
-        
-        function updateLang(model) {
-            scope.lang = model.lang === 'en' ? 'English' :
-                model.lang === 'fr' ? 'French' :
-                model.lang === 'dp' ? 'Dolphin' :
-                model.lang ;
-        }
-        
-        // Observe changes to the model
-        Sparky.observe(model, 'lang', updateLang);
-        
-        // Initialise the scope
-        updateLang(model);
-        
-        // Return the scope object to use it for DOM rendering
-        return scope;
-    };
-
-Try updating the model:
-
-    Sparky.data.text.lang = 'dp';
-
-In Sparky scope objects are just objects you create. You can make them inherit
-from other scopes and organise them however you like.
 
 ## Template filters
 
@@ -390,8 +337,8 @@ Plus some of it's own:
 - get:'propertyName' – Takes an object and renders the named property.
 - lowercase – Alias of lower.
 - percent – Takes a number and multiplies by 100 to render it as a percentage.
-- prepad
-- postpad
+- prepad: n, 'character' – 
+- postpad: n, 'character' – 
 - symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
 
 ### Using Sparky with Django
