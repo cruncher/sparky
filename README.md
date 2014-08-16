@@ -101,11 +101,10 @@ attribute to define two-way data binding.
 
 ### Static binding with {{{ property }}}
 
-Render some content from the <code>text.title</code> property once just once:
+Render some content from the <code>text.title</code> property once just once.
+The tag is not re-rendered when <code>text.title</code> changes:
 
     <h1 data-model="text">{{{ title }}}</h1>
-
-This tag is not rerendered when <code>text.title</code> changes.
 
 ### Absolute paths
 
