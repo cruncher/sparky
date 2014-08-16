@@ -115,7 +115,7 @@ relative to the parent object <code>text</code>. A leading opening bracket
 ### Sparky(node, model, ctrl)
 
 Bind a DOM node to a model and a controller by calling <code>Sparky(node, model, ctrl)</code>.
-Where a <ocde>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
+Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
 
     var node = document.querySelector('#user');
     var data = {
@@ -132,8 +132,8 @@ Where a <ocde>ctrl</code> is <code>undefined</code>, the model is used as scope 
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-<ocde>ctrl</code> is a function. Where <ocde>ctrl</code> is passed in, the return
-value of the <ocde>ctrl</code> is used as scope to render the node.
+<code>ctrl</code> is a function. Where <code>ctrl</code> is passed in, the return
+value of the <code>ctrl</code> is used as scope to render the node.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
         var scope = {
@@ -158,7 +158,7 @@ value of the <ocde>ctrl</code> is used as scope to render the node.
     // The node is updated whenever data is changed
     model.username = "Marco";
 
-If the <ocde>ctrl</code> function returns undefined, the model is used as scope.
+If the <code>ctrl</code> function returns undefined, the model is used as scope.
 
 Sparky can also be called with the string names of models in <code>Sparky.data</code>
 and string names of controllers in <code>Sparky.ctrls</code>.
