@@ -120,7 +120,8 @@ Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
-Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
+<strong><code>model</code> is an object.</strong> Where <code>ctrl</code> is
+<code>undefined</code>, the <code>model</code>  is used as scope to render the node.
 
     var node = document.querySelector('#user');
     var data = {
@@ -133,7 +134,7 @@ Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope 
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-<code>ctrl</code> is a function. Where <code>ctrl</code> is passed in, the return
+<strong><code>ctrl</code> is a function.</strong> Where <code>ctrl</code> is passed in, the return
 value of the <code>ctrl</code> is used as scope to render the node.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
