@@ -1,8 +1,8 @@
+![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
+
 <h1>Sparky</h1>
 
 <strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames.</strong>
-
-![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
 ## Quick start
 
