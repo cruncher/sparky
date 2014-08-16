@@ -48,7 +48,7 @@ inside the controller.
 
 Sparky also understands how to bind to some SVG attributes.
 
-### Using Sparky's template tags in HTML
+## Using Sparky's template tags in HTML
 
 For the following examples, let's give Sparky some data:
 
