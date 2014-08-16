@@ -2,22 +2,21 @@
 
 <strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames.</strong>
 
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="728px"
-     height="400px" viewBox="0 0 728 400" style="enable-background:new 0 0 728 400;" xml:space="preserve">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="728px" height="400px" viewBox="0 0 728 400" style="enable-background:new 0 0 728 400;" xml:space="preserve">
 <style type="text/css">
-    .st0{fill:#111111;}
-    .st1{fill-rule:evenodd;clip-rule:evenodd;fill:#733F24;}
-    .st2{fill:#E6E7E8;}
-    .st3{fill:#1A83B7;}
-    .st4{fill:#513020;}
-    .st5{fill:#231F20;}
-    .st6{clip-path:url(#SVGID_2_);}
-    .st7{display:inline;}
-    .st8{fill-rule:evenodd;clip-rule:evenodd;fill:#915233;}
-    .st9{clip-path:url(#SVGID_2_);fill:#FFFFFF;}
-    .st10{fill:#3A5F99;}
-    .st11{display:none;}
-    .st12{fill:#DD5827;}
+.st0{fill:#111111;}
+.st1{fill-rule:evenodd;clip-rule:evenodd;fill:#733F24;}
+.st2{fill:#E6E7E8;}
+.st3{fill:#1A83B7;}
+.st4{fill:#513020;}
+.st5{fill:#231F20;}
+.st6{clip-path:url(#SVGID_2_);}
+.st7{display:inline;}
+.st8{fill-rule:evenodd;clip-rule:evenodd;fill:#915233;}
+.st9{clip-path:url(#SVGID_2_);fill:#FFFFFF;}
+.st10{fill:#3A5F99;}
+.st11{display:none;}
+.st12{fill:#DD5827;}
 </style>
 <g id="Layer_1" class="st11">
     <g class="st7">
@@ -202,17 +201,17 @@
             </g>
         </g>
         
-            <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 737.8807 188.4444)" class="st9" cx="370.75" cy="87.15" rx="5.79" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 737.8807 188.4444)" class="st9" cx="370.75" cy="87.15" rx="5.79" ry="18.69"/>
         
-            <ellipse transform="matrix(-0.9993 -0.0384 0.0384 -0.9993 716.8918 191.9335)" class="st9" cx="360.29" cy="89.08" rx="5.79" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0384 0.0384 -0.9993 716.8918 191.9335)" class="st9" cx="360.29" cy="89.08" rx="5.79" ry="18.69"/>
         
-            <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 695.9494 194.6775)" class="st9" cx="349.84" cy="90.66" rx="5.79" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 695.9494 194.6775)" class="st9" cx="349.84" cy="90.66" rx="5.79" ry="18.69"/>
         
-            <ellipse transform="matrix(-0.9993 -0.0385 0.0385 -0.9993 676.2039 188.507)" class="st9" cx="339.92" cy="87.75" rx="5.8" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0385 0.0385 -0.9993 676.2039 188.507)" class="st9" cx="339.92" cy="87.75" rx="5.8" ry="18.69"/>
         
-            <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 660.3365 175.4938)" class="st9" cx="331.85" cy="81.41" rx="5.79" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 660.3365 175.4938)" class="st9" cx="331.85" cy="81.41" rx="5.79" ry="18.69"/>
         
-            <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 755.0217 179.5681)" class="st9" cx="379.23" cy="82.54" rx="5.79" ry="18.69"/>
+        <ellipse transform="matrix(-0.9993 -0.0383 0.0383 -0.9993 755.0217 179.5681)" class="st9" cx="379.23" cy="82.54" rx="5.79" ry="18.69"/>
     </g>
 </g>
 <g id="ROUPA">
