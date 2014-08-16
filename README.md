@@ -277,9 +277,7 @@ Results in a DOM that looks like this:
     </ul>
 
 (The comment node is added automatically and is required by Sparky to maintain
-the collection. This technique is nicked from AngularJS. One way Sparky and Angular
-differ is that Angular runs a digest loop to detect when data has changed, and
-Sparky queues a re-render as soon as a change in data is observed.)
+the collection. This technique is nicked from AngularJS.)
 
 ## Template filters
 
