@@ -44,6 +44,8 @@ using the <code>scope</code> object returned by the controller.
 If a controller is not defined, Sparky uses the <code>data-model</code> directly as the
 scope.
 
+Sparky also understands how to bind to some SVG attributes.
+
 ### Using Sparky's template tags in HTML
 
 For the following examples, let's give Sparky some data:
