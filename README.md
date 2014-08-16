@@ -97,7 +97,7 @@ looks in is limited to <code>href</code>, <code>title</code>, <code>id</code>,
 list by modifying the array <code>Sparky.attributes</code>.
 
 Form elements – inputs, selects and textareas – also use the <code>name</code>
-attribute to define two-way data binding.
+attribute to define two-way data binding. More on that later.
 
 ### Static binding with {{{ property }}}
 
