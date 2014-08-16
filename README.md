@@ -156,7 +156,8 @@ Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used a
 <strong>ctrl is a function.</strong>
 
 Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
-is used as scope to render the node.
+is used as scope to render the node. In Sparky scope objects are just objects you
+create.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
         var scope = {
@@ -181,7 +182,8 @@ is used as scope to render the node.
     // The node is updated whenever data is changed
     model.username = "Marco";
 
-Where the <code>ctrl</code> function returns <code>undefined</code>, the model is used as scope.
+Where the <code>ctrl</code> function returns <code>undefined</code>, the model is
+used as scope.
 
 Sparky can also be called with the string names of models in <code>Sparky.data</code>
 and string names of controllers in <code>Sparky.ctrls</code>.
