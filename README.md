@@ -1,8 +1,13 @@
 <h1>Sparky</h1>
 
-<strong>Sparky is a model-agnostic live data binding view layer for an html/js app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames.</strong>
+<strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames.</strong>
 
 ## Quick start
+
+Sparky traverses the DOM automatically on <code>load</code>. It binds nodes with a
+<code>data-model</code> attribute to model objects stored in <code>Sparky.data</code>,
+and passes nodes with a <code>data-ctrl</code> attribute into controller functions
+stored in <code>Sparky.ctrls</code>.
 
 JS:
 
@@ -12,28 +17,37 @@ JS:
     };
 
     Sparky.ctrls['my-ctrl'] = function(node, model) {
+        var scope = {
+            title: model.title,
+            class: ''
+        };
         
+        Sparky.observe(model, 'type', function() {
+            scope.class = model.type === 'data' ?
+                'active' :
+                'inactive' ;
+        });
+        
+        return scope;
     };
 
 HTML:
 
-    <div class="{{type}}-block block" data-ctrl="my-ctrl" data-model="my-data">
+    <div class="{{class}}-block" data-model="my-data" data-ctrl="my-ctrl">
         <p>{{title}}</p>
     </div>
 
-Sparky is now observing changes to <code>Sparky.data['my-data']</code>.
-When a change is made, Sparky re-renders only those text nodes and attributes
-that depend on the data being changed. Sparky manipulates the DOM on browser
-animation frames, so multiple changes to the same data cause just a single
-re-rendering of the DOM.
+Sparky is now observing changes to the object <code>Sparky.data['my-data']</code>.
+When <code>model.type</code> changes, the <code>class</code> is rendered
+as <code>'active-block'</code> or <code>'inactive-block'</code>.
 
-Sparky also understands how to bind to SVG placed inside HTML.
+Sparky also understands how to bind to SVG inside HTML.
 
-## data-model
+### Using Sparky's template tags in HTML
 
-First let's give Sparky some data:
+For the following examples, let's give Sparky some data:
 
-    Sparky.data.text = {
+    Sparky.data['text'] = {
         title: "Sparky loves you",
         lang: "en",
         date: "2014-04-15",
@@ -52,14 +66,6 @@ First let's give Sparky some data:
         }
     };
 
-### Static binding with {{{ property }}}
-
-Render some content from the <code>text.title</code> property:
-
-    <h1 data-model="text">{{{ title }}}</h1>
-
-Here Sparky looks for the object <code>text</code> in <code>Sparky.data</code>
-and renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
 
 ### Live binding with {{ property }}
 
@@ -87,6 +93,15 @@ list by modifying the array <code>Sparky.attributes</code>.
 Form elements – inputs, selects and textareas – also use the <code>name</code>
 attribute to define two-way data binding.
 
+### Static binding with {{{ property }}}
+
+Render some content from the <code>text.title</code> property:
+
+    <h1 data-model="text">{{{ title }}}</h1>
+
+Here Sparky looks for the object <code>text</code> in <code>Sparky.data</code>
+and renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
+
 ### Absolute paths
 
 The data-model attribute understands absolute paths to models inside
@@ -105,12 +120,11 @@ The data-model attribute also understands relative paths to models inside
 parent models:
 
     <div class="language-{{lang}}" data-model="text">
-        <p data-model=".meta">author: {{author}}, words: {{word_count}}</p>
+        <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
     </div>
 
-The leading <code>.</code> makes Sparky look for the <code>meta</code> object
-relative to the parent object <code>text</code>. A leading opening bracket
-<code>[</code> has the same effect.
+Putting the <code>{{meta}}</code> tag inside of <code>data-model</code> makes Sparky
+look for the <code>meta</code> object insdie the parent object, the <code>text</code> object.
 
 ### Sparky(node, model, ctrl)
 
@@ -120,7 +134,7 @@ Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
-<code>model</code> <strong>is an object</strong>.
+<strong>model is an object</strong>.
 
 Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used as scope to render the node.
 
@@ -135,7 +149,7 @@ Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used a
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-<code>ctrl</code> <strong>is a function.</strong>
+<strong>ctrl is a function.</strong>
 
 Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
 is used as scope to render the node.
@@ -174,9 +188,10 @@ and string names of controllers in <code>Sparky.ctrls</code>.
     // Bind the node to data
     Sparky(node, 'user', 'user-card');
 
+<strong>Sparky creates a sparky object</strong>
 
 The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. The
-sparky object is passed to the controller, and returned from the <code>Sparky(node, model, ctrl)</code>
+sparky object is passed to the controller, and returned from the <code>Sparky</code>
 function. Use it to listen to lifecycle events.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
@@ -189,17 +204,21 @@ function. Use it to listen to lifecycle events.
         Sparky.observe(model, 'username', update);
         
         sparky
+        .on('ready', function() {
+            // The node has bound and has been populated with any
+            // existing model data.
+        })
         .on('insert', function() {
+            // The node has been inserted into the DOM.
             node.addEventListener('click', handlerFn);
         })
         .on('destroy', function() {
+            // The node has been unbound from the model
             Sparky.unobserve(model, 'username', update);
         });
         
         return scope;
     };
-
-    ––––
 
     // Bind the node to data
     var sparky = Sparky(node, 'user', 'user-card');
@@ -207,10 +226,6 @@ function. Use it to listen to lifecycle events.
     // Insert into the DOM
     sparky.appendTo(body);
 
-
-Here we use the <code>Sparky()</code> function to bind the node to the data, and
-then insert the node into the DOM. Sparky also accepts a documentFragment as a
-first argument.
 
 ### Form fields
 
