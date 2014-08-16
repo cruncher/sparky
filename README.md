@@ -138,7 +138,7 @@ Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
-### model is an object
+#### model is an object
 
 Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used as scope to render the node.
 
