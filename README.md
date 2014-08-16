@@ -44,22 +44,6 @@ using the <code>scope</code> object returned by the controller.
 If a controller is not defined, Sparky uses the <code>data-model</code> directly as the
 scope.
 
-JS:
-
-    Sparky.data['my-data'] = {
-        title: 'My data',
-        type: 'data'
-    };
-
-HTML:
-
-    <div class="{{type}}-block" data-model="my-data">
-        <p>{{title}}</p>
-    </div>
-
-
-Sparky also understands how to bind to SVG inside HTML.
-
 ### Using Sparky's template tags in HTML
 
 For the following examples, let's give Sparky some data:
