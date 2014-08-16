@@ -48,91 +48,9 @@ inside the controller.
 
 Sparky also understands how to bind to some SVG attributes.
 
-## Using Sparky's template tags in HTML
-
-For the following examples, let's give Sparky some data:
-
-    Sparky.data['text'] = {
-        title: "Sparky loves you",
-        lang: "en",
-        date: "2014-04-15",
-        meta: {
-            author: "stephband",
-            word_count: 140,
-            contributors: [{
-                name: "Sparky",
-                username: "sparky",
-                url: "http://github.com/cruncher/sparky"
-            }, {
-                name: "Marco",
-                username: "mbi",
-                url: "http://cruncher.ch"
-            }]
-        }
-    };
-
-
-### Live binding with {{ property }}
-
-Render some content from the <code>text.title</code> property and re-render
-whenever it changes:
-
-    <h1 data-model="text">{{ title }}</h1>
-
-Sparky looks for the object <code>text</code> inside <code>Sparky.data</code> and
-renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
-Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
-re-rendered.
-
-Bind a class to the <code>lang</code> property:
-
-    <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
-
-Here Sparky renders <code>text.lang</code> to the <code>{{lang}}</code> tag and
-<code>text.title</code> to the <code>{{title}}</code> tag.
-
-Sparky looks for tags in text nodes or attributes. The list of attributes it
-looks in is limited to <code>href</code>, <code>title</code>, <code>id</code>,
-<code>style</code>, <code>src</code> and <code>alt</code>. You can change the
-list by modifying the array <code>Sparky.attributes</code>.
-
-Form elements – inputs, selects and textareas – also use the <code>name</code>
-attribute to define two-way data binding. More on that later.
-
-### Static binding with {{{ property }}}
-
-Render some content from the <code>text.title</code> property once just once.
-The tag is not re-rendered when <code>text.title</code> changes:
-
-    <h1 data-model="text">{{{ title }}}</h1>
-
-### Absolute paths
-
-The data-model attribute understands absolute paths in JavaScript object notation
-to models inside <code>Sparky.data</code>:
-
-    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
-    <h2>First contributor</h2>
-    <p data-model="text.meta.contributors[0]">{{name}}</p>
-
-Properties in a path can contain dashes (<code>-</code>).
-
-    <p data-model="text.spoken-lang">...</p>
-
-### Relative paths
-
-The data-model attribute also understands relative paths to models inside
-parent models. Putting the <code>{{meta}}</code> tag inside of <code>data-model</code>
-makes Sparky look for the <code>meta</code> object insdie the parent object,
-the <code>text</code> object.
-
-    <div class="language-{{lang}}" data-model="text">
-        <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
-    </div>
-
 ## Sparky(node, model, ctrl)
 
-Sparky is also used to bind a DOM node to a model and a controller in JS.
+To bind a DOM node to a model and a controller in JS, call <code>Sparky(node, model, ctrl)</code>.
 
 Take this html, for example:
 
@@ -153,7 +71,7 @@ Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used a
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-### ctrl is a function
+#### ctrl is a function
 
 Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
 is used as scope to render the node. In Sparky scope objects are just objects you
@@ -194,7 +112,7 @@ and string names of controllers in <code>Sparky.ctrls</code>.
     // Bind the node to data
     Sparky(node, 'user', 'user-card');
 
-### Sparky(node, model, ctrl) creates a sparky object
+#### Sparky(node, model, ctrl) creates a sparky object
 
 The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. The
 sparky object is passed to the controller, and returned from the <code>Sparky</code>
@@ -236,7 +154,90 @@ function. Use it to listen to lifecycle events.
     sparky.destoy();
 
 
-### Form fields
+## Sparky templates
+
+For the following examples, let's give Sparky some data:
+
+    Sparky.data['text'] = {
+        title: "Sparky loves you",
+        lang: "en",
+        date: "2014-04-15",
+        meta: {
+            author: "stephband",
+            word_count: 140,
+            contributors: [{
+                name: "Sparky",
+                username: "sparky",
+                url: "http://github.com/cruncher/sparky"
+            }, {
+                name: "Marco",
+                username: "mbi",
+                url: "http://cruncher.ch"
+            }]
+        }
+    };
+
+
+#### Live binding with {{tag}}
+
+Render some content from the <code>text.title</code> property and re-render
+whenever it changes:
+
+    <h1 data-model="text">{{ title }}</h1>
+
+Sparky looks for the object <code>text</code> inside <code>Sparky.data</code> and
+renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
+Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
+re-rendered.
+
+Bind a class to the <code>lang</code> property:
+
+    <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
+
+Here Sparky renders <code>text.lang</code> to the <code>{{lang}}</code> tag and
+<code>text.title</code> to the <code>{{title}}</code> tag.
+
+Sparky looks for tags in text nodes or attributes. The list of attributes it
+looks in is limited to <code>href</code>, <code>title</code>, <code>id</code>,
+<code>style</code>, <code>src</code> and <code>alt</code>. You can change the
+list by modifying the array <code>Sparky.attributes</code>.
+
+Form elements – inputs, selects and textareas – also use the <code>name</code>
+attribute to define two-way data binding. More on that later.
+
+#### Static binding with {{{tag}}}
+
+Render some content from the <code>text.title</code> property once just once.
+The tag is not re-rendered when <code>text.title</code> changes:
+
+    <h1 data-model="text">{{{ title }}}</h1>
+
+#### Absolute paths
+
+The data-model attribute understands absolute paths in JavaScript object notation
+to models inside <code>Sparky.data</code>:
+
+    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
+    <h2>First contributor</h2>
+    <p data-model="text.meta.contributors[0]">{{name}}</p>
+
+Properties in a path can contain dashes (<code>-</code>).
+
+    <p data-model="text.spoken-lang">...</p>
+
+#### Relative paths
+
+The data-model attribute also understands relative paths to models inside
+parent models. Putting the <code>{{meta}}</code> tag inside of <code>data-model</code>
+makes Sparky look for the <code>meta</code> object insdie the parent object,
+the <code>text</code> object.
+
+    <div class="language-{{lang}}" data-model="text">
+        <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
+    </div>
+
+
+## Forms
 
 Inputs, selects and textareas get 2-way data binding.
 When the model changes, their values are updated.
@@ -254,7 +255,7 @@ property of the model to update. Text written into the input
 is stored at <code>Sparky.data.text.username</code>, and changes to
 Sparky.data.text.username update the input's value.
 
-### Looping over a collection
+## Looping over a collection
 
 Sparky has no special syntax for looping over a collection, but where
 <code>data-model</code> resolves to an array or array-like object,
@@ -354,11 +355,7 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
     </h1>
     {% endverbatim %}
 
-## Techniques
-
-### Observing
-
-#### Sparky.observe(object, property, fn);
+<!--#### Sparky.observe(object, property, fn);
 
 Sparky.observe observes changes to the property of an object by
 reconfiguring it as a getter/setter. This is very fast but has a
@@ -393,6 +390,5 @@ Don't forget the unobserver:
    Sparky.unobserve = function(object, property, fn) {
        object.off(property, fn);
    }
-
-
+-->
 
