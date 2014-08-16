@@ -74,13 +74,11 @@ Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used a
 #### ctrl is a function
 
 Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
-is used as scope to render the node. In Sparky scope objects are just objects you
-create.
+is used as scope to render the node. In Sparky scope objects are just plain objects
+you create.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
-        var scope = {
-            username: 'unknown';
-        };
+        var scope = { username: 'unknown'; };
         
         Sparky.observe(model, 'username', function() {
             scope.username = model.username;
@@ -90,9 +88,7 @@ create.
     };
 
     var node = document.querySelector('#user');
-    var model = {
-            username: 'Arthur'
-        };
+    var model = { username: 'Arthur' };
     
     // Bind the node to data
     Sparky(node, model, Sparky.ctrls['user-card']);
