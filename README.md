@@ -74,7 +74,8 @@ For the following examples, let's give Sparky some data:
 
 ### Live binding with {{ property }}
 
-Render some content from the <code>text.title</code> property whenever it changes:
+Render some content from the <code>text.title</code> property and re-render
+whenever it changes:
 
     <h1 data-model="text">{{ title }}</h1>
 
@@ -100,12 +101,11 @@ attribute to define two-way data binding.
 
 ### Static binding with {{{ property }}}
 
-Render some content from the <code>text.title</code> property:
+Render some content from the <code>text.title</code> property once just once:
 
     <h1 data-model="text">{{{ title }}}</h1>
 
-Here Sparky looks for the object <code>text</code> in <code>Sparky.data</code>
-and renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
+This tag is not rerendered when <code>text.title</code> changes.
 
 ### Absolute paths
 
