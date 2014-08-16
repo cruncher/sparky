@@ -120,8 +120,9 @@ Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
-<strong><code>model</code> is an object.</strong> Where <code>ctrl</code> is
-<code>undefined</code>, the <code>model</code>  is used as scope to render the node.
+<code>model</code> <strong>is an object</strong>.
+
+Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used as scope to render the node.
 
     var node = document.querySelector('#user');
     var data = {
@@ -134,8 +135,10 @@ Take this html, for example:
     // The node is updated whenever data is changed
     data.username = "Marco";
 
-<strong><code>ctrl</code> is a function.</strong> Where <code>ctrl</code> is passed in, the return
-value of the <code>ctrl</code> is used as scope to render the node.
+<code>ctrl</code> <strong>is a function.</strong>
+
+Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
+is used as scope to render the node.
 
     Sparky.ctrls['user-card'] = function(node, model, sparky) {
         var scope = {
@@ -160,7 +163,7 @@ value of the <code>ctrl</code> is used as scope to render the node.
     // The node is updated whenever data is changed
     model.username = "Marco";
 
-If the <code>ctrl</code> function returns undefined, the model is used as scope.
+Where the <code>ctrl</code> function returns <code>undefined</code>, the model is used as scope.
 
 Sparky can also be called with the string names of models in <code>Sparky.data</code>
 and string names of controllers in <code>Sparky.ctrls</code>.
@@ -172,21 +175,37 @@ and string names of controllers in <code>Sparky.ctrls</code>.
     Sparky(node, 'user', 'user-card');
 
 
-The <code>Sparky(node, model, ctrl)</code>
+The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. The
+sparky object is passed to the controller, and returned from the <code>Sparky(node, model, ctrl)</code>
+function. Use it to listen to lifecycle events.
 
+    Sparky.ctrls['user-card'] = function(node, model, sparky) {
+        var scope = { username: 'unknown'; };
+        
+        function update() {
+            scope.username = model.username;
+        }
+        
+        Sparky.observe(model, 'username', update);
+        
+        sparky
+        .on('insert', function() {
+            node.addEventListener('click', handlerFn);
+        })
+        .on('destroy', function() {
+            Sparky.unobserve(model, 'username', update);
+        });
+        
+        return scope;
+    };
 
+    ––––
 
-    node.innerText = 'Sparky loves you, {{username}}';
-    
     // Bind the node to data
-    var sparky = Sparky(node, data);
-
+    var sparky = Sparky(node, 'user', 'user-card');
+    
     // Insert into the DOM
     sparky.appendTo(body);
-    
-    // The node is updated whenever data is changed
-    data.username = "Marco";
-
 
 
 Here we use the <code>Sparky()</code> function to bind the node to the data, and
