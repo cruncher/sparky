@@ -115,10 +115,12 @@ relative to the parent object <code>text</code>. A leading opening bracket
 ### Sparky(node, model, ctrl)
 
 Bind a DOM node to a model and a controller by calling <code>Sparky(node, model, ctrl)</code>.
-Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
+
+Take this html, for example:
 
     <p id="#user">hello, {{username}}</p>
 
+Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
 
     var node = document.querySelector('#user');
     var data = {
