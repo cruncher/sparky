@@ -41,8 +41,10 @@ Sparky is now observing changes to the model object <code>Sparky.data['my-data']
 When <code>model.type</code> changes, the <code>class</code> attribute is re-rendered
 using the <code>scope</code> object returned by the controller.
 
-If a controller is not defined, Sparky uses the <code>data-model</code> directly as the
+If a <code>data-ctrl</code> is not given, Sparky uses the <code>data-model</code> directly as the
 scope.
+
+If <code>data-model</code> is not given, <code>model</code> is undefined inside the controller.
 
 Sparky also understands how to bind to some SVG attributes.
 
