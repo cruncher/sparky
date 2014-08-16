@@ -114,21 +114,78 @@ relative to the parent object <code>text</code>. A leading opening bracket
 
 ### Sparky(node, model, ctrl)
 
-A node doesn't have to be in the DOM for Sparky to bind to it:
+Bind a DOM node to a model and a controller by calling <code>Sparky(node, model, ctrl)</code>.
+Where a <ocde>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
 
-    var node = document.createElement('p');
+    var node = document.querySelector('#user');
     var data = {
             username: 'Arthur'
         };
     
+    // Bind the node to data
+    Sparky(node, data);
+
+
+    <p id="#user">hello, {{username}}</p>
+
+
+    // The node is updated whenever data is changed
+    data.username = "Marco";
+
+<ocde>ctrl</code> is a function. Where <ocde>ctrl</code> is passed in, the return
+value of the <ocde>ctrl</code> is used as scope to render the node.
+
+    Sparky.ctrls['user-card'] = function(node, model, sparky) {
+        var scope = {
+            username: 'unknown';
+        };
+        
+        Sparky.observe(model, 'username', function() {
+            scope.username = model.username;
+        });
+        
+        return scope;
+    };
+
+    var node = document.querySelector('#user');
+    var model = {
+            username: 'Arthur'
+        };
+    
+    // Bind the node to data
+    Sparky(node, model, Sparky.ctrls['user-card']);
+    
+    // The node is updated whenever data is changed
+    model.username = "Marco";
+
+If the <ocde>ctrl</code> function returns undefined, the model is used as scope.
+
+Sparky can also be called with the string names of models in <code>Sparky.data</code>
+and string names of controllers in <code>Sparky.ctrls</code>.
+
+    // Put data in Sparky's data object.
+    Sparky.data['user'] = { username: 'Arthur' };
+    
+    // Bind the node to data
+    Sparky(node, 'user', 'user-card');
+
+
+The <code>Sparky(node, model, ctrl)</code>
+
+
+
     node.innerText = 'Sparky loves you, {{username}}';
     
-    // Bind the node to data and insert into the DOM
-    Sparky(node, data);
-    body.appendChild(node);
+    // Bind the node to data
+    var sparky = Sparky(node, data);
+
+    // Insert into the DOM
+    sparky.appendTo(body);
     
     // The node is updated whenever data is changed
     data.username = "Marco";
+
+
 
 Here we use the <code>Sparky()</code> function to bind the node to the data, and
 then insert the node into the DOM. Sparky also accepts a documentFragment as a
