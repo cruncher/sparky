@@ -11,7 +11,7 @@ JS:
         type: 'data'
     };
 
-    Sparky.controllers['my-ctrl'] = function(node, model) {
+    Sparky.ctrls['my-ctrl'] = function(node, model) {
         
     };
 
@@ -187,7 +187,7 @@ All the above examples use the model directly as the context for rendering the
 DOM. Sparky uses the model by default, but you can create a scope object to use
 instead.
 
-    Sparky.controllers['my-controller'] = function(node, model) {
+    Sparky.ctrls['my-controller'] = function(node, model) {
         var scope = {
             lang: 'No language set'
         };
@@ -208,7 +208,7 @@ The controller is passed the DOM node, and the model (where a
 <code>data-model</code> is defined, otherwise model is undefined). Listen to
 changes on the model to update the scope:
 
-    Sparky.controllers['my-controller'] = function(node, model) {
+    Sparky.ctrls['my-controller'] = function(node, model) {
         var scope = {
             lang: 'No language set'
         };
