@@ -2,6 +2,8 @@
 
 <strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames.</strong>
 
+<img src="images/sparky-logo.svg" />
+
 ## Quick start
 
 Sparky traverses the DOM automatically on <code>load</code>. It binds nodes with a
