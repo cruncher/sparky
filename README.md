@@ -132,7 +132,7 @@ look for the <code>meta</code> object insdie the parent object, the <code>text</
 
 ### Sparky(node, model, ctrl)
 
-Bind a DOM node to a model and a controller by calling <code>Sparky(node, model, ctrl)</code>.
+Sparky is also used to bind a DOM node to a model and a controller in JS.
 
 Take this html, for example:
 
@@ -252,7 +252,7 @@ Sparky.data.text.username update the input's value.
 ### Looping over a collection
 
 Sparky has no special syntax for looping over a collection, but where
-<code>data-model</code> resolves to an array or array-like collection object,
+<code>data-model</code> resolves to an array or array-like object,
 Sparky automatically loops over it, cloning the corresponding DOM node for all
 the items in the collection. So the HTML:
 
@@ -265,18 +265,19 @@ the items in the collection. So the HTML:
 Results in a DOM that looks like this:
 
     <ul>
-        <!-- [Sparky] collection start -->
-        <li data-model="text.meta.contributors[0]">
+        <li>
             <a href="http://github.com/cruncher/sparky">Sparky</a>
         </li>
-        <li data-model="text.meta.contributors[1]">
+        <li>
             <a href="http://cruncher.ch">Marco</a>
         </li>
-        <!-- [Sparky] collection end -->
+        <!-- [Sparky] data-model="text.meta.contributors" -->
     </ul>
 
-The comment nodes are added automatically and are required by Sparky to maintain
-the collection.
+(The comment node is added automatically and is required by Sparky to maintain
+the collection. This technique is nicked from AngularJS. One way Sparky and Angular
+differ is that Angular runs a digest loop to detect when data has changed, and
+Sparky queues a re-render as soon as a change in data is observed.)
 
 ## data-ctrl
 
