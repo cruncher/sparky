@@ -117,6 +117,7 @@ relative to the parent object <code>text</code>. A leading opening bracket
 Bind a DOM node to a model and a controller by calling <code>Sparky(node, model, ctrl)</code>.
 Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope to render the node.
 
+<small>JS</small>
     var node = document.querySelector('#user');
     var data = {
             username: 'Arthur'
@@ -125,10 +126,10 @@ Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope 
     // Bind the node to data
     Sparky(node, data);
 
-
+<small>HTML</small>
     <p id="#user">hello, {{username}}</p>
 
-
+<small>JS</small>
     // The node is updated whenever data is changed
     data.username = "Marco";
 
