@@ -37,9 +37,26 @@ HTML:
         <p>{{title}}</p>
     </div>
 
-Sparky is now observing changes to the object <code>Sparky.data['my-data']</code>.
-When <code>model.type</code> changes, the <code>class</code> is rendered
-as <code>'active-block'</code> or <code>'inactive-block'</code>.
+Sparky is now observing changes to the model object <code>Sparky.data['my-data']</code>.
+When <code>model.type</code> changes, the <code>class</code> attribute is re-rendered
+using the <code>scope</code> object returned by the controller.
+
+If a controller is not defined, Sparky uses the <code>data-model</code> directly as the
+scope.
+
+JS:
+
+    Sparky.data['my-data'] = {
+        title: 'My data',
+        type: 'data'
+    };
+
+HTML:
+
+    <div class="{{type}}-block" data-model="my-data">
+        <p>{{title}}</p>
+    </div>
+
 
 Sparky also understands how to bind to SVG inside HTML.
 
