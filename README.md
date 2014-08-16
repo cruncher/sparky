@@ -235,7 +235,7 @@ the <code>text</code> object.
     </div>
 
 
-## Forms
+#### Forms
 
 Inputs, selects and textareas get 2-way data binding.
 When the model changes, their values are updated.
@@ -253,7 +253,7 @@ property of the model to update. Text written into the input
 is stored at <code>Sparky.data.text.username</code>, and changes to
 Sparky.data.text.username update the input's value.
 
-## Looping over a collection
+#### Looping over a collection
 
 Sparky has no special syntax for looping over a collection, but where
 <code>data-model</code> resolves to an array or array-like object,
