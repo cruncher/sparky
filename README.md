@@ -120,7 +120,6 @@ Where a <code>ctrl</code> is <code>undefined</code>, the model is used as scope 
     <p id="#user">hello, {{username}}</p>
 
 
-
     var node = document.querySelector('#user');
     var data = {
             username: 'Arthur'
