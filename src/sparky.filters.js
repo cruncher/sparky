@@ -207,7 +207,7 @@
 
 		//pprint
 
-		prepad: function(n) {
+		prepad: function(n, char) {
 			var string = this.toString();
 			var l = string.length;
 
@@ -217,7 +217,7 @@
 			array.length = 0;
 			array.length = n - l;
 			array.push(string);
-			return array.join(' ');
+			return array.join(char || ' ');
 		},
 
 		postpad: function(n) {

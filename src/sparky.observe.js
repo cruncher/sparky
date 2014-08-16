@@ -58,20 +58,20 @@
 
 	(Object.observe && WeakMap ? function(Sparky) {
 		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
-	
+
 		var map = new WeakMap();
 		var names = [];
 		var types = ["add", "update", "delete"];
-	
+
 		function call(fn) {
 			fn(this);
 		}
-	
+
 		function trigger(change) {
 			var properties = this;
 			var name = change.name;
 			var object = change.object;
-	
+
 			// If this property is in the properties being watched, and we
 			// have not already called changes on it, do that now.
 			if (properties[name] && names.indexOf(name) === -1) {
@@ -80,43 +80,43 @@
 				fns.forEach(call, object);
 			}
 		}
-	
+
 		function triggerAll(changes) {
 			names.length = 0;
 			changes.forEach(trigger, map[object]);
 		}
-	
+
 		function setup(object) {
 			var properties = map[object] = {};
 			Object.observe(object, triggerAll, types);
 			return properties;
 		}
-	
+
 		function teardown(object) {
 			Object.unobserve(object, triggerAll);
 		}
-	
+
 		Sparky.observe = function(object, property, fn) {
 			var properties = map[object] || setup(object);
 			var fns = properties[property] || (properties[property] = []);
 			fns.push(fn);
 		};
-	
+
 		Sparky.unobserve = function(object, property, fn) {
 			if (!map[object]) { return; }
-	
+
 			var properties = map[object];
 			var fns = properties[property];
-	
+
 			if (!fns) { return; }
-	
+
 			var n = fns.length;
-	
+
 			while (n--) { fns.splice(n, 1); }
-	
+
 			if (fns.length === 0) {
 				delete properties[property];
-	
+
 				if (Object.keys[properties].length === 0) {
 					teardown(object);
 				}

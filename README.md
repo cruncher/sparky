@@ -52,13 +52,22 @@ First let's give Sparky some data:
         }
     };
 
-### Bind a DOM node to some data
+### Static binding with {{{ property }}}
 
-Bind some text to the <code>title</code> property:
+Render some content from the <code>text.title</code> property:
+
+    <h1 data-model="text">{{{ title }}}</h1>
+
+Here Sparky looks for the object <code>text</code> in <code>Sparky.data</code>
+and renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
+
+### Live binding with {{ property }}
+
+Render some content from the <code>text.title</code> property whenever it changes:
 
     <h1 data-model="text">{{ title }}</h1>
 
-Sparky looks for the model <code>text</code> inside <code>Sparky.data</code> and
+Sparky looks for the object <code>text</code> inside <code>Sparky.data</code> and
 renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
 Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
 re-rendered.
@@ -67,11 +76,16 @@ Bind a class to the <code>lang</code> property:
 
     <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
 
-Sparky renders template tags found in text nodes or in DOM element attributes.
-Normally, Sparky looks in the attributes <code>href</code>, <code>title</code>,
-<code>id</code>, <code>style</code>, <code>value</code>, <code>src</code> and
-<code>alt</code>. You can change the list of attributes by modifying to the
-array <code>Sparky.attributes</code>.
+Here Sparky renders <code>text.lang</code> to the <code>{{lang}}</code> tag and
+<code>text.title</code> to the <code>{{title}}</code> tag.
+
+Sparky looks for tags in text nodes or attributes. The list of attributes it
+looks in is limited to <code>href</code>, <code>title</code>, <code>id</code>,
+<code>style</code>, <code>src</code> and <code>alt</code>. You can change the
+list by modifying the array <code>Sparky.attributes</code>.
+
+Form elements – inputs, selects and textareas – also use the <code>name</code>
+attribute to define two-way data binding.
 
 ### Absolute paths
 
@@ -269,6 +283,16 @@ Sparky has a subset of the Django filters:
 - truncatechars
 - unordered_list
 - yesno
+
+Plus some of it's own:
+
+- decibels – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale. Useful when working with WebAudio parameters.
+- get:'propertyName' – Takes an object and renders the named property.
+- lowercase – Alias of lower.
+- percent – Takes a number and multiplies by 100 to render it as a percentage.
+- prepad
+- postpad
+- symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
 
 ### Using Sparky with Django
 
