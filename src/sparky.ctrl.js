@@ -85,12 +85,6 @@
 		return pow(value, 1/n2p1);
 	});
 
-	Sparky.ctrl['input-pow-2'] = createInputCtrl(function to(value) {
-		return pow(value, 2);
-	}, function from(value) {
-		return pow(value, 1/2);
-	});
-
 	Sparky.ctrl['input-pow-3'] = createInputCtrl(function to(value) {
 		return pow(value, n2p3);
 	}, function from(value) {
@@ -107,6 +101,12 @@
 		return (Math.exp(value * Math.LN10) - 1) / 9;
 	}, function from(value) {
 		return Math.log(value * 9 + 1) / Math.LN10;
+	});
+
+	Sparky.ctrl['value-pow-2'] = createInputCtrl(function to(value) {
+		return pow(value, 2);
+	}, function from(value) {
+		return pow(value, 1/2);
 	});
 
 	Sparky.ctrl['value-pow-3'] = createInputCtrl(function to(value) {
