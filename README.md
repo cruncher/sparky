@@ -234,25 +234,6 @@ the <code>text</code> object.
         <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
     </div>
 
-
-#### Forms
-
-Inputs, selects and textareas get 2-way data binding.
-When the model changes, their values are updated.
-When their values are changed, the model is updated.
-
-Bind an <code>input[type="text"]</code> to
-<code>Sparky.data.text.username</code>:
-
-    <form class="user-form" data-model="text">
-        <input type="text" name="username" value="" />
-    </form>
-
-The <code>name</code> attribute is used to tell Sparky which
-property of the model to update. Text written into the input
-is stored at <code>Sparky.data.text.username</code>, and changes to
-Sparky.data.text.username update the input's value.
-
 #### Looping over a collection
 
 Sparky has no special syntax for looping over a collection, but where
@@ -280,6 +261,24 @@ Results in a DOM that looks like this:
 
 (The comment node is added automatically and is required by Sparky to maintain
 the collection. This technique is nicked from AngularJS.)
+
+#### Forms
+
+Inputs, selects and textareas get 2-way data binding.
+When the model changes, their values are updated.
+When their values are changed, the model is updated.
+
+Bind an <code>input[type="text"]</code> to
+<code>text.username</code>:
+
+    <form class="user-form" data-model="text">
+        <input type="text" name="{{username}}" value="" />
+    </form>
+
+The <code>name</code> attribute is used to tell Sparky which
+property of the model to update. Text written into the input
+is stored at <code>Sparky.data.text.username</code>, and changes to
+Sparky.data.text.username update the input's value.
 
 ## Template filters
 
