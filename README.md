@@ -303,7 +303,6 @@ Sparky has a subset of the Django filters:
 - capfirst
 - cut
 - date
-- decimals
 - default
 - escape
 - first
@@ -332,6 +331,7 @@ Sparky has a subset of the Django filters:
 Plus some of it's own:
 
 - decibels – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale. Useful when working with WebAudio parameters.
+- decimals – Alias of floatformat.
 - get:'propertyName' – Takes an object and renders the named property.
 - lowercase – Alias of lower.
 - percent – Takes a number and multiplies by 100 to render it as a percentage.
