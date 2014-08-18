@@ -48,7 +48,7 @@ Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined
 scope. If <code>data-model</code> is not given, <code>model</code> is <code>undefined</code>
 inside the controller.
 
-Sparky also understands how to bind to some SVG attributes.
+Sparky also understands how to bind to some SVG attributes. Read more about <a href="#sparky-templates">Sparky templates</a>.
 
 ## Sparky(node, model, ctrl)
 
