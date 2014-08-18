@@ -163,15 +163,17 @@ For the following examples, let's give Sparky some data:
         meta: {
             author: "stephband",
             word_count: 140,
-            contributors: [{
-                name: "Sparky",
-                username: "sparky",
-                url: "http://github.com/cruncher/sparky"
-            }, {
-                name: "Marco",
-                username: "mbi",
-                url: "http://cruncher.ch"
-            }]
+            contributors: Sparky.Collection([
+                {
+                    name: "Sparky",
+                    username: "sparky",
+                    url: "http://github.com/cruncher/sparky"
+                }, {
+                    name: "Marco",
+                    username: "mbi",
+                    url: "http://cruncher.ch"
+                }
+            ])
         }
     };
 
