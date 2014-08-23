@@ -56,7 +56,7 @@
 		return object;
 	}
 
-	(Object.observe && window.WeakMap ? function(Sparky) {
+	(false && Object.observe && window.WeakMap ? function(Sparky) {
 		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
 
 		var map = new WeakMap();
