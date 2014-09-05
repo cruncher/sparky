@@ -132,6 +132,10 @@
 			};
 		})(),
 
+		equal: function(val, string1, string2) {
+			return (this === val ? string1 : string2) || '';
+		},
+
 		//filesizeformat
 
 		first: function() {
