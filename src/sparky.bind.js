@@ -63,6 +63,8 @@
 	
 	var empty = [];
 
+	var changeEvent = new CustomEvent('valuechange', {});
+
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		var prop = (rname.exec(node.name) || empty)[2];
@@ -85,6 +87,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -104,6 +107,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -134,6 +138,7 @@
 	    				// causes the cursor to jump in text fields
 	    				if (node.value !== (value + '')) {
 	    					node.value = value;
+	    					node.dispatchEvent(changeEvent);
 	    				}
 	    			});
 
@@ -175,6 +180,7 @@
 	    		var throttle = Sparky.Throttle(function setValue() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
+	    			node.dispatchEvent(changeEvent);
 	    		});
 
 	    		bind(prop, throttle);
@@ -219,6 +225,7 @@
 	    			// causes the cursor to jump in text fields
 	    			if (node.value !== (value + '')) {
 	    				node.value = isDefined(value) ? value : '' ;
+	    				node.dispatchEvent(changeEvent);
 	    			}
 	    		});
 
