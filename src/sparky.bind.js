@@ -60,10 +60,10 @@
 	    	3: textNode,
 	    	11: fragmentNode
 	    };
-	
+
 	var empty = [];
 
-	var changeEvent = new CustomEvent('valuechange', {});
+	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
