@@ -2,6 +2,7 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		concat: {
 			'js/sparky.js': [
+				'src/window.customevent.js',
 				'src/window.requestanimationframe.js',
 				'src/mixin.array.js',
 				'src/mixin.events.js',

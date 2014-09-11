@@ -1,3 +1,20 @@
+// Polyfill the CustomEvent API for brosers that don't have
+// it (IE9 and IE10).
+
+(function(window, undefined) {
+	if (window.CustomEvent) { return; }
+
+	window.CustomEvent = function CustomEvent(event, params) {
+		params = params || { bubbles: false, cancelable: false, detail: undefined };
+		
+		var e = document.createEvent('CustomEvent');
+		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+		
+		return e;
+	};
+	
+	window.CustomEvent.prototype = window.Event.prototype;
+})(window);
 // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
 // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
  
@@ -420,10 +437,10 @@
 			desc.set.observers.length = 0;
 		}
 	}
-	
+
 	ns.observe = observe;
 	ns.unobserve = unobserve;
-})(window.sparky || window);
+})(window);
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -664,7 +681,7 @@
 		}
 	};
 
-	ns.Collection = function Collection(data, index) {
+	function Collection(data, index) {
 		var collection = Object.create(prototype, properties);
 
 		index = index || 'id';
@@ -719,7 +736,11 @@
 		return collection;
 	};
 
-	ns.Collection.prototype = prototype;
+	Collection.prototype = prototype;
+	Collection.add = add;
+	Collection.remove = remove;
+
+	ns.Collection = Collection;
 })(this, this.mixin);
 
 // Sparky
@@ -772,6 +793,13 @@
 
 		destroy: function() {
 			
+		},
+
+		observe: function(object, property, fn) {
+			Sparky.observe(object, property, fn);
+			this.on('destroy', function() {
+				Sparky.unobserve(object, property, fn);
+			});
 		},
 
 		appendTo: function(node) {
@@ -884,8 +912,8 @@
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', function(sparky, node) { removeNode(node) }, node);
+	function defaultCtrl(node, model) {
+		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
 		return model;
 	}
 
@@ -1043,15 +1071,15 @@
 		].join('');
 	}
 
-	function slaveSparky(masterSparky, slaveSparky) {
+	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, overwrite the trigger method
 		// to trigger all events on the slave sparky immediately
 		// following the trigger on the master.
-		masterSparky.on('ready', function() {
-			masterSparky.on(slaveSparky);
+		sparky1.on('ready', function() {
+			sparky1.on(sparky2);
 		});
 
-		return slaveSparky;
+		return sparky2;
 	}
 
 	function isAudioParam(object) {
@@ -1151,7 +1179,7 @@
 		// empty object. This means we can launch sparky on a node where a
 		// model is not defined and it will nonetheless pick up and spark
 		// child nodes.
-		scope = ctrl && ctrl(node, model, sparky);
+		scope = ctrl && ctrl.call(sparky, node, model);
 
 		// A controller returning false is telling us not to use data binding.
 		if (scope === false) { return; }
@@ -1346,6 +1374,7 @@
 		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);
+
 (function(Sparky) {
 	"use strict";
 
@@ -1403,44 +1432,112 @@
 		return object;
 	}
 
-	Sparky.observe = function(object, property, fn) {
-		// AudioParams objects must be polled, as they cannot be reconfigured
-		// to getters/setters, nor can they be Object.observed. And they fail
-		// to do both of those completely silently. So we test the scope to see
-		// if it is an AudioParam and set the observe and unobserve functions
-		// to poll.
-		if (isAudioParam(object)) {
-			return poll(object, property, fn);
+	(false && Object.observe && window.WeakMap ? function(Sparky) {
+		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
+
+		var map = new WeakMap();
+		var names = [];
+		var types = ["add", "update", "delete"];
+
+		function call(fn) {
+			fn(this);
 		}
 
-		if (property === 'length') {
-			// Observe length and update the DOM on next
-			// animation frame if it changes.
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+		function trigger(change) {
+			var properties = this;
+			var name = change.name;
+			var object = change.object;
 
-			if (!descriptor.get && !descriptor.configurable) {
-				console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+			// If this property is in the properties being watched, and we
+			// have not already called changes on it, do that now.
+			if (properties[name] && names.indexOf(name) === -1) {
+				names.push(name);
+				fns = properties[name];
+				fns.forEach(call, object);
+			}
+		}
+
+		function triggerAll(changes) {
+			names.length = 0;
+			changes.forEach(trigger, map[object]);
+		}
+
+		function setup(object) {
+			var properties = map[object] = {};
+			Object.observe(object, triggerAll, types);
+			return properties;
+		}
+
+		function teardown(object) {
+			Object.unobserve(object, triggerAll);
+		}
+
+		Sparky.observe = function(object, property, fn) {
+			var properties = map[object] || setup(object);
+			var fns = properties[property] || (properties[property] = []);
+			fns.push(fn);
+		};
+
+		Sparky.unobserve = function(object, property, fn) {
+			if (!map[object]) { return; }
+
+			var properties = map[object];
+			var fns = properties[property];
+
+			if (!fns) { return; }
+
+			var n = fns.length;
+
+			while (n--) { fns.splice(n, 1); }
+
+			if (fns.length === 0) {
+				delete properties[property];
+
+				if (Object.keys[properties].length === 0) {
+					teardown(object);
+				}
+			}
+		};
+	} : function(Sparky) {
+		Sparky.observe = function(object, property, fn) {
+			// AudioParams objects must be polled, as they cannot be reconfigured
+			// to getters/setters, nor can they be Object.observed. And they fail
+			// to do both of those completely silently. So we test the scope to see
+			// if it is an AudioParam and set the observe and unobserve functions
+			// to poll.
+			if (isAudioParam(object)) {
 				return poll(object, property, fn);
 			}
-		}
 
-		return observe(object, property, fn);
-	};
+			if (property === 'length') {
+				// Observe length and update the DOM on next
+				// animation frame if it changes.
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+	
+				if (!descriptor.get && !descriptor.configurable) {
+					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					return poll(object, property, fn);
+				}
+			}
 
-	Sparky.unobserve = function(object, property, fn) {
-		if (isAudioParam(object)) {
-			return unpoll(object, property, fn);
-		}
+			return observe(object, property, fn);
+		};
 
-		if (property === 'length') {
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
-			if (!descriptor.get && !descriptor.configurable) {
+		Sparky.unobserve = function(object, property, fn) {
+			if (isAudioParam(object)) {
 				return unpoll(object, property, fn);
 			}
-		}
 
-		return unobserve(object, property, fn);
-	};
+			if (property === 'length') {
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+				if (!descriptor.get && !descriptor.configurable) {
+					return unpoll(object, property, fn);
+				}
+			}
+	
+			return unobserve(object, property, fn);
+		};
+	})(Sparky)
 })(Sparky);
 (function() {
 	"use strict";
@@ -1553,8 +1650,10 @@
 	    	3: textNode,
 	    	11: fragmentNode
 	    };
-	
+
 	var empty = [];
+
+	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
@@ -1578,6 +1677,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -1597,6 +1697,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -1627,6 +1728,7 @@
 	    				// causes the cursor to jump in text fields
 	    				if (node.value !== (value + '')) {
 	    					node.value = value;
+	    					node.dispatchEvent(changeEvent);
 	    				}
 	    			});
 
@@ -1668,6 +1770,7 @@
 	    		var throttle = Sparky.Throttle(function setValue() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
+	    			node.dispatchEvent(changeEvent);
 	    		});
 
 	    		bind(prop, throttle);
@@ -1712,6 +1815,7 @@
 	    			// causes the cursor to jump in text fields
 	    			if (node.value !== (value + '')) {
 	    				node.value = isDefined(value) ? value : '' ;
+	    				node.dispatchEvent(changeEvent);
 	    			}
 	    		});
 
@@ -2042,9 +2146,9 @@
 	};
 
 	function createInputCtrl(to, from) {
-		return function(node, model, sparky) {
+		return function(node, model) {
 			var scope = Sparky.extend({}, model);
-			sparky.on('ready', ready, node, scope, model, to, from);
+			this.on('ready', ready, node, scope, model, to, from);
 			return scope;
 		};
 	};
@@ -2053,12 +2157,6 @@
 		return pow(value, n2p1);
 	}, function from(value) {
 		return pow(value, 1/n2p1);
-	});
-
-	Sparky.ctrl['input-pow-2'] = createInputCtrl(function to(value) {
-		return pow(value, 2);
-	}, function from(value) {
-		return pow(value, 1/2);
 	});
 
 	Sparky.ctrl['input-pow-3'] = createInputCtrl(function to(value) {
@@ -2077,6 +2175,12 @@
 		return (Math.exp(value * Math.LN10) - 1) / 9;
 	}, function from(value) {
 		return Math.log(value * 9 + 1) / Math.LN10;
+	});
+
+	Sparky.ctrl['value-pow-2'] = createInputCtrl(function to(value) {
+		return pow(value, 2);
+	}, function from(value) {
+		return pow(value, 1/2);
 	});
 
 	Sparky.ctrl['value-pow-3'] = createInputCtrl(function to(value) {
@@ -2231,6 +2335,10 @@
 			};
 		})(),
 
+		equal: function(val, string1, string2) {
+			return (this === val ? string1 : string2) || '';
+		},
+
 		//filesizeformat
 
 		first: function() {
@@ -2306,7 +2414,7 @@
 
 		//pprint
 
-		prepad: function(n) {
+		prepad: function(n, char) {
 			var string = this.toString();
 			var l = string.length;
 
@@ -2316,7 +2424,7 @@
 			array.length = 0;
 			array.length = n - l;
 			array.push(string);
-			return array.join(' ');
+			return array.join(char || ' ');
 		},
 
 		postpad: function(n) {
