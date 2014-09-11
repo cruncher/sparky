@@ -6,14 +6,15 @@ module('Sparky collections', function(fixture) {
 		    	property: 2
 		    }]);
 
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl'] = function(node, model) {
 			return {
 				collection: collection
 			};
 		};
 
 		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var sparky = Sparky(ul);
+
+		Sparky(ul);
 
 		ok(ul.querySelectorAll('li').length === 2, 'All is well.');
 	});
@@ -25,14 +26,14 @@ module('Sparky collections', function(fixture) {
 		    	property: 2
 		    }]);
 		
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl'] = function(node, model) {
 			return {
 				collection: collection
 			};
 		};
 
 		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var sparky = Sparky(ul);
+		Sparky(ul);
 
 		ok(ul.querySelectorAll('li').length === 2, 'All is well.');
 

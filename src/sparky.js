@@ -160,8 +160,8 @@
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', function(sparky, node) { removeNode(node) }, node);
+	function defaultCtrl(node, model) {
+		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
 		return model;
 	}
 
@@ -319,15 +319,15 @@
 		].join('');
 	}
 
-	function slaveSparky(masterSparky, slaveSparky) {
+	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, overwrite the trigger method
 		// to trigger all events on the slave sparky immediately
 		// following the trigger on the master.
-		masterSparky.on('ready', function() {
-			masterSparky.on(slaveSparky);
+		sparky1.on('ready', function() {
+			sparky1.on(sparky2);
 		});
 
-		return slaveSparky;
+		return sparky2;
 	}
 
 	function isAudioParam(object) {

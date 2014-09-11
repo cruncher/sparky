@@ -9,8 +9,8 @@ module('Event propogation', function(fixture) {
 		Sparky.data = {};
 		Sparky.ctrl = {};
 
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
-			sparky.on('boo', function(sparky) {
+		Sparky.ctrl['test-ctrl'] = function(node, model) {
+			this.on('boo', function(sparky) {
 				ok(sparky === this, 'sparky is target');
 				ok(n++ === 0, 'This event called first');
 			});
@@ -18,10 +18,10 @@ module('Event propogation', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model, sparky) {
-			sparky1 = sparky;
+		Sparky.ctrl['test-ctrl-1'] = function(node, model) {
+			sparky1 = this;
 
-			sparky.on('boo', function(sparky) {
+			this.on('boo', function(sparky) {
 				ok(sparky !== this, 'sparky is not target');
 				ok(n++ === 1, 'This event called second');
 			});
@@ -29,7 +29,7 @@ module('Event propogation', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model, sparky) {
+		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
 			return {};
 		};
 
