@@ -427,7 +427,7 @@
 		// empty object. This means we can launch sparky on a node where a
 		// model is not defined and it will nonetheless pick up and spark
 		// child nodes.
-		scope = ctrl && ctrl(node, model, sparky);
+		scope = ctrl && ctrl.call(sparky, node, model);
 
 		// A controller returning false is telling us not to use data binding.
 		if (scope === false) { return; }
