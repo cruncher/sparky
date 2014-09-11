@@ -50,6 +50,13 @@
 			
 		},
 
+		observe: function(object, property, fn) {
+			Sparky.observe(object, property, fn);
+			this.on('destroy', function() {
+				Sparky.unobserve(object, property, fn);
+			});
+		},
+
 		appendTo: function(node) {
 			var n = -1;
 			while (++n < this.length) {
