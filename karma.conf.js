@@ -15,6 +15,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'src/jquery-2.1.1.js',
+      'src/window.customevent.js',
       'src/window.requestanimationframe.js',
       'src/observe.js',
       'src/mixin.array.js',
