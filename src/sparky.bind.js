@@ -436,9 +436,12 @@
 		function replaceText($0, $1, $2, $3) {
 			var word = get($2);
 
-			return !isDefined(word) ? '' :
-				$3 ? applyFilters(word, $3) :
-				word ;
+			if (!isDefined(word)) {
+				console.warn('[Sparky] {{' + $2 + '}} not found.');
+				return '';
+			}
+
+			return $3 ? applyFilters(word, $3) : word ;
 		}
 
 		function update() {
