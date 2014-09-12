@@ -589,9 +589,11 @@
 
 			if (item) {
 				extend(item, obj);
+				this.trigger('update', item);
 			}
 			else {
 				this.add(obj);
+				this.trigger('add', obj);
 			}
 
 			return this;
