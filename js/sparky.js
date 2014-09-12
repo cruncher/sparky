@@ -2028,15 +2028,9 @@
 		function replaceText($0, $1, $2, $3) {
 			var word = get($2);
 
-			if (!isDefined(word)) {
-				if (window.console && console.warn) {
-					console.warn('[Sparky] ' + ($1.length === 2 ? '{{' : '{{{') + $2 + ($1.length === 2 ? '}}' : '}}}') + '}} not found.');
-				}
-
-				return '';
-			}
-
-			return $3 ? applyFilters(word, $3) : word ;
+			return !isDefined(word) ? '' :
+				$3 ? applyFilters(word, $3) :
+				word ;
 		}
 
 		function update() {
