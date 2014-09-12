@@ -437,7 +437,7 @@
 			var word = get($2);
 
 			if (!isDefined(word)) {
-				console.warn('[Sparky] {{' + $2 + '}} not found.');
+				console.warn('[Sparky] ' + ($1.length === 2 ? '{{' : '{{{') + $2 + ($1.length === 2 ? '}}' : '}}}') + '}} not found.');
 				return '';
 			}
 
