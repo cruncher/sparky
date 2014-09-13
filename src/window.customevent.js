@@ -2,7 +2,7 @@
 // it (IE9 and IE10).
 
 (function(window, undefined) {
-	if (window.CustomEvent) { return; }
+	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
