@@ -37,6 +37,10 @@
 		return s;
 	}
 
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
 	Sparky.filters = {
 		add: function(n) {
 			return parseFloat(this) + n ;
@@ -351,7 +355,7 @@
 		//wordwrap
 
 		yesno: function(truthy, falsy) {
-			return this ? truthy : falsy ;
+			return this ? truthy : isDefined(falsy) ? falsy : '' ;
 		}
 	};
 })(window.Sparky || require('sparky'));
