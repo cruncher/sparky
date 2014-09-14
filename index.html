@@ -37,6 +37,16 @@
 		html {
 			background-color: #eeeeee;
 		}
+
+		.checked {
+			color: green;
+			background-color: pink;
+		}
+
+		.hello {
+			color: white;
+			background-color: black;
+		}
 	</style>
 </head>
 
@@ -45,6 +55,12 @@
 <div class="site-wrap wrap">
 	<input type="text" data-model="object" name="{{a}}" />
 	<p data-model="object">input text: {{a}}</p>
+	<input type="radio" data-model="object" name="{{b}}" value="oui" />
+	<p data-model="object">input: {{b}}</p>
+	<input type="checkbox" data-model="object" name="{{c}}" value="aye" />
+	<p data-model="object">input: {{c}}</p>
+	
+	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -57,11 +73,12 @@
 <script src="src/sparky.throttle.js"></script>
 <script src="src/sparky.observe.js"></script>
 <script src="src/sparky.bind.js"></script>
+<script src="src/sparky.filters.js"></script>
 
 <script>
 	window.o = Sparky.data.object = {
 		a: 0,
-		b: 0
+		c: ''
 	};
 </script>
 

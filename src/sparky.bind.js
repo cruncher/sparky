@@ -349,7 +349,7 @@
 
 	function bindClass(node, bind, unbind, get, unobservers) {
 		var value = node.getAttribute('class');
-
+console.log('bindClass', node, value);
 		if (!value) { return; }
 
 		var update = node instanceof SVGElement ?
