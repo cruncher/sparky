@@ -528,7 +528,7 @@
 
 		if (Sparky.debug === 'verbose') {
 			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && ('model#' + model.id)), ',',
+				(model && model.id && ('model#' + model.id) || 'model'), ',',
 				(ctrl && 'ctrl'), ')'
 			);
 		}

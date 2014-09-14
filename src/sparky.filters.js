@@ -42,16 +42,16 @@
 	}
 
 	Sparky.filters = {
-		add: function(n) {
-			return parseFloat(this) + n ;
+		add: function(value, n) {
+			return parseFloat(value) + n ;
 		},
 
-		capfirst: function() {
-			return this.charAt(0).toUpperCase() + string.substring(1);
+		capfirst: function(value) {
+			return value.charAt(0).toUpperCase() + string.substring(1);
 		},
 
-		cut: function(string) {
-			return this.replace(RegExp(string, 'g'), '');
+		cut: function(value, string) {
+			return value.replace(RegExp(string, 'g'), '');
 		},
 
 		date: (function(M, F, D, l, s) {
@@ -99,8 +99,8 @@
 			
 			var rletter = /([a-zA-Z])/g;
 			
-			return function formatDate(format) {
-				var date = this instanceof Date ? this : new Date(this) ;
+			return function formatDate(value, format) {
+				var date = value instanceof Date ? value : new Date(value) ;
 				
 				return format.replace(rletter, function($0, $1) {
 					return formatters[$1](date);
@@ -108,11 +108,13 @@
 			};
 		})(settings),
 
-		decibels: function() {
-			return 20 * log10(this);
+		decibels: function(value) {
+			return 20 * log10(value);
 		},
 
-		decimals: Number.prototype.toFixed,
+		decimals: function(value) {
+			return Number.prototype.toFixed.call(value);
+		},
 
 		// .default() can't work, because Sparky does not send undefined or null
 		// values to be filtered. 
@@ -130,43 +132,47 @@
 
 			pre.appendChild(text);
 			
-			return function() {
-				text.textContent = this;
+			return function(value) {
+				text.textContent = value;
 				return pre.innerHTML;
 			};
 		})(),
 
-		equal: function(val, string1, string2) {
-			return (this === val ? string1 : string2) || '';
+		equal: function(value, val, string1, string2) {
+			return (value === val ? string1 : string2) || '';
 		},
 
 		//filesizeformat
 
-		first: function() {
-			return this[0];
+		first: function(value) {
+			return value[0];
 		},
 
-		floatformat: Number.prototype.toFixed,
+		floatformat: function(value) {
+			return Number.prototype.toFixed.call(value);
+		},
 
-		get: function(name) {
-			return this[name];
+		get: function(value, name) {
+			return value[name];
 		},
 
 		//get_digit
 		//iriencode
 
-		join: Array.prototype.join,
-
-		json: function() {
-			return JSON.stringify(this);
+		join: function(value) {
+			return Array.prototype.join.apply(value);
 		},
 
-		last: function() {
-			return this[this.length - 1];
+		json: function(value) {
+			return JSON.stringify(value);
 		},
 
-		length: function() {
-			return this.length;
+		last: function(value) {
+			return value[value.length - 1];
+		},
+
+		length: function(value) {
+			return value.length;
 		},
 
 		//length_is
@@ -175,52 +181,57 @@
 		linebreaksbr: (function() {
 			var rbreaks = /\n/;
 			
-			return function() {
-				return this.replace(rbreaks, '<br/>')
+			return function(value) {
+				return value.replace(rbreaks, '<br/>')
 			};
 		})(),
 
 		//linenumbers
 
-		lower: String.prototype.toLowerCase,
-		lowercase: String.prototype.toLowerCase,
+		lower: function(value) {
+			String.prototype.toLowerCase.apply(value);
+		},
+
+		lowercase: function(value) {
+			String.prototype.toLowerCase.apply(value);
+		},
 		
 		//make_list 
 		
-		multiply: function(n) {
-			return this * n;
+		multiply: function(value, n) {
+			return value * n;
 		},
 		
-		parseint: function() {
-			return parseInt(this, 10);
+		parseint: function(value) {
+			return parseInt(value, 10);
 		},
 
-		percent: function() {
-			return this * 100;
+		percent: function(value) {
+			return value * 100;
 		},
 
 		//phone2numeric
 
-		pluralize: function(str1, str2, lang) {
+		pluralize: function(value, str1, str2, lang) {
 			str1 = str1 || '';
 			str2 = str2 || 's';
 			
 			if (lang === 'fr') {
-				return this < 2 ? str1 : str2;
+				return value < 2 ? str1 : str2;
 			}
 			else {
-				return this === 1 ? str1 : str2;
+				return value === 1 ? str1 : str2;
 			}
 		},
 
 		//pprint
 
-		prepad: function(n, char) {
-			var string = this.toString();
+		prepad: function(value, n, char) {
+			var string = value.toString();
 			var l = string.length;
 
 			// String is longer then padding: let it through unprocessed
-			if (n - l < 1) { return this; }
+			if (n - l < 1) { return value; }
 
 			array.length = 0;
 			array.length = n - l;
@@ -228,25 +239,25 @@
 			return array.join(char || ' ');
 		},
 
-		postpad: function(n) {
-			var string = this.toString();
+		postpad: function(value, n) {
+			var string = value.toString();
 			var l = string.length;
 			var m = parseInt(n, 10);
 
-			return m === l ? this :
+			return m === l ? value :
 				m > l ? string + spaces(m-l) :
 				string.substring(0, m) ;
 		},
 
-		random: function() {
-			return this[Math.floor(Math.random() * this.length)];
+		random: function(value) {
+			return value[Math.floor(Math.random() * value.length)];
 		},
 		
 		//raw
 		//removetags
 		
-		replace: function(str1, str2) {
-			return this.replace(RegExp(str1, 'g'), str2);
+		replace: function(value, str1, str2) {
+			return value.replace(RegExp(str1, 'g'), str2);
 		},
 		
 		//reverse
@@ -257,10 +268,12 @@
 
 		//safeseq
 
-		slice: Array.prototype.slice,
-		
-		slugify: function() {
-			return this.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
+		slice: function(value) {
+			return Array.prototype.slice.apply(value);
+		},
+
+		slugify: function(value) {
+			return value.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
 		},
 
 		//sort
@@ -269,8 +282,8 @@
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
 			
-			return function() {
-				return this.replace(rtag, '');
+			return function(value) {
+				return value.replace(rtag, '');
 			};
 		})(),
 		
@@ -285,22 +298,22 @@
 					'' ;
 			}
 			
-			return function(tags) {
+			return function(value, tags) {
 				if (!tags) {
-					return this.replace(rtag, '');
+					return value.replace(rtag, '');
 				}
 				
 				allowedTags = tags.split(' ');
-				result = this.replace(rtag, strip);
+				result = value.replace(rtag, strip);
 				allowedTags = false;
 
 				return result;
 			};
 		})(),
 
-		symbolise: function() {
+		symbolise: function(value) {
 			// Takes infinity values and convert them to infinity symbol
-			var string = this + '';
+			var string = value + '';
 			var infinity = Infinity + '';
 			
 			if (string === infinity) {
@@ -311,7 +324,7 @@
 				return '-∞';
 			}
 
-			return this;
+			return value;
 		},
 
 		time: function() {
@@ -322,19 +335,19 @@
 		//timeuntil
 		//title
 
-		truncatechars: function(n) {
-			return this.length > n ?
-				this.length.slice(0, n) + '&hellips;' :
-				this ;
+		truncatechars: function(value, n) {
+			return value.length > n ?
+				value.length.slice(0, n) + '&hellips;' :
+				value ;
 		},
 
 		//truncatewords
 		//truncatewords_html
 		//unique
 		
-		unordered_list: function() {
+		unordered_list: function(value) {
 			// TODO: Django supports nested lists. 
-			var list = this,
+			var list = value,
 			    length = list.length,
 			    i = -1,
 			    html = '';
@@ -354,8 +367,8 @@
 		//wordcount
 		//wordwrap
 
-		yesno: function(truthy, falsy) {
-			return this ? truthy : isDefined(falsy) ? falsy : '' ;
+		yesno: function(value, truthy, falsy) {
+			return value ? truthy : isDefined(falsy) ? falsy : '' ;
 		}
 	};
 })(window.Sparky || require('sparky'));
