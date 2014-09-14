@@ -32,253 +32,38 @@
 
 	<link rel="stylesheet" href="fonts/fira.css" /-->
 	<link rel="stylesheet" href="css/sparky.css" />
+	
+	<style>
+		html {
+			background-color: #eeeeee;
+		}
+	</style>
 </head>
 
 <body>
 
 <div class="site-wrap wrap">
-	<h1 class="logo-thumb thumb">Sparky</h1>
-	
-	<h3>
-		<strong>Sparky is a model-agnostic live data binding view layer for your html5 app.</strong>
-		Sparky enhances the existing DOM with declarative data bindings,
-		passes data properties through Django-style template filters
-		and renders multiple changes in batches on browser frames.
-	</h3>
-	
-	<h2>Try it.</h2>
-	
-	<p>Open the console and try changing the properties of <code>data</code>, like, say:</p>
-	
-	<ul>
-		<li><code>data.name = 'Sparky'</code>
-		<li><code>data.date = new Date()</code>
-		<li><code>data.list = ['Sparky', 'loves', 'you']</code>
-		<li><code>data.state = 1</code>
-		<li><code>data.number = 4</code>
-	</ul>
-	
-	<p>Changes cause this unrendered template to update...</p>
-
-	<div class="sparky-block state-{{ state }}" data-data="data" id="template1">
-		<p>Hello {{ name }}.</p>
-		<p>It's {{ date | date: 'H:i' }} on the {{ date | date: 'dS F'}}.</p>
-		<p>{{ list | join: '...' }}</p>
-		<p>Here's a random pick from that list: {{ list | random }}</p>
-		<p>Change attributes of inputs:</p>
-		<input value="{{ value }}" />
-		<table>
-			<tr>
-				<td>{{ number }}</td>
-				<td>{{ number | add:1 }}</td>
-			</tr>
-			<tr>
-				<td>{{ number | multiply: 2 }}</td>
-				<td>{{ number | multiply: 2 | add: 1 }}</td>
-			</tr>
-			<tr>
-				<td>{{ number | multiply: 4 }}</td>
-				<td>{{ number | multiply: 4 | add: 1 }}</td>
-			</tr>
-			<tr>
-				<td>{{ number | multiply: 8 }}</td>
-				<td>{{ number | multiply: 8 | add: 1 }}</td>
-			</tr>
-		</table>
-	</div>
-	
-	<p>All that was done by adding the attribute <code>data-data="data"</code></p>
-	
-	<h2>But... I don't want to render directly from a data model.</h2>
-	
-	<p>
-		Sparky allows you to define a view function.
-		If that function returns an object then that object is used as the rendering context instead of the data object.
-		Here's a view function for a clock that updates every second.
-	</p>
-	
-	<pre data-view="code" data-source="clock-source"></pre>
-
-	<p>Add the attribute <code>data-view="clock"</code> to a node, and Sparky calls this view function, passing in the node as the first argument.</p>
-
-	<div class="sparky-block block" data-view="clock" data-data="data" id="template2">
-		<p>{{ time | date: 'H:i.s' }}</p>
-	</div>
-
-	<p>
-		That view function is passed the node and the data object.
-		The <code>data</code> object is found at the path in the <code>data-data="path.to.data"</code> attribute.
-		This is where you put your data 'model': <code>sparky.data.path.to.data = {};</code>
-		If <code>data-data=""</code> is an emtpy string, the root data object, <code>sparky.data</code>, is returned.
-		If nothing is found, or where there is no <code>data-data</code> attribute, the data object is undefined.
-	</p>
+	<input type="text" data-model="object" name="{{a}}" />
+	<p data-model="object">input text: {{a}}</p>
 </div>
-
 
 <script src="src/jquery-2.1.1.js"></script>
+<script src="src/window.customevent.js"></script>
 <script src="src/window.requestanimationframe.js"></script>
+<script src="src/mixin.array.js"></script>
 <script src="src/mixin.events.js"></script>
 <script src="src/observe.js"></script>
-
 <script src="src/sparky.js"></script>
+<script src="src/sparky.throttle.js"></script>
 <script src="src/sparky.observe.js"></script>
 <script src="src/sparky.bind.js"></script>
-<script src="src/sparky.ctrl.js"></script>
-<script src="src/sparky.filters.js"></script>
 
 <script>
-	window.data = {
-		name: '',
-		date: new Date(),
-		state: 4,
-		number: 2,
-		list: ['one', 'two', 'three']
-	};
-	
-	Sparky.observe = observe;
-	Sparky.unobserve = unobserve;
-	Sparky.get = function(data, property) {
-		return data[property];
-	};
-	
-	Sparky.data.data = window.data;
-
-	Sparky.ctrl.code = function(node, data) {
-		var elem = jQuery('#' + node.getAttribute('data-source'));
-		
-		jQuery(node).text(elem.html().trim());
-	};
-	
-	Sparky.ctrl.run = function(node, data) {
-		var fn = new Function(node.innerHTML);
-		jQuery(node).on('click', fn);
+	window.o = Sparky.data.object = {
+		a: 0,
+		b: 0
 	};
 </script>
-
-<script id="clock-source">
-Sparky.ctrl.clock = function(node, data) {
-	var context = {};
-	
-	function update() {
-		context.time = new Date()
-	}
-	
-	setInterval(update, 1000);
-	update();
-	
-	return context;
-};
-</script>
-
-<div class="site-wrap wrap">
-	<h2>Some more examples</h2>
-	<p>
-		Sparky can use a template to replace the content of a view node.
-		Here a <code>data-template</code> attribute refers to the id of a template,
-		and the template is rendered into the view node as soon as data becomes available:
-	</p>
-</div>
-
-<div class="n3-col-block col-block block">
-	<div class="html-block block">
-		<pre class="html-code" data-view="code" data-source="weather-html"></pre>
-	</div
-	><div class="js-block block">
-		<pre class="js-code run-code" data-view="run">
-jQuery.extend(sparky.data.weather, {
-	feel: 'cold',
-	date: new Date(),
-	url: 'images/rowan.jpg',
-	description: 'Rowan berries in the snow.'
-});</pre>
-		<pre class="js-code run-code" data-view="run">sparky.data.weather.feel = 'very chilly';</pre>
-		<pre class="js-code run-code" data-view="run">
-jQuery.extend(sparky.data.weather, {
-	feel: 'toasty',
-	url: 'images/guesswhere.jpg',
-	description: 'Beach. But where?'
-});</pre>
-	</div
-	><div class="view-block block" id="weather-html">
-<div data-data="weather" data-template="weather-template" >
-	<p>Loading...</p>
-</div>
-
-<template id="weather-template">
-	<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
-	<img src="{{ url }}" alt="{{ description }}" />
-</template>
-
-<script>
-	Sparky.data.weather = {};
-</script>
-	</div>
-</div>
-
-<div class="site-wrap wrap">
-	<p>
-		Here's that example again, but this time we have served the page with html and data already in place:
-	</p>
-</div>
-
-<div class="n3-col-block col-block block">
-	<div class="html-block block">
-		<pre class="html-code" data-view="code" data-source="weather2-html"></pre>
-	</div
-	><div class="js-block block">
-		<pre class="js-code run-code" data-view="run">
-jQuery.extend(sparky.data.weather2, {
-	feel: 'cold',
-	date: new Date(),
-	url: 'images/rowan.jpg',
-	description: 'Rowan berries in the snow.'
-});</pre>
-		<pre class="js-code run-code" data-view="run">sparky.data.weather2.feel = 'very chilly';</pre>
-		<pre class="js-code run-code" data-view="run">
-jQuery.extend(sparky.data.weather2, {
-	feel: 'toasty',
-	url: 'images/guesswhere.jpg',
-	description: 'Beach. But where?'
-});</pre>
-	</div
-	><div class="view-block block" id="weather2-html">
-<div data-data="weather2" data-template="weather-template" >
-	<p>It's the 27th October and it's cold outside.</p>
-	<img src="images/rowan.jpg" alt="Rowan berries in the snow." />
-</div>
-
-<template id="weather-template">
-	<p>It's the {{ date|date:'dS F' }} and it's {{ feel }} outside.</p>
-	<img src="{{ url }}" alt="{{ description }}" />
-</template>
-
-<script>
-	Sparky.data.weather2 = {
-		feel: 'cold',
-		date: new Date(),
-		url: 'images/rowan.jpg',
-		description: 'Rowan berries in the snow.'
-	};
-</script>
-	</div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!--input value="{{value}}" data-app="input" data-context="input"/-->
-
-
 
 </body>
 </html>
