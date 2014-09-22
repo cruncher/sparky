@@ -15,6 +15,11 @@
 		return val !== undefined && val !== null;
 	}
 
+	function log(n, base) {
+		var divider = base ? Math.log(base) : Math.LN10;
+		return Math.log(n) / divider;
+	}
+
 	function getName(node) {
 		return node.name.replace('{{', '').replace('}}', '');
 	}
@@ -114,6 +119,62 @@
 	}, function from(value) {
 		return pow(value, 1/3);
 	});
+
+
+	Sparky.ctrl['value-log'] = function(node, model, sparky) {
+		var scope = Sparky.extend({}, model);
+		var name = getName(node);
+		var min = node.min ? parseFloat(node.min) : 0 ;
+		var max = node.max ? parseFloat(node.max) : 1 ;
+		var ratio = max / min;
+		var flag = false;
+
+		if (min <= 0) {
+			console.warn('[Sparky] Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
+			return scope;
+		}
+
+		function updateScope() {
+			var value;
+
+			if (flag) { return; }
+
+			value = denormalise(Math.log(model[name] / min) / Math.log(ratio), min, max);
+
+			if (scope[name] !== value) {
+				flag = true;
+				scope[name] = value;
+				flag = false;
+			}
+		}
+
+		function updateModel() {
+			var value;
+
+			if (flag) { return; }
+
+			value = min * Math.pow(ratio, normalise(scope[name], min, max));
+
+			if (model[name] !== value) {
+				flag = true;
+				model[name] = value;
+				flag = false;
+			}
+		}
+
+		sparky
+		.on('ready', function() {
+			Sparky.observe(model, name, updateScope);
+			Sparky.observe(scope, name, updateModel);
+			updateScope();
+		})
+		.on('destroy', function() {
+			Sparky.unobserve(model, name, updateScope);
+			Sparky.unobserve(scope, name, updateModel);
+		});
+
+		return scope;
+	};
 })();
 
 (function() {

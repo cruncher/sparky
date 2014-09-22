@@ -534,19 +534,20 @@
 		return sparky;
 	}
 
-	Sparky.debug       = false;
-	Sparky.config      = {};
-	Sparky.settings    = {};
-	Sparky.data        = {};
-	Sparky.ctrl        = {};
-	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.Collection  = ns.Collection;
-	Sparky.templates   = templates;
-	Sparky.features    = features;
-	Sparky.template    = fetchTemplate;
-	Sparky.extend      = extend;
-	Sparky.prototype   = prototype;
-
+	Sparky.debug        = false;
+	Sparky.config       = {};
+	Sparky.settings     = {};
+	Sparky.data         = {};
+	Sparky.ctrl         = {};
+	Sparky.mixin        = ns.mixin || (ns.mixin = {});
+	Sparky.Collection   = ns.Collection;
+	Sparky.templates    = templates;
+	Sparky.features     = features;
+	Sparky.template     = fetchTemplate;
+	Sparky.extend       = extend;
+	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
+	Sparky.prototype    = prototype;
+ 
 	ns.Sparky = Sparky;
 })(window);
 
