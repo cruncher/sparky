@@ -121,7 +121,7 @@
 	});
 
 
-	Sparky.ctrl['value-log'] = function(node, model, sparky) {
+	Sparky.ctrl['value-log'] = function(node, model) {
 		var scope = Sparky.extend({}, model);
 		var name = getName(node);
 		var min = node.min ? parseFloat(node.min) : 0 ;
@@ -162,7 +162,7 @@
 			}
 		}
 
-		sparky
+		this
 		.on('ready', function() {
 			Sparky.observe(model, name, updateScope);
 			Sparky.observe(scope, name, updateModel);
