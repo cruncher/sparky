@@ -113,10 +113,12 @@ and string names of controllers in <code>Sparky.ctrls</code>.
 #### Sparky() creates a sparky object
 
 The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. 
-The sparky object emits lifecycle and custom events. A sparky object is passed to the
-controller, and returned from the <code>Sparky</code> function.
+A controller is always called with a new <code>sparky</code> object as the <code>this</code> value.
+The controller can be used to extend it.
+The sparky object emits lifecycle events – and custom events, so that you can hook it into rest of
+your app if necessary – and has a few methods for controlling the view.
 
-    Sparky.ctrls['user-card'] = function(node, model, sparky) {
+    Sparky.ctrls['user-card'] = function(node, model) {
         var scope = { username: 'unknown'; };
         
         function update() {
@@ -125,7 +127,7 @@ controller, and returned from the <code>Sparky</code> function.
         
         Sparky.observe(model, 'username', update);
         
-        sparky
+        this
         .on('ready', function() {
             // The node has bound and has been populated with any
             // existing model data.
