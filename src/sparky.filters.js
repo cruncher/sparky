@@ -112,8 +112,8 @@
 			return 20 * log10(value);
 		},
 
-		decimals: function(value) {
-			return Number.prototype.toFixed.call(value);
+		decimals: function(value, n) {
+			return Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -148,8 +148,8 @@
 			return value[0];
 		},
 
-		floatformat: function(value) {
-			return Number.prototype.toFixed.call(value);
+		floatformat: function(value, n) {
+			return Number.prototype.toFixed.call(value, n);
 		},
 
 		get: function(value, name) {
