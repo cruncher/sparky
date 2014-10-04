@@ -393,7 +393,7 @@
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']')
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
 		};
 	}
 
