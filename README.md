@@ -79,7 +79,7 @@ Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
 is used as scope to render the node. In Sparky scope objects are just plain objects
 you create.
 
-    Sparky.ctrls['user-card'] = function(node, model, sparky) {
+    Sparky.ctrls['user-card'] = function(node, model) {
         var scope = { username: 'unknown'; };
         
         Sparky.observe(model, 'username', function() {
