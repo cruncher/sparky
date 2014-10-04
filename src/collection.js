@@ -146,9 +146,11 @@
 
 			if (item) {
 				extend(item, obj);
+				this.trigger('update', item);
 			}
 			else {
 				this.add(obj);
+				this.trigger('add', obj);
 			}
 
 			return this;
@@ -238,7 +240,7 @@
 		}
 	};
 
-	ns.Collection = function Collection(data, index) {
+	function Collection(data, index) {
 		var collection = Object.create(prototype, properties);
 
 		index = index || 'id';
@@ -293,5 +295,9 @@
 		return collection;
 	};
 
-	ns.Collection.prototype = prototype;
+	Collection.prototype = prototype;
+	Collection.add = add;
+	Collection.remove = remove;
+
+	ns.Collection = Collection;
 })(this, this.mixin);

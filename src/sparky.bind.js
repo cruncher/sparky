@@ -60,8 +60,10 @@
 	    	3: textNode,
 	    	11: fragmentNode
 	    };
-	
+
 	var empty = [];
+
+	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
@@ -85,6 +87,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -104,6 +107,7 @@
 	    			
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
+	    				node.dispatchEvent(changeEvent);
 	    			});
 	    			
 	    			bind(prop, throttle);
@@ -134,6 +138,7 @@
 	    				// causes the cursor to jump in text fields
 	    				if (node.value !== (value + '')) {
 	    					node.value = value;
+	    					node.dispatchEvent(changeEvent);
 	    				}
 	    			});
 
@@ -175,6 +180,7 @@
 	    		var throttle = Sparky.Throttle(function setValue() {
 	    			var value = get(prop);
 	    			node.value = isDefined(value) ? value : '' ;
+	    			node.dispatchEvent(changeEvent);
 	    		});
 
 	    		bind(prop, throttle);
@@ -219,6 +225,7 @@
 	    			// causes the cursor to jump in text fields
 	    			if (node.value !== (value + '')) {
 	    				node.value = isDefined(value) ? value : '' ;
+	    				node.dispatchEvent(changeEvent);
 	    			}
 	    		});
 
@@ -383,27 +390,33 @@
 		return {
 			name: parts[1],
 			fn: Sparky.filters[parts[1]],
-			args: parts[2] && JSON.parse('[' + parts[2].replace(/\'/g, '\"') + ']')
+
+			// Leave the first arg empty. It will be populated with the value to
+			// be filtered when the filter fn is called.
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']')
 		};
 	}
 
 	function applyFilters(word, filterString) {
 		var filters = filterCache[filterString] || (
 		    	filterCache[filterString] = filterString.split('|').map(toFilter)
-		    ),
-		    l = filters.length,
-		    n = -1;
+		    );
+		var l = filters.length;
+		var n = -1;
+		var args;
 
 		while (++n < l) {
 			if (!filters[n].fn) {
 				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
-			
+
 			if (Sparky.debug === 'filter') {
 				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
-			
-			word = filters[n].fn.apply(word, filters[n].args);
+
+			args = filters[n].args;
+			args[0] = word;
+			word = filters[n].fn.apply(Sparky, args);
 		}
 
 		return word;
@@ -428,13 +441,15 @@
 
 		function replaceText($0, $1, $2, $3) {
 			var word = get($2);
-
-			return !isDefined(word) ? '' :
+			var output = !isDefined(word) ? '' :
 				$3 ? applyFilters(word, $3) :
 				word ;
+
+			return output;
 		}
 
 		function update() {
+			
 			fn(text.replace(rname, replaceText));
 		}
 

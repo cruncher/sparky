@@ -77,9 +77,9 @@
 	};
 
 	function createInputCtrl(to, from) {
-		return function(node, model, sparky) {
+		return function(node, model) {
 			var scope = Sparky.extend({}, model);
-			sparky.on('ready', ready, node, scope, model, to, from);
+			this.on('ready', ready, node, scope, model, to, from);
 			return scope;
 		};
 	};

@@ -1,31 +1,33 @@
-// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
- 
-// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
- 
-// MIT license
- 
+// Polyfill for requestAnimationFrame
+//
+// Stephen Band
+// 
+// The frameDuration is set to 33ms by default for a framerate of 30fps, the
+// thinking being that browsers without requestAnimationFrame are generally a
+// little slower and less optimised for higher rates.
+
 (function() {
-    var lastTime = 0;
+    var frameDuration = 40;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
-                                   || window[vendors[x]+'CancelRequestAnimationFrame'];
+    var n = vendors.length;
+
+    while (n-- && !window.requestAnimationFrame) {
+        window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
+        window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
     }
- 
-    if (!window.requestAnimationFrame)
+
+    if (!window.requestAnimationFrame) {
         window.requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
-            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
-              timeToCall);
-            lastTime = currTime + timeToCall;
+            var lastTime = frameDuration * (currTime % frameDuration);
+            var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
             return id;
         };
- 
-    if (!window.cancelAnimationFrame)
+    }
+
+    if (!window.cancelAnimationFrame) {
         window.cancelAnimationFrame = function(id) {
             clearTimeout(id);
         };
+    }
 }());

@@ -50,6 +50,13 @@
 			
 		},
 
+		observe: function(object, property, fn) {
+			Sparky.observe(object, property, fn);
+			this.on('destroy', function() {
+				Sparky.unobserve(object, property, fn);
+			});
+		},
+
 		appendTo: function(node) {
 			var n = -1;
 			while (++n < this.length) {
@@ -160,8 +167,8 @@
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	function defaultCtrl(node, model, sparky) {
-		sparky.on('destroy', function(sparky, node) { removeNode(node) }, node);
+	function defaultCtrl(node, model) {
+		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
 		return model;
 	}
 
@@ -319,15 +326,15 @@
 		].join('');
 	}
 
-	function slaveSparky(masterSparky, slaveSparky) {
+	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, overwrite the trigger method
 		// to trigger all events on the slave sparky immediately
 		// following the trigger on the master.
-		masterSparky.on('ready', function() {
-			masterSparky.on(slaveSparky);
+		sparky1.on('ready', function() {
+			sparky1.on(sparky2);
 		});
 
-		return slaveSparky;
+		return sparky2;
 	}
 
 	function isAudioParam(object) {
@@ -427,7 +434,7 @@
 		// empty object. This means we can launch sparky on a node where a
 		// model is not defined and it will nonetheless pick up and spark
 		// child nodes.
-		scope = ctrl && ctrl(node, model, sparky);
+		scope = ctrl && ctrl.call(sparky, node, model);
 
 		// A controller returning false is telling us not to use data binding.
 		if (scope === false) { return; }
@@ -521,7 +528,7 @@
 
 		if (Sparky.debug === 'verbose') {
 			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && ('model#' + model.id)), ',',
+				(model && model.id && ('model#' + model.id) || 'model'), ',',
 				(ctrl && 'ctrl'), ')'
 			);
 		}
