@@ -45,19 +45,40 @@ JS:
         return scope;
     };
 
-Sparky is now observing changes to the model <code>'my-data'</code>.
-When <code>model.title</code> changes, the <code>input</code> value and the text
-inside the <code>&lt;p&gt;</code> are re-rendered. Sparky takes the <code>scope</code>
-object returned by the controller, listens to it for changes and live-updates the DOM.
+Sparky takes the <code>scope</code> object returned by the controller, listens
+to it for changes and live-updates the DOM. Here Sparky updates the
+<code>input</code> value and the text inside <code>&lt;p&gt;</code> when
+<code>scope.title</code> changes.
 
-Where the <code>ctrl</code> function returns <code>undefined</code>, the model is
-used directly as scope.
+The controller is observing changes to the model <code>'my-data'</code> and
+updating the <code>scope</code>.
 
-Similarly, if there is no <code>data-ctrl</code> attribute in the html, there is no
-controller, so Sparky uses the model as scope.
+Inputs get two-way data binding. Typing text into the input will live-update
+<code>model.title</code>.
 
-Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined for Sparky to
-template the contents of a node.
+Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined
+for Sparky to template a node. Where there is no <code>data-model</code>
+attribute, the controller is passed just one argument, <code>node</code>. If
+there is no <code>data-ctrl</code> attribute Sparky uses the model
+directly as scope. 
+
+If we didn't care about converting text from uppercase to lowercase, the example
+above could be written without the controller, and Sparky would use the model
+directly as scope:
+
+HTML:
+
+    <div class="{{type}}-block" data-model="my-data">
+        <input type="text" name="{{title}}" />
+        <p>{{title}} by Sparky!</p>
+    </div>
+
+JS:
+
+    Sparky.data['my-data'] = {
+        title: 'my data',
+        type: 'data'
+    };
 
 Sparky also understands how to bind to some SVG attributes. Read more about <a href="#sparky-templates">Sparky templates</a>.
 
