@@ -96,13 +96,19 @@
 	}
 
 	function remove(array, obj, i) {
+		var found = false;
+
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
 			if (obj === array[i]) {
 				array.splice(i, 1);
+				--i;
+				found = true;
 			}
 		}
+		
+		return found;
 	}
 
 	function invalidateCaches(collection) {
@@ -136,9 +142,12 @@
 		}),
 
 		remove: multiarg(function(item) {
-			item = this.find(item);
-			remove(this, item);
-			this.trigger('remove', item);
+			var obj = this.find(item);
+
+			if (!obj) { return; }
+
+			remove(this, obj);
+			this.trigger('remove', obj);
 		}),
 
 		update: multiarg(function(obj) {

@@ -24,6 +24,7 @@
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
 	    rbracket = /\]$/,
+	    rpathtrimmer = /^\[|]$/g,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
@@ -172,21 +173,23 @@
 		return model;
 	}
 
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
 	function objFrom(obj, array) {
 		var key = array.shift();
 		var val = obj[key];
-		
-		//if (val === undefined) {
-		//	val = obj[key] = {};
-		//}
-		
-		return isDefined(val) && array.length ?
+
+		return array.length && isDefined(val) ?
 			objFrom(val, array) :
 			val ;
 	}
 
 	function objFromPath(obj, path) {
-		return objFrom(obj, path.replace(rbracket, '').split(rpathsplitter));
+		return obj[path] || objFrom(obj, splitPath(path)) ;
 	}
 
 	function objTo(root, array, obj) {
@@ -198,7 +201,7 @@
 	}
 
 	function objToPath(root, path, obj) {
-		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
+		return objTo(root, splitPath(path), obj);
 	}
 
 	function findByPath(obj, path) {
@@ -207,16 +210,6 @@
 		return path === '.' ?
 			obj :
 			objFromPath(obj, path) ;
-	}
-	
-	function dirtyObserve(obj, prop, fn) {
-		var array = obj.slice();
-		
-		setInterval(function() {
-			if (obj.length === array.length) { return; }
-			array = obj.slice();
-			fn(obj);
-		}, 16);
 	}
 
 	function setupCollection(node, model, ctrl) {
@@ -360,11 +353,11 @@
 		}
 
 		function get(property) {
-			return scope[property];
+			return objFromPath(scope, property);
 		}
 
 		function set(property, value) {
-			scope[property] = value;
+			objToPath(scope, property, value);
 		}
 
 		function create(node) {
@@ -446,15 +439,33 @@
 		}
 
 		function observe(property, fn) {
-			Sparky.observe(scope, property, fn);
+			var path = splitPath(property);
+			var obj = scope;
+			var prop = property;
+
+			if (path.length > 1) {
+				prop = path.pop();
+				obj = objFrom(scope, path);
+			}
+
+			Sparky.observe(obj, prop, fn);
 
 			if (templateFragment) {
-				Sparky.observe(scope, property, insert);
+				Sparky.observe(obj, prop, insert);
 			}
 		}
 
 		function unobserve(property, fn) {
-			Sparky.unobserve(scope, property, fn);
+			var path = splitPath(property);
+			var obj = scope;
+			var prop = property;
+
+			if (path.length > 1) {
+				prop = path.pop();
+				obj = objFrom(scope, path);
+			}
+
+			Sparky.unobserve(obj, prop, fn);
 		}
 
 		// The bind function returns an array of unbind functions.

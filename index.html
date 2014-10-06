@@ -55,6 +55,8 @@
 <div class="site-wrap wrap">
 	<input type="text" data-model="object" name="{{a}}" />
 	<p data-model="object">input text: {{a}}</p>
+	<input type="text" data-model="object" name="{{data.name}}" />
+	<p data-model="object">input text: {{data.name}}</p>
 	<input type="radio" data-model="object" name="{{b}}" value="oui" />
 	<p data-model="object">input: {{b}}</p>
 	<input type="checkbox" data-model="object" name="{{c}}" value="aye" />
@@ -78,7 +80,10 @@
 <script>
 	window.o = Sparky.data.object = {
 		a: 0,
-		c: ''
+		c: '',
+		data: {
+			name: 'Sparky'
+		}
 	};
 </script>
 
