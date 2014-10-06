@@ -11,42 +11,57 @@ Sparky traverses the DOM automatically on <code>load</code>. It binds nodes with
 and passes nodes with a <code>data-ctrl</code> attribute into controller functions
 stored in <code>Sparky.ctrls</code>.
 
+HTML:
+
+    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
+        <input type="text" name="{{title}}" />
+        <p>{{title}} by Sparky!</p>
+    </div>
+
 JS:
 
     Sparky.data['my-data'] = {
-        title: 'My data',
+        title: 'my data',
         type: 'data'
     };
 
     Sparky.ctrls['my-ctrl'] = function(node, model) {
         var scope = {
             title: model.title,
-            class: ''
+            type: model.type
         };
-        
-        Sparky.observe(model, 'type', function() {
-            scope.class = model.type === 'data' ?
-                'active' :
-                'inactive' ;
+
+        // Watch for changes to title
+        Sparky.observe(model, 'title', function() {
+            scope.title = model.title.toUpperCase();
         });
-        
+
+        Sparky.observe(scope, 'title', function() {
+            model.title = scope.title.toLowerCase();
+        });
+
+        // Return the scope object Sparky uses to
+        // render the node.
         return scope;
     };
 
-HTML:
+Sparky is now observing changes to the model <code>'my-data'</code>.
+When <code>model.title</code> changes, the <code>input</code> value and the text
+inside the <code>&lt;p&gt;</code> are re-rendered. Sparky takes the <code>scope</code>
+object returned by the controller, listens to it for changes, and renders changes into the DOM.
 
-    <div class="{{class}}-block" data-model="my-data" data-ctrl="my-ctrl">
-        <p>{{title}}</p>
-    </div>
+Where the <code>ctrl</code> function returns <code>undefined</code>, the model is
+used directly as scope.
 
-Sparky is now observing changes to the model object <code>Sparky.data['my-data']</code>.
-When <code>model.type</code> changes, the <code>class</code> attribute is re-rendered
-using the <code>scope</code> object returned by the controller.
+Similarly, if there is no <code>data-ctrl</code> attribute in the html, there is no
+controller, so Sparky uses the model as scope.
 
-Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined. If a
-<code>data-ctrl</code> is not given, Sparky uses the <code>model</code> directly as the
-scope. If <code>data-model</code> is not given, <code>model</code> is <code>undefined</code>
-inside the controller.
+Where a <code>data-model</code> attribute is not given, the controller is called with
+one argument, <code>node</code>.
+
+Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined for Sparky to
+template the contents of the node.
+
 
 Sparky also understands how to bind to some SVG attributes. Read more about <a href="#sparky-templates">Sparky templates</a>.
 
