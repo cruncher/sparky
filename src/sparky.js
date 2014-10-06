@@ -189,7 +189,11 @@
 	}
 
 	function objFromPath(obj, path) {
-		return obj[path] || objFrom(obj, splitPath(path)) ;
+		var array = splitPath(path);
+		
+		return array.length === 1 ?
+			obj[path] :
+			objFrom(obj, array) ;
 	}
 
 	function objTo(root, array, obj) {
@@ -201,7 +205,11 @@
 	}
 
 	function objToPath(root, path, obj) {
-		return objTo(root, splitPath(path), obj);
+		var array = splitPath(path);
+
+		return array.length === 1 ?
+			(root[path] = obj) :
+			objTo(root, array, obj);
 	}
 
 	function findByPath(obj, path) {
