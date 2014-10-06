@@ -541,13 +541,19 @@
 	}
 
 	function remove(array, obj, i) {
+		var found = false;
+
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
 			if (obj === array[i]) {
 				array.splice(i, 1);
+				--i;
+				found = true;
 			}
 		}
+		
+		return found;
 	}
 
 	function invalidateCaches(collection) {
@@ -581,9 +587,12 @@
 		}),
 
 		remove: multiarg(function(item) {
-			item = this.find(item);
-			remove(this, item);
-			this.trigger('remove', item);
+			var obj = this.find(item);
+
+			if (!obj) { return; }
+
+			remove(this, obj);
+			this.trigger('remove', obj);
 		}),
 
 		update: multiarg(function(obj) {
@@ -773,6 +782,7 @@
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
 	    rbracket = /\]$/,
+	    rpathtrimmer = /^\[|]$/g,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
@@ -921,21 +931,23 @@
 		return model;
 	}
 
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
 	function objFrom(obj, array) {
 		var key = array.shift();
 		var val = obj[key];
-		
-		//if (val === undefined) {
-		//	val = obj[key] = {};
-		//}
-		
-		return isDefined(val) && array.length ?
+
+		return array.length && isDefined(val) ?
 			objFrom(val, array) :
 			val ;
 	}
 
 	function objFromPath(obj, path) {
-		return objFrom(obj, path.replace(rbracket, '').split(rpathsplitter));
+		return obj[path] || objFrom(obj, splitPath(path)) ;
 	}
 
 	function objTo(root, array, obj) {
@@ -947,7 +959,7 @@
 	}
 
 	function objToPath(root, path, obj) {
-		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
+		return objTo(root, splitPath(path), obj);
 	}
 
 	function findByPath(obj, path) {
@@ -956,16 +968,6 @@
 		return path === '.' ?
 			obj :
 			objFromPath(obj, path) ;
-	}
-	
-	function dirtyObserve(obj, prop, fn) {
-		var array = obj.slice();
-		
-		setInterval(function() {
-			if (obj.length === array.length) { return; }
-			array = obj.slice();
-			fn(obj);
-		}, 16);
 	}
 
 	function setupCollection(node, model, ctrl) {
@@ -1109,11 +1111,11 @@
 		}
 
 		function get(property) {
-			return scope[property];
+			return objFromPath(scope, property);
 		}
 
 		function set(property, value) {
-			scope[property] = value;
+			objToPath(scope, property, value);
 		}
 
 		function create(node) {
@@ -1195,15 +1197,33 @@
 		}
 
 		function observe(property, fn) {
-			Sparky.observe(scope, property, fn);
+			var path = splitPath(property);
+			var obj = scope;
+			var prop = property;
+
+			if (path.length > 1) {
+				prop = path.pop();
+				obj = objFrom(scope, path);
+			}
+
+			Sparky.observe(obj, prop, fn);
 
 			if (templateFragment) {
-				Sparky.observe(scope, property, insert);
+				Sparky.observe(obj, prop, insert);
 			}
 		}
 
 		function unobserve(property, fn) {
-			Sparky.unobserve(scope, property, fn);
+			var path = splitPath(property);
+			var obj = scope;
+			var prop = property;
+
+			if (path.length > 1) {
+				prop = path.pop();
+				obj = objFrom(scope, path);
+			}
+
+			Sparky.unobserve(obj, prop, fn);
 		}
 
 		// The bind function returns an array of unbind functions.
@@ -1290,19 +1310,20 @@
 		return sparky;
 	}
 
-	Sparky.debug       = false;
-	Sparky.config      = {};
-	Sparky.settings    = {};
-	Sparky.data        = {};
-	Sparky.ctrl        = {};
-	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.Collection  = ns.Collection;
-	Sparky.templates   = templates;
-	Sparky.features    = features;
-	Sparky.template    = fetchTemplate;
-	Sparky.extend      = extend;
-	Sparky.prototype   = prototype;
-
+	Sparky.debug        = false;
+	Sparky.config       = {};
+	Sparky.settings     = {};
+	Sparky.data         = {};
+	Sparky.ctrl         = {};
+	Sparky.mixin        = ns.mixin || (ns.mixin = {});
+	Sparky.Collection   = ns.Collection;
+	Sparky.templates    = templates;
+	Sparky.features     = features;
+	Sparky.template     = fetchTemplate;
+	Sparky.extend       = extend;
+	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
+	Sparky.prototype    = prototype;
+ 
 	ns.Sparky = Sparky;
 })(window);
 
@@ -1987,7 +2008,7 @@
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']')
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
 		};
 	}
 
@@ -2101,6 +2122,11 @@
 		return val !== undefined && val !== null;
 	}
 
+	function log(n, base) {
+		var divider = base ? Math.log(base) : Math.LN10;
+		return Math.log(n) / divider;
+	}
+
 	function getName(node) {
 		return node.name.replace('{{', '').replace('}}', '');
 	}
@@ -2200,6 +2226,62 @@
 	}, function from(value) {
 		return pow(value, 1/3);
 	});
+
+
+	Sparky.ctrl['value-log'] = function(node, model) {
+		var scope = Sparky.extend({}, model);
+		var name = getName(node);
+		var min = node.min ? parseFloat(node.min) : 0 ;
+		var max = node.max ? parseFloat(node.max) : 1 ;
+		var ratio = max / min;
+		var flag = false;
+
+		if (min <= 0) {
+			console.warn('[Sparky] Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
+			return scope;
+		}
+
+		function updateScope() {
+			var value;
+
+			if (flag) { return; }
+
+			value = denormalise(Math.log(model[name] / min) / Math.log(ratio), min, max);
+
+			if (scope[name] !== value) {
+				flag = true;
+				scope[name] = value;
+				flag = false;
+			}
+		}
+
+		function updateModel() {
+			var value;
+
+			if (flag) { return; }
+
+			value = min * Math.pow(ratio, normalise(scope[name], min, max));
+
+			if (model[name] !== value) {
+				flag = true;
+				model[name] = value;
+				flag = false;
+			}
+		}
+
+		this
+		.on('ready', function() {
+			Sparky.observe(model, name, updateScope);
+			Sparky.observe(scope, name, updateModel);
+			updateScope();
+		})
+		.on('destroy', function() {
+			Sparky.unobserve(model, name, updateScope);
+			Sparky.unobserve(scope, name, updateModel);
+		});
+
+		return scope;
+	};
 })();
 
 (function() {
@@ -2327,8 +2409,8 @@
 			return 20 * log10(value);
 		},
 
-		decimals: function(value) {
-			return Number.prototype.toFixed.call(value);
+		decimals: function(value, n) {
+			return Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -2363,8 +2445,8 @@
 			return value[0];
 		},
 
-		floatformat: function(value) {
-			return Number.prototype.toFixed.call(value);
+		floatformat: function(value, n) {
+			return Number.prototype.toFixed.call(value, n);
 		},
 
 		get: function(value, name) {
