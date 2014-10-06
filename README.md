@@ -48,7 +48,7 @@ JS:
 Sparky is now observing changes to the model <code>'my-data'</code>.
 When <code>model.title</code> changes, the <code>input</code> value and the text
 inside the <code>&lt;p&gt;</code> are re-rendered. Sparky takes the <code>scope</code>
-object returned by the controller, listens to it for changes, and renders changes into the DOM.
+object returned by the controller, listens to it for changes and live-updates the DOM.
 
 Where the <code>ctrl</code> function returns <code>undefined</code>, the model is
 used directly as scope.
@@ -56,12 +56,8 @@ used directly as scope.
 Similarly, if there is no <code>data-ctrl</code> attribute in the html, there is no
 controller, so Sparky uses the model as scope.
 
-Where a <code>data-model</code> attribute is not given, the controller is called with
-one argument, <code>node</code>.
-
 Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined for Sparky to
-template the contents of the node.
-
+template the contents of a node.
 
 Sparky also understands how to bind to some SVG attributes. Read more about <a href="#sparky-templates">Sparky templates</a>.
 
