@@ -80,7 +80,10 @@ JS:
         type: 'data'
     };
 
-Sparky also understands how to bind to some SVG attributes. Read more about <a href="#sparky-templates">Sparky templates</a>.
+This is a very simple way to get an app working quickly on a page.
+
+Sparky also understands how to bind to some SVG attributes.
+Read more about <a href="#sparky-templates">Sparky templates</a>.
 
 ## Sparky(node, model, ctrl)
 
