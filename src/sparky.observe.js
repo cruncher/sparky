@@ -1,3 +1,5 @@
+// Sparky.observe()
+// Sparky.unobserve()
 
 (function(Sparky) {
 	"use strict";
