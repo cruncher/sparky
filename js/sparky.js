@@ -1,3 +1,4 @@
+
 // window.CustomEvent polyfill
 
 (function(window, undefined) {
@@ -14,6 +15,7 @@
 	
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
+
 
 // window.requestAnimationFrame polyfill
 
@@ -43,6 +45,7 @@
 	}
 })(window);
 
+
 // Number.isNaN(n) polyfill
 
 if (!Number.isNaN) {
@@ -59,6 +62,7 @@ if (!Number.isNaN) {
 		});
 	})(isNaN);
 }
+
 
 // mixin.array
 
@@ -86,6 +90,7 @@ if (!Number.isNaN) {
 		}
 	};
 })(this);
+
 
 // mixin.events
 
@@ -328,6 +333,7 @@ if (!Number.isNaN) {
 	};
 })(this);
 
+
 // observe(obj, [prop], fn)
 // unobserve(obj, [prop], [fn])
 // 
@@ -456,6 +462,7 @@ if (!Number.isNaN) {
 	ns.observe = observe;
 	ns.unobserve = unobserve;
 })(window);
+
 
 // Collection()
 
@@ -771,6 +778,7 @@ if (!Number.isNaN) {
 
 	ns.Collection = Collection;
 })(this, this.mixin);
+
 
 // Sparky
 // 
@@ -1423,6 +1431,7 @@ if (!Number.isNaN) {
 	});
 })(jQuery, Sparky);
 
+
 // Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
@@ -1913,6 +1922,7 @@ if (!Number.isNaN) {
 	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));
 
+
 // Sparky.observe()
 // Sparky.unobserve()
 
@@ -2081,6 +2091,7 @@ if (!Number.isNaN) {
 	})(Sparky)
 })(Sparky);
 
+
 // Sparky.Throttle(fn)
 
 (function() {
@@ -2132,6 +2143,7 @@ if (!Number.isNaN) {
 
 	Sparky.Throttle = Throttle;
 })(Sparky);
+
 
 // Sparky.ctrls
 
@@ -2324,6 +2336,7 @@ if (!Number.isNaN) {
 		debugger;
 	};
 })();
+
 
 // Sparky.filters
 
