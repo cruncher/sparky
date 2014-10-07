@@ -1,6 +1,4 @@
-// window.CustomEvent
-//
-// Polyfill the CustomEvent API
+// window.CustomEvent polyfill
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
