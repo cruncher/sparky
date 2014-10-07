@@ -1,4 +1,4 @@
-// Sparky controllers.
+// Sparky.ctrls
 
 (function() {
 	"use strict";

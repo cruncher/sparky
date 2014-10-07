@@ -1,4 +1,4 @@
-// DOM Binder
+// Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
 // in the nodes that display that data via template tags such as {{ name }}.

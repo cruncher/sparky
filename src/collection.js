@@ -1,3 +1,5 @@
+// Collection()
+
 (function(ns, mixin, undefined) {
 	"use strict";
 

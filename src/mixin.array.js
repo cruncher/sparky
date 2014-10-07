@@ -1,3 +1,5 @@
+// mixin.array
+
 (function(ns, undefined) {
 	"use strict";
 
