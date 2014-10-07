@@ -1,5 +1,6 @@
-// Polyfill the CustomEvent API for brosers that don't have
-// it (IE9 and IE10).
+// window.CustomEvent
+//
+// Polyfill the CustomEvent API
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
@@ -15,39 +16,41 @@
 	
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
-// Polyfill for requestAnimationFrame
-//
-// Stephen Band
+
+// window.requestAnimationFrame
 // 
-// The frameDuration is set to 33ms by default for a framerate of 30fps, the
+// Polyfill for requestAnimationFrame.
+//
+// The frameDuration is set to 40ms by default for a framerate of 25fps, the
 // thinking being that browsers without requestAnimationFrame are generally a
 // little slower and less optimised for higher rates.
 
-(function() {
-    var frameDuration = 40;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    var n = vendors.length;
+(function(window) {
+	var frameDuration = 40;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	var n = vendors.length;
 
-    while (n-- && !window.requestAnimationFrame) {
-        window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
-    }
+	while (n-- && !window.requestAnimationFrame) {
+		window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
+	}
 
-    if (!window.requestAnimationFrame) {
-        window.requestAnimationFrame = function(callback, element) {
-            var currTime = new Date().getTime();
-            var lastTime = frameDuration * (currTime % frameDuration);
-            var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
-            return id;
-        };
-    }
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var lastTime = frameDuration * (currTime % frameDuration);
+			var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
+			return id;
+		};
+	}
 
-    if (!window.cancelAnimationFrame) {
-        window.cancelAnimationFrame = function(id) {
-            clearTimeout(id);
-        };
-    }
-}());
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		};
+	}
+})(window);
+
 (function(ns, undefined) {
 	"use strict";
 
@@ -313,6 +316,7 @@
 		}
 	};
 })(this);
+
 // Observe and unobserve
 // 
 // observe(obj, [prop], fn)
@@ -443,6 +447,7 @@
 	ns.observe = observe;
 	ns.unobserve = unobserve;
 })(window);
+
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -781,7 +786,6 @@
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rbracket = /\]$/,
 	    rpathtrimmer = /^\[|]$/g,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
@@ -1408,6 +1412,9 @@
 	});
 })(jQuery, Sparky);
 
+// Sparky.observe()
+// Sparky.unobserve()
+
 (function(Sparky) {
 	"use strict";
 
@@ -1572,6 +1579,9 @@
 		};
 	})(Sparky)
 })(Sparky);
+
+// Sparky.Throttle(fn)
+
 (function() {
 	"use strict";
 
@@ -1621,6 +1631,7 @@
 
 	Sparky.Throttle = Throttle;
 })(Sparky);
+
 // DOM Binder
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
@@ -1866,12 +1877,10 @@
 
 	function noop() {}
 
-	function call(fn) {
-		fn();
-	}
+	function call(fn) { fn(); }
 
-	function isDefined(val) {
-		return val !== undefined && val !== null;
+	function isDefined(n) {
+		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
 	function normalise(value) {
@@ -1906,11 +1915,12 @@
 	}
 
 	function textNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
 		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
-		});
+		}, unobservers);
 
-		return [detachFn];
+		return unobservers;
 	}
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
@@ -1980,7 +1990,7 @@
 				updateClassHTML.bind(this, node) ;
 
 		// TODO: only replace classes we've previously set here
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
@@ -2004,7 +2014,7 @@
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
 
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function toFilter(filter) {
@@ -2059,20 +2069,19 @@
 		return properties;
 	}
 
-	function observeProperties(text, bind, unbind, get, fn) {
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var properties = extractProperties(text);
+		return properties.length && observeProperties2(text, bind, unbind, get, fn, unobservers, properties);
+	}
 
+	function observeProperties2(text, bind, unbind, get, fn, unobservers, properties) {
 		function replaceText($0, $1, $2, $3) {
-			var word = get($2);
-			var output = !isDefined(word) ? '' :
-				$3 ? applyFilters(word, $3) :
-				word ;
-
-			return output;
+			var value1 = get($2);
+			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
+			return isDefined(value2) ? value2 : '' ;
 		}
 
 		function update() {
-			
 			fn(text.replace(rname, replaceText));
 		}
 
@@ -2112,6 +2121,8 @@
 	Sparky.bind = traverse;
 	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));
+
+// Sparky controllers.
 
 (function() {
 	"use strict";
@@ -2303,6 +2314,7 @@
 	};
 })();
 
+// Sparky.filters
 
 (function(Sparky, undefined) {
 	"use strict";
@@ -2414,11 +2426,11 @@
 		})(settings),
 
 		decibels: function(value) {
-			return 20 * log10(value);
+			return typeof value === 'number' && 20 * log10(value);
 		},
 
 		decimals: function(value, n) {
-			return Number.prototype.toFixed.call(value, n);
+			return typeof value === 'number' && Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -2673,7 +2685,7 @@
 		//wordwrap
 
 		yesno: function(value, truthy, falsy) {
-			return value ? truthy : isDefined(falsy) ? falsy : '' ;
+			return value ? truthy : falsy ;
 		}
 	};
 })(window.Sparky || require('sparky'));
