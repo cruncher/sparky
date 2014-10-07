@@ -155,7 +155,7 @@
 	    			node.removeEventListener('input', change);
 	    		});
 	    	},
-	    	
+
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 

@@ -220,6 +220,49 @@
 			objFromPath(obj, path) ;
 	}
 
+	function observeFrom(root, array, fn) {
+		if (array.length === 0) { return fn(root); }
+
+		var object = objFrom(root, array.slice());
+
+		// Where an object exists, return it immediately
+		if (object) { return fn(object); }
+
+		// Otherwise recursively look up the path
+		observeFrom(root, array.slice(0, array.length - 1), function(object) {
+			var prop = array[array.length - 1];
+
+			if (object[prop]) { return fn(object[prop]); }
+
+			// Listen for when the property becomes an object
+			Sparky.observe(object, prop, function found() {
+				if (!object[prop]) { return; }
+
+				// Stop listening
+				Sparky.unobserve(object, prop, found);
+
+				// Return the found object
+				return fn(object[prop]);
+			});
+		});
+	}
+
+	function observeByPath(root, path, fn) {
+		var array = splitPath(path);
+
+		if (Sparky.debug) {
+			// Observe path with logs.
+			console.log(path + ': unresolved');
+			return observeFrom(root, array, function(object) {
+				console.log(path + ': resolved');
+				fn(object);
+			}) ;
+		}
+
+		// Observe path without logs.
+		return observeFrom(root, array, fn) ;
+	}
+
 	function setupCollection(node, model, ctrl) {
 		var modelName = node.getAttribute('data-model');
 		var endNode = document.createComment(' [Sparky] data-model="' + modelName + '" ');
@@ -489,11 +532,9 @@
 			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
 		}
 
-		var sparky, modelPath, ctrlPath, tag, id;
+		var modelPath, ctrlPath, tag, id;
 
-		if (loop !== false) {
-			loop = true;
-		}
+		if (loop !== false) { loop = true; }
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
@@ -508,17 +549,13 @@
 		}
 
 		// Where model is not defined look for the data-model
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-model');
 			
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
-				
-				if (model === undefined) {
-					throw new Error('[Sparky] ' + nodeToText(node) + ' model not found in Sparky.data');
-				}
 			}
 		}
 
@@ -545,17 +582,30 @@
 			return setupCollection(node, model, ctrl);
 		}
 
-		if (Sparky.debug === 'verbose') {
-			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && model.id && ('model#' + model.id) || 'model'), ',',
-				(ctrl && 'ctrl'), ')'
-			);
+		var sparky = Object.create(prototype);
+
+		var setup = function setup(model) {
+			if (Sparky.debug === 'verbose') {
+				console.groupCollapsed('[Sparky] Sparky(', node, ',',
+					(model && model.id && ('model#' + model.id) || 'model'), ',',
+					(ctrl && 'ctrl'), ')'
+				);
+			}
+
+			setupSparky(sparky, node, model, ctrl);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+		};
+
+		// Check if there should be a model, but it isn't available yet. If so,
+		// observe the path to the model until it appears.
+		if (modelPath && !model) {
+			console.log('MODEL!!');
+			observeByPath(Sparky.data, modelPath, setup);
 		}
-
-		sparky = Object.create(prototype);
-		setupSparky(sparky, node, model, ctrl);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+		else {
+			setup(model);
+		}
 
 		return sparky;
 	}
