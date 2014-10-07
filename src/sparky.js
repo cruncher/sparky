@@ -228,10 +228,11 @@
 		// Where an object exists, return it immediately
 		if (object) { return fn(object); }
 
-		// Otherwise recursively look up the path
-		observeFrom(root, array.slice(0, array.length - 1), function(object) {
-			var prop = array[array.length - 1];
+		// Take the last property off the array
+		var prop = array.pop();
 
+		// Recursively look up the path array
+		observeFrom(root, array, function(object) {
 			if (object[prop]) { return fn(object[prop]); }
 
 			// Listen for when the property becomes an object
