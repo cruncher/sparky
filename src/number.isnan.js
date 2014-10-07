@@ -1,8 +1,4 @@
-// Number.isNaN polyfill.
-// http://wiki.ecmascript.org/doku.php?id=harmony:number.isnan
-//
-// Number.isNaN is better than window.isNaN as it does not do
-// type coersion before checking for NaN.
+// Number.isNaN polyfill
 
 if (!Number.isNaN) {
 	(function(globalIsNaN) {

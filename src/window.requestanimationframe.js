@@ -1,10 +1,4 @@
-// window.requestAnimationFrame
-// 
-// Polyfill for requestAnimationFrame.
-//
-// The frameDuration is set to 40ms by default for a framerate of 25fps, the
-// thinking being that browsers without requestAnimationFrame are generally a
-// little slower and less optimised for higher rates.
+// window.requestAnimationFrame polyfill
 
 (function(window) {
 	var frameDuration = 40;
