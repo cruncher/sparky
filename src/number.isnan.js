@@ -1,3 +1,4 @@
+
 // Number.isNaN(n) polyfill
 
 if (!Number.isNaN) {

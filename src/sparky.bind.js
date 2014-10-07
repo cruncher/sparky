@@ -1,3 +1,4 @@
+
 // Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
