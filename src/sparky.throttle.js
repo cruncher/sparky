@@ -1,3 +1,6 @@
+
+// Sparky.Throttle(fn)
+
 (function() {
 	"use strict";
 

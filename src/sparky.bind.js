@@ -1,4 +1,5 @@
-// DOM Binder
+
+// Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
 // in the nodes that display that data via template tags such as {{ name }}.
@@ -243,12 +244,10 @@
 
 	function noop() {}
 
-	function call(fn) {
-		fn();
-	}
+	function call(fn) { fn(); }
 
-	function isDefined(val) {
-		return val !== undefined && val !== null;
+	function isDefined(n) {
+		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
 	function normalise(value) {
@@ -283,11 +282,12 @@
 	}
 
 	function textNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
 		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
-		});
+		}, unobservers);
 
-		return [detachFn];
+		return unobservers;
 	}
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
@@ -357,7 +357,7 @@
 				updateClassHTML.bind(this, node) ;
 
 		// TODO: only replace classes we've previously set here
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
@@ -381,7 +381,7 @@
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
 
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function toFilter(filter) {
@@ -436,20 +436,19 @@
 		return properties;
 	}
 
-	function observeProperties(text, bind, unbind, get, fn) {
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var properties = extractProperties(text);
+		return properties.length && observeProperties2(text, bind, unbind, get, fn, unobservers, properties);
+	}
 
+	function observeProperties2(text, bind, unbind, get, fn, unobservers, properties) {
 		function replaceText($0, $1, $2, $3) {
-			var word = get($2);
-			var output = !isDefined(word) ? '' :
-				$3 ? applyFilters(word, $3) :
-				word ;
-
-			return output;
+			var value1 = get($2);
+			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
+			return isDefined(value2) ? value2 : '' ;
 		}
 
 		function update() {
-			
 			fn(text.replace(rname, replaceText));
 		}
 

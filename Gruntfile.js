@@ -4,14 +4,15 @@ module.exports = function(grunt) {
 			'js/sparky.js': [
 				'src/window.customevent.js',
 				'src/window.requestanimationframe.js',
+				'src/number.isnan.js',
 				'src/mixin.array.js',
 				'src/mixin.events.js',
 				'src/observe.js',
 				'src/collection.js',
 				'src/sparky.js',
+				'src/sparky.bind.js',
 				'src/sparky.observe.js',
 				'src/sparky.throttle.js',
-				'src/sparky.bind.js',
 				'src/sparky.ctrl.js',
 				'src/sparky.filters.js'
 			]

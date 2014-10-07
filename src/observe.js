@@ -1,11 +1,10 @@
-// Observe and unobserve
-// 
+
 // observe(obj, [prop], fn)
 // unobserve(obj, [prop], [fn])
 // 
-// Crudely observes object properties for changes by redefining
-// properties of the observable object with setters that fire
-// a callback function whenever the property changes.
+// Observes object properties for changes by redefining
+// properties of the observable object with setters that
+// fire a callback function whenever the property changes.
 
 (function(ns){
 	var slice = Array.prototype.slice,

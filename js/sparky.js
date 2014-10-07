@@ -1,5 +1,5 @@
-// Polyfill the CustomEvent API for brosers that don't have
-// it (IE9 and IE10).
+
+// window.CustomEvent polyfill
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
@@ -15,39 +15,57 @@
 	
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
-// Polyfill for requestAnimationFrame
-//
-// Stephen Band
-// 
-// The frameDuration is set to 33ms by default for a framerate of 30fps, the
-// thinking being that browsers without requestAnimationFrame are generally a
-// little slower and less optimised for higher rates.
 
-(function() {
-    var frameDuration = 40;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    var n = vendors.length;
 
-    while (n-- && !window.requestAnimationFrame) {
-        window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
-    }
+// window.requestAnimationFrame polyfill
 
-    if (!window.requestAnimationFrame) {
-        window.requestAnimationFrame = function(callback, element) {
-            var currTime = new Date().getTime();
-            var lastTime = frameDuration * (currTime % frameDuration);
-            var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
-            return id;
-        };
-    }
+(function(window) {
+	var frameDuration = 40;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	var n = vendors.length;
 
-    if (!window.cancelAnimationFrame) {
-        window.cancelAnimationFrame = function(id) {
-            clearTimeout(id);
-        };
-    }
-}());
+	while (n-- && !window.requestAnimationFrame) {
+		window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
+	}
+
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var lastTime = frameDuration * (currTime % frameDuration);
+			var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
+			return id;
+		};
+	}
+
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		};
+	}
+})(window);
+
+
+// Number.isNaN(n) polyfill
+
+if (!Number.isNaN) {
+	(function(globalIsNaN) {
+		"use strict";
+	
+		Object.defineProperty(Number, 'isNaN', {
+			value: function isNaN(value) {
+				return typeof value === 'number' && globalIsNaN(value);
+			},
+			configurable: true,
+			enumerable: false,
+			writable: true
+		});
+	})(isNaN);
+}
+
+
+// mixin.array
+
 (function(ns, undefined) {
 	"use strict";
 
@@ -72,6 +90,7 @@
 		}
 	};
 })(this);
+
 
 // mixin.events
 
@@ -313,14 +332,14 @@
 		}
 	};
 })(this);
-// Observe and unobserve
-// 
+
+
 // observe(obj, [prop], fn)
 // unobserve(obj, [prop], [fn])
 // 
-// Crudely observes object properties for changes by redefining
-// properties of the observable object with setters that fire
-// a callback function whenever the property changes.
+// Observes object properties for changes by redefining
+// properties of the observable object with setters that
+// fire a callback function whenever the property changes.
 
 (function(ns){
 	var slice = Array.prototype.slice,
@@ -443,6 +462,10 @@
 	ns.observe = observe;
 	ns.unobserve = unobserve;
 })(window);
+
+
+// Collection()
+
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -756,6 +779,7 @@
 	ns.Collection = Collection;
 })(this, this.mixin);
 
+
 // Sparky
 // 
 // Reads data attributes in the DOM to bind dynamic data to
@@ -781,7 +805,6 @@
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rbracket = /\]$/,
 	    rpathtrimmer = /^\[|]$/g,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
@@ -1408,220 +1431,8 @@
 	});
 })(jQuery, Sparky);
 
-(function(Sparky) {
-	"use strict";
 
-	function isAudioParam(object) {
-		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
-	}
-
-	function Poll(object, property, fn) {
-		var v1 = object[property];
-		var active = true;
-
-		function frame() {
-			var v2 = object[property];
-
-			if (v1 !== v2) {
-				v1 = v2;
-				fn();
-			}
-
-			if (!active) { return; } 
-
-			window.requestAnimationFrame(frame);
-		};
-
-		function cancel() {
-			active = false;
-		}
-
-		window.requestAnimationFrame(frame);
-
-		return cancel;
-	}
-
-	var unpollers = [];
-
-	function poll(object, property, fn) {
-		unpollers.push([object, property, fn, Poll(object, property, fn)]);
-		return object;
-	}
-	
-	function unpoll(object, property, fn) {
-		var n = unpollers.length;
-		var unpoller;
-
-		while (n--) {
-			unpoller = unpollers[n];
-
-			if (object === unpoller[0] && property === unpoller[1] && fn === unpoller[2]) {
-				unpoller[3]();
-				unpollers.splice(n, 1);
-				return object;
-			}
-		}
-
-		return object;
-	}
-
-	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
-
-		var map = new WeakMap();
-		var names = [];
-		var types = ["add", "update", "delete"];
-
-		function call(fn) {
-			fn(this);
-		}
-
-		function trigger(change) {
-			var properties = this;
-			var name = change.name;
-			var object = change.object;
-
-			// If this property is in the properties being watched, and we
-			// have not already called changes on it, do that now.
-			if (properties[name] && names.indexOf(name) === -1) {
-				names.push(name);
-				fns = properties[name];
-				fns.forEach(call, object);
-			}
-		}
-
-		function triggerAll(changes) {
-			names.length = 0;
-			changes.forEach(trigger, map[object]);
-		}
-
-		function setup(object) {
-			var properties = map[object] = {};
-			Object.observe(object, triggerAll, types);
-			return properties;
-		}
-
-		function teardown(object) {
-			Object.unobserve(object, triggerAll);
-		}
-
-		Sparky.observe = function(object, property, fn) {
-			var properties = map[object] || setup(object);
-			var fns = properties[property] || (properties[property] = []);
-			fns.push(fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (!map[object]) { return; }
-
-			var properties = map[object];
-			var fns = properties[property];
-
-			if (!fns) { return; }
-
-			var n = fns.length;
-
-			while (n--) { fns.splice(n, 1); }
-
-			if (fns.length === 0) {
-				delete properties[property];
-
-				if (Object.keys[properties].length === 0) {
-					teardown(object);
-				}
-			}
-		};
-	} : function(Sparky) {
-		Sparky.observe = function(object, property, fn) {
-			// AudioParams objects must be polled, as they cannot be reconfigured
-			// to getters/setters, nor can they be Object.observed. And they fail
-			// to do both of those completely silently. So we test the scope to see
-			// if it is an AudioParam and set the observe and unobserve functions
-			// to poll.
-			if (isAudioParam(object)) {
-				return poll(object, property, fn);
-			}
-
-			if (property === 'length') {
-				// Observe length and update the DOM on next
-				// animation frame if it changes.
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-	
-				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
-					return poll(object, property, fn);
-				}
-			}
-
-			return observe(object, property, fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (isAudioParam(object)) {
-				return unpoll(object, property, fn);
-			}
-
-			if (property === 'length') {
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-				if (!descriptor.get && !descriptor.configurable) {
-					return unpoll(object, property, fn);
-				}
-			}
-	
-			return unobserve(object, property, fn);
-		};
-	})(Sparky)
-})(Sparky);
-(function() {
-	"use strict";
-
-	function noop() {}
-
-	function Throttle(fn) {
-		var queued, scope, args;
-
-		function update() {
-			queued = false;
-			fn.apply(scope, args);
-		}
-
-		function cancel() {
-			// Don't permit further changes to be queued
-			queue = noop;
-
-			// If there is an update queued apply it now
-			if (queued) { update(); }
-
-			// Make the queued update do nothing
-			fn = noop;
-		}
-
-		function queue() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
-			// Don't queue update if it's already queued
-			if (queued) { return; }
-
-			// Queue update
-			window.requestAnimationFrame(update);
-			queued = true;
-		}
-
-		function throttle() {
-			queue.apply(this, arguments);
-		}
-
-		throttle.cancel = cancel;
-		update();
-
-		return throttle;
-	}
-
-	Sparky.Throttle = Throttle;
-})(Sparky);
-// DOM Binder
+// Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
 // in the nodes that display that data via template tags such as {{ name }}.
@@ -1866,12 +1677,10 @@
 
 	function noop() {}
 
-	function call(fn) {
-		fn();
-	}
+	function call(fn) { fn(); }
 
-	function isDefined(val) {
-		return val !== undefined && val !== null;
+	function isDefined(n) {
+		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
 	function normalise(value) {
@@ -1906,11 +1715,12 @@
 	}
 
 	function textNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
 		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
-		});
+		}, unobservers);
 
-		return [detachFn];
+		return unobservers;
 	}
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
@@ -1980,7 +1790,7 @@
 				updateClassHTML.bind(this, node) ;
 
 		// TODO: only replace classes we've previously set here
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
@@ -2004,7 +1814,7 @@
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
 
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
+		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
 	function toFilter(filter) {
@@ -2059,20 +1869,19 @@
 		return properties;
 	}
 
-	function observeProperties(text, bind, unbind, get, fn) {
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var properties = extractProperties(text);
+		return properties.length && observeProperties2(text, bind, unbind, get, fn, unobservers, properties);
+	}
 
+	function observeProperties2(text, bind, unbind, get, fn, unobservers, properties) {
 		function replaceText($0, $1, $2, $3) {
-			var word = get($2);
-			var output = !isDefined(word) ? '' :
-				$3 ? applyFilters(word, $3) :
-				word ;
-
-			return output;
+			var value1 = get($2);
+			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
+			return isDefined(value2) ? value2 : '' ;
 		}
 
 		function update() {
-			
 			fn(text.replace(rname, replaceText));
 		}
 
@@ -2112,6 +1921,231 @@
 	Sparky.bind = traverse;
 	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));
+
+
+// Sparky.observe()
+// Sparky.unobserve()
+
+(function(Sparky) {
+	"use strict";
+
+	function isAudioParam(object) {
+		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	}
+
+	function Poll(object, property, fn) {
+		var v1 = object[property];
+		var active = true;
+
+		function frame() {
+			var v2 = object[property];
+
+			if (v1 !== v2) {
+				v1 = v2;
+				fn();
+			}
+
+			if (!active) { return; } 
+
+			window.requestAnimationFrame(frame);
+		};
+
+		function cancel() {
+			active = false;
+		}
+
+		window.requestAnimationFrame(frame);
+
+		return cancel;
+	}
+
+	var unpollers = [];
+
+	function poll(object, property, fn) {
+		unpollers.push([object, property, fn, Poll(object, property, fn)]);
+		return object;
+	}
+	
+	function unpoll(object, property, fn) {
+		var n = unpollers.length;
+		var unpoller;
+
+		while (n--) {
+			unpoller = unpollers[n];
+
+			if (object === unpoller[0] && property === unpoller[1] && fn === unpoller[2]) {
+				unpoller[3]();
+				unpollers.splice(n, 1);
+				return object;
+			}
+		}
+
+		return object;
+	}
+
+	(false && Object.observe && window.WeakMap ? function(Sparky) {
+		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
+
+		var map = new WeakMap();
+		var names = [];
+		var types = ["add", "update", "delete"];
+
+		function call(fn) {
+			fn(this);
+		}
+
+		function trigger(change) {
+			var properties = this;
+			var name = change.name;
+			var object = change.object;
+
+			// If this property is in the properties being watched, and we
+			// have not already called changes on it, do that now.
+			if (properties[name] && names.indexOf(name) === -1) {
+				names.push(name);
+				fns = properties[name];
+				fns.forEach(call, object);
+			}
+		}
+
+		function triggerAll(changes) {
+			names.length = 0;
+			changes.forEach(trigger, map[object]);
+		}
+
+		function setup(object) {
+			var properties = map[object] = {};
+			Object.observe(object, triggerAll, types);
+			return properties;
+		}
+
+		function teardown(object) {
+			Object.unobserve(object, triggerAll);
+		}
+
+		Sparky.observe = function(object, property, fn) {
+			var properties = map[object] || setup(object);
+			var fns = properties[property] || (properties[property] = []);
+			fns.push(fn);
+		};
+
+		Sparky.unobserve = function(object, property, fn) {
+			if (!map[object]) { return; }
+
+			var properties = map[object];
+			var fns = properties[property];
+
+			if (!fns) { return; }
+
+			var n = fns.length;
+
+			while (n--) { fns.splice(n, 1); }
+
+			if (fns.length === 0) {
+				delete properties[property];
+
+				if (Object.keys[properties].length === 0) {
+					teardown(object);
+				}
+			}
+		};
+	} : function(Sparky) {
+		Sparky.observe = function(object, property, fn) {
+			// AudioParams objects must be polled, as they cannot be reconfigured
+			// to getters/setters, nor can they be Object.observed. And they fail
+			// to do both of those completely silently. So we test the scope to see
+			// if it is an AudioParam and set the observe and unobserve functions
+			// to poll.
+			if (isAudioParam(object)) {
+				return poll(object, property, fn);
+			}
+
+			if (property === 'length') {
+				// Observe length and update the DOM on next
+				// animation frame if it changes.
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+	
+				if (!descriptor.get && !descriptor.configurable) {
+					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					return poll(object, property, fn);
+				}
+			}
+
+			return observe(object, property, fn);
+		};
+
+		Sparky.unobserve = function(object, property, fn) {
+			if (isAudioParam(object)) {
+				return unpoll(object, property, fn);
+			}
+
+			if (property === 'length') {
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+				if (!descriptor.get && !descriptor.configurable) {
+					return unpoll(object, property, fn);
+				}
+			}
+	
+			return unobserve(object, property, fn);
+		};
+	})(Sparky)
+})(Sparky);
+
+
+// Sparky.Throttle(fn)
+
+(function() {
+	"use strict";
+
+	function noop() {}
+
+	function Throttle(fn) {
+		var queued, scope, args;
+
+		function update() {
+			queued = false;
+			fn.apply(scope, args);
+		}
+
+		function cancel() {
+			// Don't permit further changes to be queued
+			queue = noop;
+
+			// If there is an update queued apply it now
+			if (queued) { update(); }
+
+			// Make the queued update do nothing
+			fn = noop;
+		}
+
+		function queue() {
+			// Store the latest scope and arguments
+			scope = this;
+			args = arguments;
+
+			// Don't queue update if it's already queued
+			if (queued) { return; }
+
+			// Queue update
+			window.requestAnimationFrame(update);
+			queued = true;
+		}
+
+		function throttle() {
+			queue.apply(this, arguments);
+		}
+
+		throttle.cancel = cancel;
+		update();
+
+		return throttle;
+	}
+
+	Sparky.Throttle = Throttle;
+})(Sparky);
+
+
+// Sparky.ctrls
 
 (function() {
 	"use strict";
@@ -2304,6 +2338,8 @@
 })();
 
 
+// Sparky.filters
+
 (function(Sparky, undefined) {
 	"use strict";
 
@@ -2414,11 +2450,11 @@
 		})(settings),
 
 		decibels: function(value) {
-			return 20 * log10(value);
+			return typeof value === 'number' && 20 * log10(value);
 		},
 
 		decimals: function(value, n) {
-			return Number.prototype.toFixed.call(value, n);
+			return typeof value === 'number' && Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -2673,7 +2709,7 @@
 		//wordwrap
 
 		yesno: function(value, truthy, falsy) {
-			return value ? truthy : isDefined(falsy) ? falsy : '' ;
+			return value ? truthy : falsy ;
 		}
 	};
 })(window.Sparky || require('sparky'));

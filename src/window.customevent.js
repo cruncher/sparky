@@ -1,5 +1,5 @@
-// Polyfill the CustomEvent API for brosers that don't have
-// it (IE9 and IE10).
+
+// window.CustomEvent polyfill
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }

@@ -1,4 +1,6 @@
 
+// Sparky.filters
+
 (function(Sparky, undefined) {
 	"use strict";
 
@@ -109,11 +111,11 @@
 		})(settings),
 
 		decibels: function(value) {
-			return 20 * log10(value);
+			return typeof value === 'number' && 20 * log10(value);
 		},
 
 		decimals: function(value, n) {
-			return Number.prototype.toFixed.call(value, n);
+			return typeof value === 'number' && Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -368,7 +370,7 @@
 		//wordwrap
 
 		yesno: function(value, truthy, falsy) {
-			return value ? truthy : isDefined(falsy) ? falsy : '' ;
+			return value ? truthy : falsy ;
 		}
 	};
 })(window.Sparky || require('sparky'));

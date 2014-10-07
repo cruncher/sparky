@@ -1,3 +1,4 @@
+
 // Sparky
 // 
 // Reads data attributes in the DOM to bind dynamic data to
@@ -23,7 +24,6 @@
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rbracket = /\]$/,
 	    rpathtrimmer = /^\[|]$/g,
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['

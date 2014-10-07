@@ -1,3 +1,6 @@
+
+// Collection()
+
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -179,36 +182,31 @@
 			return this.indexOf(object) !== -1;
 		},
 
+		// Get the value of a property of all the objects in
+		// the collection if they all have the same value.
+		// Otherwise return undefined.
+
 		get: function(property) {
-			// Returns a value if all the objects in the selection
-			// have the same value for this property, otherwise
-			// returns undefined.
 			var n = this.length;
 
 			if (n === 0) { return; }
 
 			while (--n) {
-				if (this[n][property] !== this[n - 1][property]) {
-					return;
-				}
+				if (this[n][property] !== this[n - 1][property]) { return; }
 			}
 
 			return this[n][property];
 		},
-		
+
+		// Set a property on every object in the collection.
+
 		set: function(property, value) {
 			if (arguments.length !== 2) {
-				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
-				return;
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
 
-			// For every object in the selection set property = value.
 			var n = this.length;
-
-			while (n--) {
-				this[n][property] = value;
-			}
-
+			while (n--) { this[n][property] = value; }
 			return this;
 		},
 
@@ -219,6 +217,8 @@
 		toObject: function(key) {
 			var object = {};
 			var prop, type;
+
+			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];
