@@ -63,9 +63,12 @@
 	<p data-model="object">input: {{c}}</p>
 	
 	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div>
+
+	<p data-model="object.thing">Number {{number}}</p>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
+<script src="src/number.isnan.js"></script>
 <script src="src/window.customevent.js"></script>
 <script src="src/window.requestanimationframe.js"></script>
 <script src="src/mixin.array.js"></script>
@@ -76,6 +79,8 @@
 <script src="src/sparky.observe.js"></script>
 <script src="src/sparky.bind.js"></script>
 <script src="src/sparky.filters.js"></script>
+<script src="src/sparky.ctrls.js"></script>
+<script src="src/sparky.ready.js"></script>
 
 <script>
 	window.o = Sparky.data.object = {
@@ -85,6 +90,12 @@
 			name: 'Sparky'
 		}
 	};
+
+	setTimeout(function() {
+		Sparky.data.object.thing = {
+			number: 6
+		};
+	}, 2000);
 </script>
 
 </body>
