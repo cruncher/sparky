@@ -1033,9 +1033,9 @@ if (!Number.isNaN) {
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log('Sparky: ' + path + ': unresolved');
+			console.log('Sparky: unresolved path' + path);
 			return onDefined(root, array, function(object) {
-				console.log('Sparky: ' + path + ': resolved');
+				console.log('Sparky: resolved path  ' + path);
 				fn(object);
 			}) ;
 		}
@@ -2346,7 +2346,7 @@ if (!Number.isNaN) {
 	}
 
 	function isDefined(val) {
-		return val !== undefined && val !== null;
+		return !!val || val !== undefined && val !== null && !Number.isNaN(val);
 	}
 
 	Sparky.filters = {
@@ -2535,6 +2535,8 @@ if (!Number.isNaN) {
 		//pprint
 
 		prepad: function(value, n, char) {
+			if (!isDefined(value)) { return ''; }
+
 			var string = value.toString();
 			var l = string.length;
 
@@ -2548,6 +2550,8 @@ if (!Number.isNaN) {
 		},
 
 		postpad: function(value, n) {
+			if (!isDefined(value)) { return ''; }
+
 			var string = value.toString();
 			var l = string.length;
 			var m = parseInt(n, 10);

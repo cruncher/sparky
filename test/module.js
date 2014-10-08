@@ -18,7 +18,7 @@ var module = (function(QUnit) {
 				if (fn2) { fixture.innerHTML = multiline(fn2); }
 			}
 		});
-		
+
 		if (fn1) { fn1(fixture); }
 	}
 })(QUnit);

@@ -100,5 +100,43 @@
 	}, 2000);
 </script>
 
+<div data-model="dummy">
+	<a id="test" data-model="model.object.thing" href="#{{blah}}">{{property}}</a>
+</div>
+
+<script>
+(function() {
+	"use strict";
+
+	// Reset Sparky
+	Sparky.data = {};
+	Sparky.ctrl = {};
+
+	Sparky.data['dummy']   = {};
+
+	var a = document.getElementById('test');
+
+	setTimeout(function() {
+		Sparky.data.model = {};
+
+		setTimeout(function() {
+			Sparky.data.model.object = {
+				thing: {
+					property: 'Hello!'
+				}
+			};
+
+			window.requestAnimationFrame(function() {
+				console.log(a);
+				console.log(a.innerHTML);
+				console.log(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available:", a.innerHTML);
+			});
+
+			Sparky.data.model.object.thing.blah = 7;
+		}, 200);
+	}, 200);
+})();
+</script>
+
 </body>
 </html>
