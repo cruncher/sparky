@@ -256,9 +256,9 @@
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log('Sparky: ' + path + ': unresolved');
+			console.log('Sparky: unresolved path' + path);
 			return onDefined(root, array, function(object) {
-				console.log('Sparky: ' + path + ': resolved');
+				console.log('Sparky: resolved path  ' + path);
 				fn(object);
 			}) ;
 		}
