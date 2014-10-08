@@ -16,7 +16,6 @@
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
 
-
 // window.requestAnimationFrame polyfill
 
 (function(window) {
@@ -647,36 +646,31 @@ if (!Number.isNaN) {
 			return this.indexOf(object) !== -1;
 		},
 
+		// Get the value of a property of all the objects in
+		// the collection if they all have the same value.
+		// Otherwise return undefined.
+
 		get: function(property) {
-			// Returns a value if all the objects in the selection
-			// have the same value for this property, otherwise
-			// returns undefined.
 			var n = this.length;
 
 			if (n === 0) { return; }
 
 			while (--n) {
-				if (this[n][property] !== this[n - 1][property]) {
-					return;
-				}
+				if (this[n][property] !== this[n - 1][property]) { return; }
 			}
 
 			return this[n][property];
 		},
-		
+
+		// Set a property on every object in the collection.
+
 		set: function(property, value) {
 			if (arguments.length !== 2) {
-				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
-				return;
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
 
-			// For every object in the selection set property = value.
 			var n = this.length;
-
-			while (n--) {
-				this[n][property] = value;
-			}
-
+			while (n--) { this[n][property] = value; }
 			return this;
 		},
 
@@ -687,6 +681,8 @@ if (!Number.isNaN) {
 		toObject: function(key) {
 			var object = {};
 			var prop, type;
+
+			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];
@@ -1001,6 +997,50 @@ if (!Number.isNaN) {
 			objFromPath(obj, path) ;
 	}
 
+	function observeFrom(root, array, fn) {
+		if (array.length === 0) { return fn(root); }
+
+		var object = objFrom(root, array.slice());
+
+		// Where an object exists, return it immediately
+		if (object) { return fn(object); }
+
+		// Take the last property off the array
+		var prop = array.pop();
+
+		// Recursively look up the path array
+		observeFrom(root, array, function(object) {
+			if (object[prop]) { return fn(object[prop]); }
+
+			// Listen for when the property becomes an object
+			Sparky.observe(object, prop, function found() {
+				if (!object[prop]) { return; }
+
+				// Stop listening
+				Sparky.unobserve(object, prop, found);
+
+				// Return the found object
+				return fn(object[prop]);
+			});
+		});
+	}
+
+	function observeByPath(root, path, fn) {
+		var array = splitPath(path);
+
+		if (Sparky.debug) {
+			// Observe path with logs.
+			console.log(path + ': unresolved');
+			return observeFrom(root, array, function(object) {
+				console.log(path + ': resolved');
+				fn(object);
+			}) ;
+		}
+
+		// Observe path without logs.
+		return observeFrom(root, array, fn) ;
+	}
+
 	function setupCollection(node, model, ctrl) {
 		var modelName = node.getAttribute('data-model');
 		var endNode = document.createComment(' [Sparky] data-model="' + modelName + '" ');
@@ -1270,11 +1310,9 @@ if (!Number.isNaN) {
 			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
 		}
 
-		var sparky, modelPath, ctrlPath, tag, id;
+		var modelPath, ctrlPath, tag, id;
 
-		if (loop !== false) {
-			loop = true;
-		}
+		if (loop !== false) { loop = true; }
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
@@ -1289,17 +1327,13 @@ if (!Number.isNaN) {
 		}
 
 		// Where model is not defined look for the data-model
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-model');
 			
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
-				
-				if (model === undefined) {
-					throw new Error('[Sparky] ' + nodeToText(node) + ' model not found in Sparky.data');
-				}
 			}
 		}
 
@@ -1326,17 +1360,30 @@ if (!Number.isNaN) {
 			return setupCollection(node, model, ctrl);
 		}
 
-		if (Sparky.debug === 'verbose') {
-			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && model.id && ('model#' + model.id) || 'model'), ',',
-				(ctrl && 'ctrl'), ')'
-			);
+		var sparky = Object.create(prototype);
+
+		var setup = function setup(model) {
+			if (Sparky.debug === 'verbose') {
+				console.groupCollapsed('[Sparky] Sparky(', node, ',',
+					(model && model.id && ('model#' + model.id) || 'model'), ',',
+					(ctrl && 'ctrl'), ')'
+				);
+			}
+
+			setupSparky(sparky, node, model, ctrl);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+		};
+
+		// Check if there should be a model, but it isn't available yet. If so,
+		// observe the path to the model until it appears.
+		if (modelPath && !model) {
+			console.log('MODEL!!');
+			observeByPath(Sparky.data, modelPath, setup);
 		}
-
-		sparky = Object.create(prototype);
-		setupSparky(sparky, node, model, ctrl);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+		else {
+			setup(model);
+		}
 
 		return sparky;
 	}
@@ -1589,7 +1636,7 @@ if (!Number.isNaN) {
 	    			node.removeEventListener('input', change);
 	    		});
 	    	},
-	    	
+
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 
@@ -2713,3 +2760,7 @@ if (!Number.isNaN) {
 		}
 	};
 })(window.Sparky || require('sparky'));
+
+
+// Make the minifier remove debug code paths
+Sparky.debug = false;

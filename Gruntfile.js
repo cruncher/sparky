@@ -20,7 +20,17 @@ module.exports = function(grunt) {
 		},
 
 		uglify: {
-			'js/sparky.min.js': ['js/sparky.js']
+			target: {
+				files: {
+					'js/sparky.min.js': ['js/sparky.js']
+				}
+			},
+			options: {
+				maxLineLen: 4096,
+				compress: {
+					dead_code: true
+				}
+			}
 		}
 	});
 
