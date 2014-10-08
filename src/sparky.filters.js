@@ -40,7 +40,7 @@
 	}
 
 	function isDefined(val) {
-		return val !== undefined && val !== null;
+		return !!val || val !== undefined && val !== null && !Number.isNaN(val);
 	}
 
 	Sparky.filters = {
@@ -229,6 +229,8 @@
 		//pprint
 
 		prepad: function(value, n, char) {
+			if (!isDefined(value)) { return ''; }
+
 			var string = value.toString();
 			var l = string.length;
 
@@ -242,6 +244,8 @@
 		},
 
 		postpad: function(value, n) {
+			if (!isDefined(value)) { return ''; }
+
 			var string = value.toString();
 			var l = string.length;
 			var m = parseInt(n, 10);
