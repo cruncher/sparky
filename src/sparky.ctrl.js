@@ -133,7 +133,7 @@
 		var flag = false;
 
 		if (min <= 0) {
-			console.warn('[Sparky] Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
+			console.warn('Sparky: Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
 			return scope;
 		}
 
@@ -186,7 +186,7 @@
 	var n = 0;
 
 	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('Sparky DEBUG', n++);
+		console.log('Sparky:DEBUG', n++);
 		debugger;
 	};
 })();

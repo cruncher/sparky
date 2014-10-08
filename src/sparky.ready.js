@@ -56,7 +56,7 @@
 			}
 		}
 
-		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
+		if (Sparky.debug) { console.log('Sparky: DOM nodes to initialise:', array); }
 
 		array.forEach(function(node) {
 			Sparky(node);
@@ -66,6 +66,6 @@
 			doc.trigger('sparkyready');
 		});
 		
-		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
+		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);

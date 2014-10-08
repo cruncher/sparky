@@ -138,7 +138,7 @@ module('Child sparky', function(fixture) {
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
 		var model2 = Sparky.data['test-model-2'] = {};
-		var p5   = fixture.querySelector('[data-model="test-model-1"]');
+		var p5     = fixture.querySelector('[data-model="test-model-1"]');
 		var sparky = Sparky(p5);
 
 		assert.ok(p5.innerHTML === '', 'p5 is empty.');

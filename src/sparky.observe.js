@@ -60,7 +60,7 @@
 	}
 
 	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
+		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
 
 		var map = new WeakMap();
 		var names = [];
@@ -142,7 +142,7 @@
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 	
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
 					return poll(object, property, fn);
 				}
 			}
