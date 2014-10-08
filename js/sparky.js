@@ -795,6 +795,7 @@ if (!Number.isNaN) {
 (function(ns){
 	"use strict";
 
+	var empty = [];
 	var templates   = {};
 	var features    = {
 	    	template: 'content' in document.createElement('template')
@@ -805,11 +806,6 @@ if (!Number.isNaN) {
 	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
-
-	var empty = [];
-
-	var reduce = Array.prototype.reduce,
-	    slice = Array.prototype.slice;
 
 	var prototype = extend({
 		get: function() {
@@ -851,16 +847,17 @@ if (!Number.isNaN) {
 			return this;
 		}
 	}, ns.mixin.events);
-	
-	var changeEvent = new window.CustomEvent('change');
+
 
 	// Pure functions
 
+	var slice  = Function.prototype.call.bind(Array.prototype.slice);
+	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
+
 	function noop() {}
-	function call(fn) { fn(); }
 	function isDefined(val) { return val !== undefined && val !== null; }
 	function isObject(obj) { return obj instanceof Object; }
-	function getProperty(obj, property) { return obj[property]; }
+
 
 	// Object helpers
 
@@ -886,10 +883,23 @@ if (!Number.isNaN) {
 		Array.prototype.push.apply(array2, array1);
 	}
 
-	function isConfigurable(obj, prop) {
-		return Object.getOwnPropertyDescriptor(obj, prop).configurable;
+
+	// Debug helpers
+
+	function nodeToText(node) {
+		return [
+			'<',
+			node.tagName.toLowerCase(),
+			(node.className ? ' class="' + node.className + '"' : ''),
+			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
+			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
+			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
+			(node.id ? ' id="' + node.id + '"' : ''),
+			'>'
+		].join('');
 	}
-	
+
+
 	// DOM helpers
 
 	function append(parent, child) {
@@ -909,9 +919,9 @@ if (!Number.isNaN) {
 	}
 
 	function fragmentFromChildren(template) {
-		var children = slice.apply(template.childNodes);
+		var children = slice(template.childNodes);
 		var fragment = document.createDocumentFragment();
-		return reduce.call(children, append, fragment);
+		return reduce(children, append, fragment);
 	}
 	
 	function getTemplate(id) {
@@ -934,21 +944,16 @@ if (!Number.isNaN) {
 		return template && template.cloneNode(true);
 	}
 
-
-	// Sparky
-	
 	function removeNode(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-	
+
 	function insertNode(node1, node2) {
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	function defaultCtrl(node, model) {
-		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
-		return model;
-	}
+
+	// Handle paths
 
 	function splitPath(path) {
 		return path
@@ -997,7 +1002,7 @@ if (!Number.isNaN) {
 			objFromPath(obj, path) ;
 	}
 
-	function observeFrom(root, array, fn) {
+	function onDefined(root, array, fn) {
 		if (array.length === 0) { return fn(root); }
 
 		var object = objFrom(root, array.slice());
@@ -1009,7 +1014,7 @@ if (!Number.isNaN) {
 		var prop = array.pop();
 
 		// Recursively look up the path array
-		observeFrom(root, array, function(object) {
+		onDefined(root, array, function(object) {
 			if (object[prop]) { return fn(object[prop]); }
 
 			// Listen for when the property becomes an object
@@ -1025,20 +1030,39 @@ if (!Number.isNaN) {
 		});
 	}
 
-	function observeByPath(root, path, fn) {
+	function onPathDefined(root, path, fn) {
 		var array = splitPath(path);
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log(path + ': unresolved');
-			return observeFrom(root, array, function(object) {
-				console.log(path + ': resolved');
+			console.log('[Sparky] ' + path + ': unresolved');
+			return onDefined(root, array, function(object) {
+				console.log('[Sparky] ' + path + ': resolved');
 				fn(object);
 			}) ;
 		}
 
 		// Observe path without logs.
-		return observeFrom(root, array, fn) ;
+		return onDefined(root, array, fn) ;
+	}
+
+
+	// Sparky - the meat and potatoes
+
+	function defaultCtrl(node, model) {
+		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
+		return model;
+	}
+
+	function slaveSparky(sparky1, sparky2) {
+		// When sparky is ready, overwrite the trigger method
+		// to trigger all events on the slave sparky immediately
+		// following the trigger on the master.
+		sparky1.on('ready', function() {
+			sparky1.on(sparky2);
+		});
+
+		return sparky2;
 	}
 
 	function setupCollection(node, model, ctrl) {
@@ -1133,34 +1157,6 @@ if (!Number.isNaN) {
 				}
 			}
 		};
-	}
-
-	function nodeToText(node) {
-		return [
-			'<',
-			node.tagName.toLowerCase(),
-			(node.className ? ' class="' + node.className + '"' : ''),
-			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
-			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
-			(node.id ? ' id="' + node.id + '"' : ''),
-			'>'
-		].join('');
-	}
-
-	function slaveSparky(sparky1, sparky2) {
-		// When sparky is ready, overwrite the trigger method
-		// to trigger all events on the slave sparky immediately
-		// following the trigger on the master.
-		sparky1.on('ready', function() {
-			sparky1.on(sparky2);
-		});
-
-		return sparky2;
-	}
-
-	function isAudioParam(object) {
-		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -1299,11 +1295,8 @@ if (!Number.isNaN) {
 
 		// The bind function returns an array of unbind functions.
 		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
-
 		sparky.trigger('ready');
 	}
-
-	// The Sparky function
 
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
@@ -1379,7 +1372,7 @@ if (!Number.isNaN) {
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
 			console.log('MODEL!!');
-			observeByPath(Sparky.data, modelPath, setup);
+			onPathDefined(Sparky.data, modelPath, setup);
 		}
 		else {
 			setup(model);
@@ -1387,6 +1380,9 @@ if (!Number.isNaN) {
 
 		return sparky;
 	}
+
+
+	// Expose
 
 	Sparky.debug        = false;
 	Sparky.config       = {};
@@ -1404,79 +1400,6 @@ if (!Number.isNaN) {
  
 	ns.Sparky = Sparky;
 })(window);
-
-
-
-// Sparky onload
-//
-// If jQuery is present and when the DOM is ready, traverse it looking for
-// data-model and data-ctrl attributes and use them to instantiate Sparky.
-
-(function(jQuery, Sparky) {
-	if (!jQuery) { return; }
-
-	var doc = jQuery(document);
-
-	function isInTemplate(node) {
-		if (node.tagName.toLowerCase() === 'template') { return true; }
-		if (node === document.documentElement) { return false; }
-		return isInTemplate(node.parentNode);
-	}
-
-	doc.ready(function(){
-		var start;
-		
-		if (window.console) { start = Date.now(); }
-		
-		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
-		var n = -1;
-		var l = nodes.length;
-		var node;
-		var array = [];
-		var modelPath;
-		
-		// Remove child sparkies
-		while (++n < l) {
-			node = nodes[n];
-			array.push(node);
-			while (++n < l && node.contains(nodes[n])) {
-				// But do add children that have absolute model paths.
-
-				modelPath = nodes[n].getAttribute('data-model');
-
-				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
-					//array.push(nodes[n]);
-				}
-			};
-			--n;
-		}
-		
-		// Normally <template>s are inert, but if they are not a supported
-		// feature their content is part of the DOM so we have to remove those,
-		// too. 
-		if (!Sparky.features.template) {
-			n = array.length;
-			
-			while (n--) {
-				if (isInTemplate(array[n])) {
-					array.splice(n, 1);
-				}
-			}
-		}
-
-		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
-
-		array.forEach(function(node) {
-			Sparky(node);
-		});
-		
-		window.requestAnimationFrame(function sparkyready() {
-			doc.trigger('sparkyready');
-		});
-		
-		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
-	});
-})(jQuery, Sparky);
 
 
 // Sparky.bind
@@ -2760,6 +2683,78 @@ if (!Number.isNaN) {
 		}
 	};
 })(window.Sparky || require('sparky'));
+
+
+// Sparky ready
+//
+// If jQuery is present and when the DOM is ready, traverse it looking for
+// data-model and data-ctrl attributes and use them to instantiate Sparky.
+
+(function(jQuery, Sparky) {
+	if (!jQuery) { return; }
+
+	var doc = jQuery(document);
+
+	function isInTemplate(node) {
+		if (node.tagName.toLowerCase() === 'template') { return true; }
+		if (node === document.documentElement) { return false; }
+		return isInTemplate(node.parentNode);
+	}
+
+	doc.ready(function(){
+		var start;
+		
+		if (window.console) { start = Date.now(); }
+		
+		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var n = -1;
+		var l = nodes.length;
+		var node;
+		var array = [];
+		var modelPath;
+		
+		// Remove child sparkies
+		while (++n < l) {
+			node = nodes[n];
+			array.push(node);
+			while (++n < l && node.contains(nodes[n])) {
+				// But do add children that have absolute model paths.
+
+				modelPath = nodes[n].getAttribute('data-model');
+
+				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
+					//array.push(nodes[n]);
+				}
+			};
+			--n;
+		}
+		
+		// Normally <template>s are inert, but if they are not a supported
+		// feature their content is part of the DOM so we have to remove those,
+		// too. 
+		if (!Sparky.features.template) {
+			n = array.length;
+			
+			while (n--) {
+				if (isInTemplate(array[n])) {
+					array.splice(n, 1);
+				}
+			}
+		}
+
+		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
+
+		array.forEach(function(node) {
+			Sparky(node);
+		});
+		
+		window.requestAnimationFrame(function sparkyready() {
+			doc.trigger('sparkyready');
+		});
+		
+		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
+	});
+})(jQuery, Sparky);
 
 
 // Make the minifier remove debug code paths

@@ -15,6 +15,7 @@ module.exports = function(grunt) {
 				'src/sparky.throttle.js',
 				'src/sparky.ctrl.js',
 				'src/sparky.filters.js',
+				'src/sparky.ready.js',
 				'build-settings.js'
 			]
 		},
