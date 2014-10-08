@@ -15,6 +15,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'src/jquery-2.1.1.js',
+      'src/number.isnan.js',
       'src/window.customevent.js',
       'src/window.requestanimationframe.js',
       'src/observe.js',
@@ -28,6 +29,7 @@ module.exports = function(config) {
       'src/sparky.bind.js',
       'src/sparky.ctrl.js',
       'src/sparky.filters.js',
+      'src/sparky.ready.js',
 
       'test/module.js',
       'test/test.*.js',

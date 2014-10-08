@@ -43,9 +43,7 @@
 			
 		},
 
-		destroy: function() {
-			
-		},
+		destroy: function() {},
 
 		observe: function(object, property, fn) {
 			Sparky.observe(object, property, fn);
@@ -113,8 +111,8 @@
 		return [
 			'<',
 			node.tagName.toLowerCase(),
-			(node.className ? ' class="' + node.className + '"' : ''),
-			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
+			//(node.className ? ' class="' + node.className + '"' : ''),
+			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
 			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
@@ -161,7 +159,7 @@
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
 		if (Sparky.debug && !template) {
-			console.warn('[Sparky] template #' + id + ' not found.');
+			console.warn('Sparky: template #' + id + ' not found.');
 		}
 
 		return template && template.cloneNode(true);
@@ -258,9 +256,9 @@
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log('[Sparky] ' + path + ': unresolved');
+			console.log('Sparky: ' + path + ': unresolved');
 			return onDefined(root, array, function(object) {
-				console.log('[Sparky] ' + path + ': resolved');
+				console.log('Sparky: ' + path + ': resolved');
 				fn(object);
 			}) ;
 		}
@@ -271,11 +269,6 @@
 
 
 	// Sparky - the meat and potatoes
-
-	function defaultCtrl(node, model) {
-		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
-		return model;
-	}
 
 	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, overwrite the trigger method
@@ -338,7 +331,7 @@
 			}
 
 			if (Sparky.debug) {
-				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
+				console.log('Sparky: collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 
@@ -428,7 +421,7 @@
 				data = findByPath(model, path.replace(rrelativepath, ''));
 
 				if (!data) {
-					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
+					throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 				}
 
 				return slaveSparky(sparky, Sparky(node, data));
@@ -442,7 +435,7 @@
 
 				if (!data) {
 					rtag.lastIndex = 0;
-					throw new Error('[Sparky] Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+					throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 				}
 
 				return Sparky(node, data);
@@ -465,6 +458,8 @@
 			this.detach();
 			this.detach = noop;
 
+			removeNode(node);
+
 			return this
 				.trigger('destroy')
 				.off();
@@ -483,7 +478,7 @@
 		scope = scope || model || {};
 
 		if (Sparky.debug && templateId) {
-			console.log('[Sparky] template:', templateId);
+			console.log('Sparky: template:', templateId);
 		}
 
 		function observe(property, fn) {
@@ -523,7 +518,10 @@
 
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
-			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
+			console.log('Sparky: Sparky(', nodeToText(node), ',',
+				(model && '{}'), ',',
+				(ctrl && (ctrl.name || 'anonymous function')), ')'
+			);
 		}
 
 		var modelPath, ctrlPath, tag, id;
@@ -565,8 +563,7 @@
 			ctrlPath = node.getAttribute('data-ctrl');
 			tag = node.tagName.toLowerCase();
 			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
-				defaultCtrl ;
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) : noop ;
 		}
 
 		// Where model is an array or array-like object with a length property,
@@ -579,22 +576,12 @@
 		var sparky = Object.create(prototype);
 
 		var setup = function setup(model) {
-			if (Sparky.debug === 'verbose') {
-				console.groupCollapsed('[Sparky] Sparky(', node, ',',
-					(model && model.id && ('model#' + model.id) || 'model'), ',',
-					(ctrl && 'ctrl'), ')'
-				);
-			}
-
 			setupSparky(sparky, node, model, ctrl);
-
-			if (Sparky.debug === 'verbose') { console.groupEnd(); }
 		};
 
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
-			console.log('MODEL!!');
 			onPathDefined(Sparky.data, modelPath, setup);
 		}
 		else {

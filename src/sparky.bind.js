@@ -56,7 +56,7 @@
 
 	var filterCache = {};
 
-	var nodeTypes = {
+	var binders = {
 	    	1: domNode,
 	    	3: textNode,
 	    	11: fragmentNode
@@ -196,7 +196,7 @@
 	    	},
 
 	    	option: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['value']);
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 	    	},
 
@@ -259,12 +259,9 @@
 	function domNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
-		//var isSVG = node instanceof SVGElement;
 
-		if (Sparky.debug === 'verbose') {
-			console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes));
-		}
-		
+		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
@@ -278,23 +275,34 @@
 			bindNodes(node, bind, unbind, get, set, create, unobservers);
 		}
 
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
 		return unobservers;
 	}
 
 	function textNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+
+		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
 		}, unobservers);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
 
 		return unobservers;
 	}
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-		
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+
 		bindNodes(node, bind, unbind, get, set, create, unobservers);
-		
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
 		return unobservers;
 	}
 
@@ -307,7 +315,7 @@
 		// be about to modify the DOM. Copy it.
 		nodes.push.apply(nodes, node.childNodes);
 		l = nodes.length;
-		
+
 		// Loop forwards through the children
 		while (++n < l) {
 			child = nodes[n];
@@ -319,8 +327,8 @@
 				sparky = create(child);
 				unobservers.push(sparky.destroy.bind(sparky));
 			}
-			else if (nodeTypes[child.nodeType]) {
-				unobservers.push.apply(unobservers, nodeTypes[child.nodeType](child, bind, unbind, get, set, create));
+			else if (binders[child.nodeType]) {
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
 	}
@@ -351,6 +359,7 @@
 		var value = node.getAttribute('class');
 
 		if (!value) { return; }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking class="' + value + '"'); }
 
 		var update = node instanceof SVGElement ?
 				updateClassSVG.bind(this, node) :
@@ -373,11 +382,11 @@
 		var value = isSVG ?
 		    	node.getAttributeNS(xlink, attribute) :
 		    	node.getAttribute(attribute) ;
-		var update;
 
-		if (!isDefined(value) || value === '') { return; }
+		if (!value) { return; }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
 
-		update = isSVG ?
+		var update = isSVG ?
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
 
@@ -407,11 +416,11 @@
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
 
 			if (Sparky.debug === 'filter') {
-				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
+				console.log('Sparky: filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 
 			args = filters[n].args;
@@ -438,10 +447,13 @@
 
 	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var properties = extractProperties(text);
-		return properties.length && observeProperties2(text, bind, unbind, get, fn, unobservers, properties);
+
+		if (properties.length === 0) { return; }
+
+		unobservers.push(observeProperties2(text, bind, unbind, get, fn, properties));
 	}
 
-	function observeProperties2(text, bind, unbind, get, fn, unobservers, properties) {
+	function observeProperties2(text, bind, unbind, get, fn, properties) {
 		function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
@@ -473,18 +485,16 @@
 		};
 	}
 
-	function traverse(node, observe, unobserve, get, set, create) {
+	function bind(node, observe, unobserve, get, set, create) {
 		// Assume this is a DOM node, and set the binder off. The
-		// binder returns an array of unobserve functions that
-		// should be kept around in case the DOM element is removed
-		// and the bindings should be thrown away.
-		var unobservers = nodeTypes[node.nodeType](node, observe, unobserve, get, set, create);
+		// binder returns a function that destroys the bindings.
+		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create);
 
 		return function unbind() {
 			unobservers.forEach(call);
 		};
 	}
 
-	Sparky.bind = traverse;
+	Sparky.bind = bind;
 	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));

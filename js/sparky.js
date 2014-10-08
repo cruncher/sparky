@@ -820,9 +820,7 @@ if (!Number.isNaN) {
 			
 		},
 
-		destroy: function() {
-			
-		},
+		destroy: function() {},
 
 		observe: function(object, property, fn) {
 			Sparky.observe(object, property, fn);
@@ -890,8 +888,8 @@ if (!Number.isNaN) {
 		return [
 			'<',
 			node.tagName.toLowerCase(),
-			(node.className ? ' class="' + node.className + '"' : ''),
-			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
+			//(node.className ? ' class="' + node.className + '"' : ''),
+			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
 			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
@@ -938,7 +936,7 @@ if (!Number.isNaN) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
 		if (Sparky.debug && !template) {
-			console.warn('[Sparky] template #' + id + ' not found.');
+			console.warn('Sparky: template #' + id + ' not found.');
 		}
 
 		return template && template.cloneNode(true);
@@ -1035,9 +1033,9 @@ if (!Number.isNaN) {
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log('[Sparky] ' + path + ': unresolved');
+			console.log('Sparky: ' + path + ': unresolved');
 			return onDefined(root, array, function(object) {
-				console.log('[Sparky] ' + path + ': resolved');
+				console.log('Sparky: ' + path + ': resolved');
 				fn(object);
 			}) ;
 		}
@@ -1048,11 +1046,6 @@ if (!Number.isNaN) {
 
 
 	// Sparky - the meat and potatoes
-
-	function defaultCtrl(node, model) {
-		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
-		return model;
-	}
 
 	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, overwrite the trigger method
@@ -1115,7 +1108,7 @@ if (!Number.isNaN) {
 			}
 
 			if (Sparky.debug) {
-				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
+				console.log('Sparky: collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 
@@ -1205,7 +1198,7 @@ if (!Number.isNaN) {
 				data = findByPath(model, path.replace(rrelativepath, ''));
 
 				if (!data) {
-					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
+					throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 				}
 
 				return slaveSparky(sparky, Sparky(node, data));
@@ -1219,7 +1212,7 @@ if (!Number.isNaN) {
 
 				if (!data) {
 					rtag.lastIndex = 0;
-					throw new Error('[Sparky] Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+					throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 				}
 
 				return Sparky(node, data);
@@ -1242,6 +1235,8 @@ if (!Number.isNaN) {
 			this.detach();
 			this.detach = noop;
 
+			removeNode(node);
+
 			return this
 				.trigger('destroy')
 				.off();
@@ -1260,7 +1255,7 @@ if (!Number.isNaN) {
 		scope = scope || model || {};
 
 		if (Sparky.debug && templateId) {
-			console.log('[Sparky] template:', templateId);
+			console.log('Sparky: template:', templateId);
 		}
 
 		function observe(property, fn) {
@@ -1300,7 +1295,10 @@ if (!Number.isNaN) {
 
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
-			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
+			console.log('Sparky: Sparky(', nodeToText(node), ',',
+				(model && '{}'), ',',
+				(ctrl && (ctrl.name || 'anonymous function')), ')'
+			);
 		}
 
 		var modelPath, ctrlPath, tag, id;
@@ -1342,8 +1340,7 @@ if (!Number.isNaN) {
 			ctrlPath = node.getAttribute('data-ctrl');
 			tag = node.tagName.toLowerCase();
 			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
-				defaultCtrl ;
+			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) : noop ;
 		}
 
 		// Where model is an array or array-like object with a length property,
@@ -1356,22 +1353,12 @@ if (!Number.isNaN) {
 		var sparky = Object.create(prototype);
 
 		var setup = function setup(model) {
-			if (Sparky.debug === 'verbose') {
-				console.groupCollapsed('[Sparky] Sparky(', node, ',',
-					(model && model.id && ('model#' + model.id) || 'model'), ',',
-					(ctrl && 'ctrl'), ')'
-				);
-			}
-
 			setupSparky(sparky, node, model, ctrl);
-
-			if (Sparky.debug === 'verbose') { console.groupEnd(); }
 		};
 
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
-			console.log('MODEL!!');
 			onPathDefined(Sparky.data, modelPath, setup);
 		}
 		else {
@@ -1459,7 +1446,7 @@ if (!Number.isNaN) {
 
 	var filterCache = {};
 
-	var nodeTypes = {
+	var binders = {
 	    	1: domNode,
 	    	3: textNode,
 	    	11: fragmentNode
@@ -1599,7 +1586,7 @@ if (!Number.isNaN) {
 	    	},
 
 	    	option: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['value']);
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 	    	},
 
@@ -1662,12 +1649,9 @@ if (!Number.isNaN) {
 	function domNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
-		//var isSVG = node instanceof SVGElement;
 
-		if (Sparky.debug === 'verbose') {
-			console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes));
-		}
-		
+		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+
 		bindClass(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
@@ -1681,23 +1665,34 @@ if (!Number.isNaN) {
 			bindNodes(node, bind, unbind, get, set, create, unobservers);
 		}
 
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
 		return unobservers;
 	}
 
 	function textNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+
+		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
 			node.nodeValue = text;
 		}, unobservers);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
 
 		return unobservers;
 	}
 
 	function fragmentNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
-		
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+
 		bindNodes(node, bind, unbind, get, set, create, unobservers);
-		
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
 		return unobservers;
 	}
 
@@ -1710,7 +1705,7 @@ if (!Number.isNaN) {
 		// be about to modify the DOM. Copy it.
 		nodes.push.apply(nodes, node.childNodes);
 		l = nodes.length;
-		
+
 		// Loop forwards through the children
 		while (++n < l) {
 			child = nodes[n];
@@ -1722,8 +1717,8 @@ if (!Number.isNaN) {
 				sparky = create(child);
 				unobservers.push(sparky.destroy.bind(sparky));
 			}
-			else if (nodeTypes[child.nodeType]) {
-				unobservers.push.apply(unobservers, nodeTypes[child.nodeType](child, bind, unbind, get, set, create));
+			else if (binders[child.nodeType]) {
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
 	}
@@ -1754,6 +1749,7 @@ if (!Number.isNaN) {
 		var value = node.getAttribute('class');
 
 		if (!value) { return; }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking class="' + value + '"'); }
 
 		var update = node instanceof SVGElement ?
 				updateClassSVG.bind(this, node) :
@@ -1776,11 +1772,11 @@ if (!Number.isNaN) {
 		var value = isSVG ?
 		    	node.getAttributeNS(xlink, attribute) :
 		    	node.getAttribute(attribute) ;
-		var update;
 
-		if (!isDefined(value) || value === '') { return; }
+		if (!value) { return; }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
 
-		update = isSVG ?
+		var update = isSVG ?
 			updateAttributeSVG.bind(this, node, attribute) :
 			updateAttributeHTML.bind(this, node, attribute) ;
 
@@ -1810,11 +1806,11 @@ if (!Number.isNaN) {
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' is not a Sparky filter');
 			}
 
 			if (Sparky.debug === 'filter') {
-				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
+				console.log('Sparky: filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 
 			args = filters[n].args;
@@ -1841,10 +1837,13 @@ if (!Number.isNaN) {
 
 	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var properties = extractProperties(text);
-		return properties.length && observeProperties2(text, bind, unbind, get, fn, unobservers, properties);
+
+		if (properties.length === 0) { return; }
+
+		unobservers.push(observeProperties2(text, bind, unbind, get, fn, properties));
 	}
 
-	function observeProperties2(text, bind, unbind, get, fn, unobservers, properties) {
+	function observeProperties2(text, bind, unbind, get, fn, properties) {
 		function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
@@ -1876,19 +1875,17 @@ if (!Number.isNaN) {
 		};
 	}
 
-	function traverse(node, observe, unobserve, get, set, create) {
+	function bind(node, observe, unobserve, get, set, create) {
 		// Assume this is a DOM node, and set the binder off. The
-		// binder returns an array of unobserve functions that
-		// should be kept around in case the DOM element is removed
-		// and the bindings should be thrown away.
-		var unobservers = nodeTypes[node.nodeType](node, observe, unobserve, get, set, create);
+		// binder returns a function that destroys the bindings.
+		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create);
 
 		return function unbind() {
 			unobservers.forEach(call);
 		};
 	}
 
-	Sparky.bind = traverse;
+	Sparky.bind = bind;
 	Sparky.attributes = attributes;
 })(window.Sparky || require('sparky'));
 
@@ -1954,7 +1951,7 @@ if (!Number.isNaN) {
 	}
 
 	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
+		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
 
 		var map = new WeakMap();
 		var names = [];
@@ -2036,7 +2033,7 @@ if (!Number.isNaN) {
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 	
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
 					return poll(object, property, fn);
 				}
 			}
@@ -2249,7 +2246,7 @@ if (!Number.isNaN) {
 		var flag = false;
 
 		if (min <= 0) {
-			console.warn('[Sparky] Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
+			console.warn('Sparky: Controller "value-log" cannot accept a value of 0 or lower in the min attribute.', node);
 			return scope;
 		}
 
@@ -2302,7 +2299,7 @@ if (!Number.isNaN) {
 	var n = 0;
 
 	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('Sparky DEBUG', n++);
+		console.log('Sparky:DEBUG', n++);
 		debugger;
 	};
 })();
@@ -2742,7 +2739,7 @@ if (!Number.isNaN) {
 			}
 		}
 
-		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
+		if (Sparky.debug) { console.log('Sparky: DOM nodes to initialise:', array); }
 
 		array.forEach(function(node) {
 			Sparky(node);
@@ -2752,7 +2749,7 @@ if (!Number.isNaN) {
 			doc.trigger('sparkyready');
 		});
 		
-		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
+		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);
 
