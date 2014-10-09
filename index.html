@@ -63,8 +63,6 @@
 	<p data-model="object">input: {{c}}</p>
 	
 	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div>
-
-	<p data-model="object.thing">Number {{number}}</p>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -84,20 +82,6 @@
 
 <script>
 	Sparky.debug = 'verbose';
-
-	window.o = Sparky.data.object = {
-		a: 0,
-		c: '',
-		data: {
-			name: 'Sparky'
-		}
-	};
-
-	setTimeout(function() {
-		Sparky.data.object.thing = {
-			number: 6
-		};
-	}, 2000);
 </script>
 
 <div data-model="dummy">
@@ -108,9 +92,13 @@
 (function() {
 	"use strict";
 
-	// Reset Sparky
-	Sparky.data = {};
-	Sparky.ctrl = {};
+	Sparky.data.object = {
+		a: 0,
+		c: '',
+		data: {
+			name: 'Sparky'
+		}
+	};
 
 	Sparky.data['dummy']   = {};
 

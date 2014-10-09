@@ -516,6 +516,45 @@
 		sparky.trigger('ready');
 	}
 
+	function makeDistributeCtrl(ctrlPaths) {
+		// Distributor controller
+		var ctrls = [];
+		var l = ctrlPaths.length;
+		var n = -1;
+
+		while (++n < l) {
+			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
+		}
+
+		console.log(ctrlPaths, ctrls);
+
+		return function distributeCtrl() {
+			// Distributor controller
+			var l = ctrls.length;
+			var n = -1;
+			
+			while (++n < l) {
+				ctrls[n].apply(this, arguments);
+			}
+		};
+	}
+
+	function makeCtrl(node) {
+		var ctrlPaths = node.getAttribute('data-ctrl');
+
+		if (isDefined(ctrlPaths)) {
+			ctrlPaths = ctrlPaths.split(/\s+/);
+
+			if (ctrlPaths.length === 1) {
+				return findByPath(Sparky.ctrl, ctrlPaths[0]);
+			}
+
+			return makeDistributeCtrl(ctrlPaths);
+		}
+
+		return noop;
+	}
+
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
 			console.log('Sparky: Sparky(', nodeToText(node), ',',
@@ -560,10 +599,7 @@
 		// attribute. Docuent fragments do not have a getAttribute
 		// method.
 		if (!ctrl && node.getAttribute) {
-			ctrlPath = node.getAttribute('data-ctrl');
-			tag = node.tagName.toLowerCase();
-			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) : noop ;
+			ctrl = makeCtrl(node);
 		}
 
 		// Where model is an array or array-like object with a length property,

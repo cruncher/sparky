@@ -85,135 +85,143 @@ This is a very simple way to get an app working quickly on a page.
 Sparky also understands how to bind to some SVG attributes.
 Read more about <a href="#sparky-templates">Sparky templates</a>.
 
-## Sparky(node, model, ctrl)
+## Sparky
 
-To bind a DOM node to a model and a controller in JS, call <code>Sparky(node, model, ctrl)</code>.
+#### The data-ctrl attribute
 
-Take this html, for example:
+The <code>data-ctrl</code> attribute defines which controller(s) to run when
+sparky binds this element.
 
-    <p id="#user">hello, {{username}}</p>
+    <div data-ctrl="my-ctrl"></div>
 
-#### model is an object
+Where multiple controllers are defined, they are run in the given order. The
+return value of the first controller is used as scope to update the node.
 
-Where <code>ctrl</code> is <code>undefined</code>, <code>model</code>  is used as scope to render the node.
+    <div data-ctrl="my-ctrl-1 my-ctrl-2">
+        Today is {{day}}.
+    </div>
 
-    var node = document.querySelector('#user');
-    var data = {
-            username: 'Arthur'
-        };
-    
-    // Bind the node to data
-    Sparky(node, data);
-    
-    // The node is updated whenever data is changed
-    data.username = "Marco";
+If the controller returns undefined the model is used as the scope.
 
-#### ctrl is a function
+#### Defining a controller function
 
-Where <code>ctrl</code> is passed in, the return value of the <code>ctrl</code>
-is used as scope to render the node. In Sparky scope objects are just plain objects
-you create.
+Controllers are stored in <code>Sparky.ctrl</ctrl>. A controller is a function
+that is run just before sparky data-binds the node. The return value of the
+controller is used as scope to update the tags in the sparky template. In Sparky
+scope objects are just plain objects you create.
 
-    Sparky.ctrls['user-card'] = function(node, model) {
-        var scope = { username: 'unknown'; };
-        
-        Sparky.observe(model, 'username', function() {
-            scope.username = model.username;
+    Sparky.ctrl['my-ctrl-1'] = function(node, model) {
+        var scope = { day: 'unknown'; };
+
+        // Listen for changes on a model
+        Sparky.observe(model, 'date', function() {
+            if (model.date === '2014-12-25') {
+                // Update the scope
+                scope.day = 'Christmas!';
+            }
         });
-        
+
         return scope;
     };
 
-    var node = document.querySelector('#user');
-    var model = { username: 'Arthur' };
+Where the <code>ctrl</code> function returns <code>undefined</code>, Sparky uses
+the model as scope.
+
+#### The data-model attribute
+
+The <code>data-model</code> attribute defines a model that is use to update the
+node. Where no <code>data-ctrl</code> is given, the model is used directly as
+scope. Controllers are passed the model as the second argument.
+
+    <div data-model="my-model">
+        Today's date: {{date}}
+    </div>
     
-    // Bind the node to data
-    Sparky(node, model, Sparky.ctrls['user-card']);
-    
-    // The node is updated whenever data is changed
-    model.username = "Marco";
+    <div data-model="my-model" data-ctrl="my-ctrl">
+        Today is {{day}}.
+    </div>
 
-Where the <code>ctrl</code> function returns <code>undefined</code>, the model is
-used as scope.
+#### Defining a model object
 
-Sparky can also be called with the string names of models in <code>Sparky.data</code>
-and string names of controllers in <code>Sparky.ctrls</code>.
+Models are stored in <code>Sparky.data</code>. A model is an object that Sparky
+watches for changes.
 
-    // Put data in Sparky's data object.
-    Sparky.data['user'] = { username: 'Arthur' };
-    
-    // Bind the node to data
-    Sparky(node, 'user', 'user-card');
+    Sparky.data['my-model'] = {
+        date: new Date()
+    };
 
-#### Sparky() creates a sparky object
+#### Sparky(node, model, ctrl)
 
-The <code>Sparky(node, model, ctrl)</code> function creates a <code>sparky</code> object. 
-A controller is always called with a new <code>sparky</code> object as the <code>this</code> value.
-The controller can be used to extend it.
-The sparky object emits lifecycle events – and custom events, so that you can hook it into rest of
-your app if necessary – and has a few methods for controlling the view.
+To bind a node in JS, call <code>Sparky(node, model, ctrl)</code>.
 
-    Sparky.ctrls['user-card'] = function(node, model) {
-        var scope = { username: 'unknown'; };
+## parameters
+
+<code>node</code>: DOM node | document fragment | string
+A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
+<code>node</code> is a required parameter.
+
+<code>model</code>: object | string | undefined
+A string defines a path to an object in <code>Sparky.data</code> using dot
+notation.
+
+<code>ctrl</code>: function | string | undefined
+A string defines a name, or a space-separated list of names of ctrl functions
+stored in <code>Sparky.ctrl</code>. Controller functions are called with
+<code>(node, model)</code>.
+
+## return value
+
+<code>sparky</code>: sparky object
+Used to listen to lifecycle events and communicate with controllers.
+The sparky object is created and any controllers are called with the sparky
+object as their context before it is returned.
+
+## The sparky object
+
+The sparky object emits lifecycle events (and your custom events, so you can use
+it to hook it into rest of your app if necessary).
+
+<code>ready</code>: triggered after Sparky first updates the node
+
+<code>insert</code>: triggered when the node is inserted into the DOM (BUGGY)
+
+<code>destroy</code>: triggered when the node has been unbound from the model
+and removed from the DOM
+
+Controllers are called with a <code>sparky</code> object as their context. It's
+common to listen to lifecycle events inside a controller:
+
+    function myCtrl(node, model) {
+        var scope = { day: 'unknown'; };
         
-        function update() {
-            scope.username = model.username;
-        }
-        
-        Sparky.observe(model, 'username', update);
-        
-        this
-        .on('ready', function() {
+        this.on('ready', function() {
             // The node has bound and has been populated with any
             // existing model data.
-        })
-        .on('insert', function() {
-            // The node has been inserted into the DOM.
-            node.addEventListener('click', handlerFn);
-        })
-        .on('destroy', function() {
-            // The node has been unbound from the model
-            Sparky.unobserve(model, 'username', update);
         });
         
+        this.on('insert', function() {
+            // The node has been inserted into the DOM.
+        });
+        
+        this.on('destroy', function() {
+            // The node has been unbound from the model and
+            // removed from the DOM
+        });
+
         return scope;
     };
 
     // Bind the node to data
-    var sparky = Sparky(node, 'user', 'user-card');
+    var sparky = Sparky(node, 'user', myCtrl);
     
-    // Insert into the DOM
-    sparky.appendTo(body);
-    
-    // Unbind the model from the DOM
+    // Destroy Sparky's bindings and remove the node from the DOM
     sparky.destoy();
 
+Where multiple controllers are defined, they are called with the same
+<code>sparky</code> object as context. The sparky object can be used to pass
+messages between controllers.
 
 ## Sparky templates
-
-For the following examples, let's give Sparky some data:
-
-    Sparky.data['text'] = {
-        title: "Sparky loves you",
-        lang: "en",
-        date: "2014-04-15",
-        meta: {
-            author: "stephband",
-            word_count: 140,
-            contributors: Sparky.Collection([
-                {
-                    name: "Sparky",
-                    username: "sparky",
-                    url: "http://github.com/cruncher/sparky"
-                }, {
-                    name: "Marco",
-                    username: "mbi",
-                    url: "http://cruncher.ch"
-                }
-            ])
-        }
-    };
-
 
 #### Live binding with {{tag}}
 

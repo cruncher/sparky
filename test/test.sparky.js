@@ -119,7 +119,7 @@ module('Child sparky', function(fixture) {
 
 		// TODO: DOM IS updated immediately on call to Sparky(). Not sure this is
 		// correct behaviour.
-		//assert.ok(p6.innerHTML === '', 'p6 is empty.');
+		//assert.ok(p6.innerHTML === '', 'p6 is not updated immediately.');
 		model2.property = 'Goodbye friends';
 
 		window.requestAnimationFrame(function() {
