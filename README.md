@@ -104,7 +104,21 @@ return value of the first controller is used as scope to update the node.
 If the controller returns undefined the <code>data-model</code> is used as the
 scope. If <code>data-model</code> is not given the parent scope is used as scope.
 
-#### Defining a controller function
+#### The data-model attribute
+
+The <code>data-model</code> attribute defines a model that is use to update the
+node. Where no <code>data-ctrl</code> is given, the model is used directly as
+scope. Controllers are passed the model as the second argument.
+
+    <div data-model="my-model">
+        Today's date: {{date}}
+    </div>
+    
+    <div data-model="my-model" data-ctrl="my-ctrl">
+        Today is {{day}}.
+    </div>
+
+#### Define a controller function
 
 Controllers are stored in <code>Sparky.ctrl</code>. A controller is a function
 that is run just before sparky data-binds the node. The return value of the
@@ -128,21 +142,7 @@ scope objects are just plain objects you create.
 Where the <code>ctrl</code> function returns <code>undefined</code>, Sparky uses
 the model as scope.
 
-#### The data-model attribute
-
-The <code>data-model</code> attribute defines a model that is use to update the
-node. Where no <code>data-ctrl</code> is given, the model is used directly as
-scope. Controllers are passed the model as the second argument.
-
-    <div data-model="my-model">
-        Today's date: {{date}}
-    </div>
-    
-    <div data-model="my-model" data-ctrl="my-ctrl">
-        Today is {{day}}.
-    </div>
-
-#### Defining a model object
+#### Define a model object
 
 Models are stored in <code>Sparky.data</code>. A model is an object that Sparky
 watches for changes.
@@ -155,7 +155,7 @@ watches for changes.
 
 To bind a node in JS, call <code>Sparky(node, model, ctrl)</code>.
 
-## parameters
+##### parameters
 
 <code>node</code>: DOM node | document fragment | string
 A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
@@ -170,14 +170,14 @@ A string defines a name, or a space-separated list of names of ctrl functions
 stored in <code>Sparky.ctrl</code>. Controller functions are called with
 <code>(node, model)</code>.
 
-## return value
+##### return value
 
 <code>sparky</code>: sparky object
 Used to listen to lifecycle events and communicate with controllers.
 The sparky object is created and any controllers are called with the sparky
 object as their context before it is returned.
 
-## The sparky object
+##### The sparky object
 
 The sparky object emits lifecycle events (and your custom events, so you can use
 it to hook it into rest of your app if necessary).
