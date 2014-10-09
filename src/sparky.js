@@ -560,7 +560,7 @@
 
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
-			console.log('Sparky: Sparky(', nodeToText(node), ',',
+			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 				(model && '{}'), ',',
 				(ctrl && (ctrl.name || 'anonymous function')), ')'
 			);
