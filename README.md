@@ -158,14 +158,17 @@ To bind a node in JS, call <code>Sparky(node, model, ctrl)</code>.
 ##### parameters
 
 <code>node</code>: DOM node | document fragment | string
+
 A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
 <code>node</code> is a required parameter.
 
 <code>model</code>: object | string | undefined
+
 A string defines a path to an object in <code>Sparky.data</code> using dot
 notation.
 
 <code>ctrl</code>: function | string | undefined
+
 A string defines a name, or a space-separated list of names of ctrl functions
 stored in <code>Sparky.ctrl</code>. Controller functions are called with
 <code>(node, model)</code>.
@@ -173,6 +176,7 @@ stored in <code>Sparky.ctrl</code>. Controller functions are called with
 ##### return value
 
 <code>sparky</code>: sparky object
+
 Used to listen to lifecycle events and communicate with controllers.
 The sparky object is created and any controllers are called with the sparky
 object as their context before it is returned.
