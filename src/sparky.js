@@ -526,16 +526,20 @@
 			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
 		}
 
-		console.log(ctrlPaths, ctrls);
-
 		return function distributeCtrl() {
 			// Distributor controller
 			var l = ctrls.length;
-			var n = -1;
-			
+			var n = 0;
+
+			// Keep the scope returned by the first ctrl in the list
+			var result = ctrls[0].apply(this, arguments);
+
+			// Call the rest of the list
 			while (++n < l) {
 				ctrls[n].apply(this, arguments);
 			}
+
+			return result;
 		};
 	}
 
