@@ -234,7 +234,7 @@ the items in the collection. So the HTML:
         { name: "Cruncher", url: "http://cruncher.ch" }
     ]);
 
-Results in a DOM that looks like this<a href="#*">*</a>:
+Results in a DOM that looks like this<a href="#-note">*</a>:
 
     <ul>
         <li>
