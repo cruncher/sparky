@@ -90,70 +90,61 @@ Read more about <a href="#sparky-templates">Sparky templates</a>.
 #### The data-ctrl attribute
 
 The <code>data-ctrl</code> attribute defines which controller(s) to run when
-sparky binds this element.
+sparky binds this element. Controllers are simply functions that are passed
+the node and a model.
 
     <div data-ctrl="my-ctrl"></div>
 
 Where multiple controllers are defined, they are run in the given order. The
-return value of the first controller is used as scope to update the node.
+return value of the first controller is used as scope for the node to bind to.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
         Today is {{day}}.
     </div>
 
-If the controller returns undefined the <code>data-model</code> is used as the
-scope. If <code>data-model</code> is not given the parent scope is used as scope.
+Unless the controller function returns <code>undefined</code>, in which case a
+model is used as the scope.
+
+See how to <a href="#define-a-controller-function">define a controller function</a>.
 
 #### The data-model attribute
 
-The <code>data-model</code> attribute defines a model that is use to update the
-node. Where no <code>data-ctrl</code> is given, the model is used directly as
-scope. Controllers are passed the model as the second argument.
+The <code>data-model</code> attribute names a model object in
+<code>Sparky.data</code> to use as scope.
 
     <div data-model="my-model">
-        Today's date: {{date}}
-    </div>
-    
-    <div data-model="my-model" data-ctrl="my-ctrl">
-        Today is {{day}}.
+        <h1>{{title}}</h1>
     </div>
 
-#### Absolute paths
-
-The <code>data-model</code> attribute understands absolute paths in dot notation
-to models inside <code>Sparky.data</code>:
-
-    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
-    <h2>First contributor</h2>
-    <p data-model="text.meta.contributors.0">{{name}}</p>
-
-Properties in a path can contain dashes (<code>-</code>).
-
-    <p data-model="text.spoken-lang">...</p>
-
-#### Relative paths
-
-The data-model attribute also understands relative paths to models in
-the parent scope.
-
-    <div class="language-{{lang}}" data-model="text">
-        <p data-model="{{path.to.meta}}">author: {{author}}, words: {{word_count}}</p>
-    </div>
-
-    Sparky.data.text = {
+    var myModel = {
         title: 'Splodge',
         lang: 'en',
         path: {
             to: {
                 meta: {
                     author: 'Sparky',
-                    word_count: 1
+                    word_count: 1,
+                    url: 'http://'
                 }
             }
         }
     };
 
-Tags also understand relative paths.
+    Sparky.data['my-model'] = myModel;
+
+See how to <a href="#define-a-model-object">define a model object</a>.
+
+If <code>data-ctrl</code> is given, the model is 'intercepted' and the scope is
+determined by the the return value of the controller function:
+
+    <a data-model="my-model.path.to.meta" data-ctrl="meta-ctrl" href="{{url}}">{{author}}</a>
+
+To use a property of a parent scope as a model, put a tag in the
+<code>data-model</code> attribute:
+
+    <div data-model="my-model">
+        <p data-model="{{path.to.meta}}">{{author}}</p>
+    </div>
 
 #### {{tag}}
 
@@ -183,6 +174,17 @@ Modify scope values with filters before updating the DOM:
     <h1 data-model="text" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
 More about <a href="#sparky-template-filters">filters</a>.
+
+#### Paths
+
+The <code>data-model</code> attribute understands absolute paths to models
+inside <code>Sparky.data</code> written in dot notation:
+
+    <p data-model="text.path.to.meta">author: {{author}}, words: {{word_count}}</p>
+
+Tags understand relative paths to objects and properties in the current scope.
+
+    <div data-model="text" class="words-{{path.to.meta.word_count}}"></div>
 
 #### attributes
 
