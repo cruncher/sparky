@@ -45,7 +45,9 @@
 
 	Sparky.filters = {
 		add: function(value, n) {
-			return parseFloat(value) + n ;
+			var result = parseFloat(value) + n ;
+			if (Number.isNaN(result)) { return; }
+			return result;
 		},
 
 		capfirst: function(value) {
@@ -279,6 +281,7 @@
 		},
 
 		slugify: function(value) {
+			if (typeof value !== 'string') { return; }
 			return value.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
 		},
 

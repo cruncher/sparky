@@ -517,7 +517,6 @@
 	}
 
 	function makeDistributeCtrl(ctrlPaths) {
-		// Distributor controller
 		var ctrls = [];
 		var l = ctrlPaths.length;
 		var n = -1;

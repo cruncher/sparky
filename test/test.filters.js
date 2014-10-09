@@ -1,4 +1,22 @@
 module('Sparky.filters', function(fixture) {
+	var key, filter;
+	var expected = {
+		add: { '': undefined, '5.5, 3.5': 9},
+		slugify: { '': undefined, 'Pardon mE sir': 'pardon-me-sir' }
+	};
+
+	console.log('Test filters...');
+
+	for (key in expected) {
+		filter = Sparky.filters[key];
+
+		(function(key, result, expect) {
+			test("Sparky.filters." + key + "()", function() {
+				ok(result === expect, "Returns '" + result + "', expected '" + expect + "'");
+			});
+		})(key, filter(), expected[key]['']);
+	}
+
 	test("Sparky.filters.add", function() {
 		ok(Sparky.filters.add('5.5', 3.5) === 9);
 	});
