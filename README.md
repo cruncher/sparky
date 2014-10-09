@@ -182,7 +182,7 @@ Modify scope values with filters before updating the DOM:
 
     <h1 data-model="text" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
-More about <a href="#template-filters">filters</a>.
+More about <a href="#sparky-template-filters">filters</a>.
 
 #### attributes
 
@@ -425,7 +425,7 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
     </h1>
     {% endverbatim %}
 
-### *
+### note *
 It actually looks like this:
 
     <ul>
