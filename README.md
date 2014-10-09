@@ -425,7 +425,8 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
     </h1>
     {% endverbatim %}
 
-### note *
+#### * note
+
 It actually looks like this:
 
     <ul>
