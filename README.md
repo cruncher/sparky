@@ -105,7 +105,7 @@ return value of the first controller is used as scope for the node to bind to.
 Unless the controller function returns <code>undefined</code>, in which case a
 model is used as the scope.
 
-See how to <a href="#define-a-controller-function">define a controller function</a>.
+<a href="#define-a-controller-function">Define a controller function</a>.
 
 #### The data-model attribute
 
@@ -131,8 +131,6 @@ The <code>data-model</code> attribute names a model object in
     };
 
     Sparky.data['my-model'] = myModel;
-
-See how to <a href="#define-a-model-object">define a model object</a>.
 
 If <code>data-ctrl</code> is given, the model is 'intercepted' and the scope is
 determined by the the return value of the controller function:
