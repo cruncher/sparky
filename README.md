@@ -82,10 +82,10 @@ JS:
 
 This is a very simple way to get an app working quickly on a page.
 
-Sparky also understands how to bind to some SVG attributes.
+
 Read more about <a href="#sparky-templates">Sparky templates</a>.
 
-## Sparky
+## Sparky templates
 
 #### The data-ctrl attribute
 
@@ -117,6 +117,135 @@ scope. Controllers are passed the model as the second argument.
     <div data-model="my-model" data-ctrl="my-ctrl">
         Today is {{day}}.
     </div>
+
+#### Absolute paths
+
+The <code>data-model</code> attribute understands absolute paths in dot notation
+to models inside <code>Sparky.data</code>:
+
+    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
+    <h2>First contributor</h2>
+    <p data-model="text.meta.contributors.0">{{name}}</p>
+
+Properties in a path can contain dashes (<code>-</code>).
+
+    <p data-model="text.spoken-lang">...</p>
+
+#### Relative paths
+
+The data-model attribute also understands relative paths to models in
+the parent scope.
+
+    <div class="language-{{lang}}" data-model="text">
+        <p data-model="{{path.to.meta}}">author: {{author}}, words: {{word_count}}</p>
+    </div>
+
+    Sparky.data.text = {
+        title: 'Splodge',
+        lang: 'en',
+        path: {
+            to: {
+                meta: {
+                    author: 'Sparky',
+                    word_count: 1
+                }
+            }
+        }
+    };
+
+Tags also understand relative paths.
+
+#### {{tag}}
+
+Sparky template tags will be familiar to anyone who has written a Django
+template. Sparky tags, however, perform live data binding.
+
+    <h1 data-model="text">{{ title }}</h1>
+
+The title tag is bound to changes in <code>text.title</code>.
+
+Tags also grock relative paths:
+
+    <h1 data-model="text" class="words-{{path.to.meta.word_count}}">{{title}}</h1>
+
+#### {{{tag}}}
+
+A triple bracket tag updates from the model once only.
+
+    <h1 data-model="text">{{{ title }}}</h1>
+
+The tag is not updated when <code>text.title</code> changes.
+
+#### {{tag|filter}}
+
+Modify scope values with filters before updating the DOM:
+
+    <h1 data-model="text" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
+
+More about <a href="#template-filters">filters</a>.
+
+#### attributes
+
+Sparky looks for tags in text nodes and the following attributes:
+
+- <code>href</code>
+- <code>title</code>
+- <code>id</code>
+- <code>style</code>
+- <code>src</code>
+- <code>alt</code>
+
+You can change the list by modifying the array <code>Sparky.attributes</code>.
+
+inputs, selects and textareas also use:
+
+- <code>name</code>
+
+They're a bit special. They get two-way data binding.
+
+#### input, select and textarea nodes
+
+Inputs, selects and textareas get 2-way data binding.
+When the model changes, their values are updated.
+When their values are changed, the model is updated.
+
+    <form class="user-form" data-model="text">
+        <input type="text" name="{{path.to.meta.author}}" value="" />
+    </form>
+
+The <code>name</code> attribute is used to tell Sparky which
+property of the current scope to bind to.
+
+#### Loop over a collection
+
+Sparky has no special syntax for looping over a collection, but where
+<code>data-model</code> resolves to an array or array-like object
+Sparky automatically loops over it, cloning the corresponding DOM node for all
+the items in the collection. So the HTML:
+
+    <ul>
+        <li data-model="contributors">
+            <a href="{{url}}">{{name}}</a>
+        </li>
+    </ul>
+
+    Sparky.data.contributors = Sparky.Collection([
+        { name: "Sparky",   url: "http://github.com/cruncher/sparky" },
+        { name: "Cruncher", url: "http://cruncher.ch" }
+    ]);
+
+Results in a DOM that looks like this<a href="#*">*</a>:
+
+    <ul>
+        <li>
+            <a href="http://github.com/cruncher/sparky">Sparky</a>
+        </li>
+        <li>
+            <a href="http://cruncher.ch">Marco</a>
+        </li>
+    </ul>
+
+## Sparky API
 
 #### Define a controller function
 
@@ -226,113 +355,7 @@ Where multiple controllers are defined, they are called with the same
 <code>sparky</code> object as context. The sparky object can be used to pass
 messages between controllers.
 
-## Sparky templates
-
-#### Live binding with {{tag}}
-
-Render some content from the <code>text.title</code> property and re-render
-whenever it changes:
-
-    <h1 data-model="text">{{ title }}</h1>
-
-Sparky looks for the object <code>text</code> inside <code>Sparky.data</code> and
-renders the sparky tag <code>{{ title }}</code> from <code>text.title</code>.
-Whenever <code>text.title</code> is changed, the <code>{{ title }}</code> tag is
-re-rendered.
-
-Bind a class to the <code>lang</code> property:
-
-    <h1 class="language-{{lang}}" data-model="text">{{title}}</h1>
-
-Here Sparky renders <code>text.lang</code> to the <code>{{lang}}</code> tag and
-<code>text.title</code> to the <code>{{title}}</code> tag.
-
-Sparky looks for tags in text nodes or attributes. The list of attributes it
-looks in is limited to <code>href</code>, <code>title</code>, <code>id</code>,
-<code>style</code>, <code>src</code> and <code>alt</code>. You can change the
-list by modifying the array <code>Sparky.attributes</code>.
-
-Form elements – inputs, selects and textareas – also use the <code>name</code>
-attribute to define two-way data binding. More on that later.
-
-#### Static binding with {{{tag}}}
-
-Render some content from the <code>text.title</code> property once just once.
-The tag is not re-rendered when <code>text.title</code> changes:
-
-    <h1 data-model="text">{{{ title }}}</h1>
-
-#### Absolute paths
-
-The data-model attribute understands absolute paths in JavaScript object notation
-to models inside <code>Sparky.data</code>:
-
-    <p data-model="text.meta">author: {{author}}, words: {{word_count}}</p>
-    <h2>First contributor</h2>
-    <p data-model="text.meta.contributors[0]">{{name}}</p>
-
-Properties in a path can contain dashes (<code>-</code>).
-
-    <p data-model="text.spoken-lang">...</p>
-
-#### Relative paths
-
-The data-model attribute also understands relative paths to models inside
-parent models. Putting the <code>{{meta}}</code> tag inside of <code>data-model</code>
-makes Sparky look for the <code>meta</code> object insdie the parent object,
-the <code>text</code> object.
-
-    <div class="language-{{lang}}" data-model="text">
-        <p data-model="{{meta}}">author: {{author}}, words: {{word_count}}</p>
-    </div>
-
-#### Looping over a collection
-
-Sparky has no special syntax for looping over a collection, but where
-<code>data-model</code> resolves to an array or array-like object,
-Sparky automatically loops over it, cloning the corresponding DOM node for all
-the items in the collection. So the HTML:
-
-    <ul>
-        <li data-model="text.meta.contributors">
-            <a href="{{url}}">{{name}}</a>
-        </li>
-    </ul>
-
-Results in a DOM that looks like this:
-
-    <ul>
-        <li>
-            <a href="http://github.com/cruncher/sparky">Sparky</a>
-        </li>
-        <li>
-            <a href="http://cruncher.ch">Marco</a>
-        </li>
-        <!-- [Sparky] data-model="text.meta.contributors" -->
-    </ul>
-
-(The comment node is added automatically and is required by Sparky to maintain
-the collection. This technique is nicked from AngularJS.)
-
-#### Forms
-
-Inputs, selects and textareas get 2-way data binding.
-When the model changes, their values are updated.
-When their values are changed, the model is updated.
-
-Bind an <code>input[type="text"]</code> to
-<code>text.username</code>:
-
-    <form class="user-form" data-model="text">
-        <input type="text" name="{{username}}" value="" />
-    </form>
-
-The <code>name</code> attribute is used to tell Sparky which
-property of the model to update. Text written into the input
-is stored at <code>Sparky.data.text.username</code>, and changes to
-Sparky.data.text.username update the input's value.
-
-## Template filters
+## Sparky template filters
 
 Display the date, formatted:
 
@@ -342,7 +365,7 @@ Display the date, formatted:
     </h1>
 
 Sparky has a number of template filters for modifying and formatting data. You
-can also create your own. Sparky template filter syntax is the same as
+can also create your own. Sparky template filter syntax is similar to
 <a href="http://docs.django.com/templates">Django template</a> filter syntax:
 
     <p>{{ date|date:'d M Y' }}</p>
@@ -356,17 +379,17 @@ Sparky has a subset of the Django filters:
 - default
 - escape
 - first
-- floatformat
+- floatformat: number
 - join
 - json
 - last
 - length
 - linebreaksbr
 - lower
-- multiply
+- multiply: number
 - parseint
-- pluralize
-- random	
+- pluralize: 
+- random
 - replace
 - safe
 - slice
@@ -378,9 +401,9 @@ Sparky has a subset of the Django filters:
 - unordered_list
 - yesno
 
-Plus some of it's own:
+And some of it's own:
 
-- decibels – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale. Useful when working with WebAudio parameters.
+- decibels: number – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale. Useful when working with WebAudio parameters.
 - decimals – Alias of floatformat.
 - get:'propertyName' – Takes an object and renders the named property.
 - lowercase – Alias of lower.
@@ -401,6 +424,22 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
         <time>{{date|date:'d M Y'}}</time>
     </h1>
     {% endverbatim %}
+
+### *
+It actually looks like this:
+
+    <ul>
+        <li>
+            <a href="http://github.com/cruncher/sparky">Sparky</a>
+        </li>
+        <li>
+            <a href="http://cruncher.ch">Marco</a>
+        </li>
+        <!-- [Sparky] data-model="text.meta.contributors" -->
+    </ul>
+
+The comment node is added automatically and is required by Sparky to maintain
+the collection. This technique is nicked from AngularJS.
 
 <!--#### Sparky.observe(object, property, fn);
 
