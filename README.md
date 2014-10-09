@@ -101,8 +101,9 @@ Where multiple controllers are defined, they are run in the given order.
         Today is {{day}}.
     </div>
 
-If the first controller returns an object, it is used as scope to keep
-Sparky's template tags up-to-date.
+The return value of the first controller is used as scope for the node to bind
+to, unless that value is <code>undefined</code>, in which case a model is used
+as the scope.
 
 <a href="#define-a-controller-function">Define a controller function</a>.
 
