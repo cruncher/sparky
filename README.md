@@ -91,19 +91,18 @@ Read more about <a href="#sparky-templates">Sparky templates</a>.
 
 The <code>data-ctrl</code> attribute defines which controller(s) to run when
 sparky binds this element. Controllers are simply functions that are passed
-the node and a model.
+the node and a model object.
 
     <div data-ctrl="my-ctrl"></div>
 
-Where multiple controllers are defined, they are run in the given order. The
-return value of the first controller is used as scope for the node to bind to.
+Where multiple controllers are defined, they are run in the given order.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
         Today is {{day}}.
     </div>
 
-Unless the controller function returns <code>undefined</code>, in which case a
-model is used as the scope.
+If the first controller returns an object, it is used as scope to keep
+Sparky's template tags up-to-date.
 
 <a href="#define-a-controller-function">Define a controller function</a>.
 
@@ -132,13 +131,15 @@ The <code>data-model</code> attribute names a model object in
 
     Sparky.data['my-model'] = myModel;
 
-If <code>data-ctrl</code> is given, the model is 'intercepted' and the scope is
-determined by the the return value of the controller function:
+If <code>data-ctrl</code> is also given, the model is 'intercepted' and the
+scope is determined by the the return value of the controller function. Where
+the controller returns an object, that object is used as scope. Where it returns
+<code>undefined</code> the model is used as scope.
 
     <a data-model="my-model.path.to.meta" data-ctrl="meta-ctrl" href="{{url}}">{{author}}</a>
 
-To use a property of a parent scope as a model, put a tag in the
-<code>data-model</code> attribute:
+A property in the current scope can be used as a model by patting a tag in
+<code>data-model</code>:
 
     <div data-model="my-model">
         <p data-model="{{path.to.meta}}">{{author}}</p>
