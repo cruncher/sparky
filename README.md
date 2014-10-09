@@ -101,11 +101,12 @@ return value of the first controller is used as scope to update the node.
         Today is {{day}}.
     </div>
 
-If the controller returns undefined the model is used as the scope.
+If the controller returns undefined the <code>data-model</code> is used as the
+scope. If <code>data-model</code> is not given the parent scope is used as scope.
 
 #### Defining a controller function
 
-Controllers are stored in <code>Sparky.ctrl</ctrl>. A controller is a function
+Controllers are stored in <code>Sparky.ctrl</code>. A controller is a function
 that is run just before sparky data-binds the node. The return value of the
 controller is used as scope to update the tags in the sparky template. In Sparky
 scope objects are just plain objects you create.
