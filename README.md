@@ -137,9 +137,14 @@ scope is determined by the the return value of the controller function. Where
 the controller returns an object, that object is used as scope. Where it returns
 <code>undefined</code> the model is used as scope.
 
-    <a data-model="my-model.path.to.meta" data-ctrl="meta-ctrl" href="{{url}}">{{author}}</a>
+    <a data-model="my-model" data-ctrl="link-ctrl" href="{{url}}">{{author}}</a>
 
-A property in the current scope can be used as a model by patting a tag in
+The <code>data-model</code> attribute understands absolute paths to models
+inside <code>Sparky.data</code> written in dot notation:
+
+    <p data-model="text.path.to.meta">author: {{author}}, words: {{word_count}}</p>
+
+A property in the current scope can be used as a model by putting a tag in
 <code>data-model</code>:
 
     <div data-model="my-model">
@@ -174,17 +179,6 @@ Modify scope values with filters before updating the DOM:
     <h1 data-model="text" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
 More about <a href="#sparky-template-filters">filters</a>.
-
-#### Paths
-
-The <code>data-model</code> attribute understands absolute paths to models
-inside <code>Sparky.data</code> written in dot notation:
-
-    <p data-model="text.path.to.meta">author: {{author}}, words: {{word_count}}</p>
-
-Tags understand relative paths to objects and properties in the current scope.
-
-    <div data-model="text" class="words-{{path.to.meta.word_count}}"></div>
 
 #### attributes
 
