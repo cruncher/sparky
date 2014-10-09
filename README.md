@@ -152,19 +152,19 @@ A property in the current scope can be used as a model by putting a tag in
 Sparky template tags will be familiar to anyone who has written a Django
 template. Sparky tags, however, perform live data binding.
 
-    <h1 data-model="text">{{ title }}</h1>
+    <h1 data-model="my-model">{{ title }}</h1>
 
 The title tag is bound to changes in <code>text.title</code>.
 
 Tags also grock relative paths:
 
-    <h1 data-model="text" class="words-{{path.to.meta.word_count}}">{{title}}</h1>
+    <h1 data-model="my-model" class="words-{{path.to.meta.word_count}}">{{title}}</h1>
 
 #### {{{tag}}}
 
 A triple bracket tag updates from the model once only.
 
-    <h1 data-model="text">{{{ title }}}</h1>
+    <h1 data-model="my-model">{{{ title }}}</h1>
 
 The tag is not updated when <code>text.title</code> changes.
 
@@ -172,7 +172,7 @@ The tag is not updated when <code>text.title</code> changes.
 
 Modify scope values with filters before updating the DOM:
 
-    <h1 data-model="text" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
+    <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
 More about <a href="#sparky-template-filters">filters</a>.
 
@@ -199,10 +199,10 @@ They're a bit special. They get two-way data binding.
 
 Inputs, selects and textareas get 2-way data binding.
 When the model changes, their values are updated.
-When their values are changed, the model is updated.
+And when their values are changed, the scope is updated.
 
-    <form class="user-form" data-model="text">
-        <input type="text" name="{{path.to.meta.author}}" value="" />
+    <form class="user-form" data-model="my-model">
+        <input type="text" name="{{title}}" value="" />
     </form>
 
 The <code>name</code> attribute is used to tell Sparky which
