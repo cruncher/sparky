@@ -133,11 +133,7 @@ The <code>data-model</code> attribute names a model object in
     Sparky.data['my-model'] = myModel;
 
 If <code>data-ctrl</code> is also given, the model is 'intercepted' and the
-scope is determined by the the return value of the controller function. Where
-the controller returns an object, that object is used as scope. Where it returns
-<code>undefined</code> the model is used as scope.
-
-    <a data-model="my-model" data-ctrl="link-ctrl" href="{{url}}">{{author}}</a>
+scope is determined by the the return value of the controller function.
 
 The <code>data-model</code> attribute understands absolute paths to models
 inside <code>Sparky.data</code> written in dot notation:
