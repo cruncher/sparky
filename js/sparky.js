@@ -1293,9 +1293,51 @@ if (!Number.isNaN) {
 		sparky.trigger('ready');
 	}
 
+	function makeDistributeCtrl(ctrlPaths) {
+		var ctrls = [];
+		var l = ctrlPaths.length;
+		var n = -1;
+
+		while (++n < l) {
+			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
+		}
+
+		return function distributeCtrl() {
+			// Distributor controller
+			var l = ctrls.length;
+			var n = 0;
+
+			// Keep the scope returned by the first ctrl in the list
+			var result = ctrls[0].apply(this, arguments);
+
+			// Call the rest of the list
+			while (++n < l) {
+				ctrls[n].apply(this, arguments);
+			}
+
+			return result;
+		};
+	}
+
+	function makeCtrl(node) {
+		var ctrlPaths = node.getAttribute('data-ctrl');
+
+		if (isDefined(ctrlPaths)) {
+			ctrlPaths = ctrlPaths.split(/\s+/);
+
+			if (ctrlPaths.length === 1) {
+				return findByPath(Sparky.ctrl, ctrlPaths[0]);
+			}
+
+			return makeDistributeCtrl(ctrlPaths);
+		}
+
+		return noop;
+	}
+
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
-			console.log('Sparky: Sparky(', nodeToText(node), ',',
+			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 				(model && '{}'), ',',
 				(ctrl && (ctrl.name || 'anonymous function')), ')'
 			);
@@ -1337,10 +1379,7 @@ if (!Number.isNaN) {
 		// attribute. Docuent fragments do not have a getAttribute
 		// method.
 		if (!ctrl && node.getAttribute) {
-			ctrlPath = node.getAttribute('data-ctrl');
-			tag = node.tagName.toLowerCase();
-			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) : noop ;
+			ctrl = makeCtrl(node);
 		}
 
 		// Where model is an array or array-like object with a length property,
@@ -1821,39 +1860,61 @@ if (!Number.isNaN) {
 		return word;
 	}
 
-	function extractProperties(str) {
-		var properties = [];
-
+	function extractProperties(str, live, dead) {
 		str.replace(rname, function($0, $1, $2){
-			// And properties that are to be live updated,
-			// and make sure properties are only added once.
-			if ($1.length === 2 && properties.indexOf($2) === -1) {
-				properties.push($2);
+			// Sort the live properties from the dead properties.
+			var i;
+
+			// If it's already in live, our work here is done
+			if (live.indexOf($2) !== -1) { return; }
+
+			// It's a live tag, so put it in live, and if it's already
+			// in dead remove it from there.
+			if ($1.length === 2) {
+				live.push($2);
+				i = dead.indexOf($2);
+				if (i !== -1) { dead.splice(i, 1); }
+			}
+			
+			// It's a dead tag, check if it's in dead and if not stick
+			// it in there.
+			else if (dead.indexOf($2) === -1) {
+				dead.push($2);
 			}
 		});
-
-		return properties;
 	}
 
-	function observeProperties(text, bind, unbind, get, fn, unobservers) {
-		var properties = extractProperties(text);
-
-		if (properties.length === 0) { return; }
-
-		unobservers.push(observeProperties2(text, bind, unbind, get, fn, properties));
-	}
-
-	function observeProperties2(text, bind, unbind, get, fn, properties) {
-		function replaceText($0, $1, $2, $3) {
+	function makeReplaceText(get) {
+		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
 			return isDefined(value2) ? value2 : '' ;
 		}
+	}
 
-		function update() {
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
+		var live = [];
+		var dead = [];
+
+		// Populate live and dead property lists
+		extractProperties(text, live, dead);
+
+		if (live.length === 0 && dead.length === 0) { return; }
+
+		var replaceText = makeReplaceText(get);
+		var update = function update() {
 			fn(text.replace(rname, replaceText));
-		}
+		};
 
+		if (live.length) {
+			unobservers.push(observeProperties2(bind, unbind, update, live));
+		}
+		else {
+			update();
+		}
+	}
+
+	function observeProperties2(bind, unbind, update, properties) {
 		// Start throttling changes. The first update is immediate.
 		var throttle = Sparky.Throttle(update);
 
@@ -2351,7 +2412,9 @@ if (!Number.isNaN) {
 
 	Sparky.filters = {
 		add: function(value, n) {
-			return parseFloat(value) + n ;
+			var result = parseFloat(value) + n ;
+			if (Number.isNaN(result)) { return; }
+			return result;
 		},
 
 		capfirst: function(value) {
@@ -2585,6 +2648,7 @@ if (!Number.isNaN) {
 		},
 
 		slugify: function(value) {
+			if (typeof value !== 'string') { return; }
 			return value.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
 		},
 
