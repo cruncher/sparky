@@ -431,39 +431,61 @@
 		return word;
 	}
 
-	function extractProperties(str) {
-		var properties = [];
-
+	function extractProperties(str, live, dead) {
 		str.replace(rname, function($0, $1, $2){
-			// And properties that are to be live updated,
-			// and make sure properties are only added once.
-			if ($1.length === 2 && properties.indexOf($2) === -1) {
-				properties.push($2);
+			// Sort the live properties from the dead properties.
+			var i;
+
+			// If it's already in live, our work here is done
+			if (live.indexOf($2) !== -1) { return; }
+
+			// It's a live tag, so put it in live, and if it's already
+			// in dead remove it from there.
+			if ($1.length === 2) {
+				live.push($2);
+				i = dead.indexOf($2);
+				if (i !== -1) { dead.splice(i, 1); }
+			}
+			
+			// It's a dead tag, check if it's in dead and if not stick
+			// it in there.
+			else if (dead.indexOf($2) === -1) {
+				dead.push($2);
 			}
 		});
-
-		return properties;
 	}
 
-	function observeProperties(text, bind, unbind, get, fn, unobservers) {
-		var properties = extractProperties(text);
-
-		if (properties.length === 0) { return; }
-
-		unobservers.push(observeProperties2(text, bind, unbind, get, fn, properties));
-	}
-
-	function observeProperties2(text, bind, unbind, get, fn, properties) {
-		function replaceText($0, $1, $2, $3) {
+	function makeReplaceText(get) {
+		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
 			return isDefined(value2) ? value2 : '' ;
 		}
+	}
 
-		function update() {
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
+		var live = [];
+		var dead = [];
+
+		// Populate live and dead property lists
+		extractProperties(text, live, dead);
+
+		if (live.length === 0 && dead.length === 0) { return; }
+
+		var replaceText = makeReplaceText(get);
+		var update = function update() {
 			fn(text.replace(rname, replaceText));
-		}
+		};
 
+		if (live.length) {
+			unobservers.push(observeProperties2(bind, unbind, update, live));
+		}
+		else {
+			update();
+		}
+	}
+
+	function observeProperties2(bind, unbind, update, properties) {
 		// Start throttling changes. The first update is immediate.
 		var throttle = Sparky.Throttle(update);
 
