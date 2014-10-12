@@ -270,8 +270,10 @@
 		
 		//reverse
 
-		safe: function() {
-			
+		safe: function(string) {
+			if (typeof string !== string) { return; }
+			// Actually, we can't do this here, because we cant return DOM nodes
+			return;
 		},
 
 		//safeseq
