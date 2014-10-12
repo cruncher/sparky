@@ -25,8 +25,6 @@
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rpathtrimmer = /^\[|]$/g,
-	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 
@@ -173,8 +171,10 @@
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
+	// Getting and setting
 
-	// Handle paths
+	var rpathtrimmer = /^\[|]$/g;
+	var rpathsplitter = /\]?\.|\[/g;
 
 	function splitPath(path) {
 		return path
@@ -182,91 +182,13 @@
 			.split(rpathsplitter);
 	}
 
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
-
-		return array.length && isDefined(val) ?
-			objFrom(val, array) :
-			val ;
-	}
-
-	function objFromPath(obj, path) {
-		var array = splitPath(path);
-		
-		return array.length === 1 ?
-			obj[path] :
-			objFrom(obj, array) ;
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-		
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
-	}
-
-	function objToPath(root, path, obj) {
-		var array = splitPath(path);
-
-		return array.length === 1 ?
-			(root[path] = obj) :
-			objTo(root, array, obj);
-	}
-
 	function findByPath(obj, path) {
-		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
+		if (!isDefined(obj) || !isDefined(path)) { return; }
 		
 		return path === '.' ?
 			obj :
-			objFromPath(obj, path) ;
+			Sparky.getPath(obj, path) ;
 	}
-
-	function onDefined(root, array, fn) {
-		if (array.length === 0) { return fn(root); }
-
-		var object = objFrom(root, array.slice());
-
-		// Where an object exists, return it immediately
-		if (object) { return fn(object); }
-
-		// Take the last property off the array
-		var prop = array.pop();
-
-		// Recursively look up the path array
-		onDefined(root, array, function(object) {
-			if (object[prop]) { return fn(object[prop]); }
-
-			// Listen for when the property becomes an object
-			Sparky.observe(object, prop, function found() {
-				if (!object[prop]) { return; }
-
-				// Stop listening
-				Sparky.unobserve(object, prop, found);
-
-				// Return the found object
-				return fn(object[prop]);
-			});
-		});
-	}
-
-	function onPathDefined(root, path, fn) {
-		var array = splitPath(path);
-
-		if (Sparky.debug) {
-			// Observe path with logs.
-			console.log('Sparky: unresolved path' + path);
-			return onDefined(root, array, function(object) {
-				console.log('Sparky: resolved path  ' + path);
-				fn(object);
-			}) ;
-		}
-
-		// Observe path without logs.
-		return onDefined(root, array, fn) ;
-	}
-
 
 	// Sparky - the meat and potatoes
 
@@ -394,11 +316,11 @@
 		}
 
 		function get(property) {
-			return objFromPath(scope, property);
+			return Sparky.getPath(scope, property);
 		}
 
 		function set(property, value) {
-			objToPath(scope, property, value);
+			Sparky.setPath(scope, property, value);
 		}
 
 		function create(node) {
@@ -621,7 +543,7 @@
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
-			onPathDefined(Sparky.data, modelPath, setup);
+			Sparky.observePathOnce(Sparky.data, modelPath, setup);
 		}
 		else {
 			setup(model);
