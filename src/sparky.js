@@ -513,7 +513,7 @@
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
 			Sparky.observePathOnce(Sparky.data, modelPath, function(model) {
-				setupSparky(sparky, node, model, Sparky.data, ctrl);
+				setupSparky(sparky, node, model, ctrl);
 			});
 		}
 		else {

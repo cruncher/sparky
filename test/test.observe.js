@@ -121,7 +121,6 @@ module('Sparky.observe', function(fixture) {
 		var expected = 0;
 
 		function update(value) {
-			console.log('HEY', value);
 			ok(value === expected, 'Expected ' + expected + ', got ' + value);
 		};
 

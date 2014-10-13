@@ -32,7 +32,7 @@ module.exports = function(config) {
       'src/sparky.ready.js',
 
       'test/module.js',
-      'test/test.observe.js',
+      'test/test.*.js',
       //'test/test.sparky.js'
     ],
 

@@ -40,9 +40,12 @@
 			(root[key] = obj) ;
 	}
 
-	function observePath3(root, prop, fn, notify) {
+	function observePath3(root, prop, array, fn, notify) {
 		function update() {
-			console.log('update3', root, prop, root[prop]);
+			if (Sparky.debug === 'verbose') {
+				console.log('Sparky: path resolved. Value:', root[prop]);
+			}
+
 			fn(root[prop]);
 		}
 
@@ -51,7 +54,6 @@
 		Sparky.observe(root, prop, update);
 
 		return function unobserve() {
-			console.log('DESTROY 1', prop);
 			Sparky.unobserve(root, prop, update);
 		};
 	}
@@ -78,7 +80,6 @@
 		notify = true;
 
 		return function unobserve() {
-			console.log('DESTROY 2', prop);
 			destroy();
 			Sparky.unobserve(root, prop, update);
 		};
@@ -90,7 +91,7 @@
 		var prop = array.shift();
 
 		return array.length === 0 ?
-			observePath3(root, prop, fn, notify) :
+			observePath3(root, prop, array, fn, notify) :
 			observePath2(root, prop, array, fn, notify) ;
 	}
 
@@ -118,14 +119,24 @@
 			fn(value);
 			return noop;
 		}
-console.log('observePathOnce', root, array);
+
 		var destroy = observePath1(root, array, update, false);
 
+		// Hacks around the fact that the first call to destroy()
+		// is not ready yet, becuase at the point update has been
+		// called by the observe recursers, the destroy fn has
+		// not been returned yet. TODO: we should make direct returns
+		// async to get around this - they would be async if they were
+		// using Object.observe...
+		var hasRun = false;
+
 		function update(value) {
+			if (hasRun) { return; }
 			if (isDefined(value)) {
+				hasRun = true;
 				destroy();
 				fn(value);
-				fn = noop;
+				setTimeout(destroy, 0);
 			}
 		}
 
