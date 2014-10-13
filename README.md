@@ -275,6 +275,11 @@ watches for changes.
         date: new Date()
     };
 
+Sparky is agnostic about how you structure your apps. How you structure
+your data models is how you control the paths used in your templates.
+Store your models in <code>Sparky.data</code> to give them to Sparky templates
+bound on DOM load, or bind them yourself with <code>Sparky(node, model, ctrl)</code>. 
+
 #### Sparky(node, model, ctrl)
 
 To bind a node in JS, call <code>Sparky(node, model, ctrl)</code>.
