@@ -6,7 +6,7 @@
 
 ## Quick start
 
-Sparky traverses the DOM automatically on <code>load</code>. It binds nodes with a
+Sparky wires up the DOM automatically on <code>load</code>. It binds nodes with a
 <code>data-model</code> attribute to model objects stored in <code>Sparky.data</code>,
 and passes nodes with a <code>data-ctrl</code> attribute into controller functions
 stored in <code>Sparky.ctrl</code>.
@@ -444,6 +444,11 @@ It actually looks like this:
 
 The comment node is added automatically and is required by Sparky to maintain
 the collection. This technique is nicked from AngularJS.
+
+#### Sparky says thanks
+
+to Mariana Alt (<a href="http://www.alt-design.ch/">www.alt-design.ch</a>) for drawing me for the logo.
+
 
 <!--#### Sparky.observe(object, property, fn);
 
