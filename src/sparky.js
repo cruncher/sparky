@@ -173,15 +173,6 @@
 
 	// Getting and setting
 
-	var rpathtrimmer = /^\[|]$/g;
-	var rpathsplitter = /\]?\.|\[/g;
-
-	function splitPath(path) {
-		return path
-			.replace(rpathtrimmer, '')
-			.split(rpathsplitter);
-	}
-
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path)) { return; }
 		
@@ -404,33 +395,15 @@
 		}
 
 		function observe(property, fn) {
-			var path = splitPath(property);
-			var obj = scope;
-			var prop = property;
-
-			if (path.length > 1) {
-				prop = path.pop();
-				obj = objFrom(scope, path);
-			}
-
-			Sparky.observe(obj, prop, fn);
+			Sparky.observePath(scope, property, fn);
 
 			if (templateFragment) {
-				Sparky.observe(obj, prop, insert);
+				Sparky.observePath(scope, property, insert);
 			}
 		}
 
 		function unobserve(property, fn) {
-			var path = splitPath(property);
-			var obj = scope;
-			var prop = property;
-
-			if (path.length > 1) {
-				prop = path.pop();
-				obj = objFrom(scope, path);
-			}
-
-			Sparky.unobserve(obj, prop, fn);
+			Sparky.unobservePath(scope, property, fn);
 		}
 
 		// The bind function returns an array of unbind functions.
@@ -536,17 +509,15 @@
 
 		var sparky = Object.create(prototype);
 
-		var setup = function setup(model) {
-			setupSparky(sparky, node, model, ctrl);
-		};
-
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
-			Sparky.observePathOnce(Sparky.data, modelPath, setup);
+			Sparky.observePathOnce(Sparky.data, modelPath, function(model) {
+				setupSparky(sparky, node, model, Sparky.data, ctrl);
+			});
 		}
 		else {
-			setup(model);
+			setupSparky(sparky, node, model, ctrl);
 		}
 
 		return sparky;

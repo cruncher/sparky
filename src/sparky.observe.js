@@ -17,11 +17,17 @@
 	var rpathtrimmer = /^\[|]$/g;
 	var rpathsplitter = /\]?\.|\[/g;
 
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
 	function objFrom(obj, array) {
 		var key = array.shift();
 		var val = obj[key];
 
-		return array.length === 0 ? obj :
+		return array.length === 0 ? val :
 			isDefined(val) ? objFrom(val, array) :
 			val ;
 	}
@@ -34,95 +40,100 @@
 			(root[key] = obj) ;
 	}
 
-	function splitPath(path) {
-		return path
-			.replace(rpathtrimmer, '')
-			.split(rpathsplitter);
-	}
+	function observePath3(root, prop, fn, notify) {
+		function update() {
+			console.log('update3', root, prop, root[prop]);
+			fn(root[prop]);
+		}
 
-	function onChanged(root, array, fn) {
-		if (!root || array.length === 0) { return noop; }
-
-		var prop = array.shift();
-		var object = root[prop];
-		var destroy = onChanged(object, array.slice(), fn);
-		var update = array.length === 0 ? fn : function update() {
-		    	destroy();
-		    	object = root[prop];
-		    	destroy = onChanged(object, array.slice(), fn) ;
-		    	fn();
-		    };
+		if (notify) { update(); }
 
 		Sparky.observe(root, prop, update);
 
 		return function unobserve() {
+			console.log('DESTROY 1', prop);
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath2(root, prop, array, fn, notify) {
+		var destroy = noop;
+
+		function update() {
+			var object = root[prop];
+
+			destroy();
+
+			if (!isDefined(object)) {
+				destroy = noop;
+				if (notify) { fn(); }
+			}
+			else {
+				destroy = observePath1(object, array.slice(), fn, notify) ;
+			}
+		};
+
+		Sparky.observe(root, prop, update);
+		update();
+		notify = true;
+
+		return function unobserve() {
+			console.log('DESTROY 2', prop);
 			destroy();
 			Sparky.unobserve(root, prop, update);
 		};
 	}
 
+	function observePath1(root, array, fn, notify) {
+		if (array.length === 0) { return noop; }
+
+		var prop = array.shift();
+
+		return array.length === 0 ?
+			observePath3(root, prop, fn, notify) :
+			observePath2(root, prop, array, fn, notify) ;
+	}
+
 	function observePath(root, path, fn) {
-		var array = splitPath(path);
-
-		//if (Sparky.debug) {
-			// Observe path with logs.
-			console.log('Sparky: unresolved path "' + path + '"');
-			return onChanged(root, array, function(object) {
-				console.log('Sparky: resolved path   "' + path + '"');
-				fn.apply(this, arguments);
-			});
-		//}
-
-		// Observe path without logs.
-		return onChanged(root, array, fn) ;
-	}
-
-	function unobservePath(root, path, fn) {
-
-	}
-
-	function onDefined(root, array, fn) {
-		if (array.length === 0) { return fn(root); }
-
-		var object = objFrom(root, array.slice());
-
-		// Where an object exists, return it immediately
-		if (object) { return fn(object); }
-
-		// Take the last property off the array
-		var prop = array.pop();
-
-		// Recursively look up the path array
-		onDefined(root, array, function(object) {
-			if (object[prop]) { return fn(object[prop]); }
-
-			// Listen for when the property becomes an object
-			Sparky.observe(object, prop, function found() {
-				if (!object[prop]) { return; }
-
-				// Stop listening
-				Sparky.unobserve(object, prop, found);
-
-				// Return the found object
-				return fn(object[prop]);
-			});
-		});
-	}
-
-	function observePathOnce(root, path, fn) {
 		var array = splitPath(path);
 
 		if (Sparky.debug) {
 			// Observe path with logs.
-			console.log('Sparky: unresolved path' + path);
-			return onDefined(root, array, function(object) {
-				console.log('Sparky: resolved path  ' + path);
-				fn(object);
-			}) ;
+			console.log('Sparky: unresolved path "' + path + '"');
+			return observePath1(root, array, function(object) {
+				console.log('Sparky: resolved path   "' + path + '"');
+				fn.apply(this, arguments);
+			});
 		}
 
 		// Observe path without logs.
-		return onDefined(root, array, fn) ;
+		return observePath1(root, array, fn, false) ;
+	}
+
+	function observePathOnce(root, path, fn) {
+		var array = splitPath(path);
+		var value = objFrom(root, array.slice());
+
+		if (isDefined(value)) {
+			fn(value);
+			return noop;
+		}
+console.log('observePathOnce', root, array);
+		var destroy = observePath1(root, array, update, false);
+
+		function update(value) {
+			if (isDefined(value)) {
+				destroy();
+				fn(value);
+				fn = noop;
+			}
+		}
+
+		return destroy;
+	}
+
+	function unobservePath(root, path, fn) {
+
 	}
 
 	function getPath(obj, path) {

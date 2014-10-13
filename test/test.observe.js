@@ -1,4 +1,7 @@
 module('Sparky.observe', function(fixture) {
+
+	console.log('Test observe functions...');
+
 	test("observe/unobserve anon fn", function() {
 		expect(1);
 		
@@ -42,15 +45,13 @@ module('Sparky.observe', function(fixture) {
 		object.a = expected = 1;
 	});
 
-	test("observe/unobserve path", function() {
+	test(".observePath() on resolvable path", function() {
 		expect(6);
 		
 		var object = {a: {b: {c: 0}}};
 		var expected = 0;
 
-		function update() {
-			console.log('HELLO', expected);
-			var value = object.a && object.a.b && object.a.b.c ;
+		function update(value) {
 			ok(value === expected, 'Expected ' + expected + ', got ' + value);
 		};
 
@@ -77,5 +78,62 @@ module('Sparky.observe', function(fixture) {
 
 		expected = 5;
 		object.a.b = b3;
+	});
+
+	test(".observePath() on unresolvable path", function() {
+		expect(2);
+
+		var object = {};
+		var expected = 0;
+
+		function update(value) {
+			ok(value === expected, 'expected: ' + expected + ', got: ' + value);
+		};
+
+		Sparky.observePath(object, 'a.b.c', update);
+		expected = 1;
+		object.a = {b: {c: 1}};
+
+		expected = 2;
+		object.a.b.c = 2;
+	});
+
+	test(".observePathOnce() on resolvable path", function() {
+		expect(1);
+
+		var object = {a: {b: {c: 1}}};
+		var expected = 1;
+
+		function update(value) {
+			ok(value === expected, 'Expected ' + expected + ', got ' + value);
+		};
+
+		Sparky.observePathOnce(object, 'a.b.c', update);
+
+		object.a.b.c = 2;
+		object.a.b.c = 3;
+	});
+
+	test(".observePathOnce() on unresolvable path", function() {
+		expect(1);
+
+		var object = {};
+		var expected = 0;
+
+		function update(value) {
+			console.log('HEY', value);
+			ok(value === expected, 'Expected ' + expected + ', got ' + value);
+		};
+
+		Sparky.observePathOnce(object, 'a.b.c', update);
+		expected = 1;
+		object.a = {b: {c: 1}};
+
+		expected = 2;
+		object.a.b.c = 2;
+		
+		//setTimeout(function() {
+		//	QUnit.start();
+		//}, 0);
 	});
 });
