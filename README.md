@@ -147,6 +147,8 @@ It also understands relative paths to models in the current scope, when wrapped 
         <p data-model="{{path-to.meta}}">{{author}}</p>
     </div>
 
+<a href="#define-a-model-object">Define a model object</a>.
+
 #### {{tag}}
 
 Sparky template tags will be familiar to anyone who has written a Django
