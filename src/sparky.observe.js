@@ -8,14 +8,11 @@
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
 
-	function isAudioParam(object) {
-		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
-	}
-
 	// Handle paths
 
 	var rpathtrimmer = /^\[|]$/g;
 	var rpathsplitter = /\]?\.|\[/g;
+	var map = [];
 
 	function splitPath(path) {
 		return path
@@ -98,17 +95,11 @@
 	function observePath(root, path, fn) {
 		var array = splitPath(path);
 
-		if (Sparky.debug) {
-			// Observe path with logs.
-			console.log('Sparky: unresolved path "' + path + '"');
-			return observePath1(root, array, function(object) {
-				console.log('Sparky: resolved path   "' + path + '"');
-				fn.apply(this, arguments);
-			});
-		}
-
 		// Observe path without logs.
-		return observePath1(root, array, fn, false) ;
+		var destroy = observePath1(root, array, fn, false) ;
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
 	}
 
 	function observePathOnce(root, path, fn) {
@@ -117,34 +108,53 @@
 
 		if (isDefined(value)) {
 			fn(value);
-			return noop;
+			return;
 		}
 
 		var destroy = observePath1(root, array, update, false);
 
-		// Hacks around the fact that the first call to destroy()
+		// Hack around the fact that the first call to destroy()
 		// is not ready yet, becuase at the point update has been
 		// called by the observe recursers, the destroy fn has
 		// not been returned yet. TODO: we should make direct returns
 		// async to get around this - they would be async if they were
-		// using Object.observe...
+		// using Object.observe after all...
 		var hasRun = false;
 
 		function update(value) {
 			if (hasRun) { return; }
 			if (isDefined(value)) {
 				hasRun = true;
-				destroy();
 				fn(value);
-				setTimeout(destroy, 0);
+				setTimeout(function() {
+					unobservePath(root, path, fn);
+				}, 0);
 			}
 		}
 
-		return destroy;
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
 	}
 
 	function unobservePath(root, path, fn) {
+		var n = map.length;
+		var record;
 
+		// Allow for the call signatures (root) and (root, fn)
+		if (typeof path !== 'string') {
+			fn = path;
+			path = undefined;
+		}
+
+		while (n--) {
+			record = map[n];
+			if ((root === record[0]) &&
+				(!path || path === record[1]) &&
+				(!fn || fn === record[2])) {
+				record[3]();
+				map.splice(n, 1);
+			}
+		}
 	}
 
 	function getPath(obj, path) {
@@ -169,7 +179,12 @@
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
 
+
 	// Binding
+
+	function isAudioParam(object) {
+		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	}
 
 	function Poll(object, property, fn) {
 		var v1 = object[property];
