@@ -205,7 +205,7 @@ They're a bit special. They get two-way data binding.
 #### input, select and textarea nodes
 
 Inputs, selects and textareas get 2-way data binding.
-When the model changes, their values are updated.
+When the scope changes, their values are updated.
 And when their values are changed, the scope is updated.
 
     <form class="user-form" data-model="my-model">
@@ -213,7 +213,8 @@ And when their values are changed, the scope is updated.
     </form>
 
 The <code>name</code> attribute is used to tell Sparky which
-property of the current scope to bind to.
+property of the current scope to bind to. Probably best not
+to leave spaces in the tag.
 
 #### Loop over a collection
 
