@@ -165,14 +165,6 @@ Tags also grock relative paths:
 
     <h1 data-model="my-model" class="words-{{path.to.meta.word_count}}">{{title}}</h1>
 
-#### {{{tag}}}
-
-A triple bracket tag updates from the model once only.
-
-    <h1 data-model="my-model">{{{ title }}}</h1>
-
-The tag is not updated when <code>text.title</code> changes.
-
 #### {{tag|filter}}
 
 Modify scope values with filters before updating the DOM:
@@ -180,6 +172,15 @@ Modify scope values with filters before updating the DOM:
     <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
 More about <a href="#sparky-template-filters">filters</a>.
+
+#### {{{tag}}}
+
+A triple bracket tag updates from the scope once only.
+
+    <h1 data-model="my-model">{{{ title }}}</h1>
+
+These tags are updated once from the scope (in this case my-model), but they don't live bind to changes.
+If you know where you can do it, this can be good for performance.
 
 #### attributes
 
@@ -231,7 +232,7 @@ the items in the collection. So this...
         { name: "Cruncher", url: "http://cruncher.ch" }
     ]);
 
-...results in a DOM that looks like this<a href="#-note">*</a>:
+...results in a DOM that looks like this<a href="#-note">*<sup>note</note></a>:
 
     <ul>
         <li>
