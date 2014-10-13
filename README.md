@@ -95,20 +95,22 @@ This is a simple way to get an app working quickly on a page.
 #### The data-ctrl attribute
 
 The <code>data-ctrl</code> attribute defines which controller(s) to run when
-sparky binds this element. Controllers are simply functions that are passed
-the node and a model object.
+sparky binds this element.
 
-    <div data-ctrl="my-ctrl"></div>
+    <div data-ctrl="my-ctrl">{{day}}</div>
 
-Where multiple controllers are defined, they are run in the given order.
+You can find controllers by logging <code>Sparky.ctrl</code>.
+
+Controllers are simply functions that are called when Sparky scans this node.
+The return value of the controller is used as scope for the template to bind
+to, unless that value is <code>undefined</code>, in which case scope is the model.
+
+You can define more than one controller. They are run in order. The return value
+of the last controller is used as scope.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
         Today is {{day}}.
     </div>
-
-The return value of the first controller is used as scope for the node to bind
-to, unless that value is <code>undefined</code>, in which case a model is used
-as the scope.
 
 <a href="#define-a-controller-function">Define a controller function</a>.
 
