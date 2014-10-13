@@ -415,7 +415,9 @@ And some of it's own:
 - postpad: n, 'character' – 
 - symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
 
-### Using Sparky with Django
+## Notes
+
+#### Using Sparky with Django
 
 If you do happen to be using Django, Sparky's template tags will clash with
 Django's. To avoid Sparky templates being read by Django, wrap them in Django's
