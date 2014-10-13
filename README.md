@@ -428,7 +428,7 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
     </h1>
     {% endverbatim %}
 
-#### * note
+#### <a href="#loop-over-a-collection">* note</a>
 
 It actually looks like this:
 
