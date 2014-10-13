@@ -9,7 +9,7 @@
 Sparky traverses the DOM automatically on <code>load</code>. It binds nodes with a
 <code>data-model</code> attribute to model objects stored in <code>Sparky.data</code>,
 and passes nodes with a <code>data-ctrl</code> attribute into controller functions
-stored in <code>Sparky.ctrls</code>.
+stored in <code>Sparky.ctrl</code>.
 
 HTML:
 
@@ -25,7 +25,7 @@ JS:
         type: 'data'
     };
 
-    Sparky.ctrls['my-ctrl'] = function(node, model) {
+    Sparky.ctrl['my-ctrl'] = function(node, model) {
         var scope = {
             title: model.title,
             type: model.type
@@ -50,6 +50,13 @@ to it for changes and live-updates the DOM. Here Sparky updates the
 <code>input</code> value and the text inside <code>&lt;p&gt;</code> when
 <code>scope.title</code> changes.
 
+HTML:
+
+    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
+        <input type="text" name="{{title}}" />
+        <p>{{title}} by Sparky!</p>
+    </div>
+
 The controller is observing changes to the model <code>'my-data'</code> and
 updating the <code>scope</code>.
 
@@ -64,13 +71,13 @@ directly as scope.
 
 If we didn't care about converting text from uppercase to lowercase, the example
 above could be written without the controller, and Sparky would use the model
-directly as scope:
+directly as scope. In fact we <i>can</i> do uppsercase with a filter:
 
 HTML:
 
     <div class="{{type}}-block" data-model="my-data">
         <input type="text" name="{{title}}" />
-        <p>{{title}} by Sparky!</p>
+        <p>{{title|uppercase}} by Sparky!</p>
     </div>
 
 JS:
@@ -80,10 +87,8 @@ JS:
         type: 'data'
     };
 
-This is a very simple way to get an app working quickly on a page.
+This is a simple way to get an app working quickly on a page.
 
-
-Read more about <a href="#sparky-templates">Sparky templates</a>.
 
 ## Sparky templates
 
