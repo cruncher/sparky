@@ -63,7 +63,7 @@
 
 			destroy();
 
-			if (!isDefined(object)) {
+			if (typeof object !== 'object' && typeof object !== 'function') {
 				destroy = noop;
 				if (notify) { fn(); }
 			}
