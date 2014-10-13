@@ -147,6 +147,10 @@ It also understands relative paths to models in the current scope, when wrapped 
         <p data-model="{{path-to.meta}}">{{author}}</p>
     </div>
 
+If <code>data-ctrl</code> is defined the model is passed to a controller, and the return
+value of the controller is used as scope to update the template (unless the controller
+returns <code>undefined</code>, in which case the model is used as scope).
+
 <a href="#define-a-model-object">Define a model object</a>.
 
 #### {{tag}}
