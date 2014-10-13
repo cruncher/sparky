@@ -218,7 +218,7 @@ property of the current scope to bind to.
 Sparky has no special syntax for looping over a collection, but where
 <code>data-model</code> resolves to an array or array-like object
 Sparky automatically loops over it, cloning the corresponding DOM node for all
-the items in the collection. So the HTML:
+the items in the collection. So this...
 
     <ul>
         <li data-model="contributors">
@@ -231,7 +231,7 @@ the items in the collection. So the HTML:
         { name: "Cruncher", url: "http://cruncher.ch" }
     ]);
 
-Results in a DOM that looks like this<a href="#-note">*</a>:
+...results in a DOM that looks like this<a href="#-note">*</a>:
 
     <ul>
         <li>
