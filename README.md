@@ -311,9 +311,7 @@ stored in <code>Sparky.ctrl</code>. Controller functions are called with
 
 <code>sparky</code>: sparky object
 
-Used to listen to lifecycle events and communicate with controllers.
-The sparky object is created and any controllers are called with the sparky
-object as their context before it is returned.
+Used to listen to lifecycle events and can be used to communicate with controllers.
 
 ##### The sparky object
 
@@ -327,8 +325,8 @@ it to hook it into rest of your app if necessary).
 <code>destroy</code>: triggered when the node has been unbound from the model
 and removed from the DOM
 
-Controllers are called with a <code>sparky</code> object as their context. It's
-common to listen to lifecycle events inside a controller:
+Controllers are called with the <code>sparky</code> object as their <code>this</code> value.
+It's common to listen to lifecycle events inside a controller:
 
     function myCtrl(node, model) {
         var scope = { day: 'unknown'; };
@@ -357,7 +355,7 @@ common to listen to lifecycle events inside a controller:
     sparky.destoy();
 
 Where multiple controllers are defined, they are called with the same
-<code>sparky</code> object as context. The sparky object can be used to pass
+<code>sparky</code> object as context. The sparky object could be used to pass
 messages between controllers.
 
 ## Sparky template filters
