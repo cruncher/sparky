@@ -820,6 +820,12 @@ if (!Number.isNaN) {
 
 		destroy: function() {},
 
+		remove: function() {
+			while (this.length--) {
+				removeNode(this[this.length]);
+			}
+		},
+
 		observe: function(object, property, fn) {
 			Sparky.observe(object, property, fn);
 			this.on('destroy', function() {
@@ -1148,8 +1154,7 @@ if (!Number.isNaN) {
 		sparky.destroy = function destroy() {
 			this.detach();
 			this.detach = noop;
-
-			removeNode(node);
+			this.remove();
 
 			return this
 				.trigger('destroy')
@@ -1403,7 +1408,8 @@ if (!Number.isNaN) {
 	    		if (!prop) { return; }
 
 	    		var value1 = get(prop);
-	    		var value2 = normalise(node.getAttribute('value'));
+	    		var attr = node.getAttribute('value');
+	    		var value2 = isDefined(attr) && normalise(attr) ;
 	    		var flag = false;
 	    		var throttle, change;
 
@@ -1413,18 +1419,18 @@ if (!Number.isNaN) {
 	    			if (node.checked && !isDefined(value1)) {
 	    				set(prop, value2);
 	    			}
-	    			
+
 	    			throttle = Sparky.Throttle(function setChecked() {
 	    				node.checked = node.value === (get(prop) + '');
 	    				node.dispatchEvent(changeEvent);
 	    			});
-	    			
+
 	    			bind(prop, throttle);
-	    			
+
 	    			change = function change(e) {
 	    				set(prop, node.checked ? normalise(node.value) : undefined);
 	    			};
-	    			
+
 	    			node.addEventListener('change', change);
 	    		}
 	    		else if (node.type === 'radio') {
