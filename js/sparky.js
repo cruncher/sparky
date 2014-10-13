@@ -919,17 +919,18 @@ if (!Number.isNaN) {
 		var fragment = document.createDocumentFragment();
 		return reduce(children, append, fragment);
 	}
-	
-	function getTemplate(id) {
-		var node = document.getElementById(id);
-		
-		if (!node) { return; }
-		
+
+	function getTemplateContent(node) {
 		// A template tag has a content property that gives us a document
 		// fragment. If that doesn't exist we must make a document fragment.
 		return node.content || fragmentFromChildren(node);
 	}
-	
+
+	function getTemplate(id) {
+		var node = document.getElementById(id);
+		return node && getTemplateContent(node);
+	}
+
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
@@ -1254,6 +1255,10 @@ if (!Number.isNaN) {
 			}
 		}
 
+		if (!node) {
+			throw new Error('Sparky: Sparky() called without node or valid id of node. ' + node);
+		}
+
 		// Where model is not defined look for the data-model
 		// attribute. Document fragments do not have a getAttribute
 		// method.
@@ -1313,6 +1318,7 @@ if (!Number.isNaN) {
 	Sparky.templates    = templates;
 	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;
+	Sparky.content      = getTemplateContent;
 	Sparky.extend       = extend;
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.prototype    = prototype;
