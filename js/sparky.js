@@ -802,8 +802,6 @@ if (!Number.isNaN) {
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rpathtrimmer = /^\[|]$/g,
-	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 
@@ -950,100 +948,15 @@ if (!Number.isNaN) {
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-
-	// Handle paths
-
-	function splitPath(path) {
-		return path
-			.replace(rpathtrimmer, '')
-			.split(rpathsplitter);
-	}
-
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
-
-		return array.length && isDefined(val) ?
-			objFrom(val, array) :
-			val ;
-	}
-
-	function objFromPath(obj, path) {
-		var array = splitPath(path);
-		
-		return array.length === 1 ?
-			obj[path] :
-			objFrom(obj, array) ;
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-		
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
-	}
-
-	function objToPath(root, path, obj) {
-		var array = splitPath(path);
-
-		return array.length === 1 ?
-			(root[path] = obj) :
-			objTo(root, array, obj);
-	}
+	// Getting and setting
 
 	function findByPath(obj, path) {
-		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
+		if (!isDefined(obj) || !isDefined(path)) { return; }
 		
 		return path === '.' ?
 			obj :
-			objFromPath(obj, path) ;
+			Sparky.getPath(obj, path) ;
 	}
-
-	function onDefined(root, array, fn) {
-		if (array.length === 0) { return fn(root); }
-
-		var object = objFrom(root, array.slice());
-
-		// Where an object exists, return it immediately
-		if (object) { return fn(object); }
-
-		// Take the last property off the array
-		var prop = array.pop();
-
-		// Recursively look up the path array
-		onDefined(root, array, function(object) {
-			if (object[prop]) { return fn(object[prop]); }
-
-			// Listen for when the property becomes an object
-			Sparky.observe(object, prop, function found() {
-				if (!object[prop]) { return; }
-
-				// Stop listening
-				Sparky.unobserve(object, prop, found);
-
-				// Return the found object
-				return fn(object[prop]);
-			});
-		});
-	}
-
-	function onPathDefined(root, path, fn) {
-		var array = splitPath(path);
-
-		if (Sparky.debug) {
-			// Observe path with logs.
-			console.log('Sparky: unresolved path' + path);
-			return onDefined(root, array, function(object) {
-				console.log('Sparky: resolved path  ' + path);
-				fn(object);
-			}) ;
-		}
-
-		// Observe path without logs.
-		return onDefined(root, array, fn) ;
-	}
-
 
 	// Sparky - the meat and potatoes
 
@@ -1171,11 +1084,11 @@ if (!Number.isNaN) {
 		}
 
 		function get(property) {
-			return objFromPath(scope, property);
+			return Sparky.getPath(scope, property);
 		}
 
 		function set(property, value) {
-			objToPath(scope, property, value);
+			Sparky.setPath(scope, property, value);
 		}
 
 		function create(node) {
@@ -1259,33 +1172,15 @@ if (!Number.isNaN) {
 		}
 
 		function observe(property, fn) {
-			var path = splitPath(property);
-			var obj = scope;
-			var prop = property;
-
-			if (path.length > 1) {
-				prop = path.pop();
-				obj = objFrom(scope, path);
-			}
-
-			Sparky.observe(obj, prop, fn);
+			Sparky.observePath(scope, property, fn);
 
 			if (templateFragment) {
-				Sparky.observe(obj, prop, insert);
+				Sparky.observePath(scope, property, insert);
 			}
 		}
 
 		function unobserve(property, fn) {
-			var path = splitPath(property);
-			var obj = scope;
-			var prop = property;
-
-			if (path.length > 1) {
-				prop = path.pop();
-				obj = objFrom(scope, path);
-			}
-
-			Sparky.unobserve(obj, prop, fn);
+			Sparky.unobservePath(scope, property, fn);
 		}
 
 		// The bind function returns an array of unbind functions.
@@ -1391,17 +1286,15 @@ if (!Number.isNaN) {
 
 		var sparky = Object.create(prototype);
 
-		var setup = function setup(model) {
-			setupSparky(sparky, node, model, ctrl);
-		};
-
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
 		if (modelPath && !model) {
-			onPathDefined(Sparky.data, modelPath, setup);
+			Sparky.observePathOnce(Sparky.data, modelPath, function(model) {
+				setupSparky(sparky, node, model, ctrl);
+			});
 		}
 		else {
-			setup(model);
+			setupSparky(sparky, node, model, ctrl);
 		}
 
 		return sparky;
@@ -1956,6 +1849,183 @@ if (!Number.isNaN) {
 
 (function(Sparky) {
 	"use strict";
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+
+	// Handle paths
+
+	var rpathtrimmer = /^\[|]$/g;
+	var rpathsplitter = /\]?\.|\[/g;
+	var map = [];
+
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
+	function objFrom(obj, array) {
+		var key = array.shift();
+		var val = obj[key];
+
+		return array.length === 0 ? val :
+			isDefined(val) ? objFrom(val, array) :
+			val ;
+	}
+
+	function objTo(root, array, obj) {
+		var key = array[0];
+		
+		return array.length > 1 ?
+			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
+			(root[key] = obj) ;
+	}
+
+	function observePath3(root, prop, array, fn, notify) {
+		function update() {
+			if (Sparky.debug === 'verbose') {
+				console.log('Sparky: path resolved. Value:', root[prop]);
+			}
+
+			fn(root[prop]);
+		}
+
+		if (notify) { update(); }
+
+		Sparky.observe(root, prop, update);
+
+		return function unobserve() {
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath2(root, prop, array, fn, notify) {
+		var destroy = noop;
+
+		function update() {
+			var object = root[prop];
+
+			destroy();
+
+			if (!isDefined(object)) {
+				destroy = noop;
+				if (notify) { fn(); }
+			}
+			else {
+				destroy = observePath1(object, array.slice(), fn, notify) ;
+			}
+		};
+
+		Sparky.observe(root, prop, update);
+		update();
+		notify = true;
+
+		return function unobserve() {
+			destroy();
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath1(root, array, fn, notify) {
+		if (array.length === 0) { return noop; }
+
+		var prop = array.shift();
+
+		return array.length === 0 ?
+			observePath3(root, prop, array, fn, notify) :
+			observePath2(root, prop, array, fn, notify) ;
+	}
+
+	function observePath(root, path, fn) {
+		var array = splitPath(path);
+
+		// Observe path without logs.
+		var destroy = observePath1(root, array, fn, false) ;
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function observePathOnce(root, path, fn) {
+		var array = splitPath(path);
+		var value = objFrom(root, array.slice());
+
+		if (isDefined(value)) {
+			fn(value);
+			return;
+		}
+
+		var destroy = observePath1(root, array, update, false);
+
+		// Hack around the fact that the first call to destroy()
+		// is not ready yet, becuase at the point update has been
+		// called by the observe recursers, the destroy fn has
+		// not been returned yet. TODO: we should make direct returns
+		// async to get around this - they would be async if they were
+		// using Object.observe after all...
+		var hasRun = false;
+
+		function update(value) {
+			if (hasRun) { return; }
+			if (isDefined(value)) {
+				hasRun = true;
+				fn(value);
+				setTimeout(function() {
+					unobservePath(root, path, fn);
+				}, 0);
+			}
+		}
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function unobservePath(root, path, fn) {
+		var n = map.length;
+		var record;
+
+		// Allow for the call signatures (root) and (root, fn)
+		if (typeof path !== 'string') {
+			fn = path;
+			path = undefined;
+		}
+
+		while (n--) {
+			record = map[n];
+			if ((root === record[0]) &&
+				(!path || path === record[1]) &&
+				(!fn || fn === record[2])) {
+				record[3]();
+				map.splice(n, 1);
+			}
+		}
+	}
+
+	function getPath(obj, path) {
+		var array = splitPath(path);
+		
+		return array.length === 1 ?
+			obj[path] :
+			objFrom(obj, array) ;
+	}
+
+	function setPath(root, path, obj) {
+		var array = splitPath(path);
+
+		return array.length === 1 ?
+			(root[path] = obj) :
+			objTo(root, array, obj);
+	}
+
+	Sparky.getPath = getPath;
+	Sparky.setPath = setPath;
+	Sparky.observePath = observePath;
+	Sparky.unobservePath = unobservePath;
+	Sparky.observePathOnce = observePathOnce;
+
+
+	// Binding
 
 	function isAudioParam(object) {
 		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
@@ -2637,8 +2707,10 @@ if (!Number.isNaN) {
 		
 		//reverse
 
-		safe: function() {
-			
+		safe: function(string) {
+			if (typeof string !== string) { return; }
+			// Actually, we can't do this here, because we cant return DOM nodes
+			return;
 		},
 
 		//safeseq
