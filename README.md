@@ -123,35 +123,28 @@ The <code>data-model</code> attribute names a model object in
         <h1>{{title}}</h1>
     </div>
 
-    var myModel = {
-        title: 'Splodge',
-        lang: 'en',
-        path: {
-            to: {
-                meta: {
-                    author: 'Sparky',
-                    word_count: 1,
-                    url: 'http://'
-                }
+    Sparky.data['my-model'] = {
+        "title": "Splodge",
+        "lang": "en",
+        "path-to": {
+            "meta": {
+                "author": "Sparky",
+                "word-count": 1,
+                "url": 'http://'
             }
         }
     };
 
-    Sparky.data['my-model'] = myModel;
-
-If <code>data-ctrl</code> is also given, the model is 'intercepted' and the
-scope is determined by the the return value of the controller function.
-
 The <code>data-model</code> attribute understands absolute paths to models
 inside <code>Sparky.data</code> written in dot notation:
 
-    <p data-model="text.path.to.meta">author: {{author}}, words: {{word_count}}</p>
+    <p data-model="text.path-to.meta">author: {{author}}, words: {{word-count}}</p>
 
-A property in the current scope can be used as a model by putting a tag in
-<code>data-model</code>:
+Yes, it's fine with property names with a '-' in them.
+It also understands relative paths to models in the current scope, when wrapped in a tag:
 
     <div data-model="my-model">
-        <p data-model="{{path.to.meta}}">{{author}}</p>
+        <p data-model="{{path-to.meta}}">{{author}}</p>
     </div>
 
 #### {{tag}}
@@ -161,11 +154,11 @@ template. Sparky tags, however, perform live data binding.
 
     <h1 data-model="my-model">{{ title }}</h1>
 
-The title tag is bound to changes in <code>text.title</code>.
+The title tag is bound to changes in <code>my-model.title</code>.
 
-Tags also grock relative paths:
+Tags also grock paths:
 
-    <h1 data-model="my-model" class="words-{{path.to.meta.word_count}}">{{title}}</h1>
+    <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
 #### {{tag|filter}}
 
