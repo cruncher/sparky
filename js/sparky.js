@@ -820,6 +820,12 @@ if (!Number.isNaN) {
 
 		destroy: function() {},
 
+		remove: function() {
+			while (this.length--) {
+				removeNode(this[this.length]);
+			}
+		},
+
 		observe: function(object, property, fn) {
 			Sparky.observe(object, property, fn);
 			this.on('destroy', function() {
@@ -1148,8 +1154,7 @@ if (!Number.isNaN) {
 		sparky.destroy = function destroy() {
 			this.detach();
 			this.detach = noop;
-
-			removeNode(node);
+			this.remove();
 
 			return this
 				.trigger('destroy')
