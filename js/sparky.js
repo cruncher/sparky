@@ -2450,12 +2450,15 @@ if (!Number.isNaN) {
 (function() {
 	"use strict";
 
-	var n = 0;
+	function getName(node) {
+		return node.name.replace('{{', '').replace('}}', '');
+	}
 
 	Sparky.ctrl['value-invert'] = function(node, model) {
 		var scope = {};
+		var name = getName(node);
 		var isCheckbox = node.type === 'checkbox' || node.type === 'radio';
-console.log('>>', node);
+
 		// Only handle checkboxes and radios for now
 		if (!isCheckbox) { return; }
 
