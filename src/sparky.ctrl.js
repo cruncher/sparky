@@ -194,8 +194,6 @@
 (function() {
 	"use strict";
 
-	var n = 0;
-
 	function getName(node) {
 		return node.name.replace('{{', '').replace('}}', '');
 	}
