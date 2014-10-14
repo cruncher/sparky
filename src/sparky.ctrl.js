@@ -190,3 +190,43 @@
 		debugger;
 	};
 })();
+
+(function() {
+	"use strict";
+
+	var n = 0;
+
+	function getName(node) {
+		return node.name.replace('{{', '').replace('}}', '');
+	}
+
+	Sparky.ctrl['value-invert'] = function(node, model) {
+		var scope = {};
+		var name = getName(node);
+		var isCheckbox = node.type === 'checkbox' || node.type === 'radio';
+
+		// Only handle checkboxes and radios for now
+		if (!isCheckbox) { return; }
+
+		function updateScope() {
+			var value = model[name];
+			scope[name] = value === node.value ? undefined : node.value ;
+		}
+
+		function updateModel() {
+			var value = scope[name];
+			model[name] = value ? undefined :  node.value ;
+		}
+
+		Sparky.observe(model, name, updateScope);
+		Sparky.observe(scope, name, updateModel);
+		updateScope();
+
+		this.on('destroy', function() {
+			Sparky.unobserve(model, name, updateScope);
+			Sparky.unobserve(scope, name, updateModel);
+		});
+
+		return scope;
+	};
+})();
