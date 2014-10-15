@@ -1,4 +1,6 @@
 module('Sparky:collections', function(fixture) {
+	console.log('Test Sparky.Collection()...');
+
 	test('Initial length', function() {
 		var collection = Sparky.Collection([{
 		    	property: 1

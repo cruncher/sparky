@@ -429,12 +429,15 @@
 		return function distributeCtrl() {
 			// Distributor controller
 			var l = ctrls.length;
-			var n = 0;
+			var n = -1;
+			var temp;
 			var scope;
 
-			// Call the the list of ctrls
+			// Call the the list of ctrls. Scope is the return value of
+			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				scope = ctrls[n].apply(this, arguments);
+				temp = ctrls[n].apply(this, arguments);
+				if (temp) { scope = temp; }
 			}
 
 			return scope;

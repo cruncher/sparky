@@ -1,4 +1,6 @@
 module('Multiple controllers', function(fixture) {
+	console.log('Test ctrls...');
+
 	asyncTest('Sparky should handle multiple controllers', function() {
 		Sparky.data.model = {};
 
@@ -26,9 +28,9 @@ module('Multiple controllers', function(fixture) {
 
 		Sparky(fixture);
 
-		//window.requestAnimationFrame(function() {
-		//	ok(p.innerHTML === 'value-1');
-		//});
+		window.requestAnimationFrame(function() {
+			ok(p.innerHTML === 'value-2');
+		});
 
 		// Restart QUnit
 		window.requestAnimationFrame(function() {
