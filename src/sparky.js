@@ -430,16 +430,14 @@
 			// Distributor controller
 			var l = ctrls.length;
 			var n = 0;
+			var scope;
 
-			// Keep the scope returned by the first ctrl in the list
-			var result = ctrls[0].apply(this, arguments);
-
-			// Call the rest of the list
+			// Call the the list of ctrls
 			while (++n < l) {
-				ctrls[n].apply(this, arguments);
+				scope = ctrls[n].apply(this, arguments);
 			}
 
-			return result;
+			return scope;
 		};
 	}
 
