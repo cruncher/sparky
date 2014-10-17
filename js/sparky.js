@@ -1206,12 +1206,15 @@ if (!Number.isNaN) {
 		return function distributeCtrl() {
 			// Distributor controller
 			var l = ctrls.length;
-			var n = 0;
+			var n = -1;
+			var temp;
 			var scope;
 
-			// Call the the list of ctrls
+			// Call the the list of ctrls. Scope is the return value of
+			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				scope = ctrls[n].apply(this, arguments);
+				temp = ctrls[n].apply(this, arguments);
+				if (temp) { scope = temp; }
 			}
 
 			return scope;
@@ -1407,7 +1410,7 @@ if (!Number.isNaN) {
 
 	    		var value1 = get(prop);
 	    		var attr = node.getAttribute('value');
-	    		var value2 = isDefined(attr) && normalise(attr) ;
+	    		var value2 = isDefined(attr) && parseValue(attr) ;
 	    		var flag = false;
 	    		var throttle, change;
 
@@ -1426,7 +1429,7 @@ if (!Number.isNaN) {
 	    			bind(prop, throttle);
 
 	    			change = function change(e) {
-	    				set(prop, node.checked ? normalise(node.value) : undefined);
+	    				set(prop, node.checked ? parseValue(node.value) : undefined);
 	    			};
 
 	    			node.addEventListener('change', change);
@@ -1446,14 +1449,14 @@ if (!Number.isNaN) {
 	    			bind(prop, throttle);
 	    			
 	    			change = function change(e) {
-	    				if (node.checked) { set(prop, normalise(node.value)); }
+	    				if (node.checked) { set(prop, parseValue(node.value)); }
 	    			};
 	    			
 	    			node.addEventListener('change', change);
 	    		}
 	    		else {
 	    			change = function change() {
-	    				set(prop, normalise(node.value));
+	    				set(prop, parseValue(node.value));
 	    			}
 
 	    			// Where the node has a value attribute and the model does
@@ -1501,7 +1504,7 @@ if (!Number.isNaN) {
 	    		var value = get(prop);
 
 	    		var change = function change(e) {
-	    		    	set(prop, normalise(node.value));
+	    		    	set(prop, parseValue(node.value));
 	    		    };
 
 	    		// If the model property does not yet exist, set it from the
@@ -1582,7 +1585,7 @@ if (!Number.isNaN) {
 		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
-	function normalise(value) {
+	function parseValue(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
 		return value === '' || isNaN(value) ? value : parseFloat(value) ;
@@ -1851,6 +1854,7 @@ if (!Number.isNaN) {
 
 	Sparky.bind = bind;
 	Sparky.attributes = attributes;
+	Sparky.parseValue = parseValue;
 })(window.Sparky || require('sparky'));
 
 
