@@ -254,6 +254,8 @@
 	function parseValue(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
+		// TODO: Why does empty string evaluate to true? There was a reason...
+		// is it still valid?
 		return value === '' ? true :
 			value === 'true' ? true :
 			value === 'false' ? false :
