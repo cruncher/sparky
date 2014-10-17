@@ -254,7 +254,11 @@
 	function parseValue(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
-		return value === '' || isNaN(value) ? value : parseFloat(value) ;
+		return value === '' ? true :
+			value === 'true' ? true :
+			value === 'false' ? false :
+			isNaN(value) ? value :
+			parseFloat(value) ;
 	}
 
 	function domNode(node, bind, unbind, get, set, create) {

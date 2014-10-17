@@ -1588,7 +1588,11 @@ if (!Number.isNaN) {
 	function parseValue(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
-		return value === '' || isNaN(value) ? value : parseFloat(value) ;
+		return value === '' ? true :
+			value === 'true' ? true :
+			value === 'false' ? false :
+			isNaN(value) ? value :
+			parseFloat(value) ;
 	}
 
 	function domNode(node, bind, unbind, get, set, create) {
@@ -2460,18 +2464,21 @@ if (!Number.isNaN) {
 		var scope = {};
 		var name = getName(node);
 		var isCheckbox = node.type === 'checkbox' || node.type === 'radio';
+		var initValue = Sparky.parseValue(node.value);
 
 		// Only handle checkboxes and radios for now
 		if (!isCheckbox) { return; }
 
 		function updateScope() {
 			var value = model[name];
-			scope[name] = value === node.value ? undefined : node.value ;
+			console.log('updateScope', typeof initValue, initValue, typeof value, value);
+			scope[name] = value === initValue ? undefined : initValue ;
 		}
 
 		function updateModel() {
 			var value = scope[name];
-			model[name] = value ? undefined :  node.value ;
+			console.log('updateModel', typeof initValue, initValue, typeof value, value);
+			model[name] = value ? undefined : initValue ;
 		}
 
 		Sparky.observe(model, name, updateScope);
