@@ -1,4 +1,6 @@
 module('Event propogation', function(fixture) {
+	console.log('Test event propogation...');
+
 	test("Tests .destroy() of sparky's children", function(assert) {
 		expect(5);
 

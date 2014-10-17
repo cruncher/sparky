@@ -1,4 +1,6 @@
 module('Controller', function(fixture) {
+	console.log('Test Sparky()...');
+
 	test("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
 		var node = fixture.querySelector('div');
 		

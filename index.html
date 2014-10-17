@@ -53,7 +53,7 @@
 <body>
 
 <div class="site-wrap wrap">
-	<input type="text" data-model="object" name="{{a}}" />
+	<!--input type="text" data-model="object" name="{{a}}" />
 	<p data-model="object">input text: {{a}}</p>
 	<input type="text" data-model="object" name="{{data.name}}" />
 	<p data-model="object">input text: {{data.name}}</p>
@@ -62,7 +62,9 @@
 	<input type="checkbox" data-model="object" name="{{c}}" value="aye" />
 	<p data-model="object">input: {{c}}</p>
 	
-	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div>
+	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div-->
+	
+	<div class="{{a.b.c|yesno:'checked',''}}" data-model="object">{{a.b.c}}</div>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -72,6 +74,7 @@
 <script src="src/mixin.array.js"></script>
 <script src="src/mixin.events.js"></script>
 <script src="src/observe.js"></script>
+<script src="src/collection.js"></script>
 <script src="src/sparky.js"></script>
 <script src="src/sparky.throttle.js"></script>
 <script src="src/sparky.observe.js"></script>
@@ -84,20 +87,20 @@
 	Sparky.debug = 'verbose';
 </script>
 
-<div data-model="dummy">
+<!--div data-model="dummy">
 	<a id="test" data-model="model.object.thing" href="#{{blah}}">{{property}}</a>
-</div>
+</div-->
 
 <script>
 (function() {
 	"use strict";
 
 	Sparky.data.object = {
-		a: 0,
-		c: '',
-		data: {
-			name: 'Sparky'
-		}
+		a: 0
+		//c: '',
+		//data: {
+		//	name: 'Sparky'
+		//}
 	};
 
 	Sparky.data['dummy']   = {};
@@ -116,8 +119,8 @@
 
 			window.requestAnimationFrame(function() {
 				console.log(a);
-				console.log(a.innerHTML);
-				console.log(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available:", a.innerHTML);
+				//console.log(a.innerHTML);
+				//console.log(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available:", a.innerHTML);
 			});
 
 			Sparky.data.model.object.thing.blah = 7;
