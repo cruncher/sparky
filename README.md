@@ -2,28 +2,56 @@
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances the existing DOM with declarative data bindings, passes data properties through Django-style template filters and renders multiple changes in batches on browser frames for performance.</strong>
+<strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances
+the existing DOM with declarative data bindings, passes data properties through Django-style
+template filters and renders multiple changes in batches on browser frames for performance.</strong>
 
 ## Quick start
 
-Sparky wires up the DOM automatically on <code>load</code>. It binds nodes with a
-<code>data-model</code> attribute to model objects stored in <code>Sparky.data</code>,
-and passes nodes with a <code>data-ctrl</code> attribute into controller functions
-stored in <code>Sparky.ctrl</code>.
+Sparky wires up the DOM automatically on <code>load</code>. He binds nodes with
+a <code>data-model</code> attribute to model objects stored in
+<code>Sparky.data</code>, and passes nodes with a <code>data-ctrl</code>
+attribute to controller functions stored in <code>Sparky.ctrl</code>.
 
 HTML:
 
-    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
+    <div class="{{type}}-block" data-model="my-data">
         <input type="text" name="{{title}}" />
-        <p>{{title}} by Sparky!</p>
+        <p>{{title|uppercase}} loves you!</p>
     </div>
 
 JS:
 
     Sparky.data['my-data'] = {
-        title: 'my data',
-        type: 'data'
+        title: 'Sparky',
+        type: 'user'
     };
+
+Here a Sparky template is live bound to the properties of <code>my-data</code>.
+The result is:
+
+    <div class="user-block" data-model="my-data">
+        <input type="text" name="{{title}}" value="Sparky" />
+        <p>SPARKY loves you!</p>
+    </div>
+
+Live binding means that when the data changes, the DOM is kept up-to-date.
+Inputs get two-way binding. Typing text into the input will live update 
+<code>my-data.title</code> (and thus also the text in the paragraph).
+
+Sparky defaults to using models directly as scope for rendering templates,
+making it quick and easy to set up basic views for an app. Where more control is
+needed, a controller function can be used to return a different object to be
+used as scope.
+
+HTML:
+
+    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
+        <input type="text" name="{{title}}" />
+        <p>{{title}} loves you!</p>
+    </div>
+
+JS:
 
     Sparky.ctrl['my-ctrl'] = function(node, model) {
         var scope = {
@@ -45,50 +73,15 @@ JS:
         return scope;
     };
 
-Sparky takes the <code>scope</code> object returned by the controller, listens
-to it for changes and live-updates the DOM. Here Sparky updates the
-<code>input</code> value and the text inside <code>&lt;p&gt;</code> when
-<code>scope.title</code> changes.
-
-HTML:
-
-    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
-        <input type="text" name="{{title}}" />
-        <p>{{title}} by Sparky!</p>
-    </div>
-
-The controller is observing changes to the model <code>'my-data'</code> and
-updating the <code>scope</code>.
-
-Inputs get two-way data binding. Typing text into the input will live-update
-<code>model.title</code>.
+A controller function is passed the node and the model (where
+<code>data-model</code> is given). Here, the controller watches the model for
+changes to <code>title</code> and performs an uppercase/lowercase transform.
+<code>type</code> is set on <code>scope</code> once and then left unchanged.
+The controller returns <code>scope</code> to make Sparky use it to render the
+template.
 
 Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined
-for Sparky to template a node. Where there is no <code>data-model</code>
-attribute, the controller is passed just one argument, <code>node</code>. If
-there is no <code>data-ctrl</code> attribute Sparky uses the model
-directly as scope. 
-
-If we didn't care about converting text from uppercase to lowercase, the example
-above could be written without the controller, and Sparky would use the model
-directly as scope. In fact we <i>can</i> do uppsercase with a filter:
-
-HTML:
-
-    <div class="{{type}}-block" data-model="my-data">
-        <input type="text" name="{{title}}" />
-        <p>{{title|uppercase}} by Sparky!</p>
-    </div>
-
-JS:
-
-    Sparky.data['my-data'] = {
-        title: 'my data',
-        type: 'data'
-    };
-
-This is a simple way to get an app working quickly on a page.
-
+for Sparky to template a node.
 
 ## Sparky templates
 

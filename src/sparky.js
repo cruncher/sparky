@@ -29,17 +29,9 @@
 	    rrelativepath = /^\.|^\[/;
 
 	var prototype = extend({
-		get: function() {
-			
-		},
+		create: function() {},
 
-		set: function() {
-			
-		},
-
-		create: function() {
-			
-		},
+		reset: function() {},
 
 		destroy: function() {},
 
