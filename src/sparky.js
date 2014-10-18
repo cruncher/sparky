@@ -253,7 +253,7 @@
 		// Remove the node
 		removeNode(node);
 
-		// Remove anything that would make Sparky to bind the node
+		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
 		// by a controller without waiting for it's 'ready' event.
 		node.removeAttribute('data-model');
@@ -418,17 +418,16 @@
 			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
 		}
 
-		return function distributeCtrl() {
+		return function distributeCtrl(node, model) {
 			// Distributor controller
 			var l = ctrls.length;
 			var n = -1;
-			var temp;
-			var scope;
+			var scope, temp;
 
 			// Call the the list of ctrls. Scope is the return value of
 			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				temp = ctrls[n].apply(this, arguments);
+				temp = ctrls[n].call(this, node, model);
 				if (temp) { scope = temp; }
 			}
 
@@ -439,17 +438,15 @@
 	function makeCtrl(node) {
 		var ctrlPaths = node.getAttribute('data-ctrl');
 
-		if (isDefined(ctrlPaths)) {
-			ctrlPaths = ctrlPaths.split(/\s+/);
+		if (!isDefined(ctrlPaths)) { return; }
 
-			if (ctrlPaths.length === 1) {
-				return findByPath(Sparky.ctrl, ctrlPaths[0]);
-			}
+		var array = ctrlPaths.split(/\s+/);
 
-			return makeDistributeCtrl(ctrlPaths);
+		if (array.length === 1) {
+			return findByPath(Sparky.ctrl, array[0]);
 		}
 
-		return noop;
+		return makeDistributeCtrl(array);
 	}
 
 	function Sparky(node, model, ctrl, loop) {
@@ -497,7 +494,7 @@
 		}
 
 		// Where ctrl is not defined look for the data-ctrl
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!ctrl && node.getAttribute) {
 			ctrl = makeCtrl(node);
