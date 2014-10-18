@@ -806,17 +806,9 @@ if (!Number.isNaN) {
 	    rrelativepath = /^\.|^\[/;
 
 	var prototype = extend({
-		get: function() {
-			
-		},
+		create: function() {},
 
-		set: function() {
-			
-		},
-
-		create: function() {
-			
-		},
+		reset: function() {},
 
 		destroy: function() {},
 
@@ -1038,7 +1030,7 @@ if (!Number.isNaN) {
 		// Remove the node
 		removeNode(node);
 
-		// Remove anything that would make Sparky to bind the node
+		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
 		// by a controller without waiting for it's 'ready' event.
 		node.removeAttribute('data-model');
@@ -1203,15 +1195,17 @@ if (!Number.isNaN) {
 			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
 		}
 
-		return function distributeCtrl() {
+		return function distributeCtrl(node, model) {
 			// Distributor controller
 			var l = ctrls.length;
-			var n = 0;
-			var scope;
+			var n = -1;
+			var scope, temp;
 
-			// Call the the list of ctrls
+			// Call the the list of ctrls. Scope is the return value of
+			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				scope = ctrls[n].apply(this, arguments);
+				temp = ctrls[n].call(this, node, model);
+				if (temp) { scope = temp; }
 			}
 
 			return scope;
@@ -1221,17 +1215,15 @@ if (!Number.isNaN) {
 	function makeCtrl(node) {
 		var ctrlPaths = node.getAttribute('data-ctrl');
 
-		if (isDefined(ctrlPaths)) {
-			ctrlPaths = ctrlPaths.split(/\s+/);
+		if (!isDefined(ctrlPaths)) { return; }
 
-			if (ctrlPaths.length === 1) {
-				return findByPath(Sparky.ctrl, ctrlPaths[0]);
-			}
+		var array = ctrlPaths.split(/\s+/);
 
-			return makeDistributeCtrl(ctrlPaths);
+		if (array.length === 1) {
+			return findByPath(Sparky.ctrl, array[0]);
 		}
 
-		return noop;
+		return makeDistributeCtrl(array);
 	}
 
 	function Sparky(node, model, ctrl, loop) {
@@ -1279,7 +1271,7 @@ if (!Number.isNaN) {
 		}
 
 		// Where ctrl is not defined look for the data-ctrl
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!ctrl && node.getAttribute) {
 			ctrl = makeCtrl(node);
@@ -1316,8 +1308,7 @@ if (!Number.isNaN) {
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.mixin        = ns.mixin || (ns.mixin = {});
-	Sparky.Collection   = ns.Collection;
+	Sparky.Collection   = window.Collection;
 	Sparky.templates    = templates;
 	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;
