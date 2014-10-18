@@ -531,8 +531,7 @@
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.mixin        = ns.mixin || (ns.mixin = {});
-	Sparky.Collection   = ns.Collection;
+	Sparky.Collection   = window.Collection;
 	Sparky.templates    = templates;
 	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;
