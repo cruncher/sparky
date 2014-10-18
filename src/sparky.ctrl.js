@@ -202,18 +202,21 @@
 		var scope = {};
 		var name = getName(node);
 		var isCheckbox = node.type === 'checkbox' || node.type === 'radio';
+		var initValue = Sparky.parseValue(node.value);
 
 		// Only handle checkboxes and radios for now
 		if (!isCheckbox) { return; }
 
 		function updateScope() {
 			var value = model[name];
-			scope[name] = value === node.value ? undefined : node.value ;
+			console.log('updateScope', typeof initValue, initValue, typeof value, value);
+			scope[name] = value === initValue ? undefined : initValue ;
 		}
 
 		function updateModel() {
 			var value = scope[name];
-			model[name] = value ? undefined :  node.value ;
+			console.log('updateModel', typeof initValue, initValue, typeof value, value);
+			model[name] = value ? undefined : initValue ;
 		}
 
 		Sparky.observe(model, name, updateScope);
