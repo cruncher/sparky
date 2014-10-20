@@ -2640,7 +2640,9 @@ if (!Number.isNaN) {
 		},
 
 		floatformat: function(value, n) {
-			return Number.prototype.toFixed.call(value, n);
+			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
+				!isDefined(value) ? '' :
+				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		},
 
 		get: function(value, name) {
