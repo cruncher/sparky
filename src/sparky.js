@@ -73,8 +73,6 @@
 
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
-	function isObject(obj) { return obj instanceof Object; }
-
 
 	// Object helpers
 

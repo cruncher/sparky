@@ -850,8 +850,6 @@ if (!Number.isNaN) {
 
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
-	function isObject(obj) { return obj instanceof Object; }
-
 
 	// Object helpers
 
@@ -1579,7 +1577,7 @@ if (!Number.isNaN) {
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
 		// TODO: Why does empty string evaluate to true? There was a reason...
 		// is it still valid?
-		return value === '' ? true :
+		return value === '' ? '' :
 			value === 'true' ? true :
 			value === 'false' ? false :
 			isNaN(value) ? value :
@@ -1859,14 +1857,15 @@ if (!Number.isNaN) {
 (function(Sparky) {
 	"use strict";
 
-	function noop() {}
-	function isDefined(val) { return val !== undefined && val !== null; }
-
 	// Handle paths
 
 	var rpathtrimmer = /^\[|]$/g;
 	var rpathsplitter = /\]?\.|\[/g;
 	var map = [];
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+	function isObject(obj) { return obj instanceof Object; }
 
 	function splitPath(path) {
 		return path
