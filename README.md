@@ -159,9 +159,13 @@ Tags also grock paths:
 
     <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
+Sparky treats tags in the <code>class</code> attribute as individual tokens: it is safe to modify
+the <code>class</code> attribute outside of Sparky, and Sparky will avoid overwriting any new
+classes that may have been added.
+
 #### {{tag|filter}}
 
-Modify scope values with filters before updating the DOM:
+Modify scope values with filters:
 
     <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
 
@@ -192,6 +196,9 @@ You can change the list by modifying the array <code>Sparky.attributes</code>.
 inputs, selects and textareas also use:
 
 - <code>name</code>
+- <code>value</code>
+- <code>max</code>
+- <code>min</code>
 
 They're a bit special. They get two-way data binding.
 
