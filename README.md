@@ -156,7 +156,7 @@ template. Sparky tags, however, perform live data binding.
 The text in the <code>&lt;h1&gt;</code> is now updated whenever
 <code>my-model.title</code> changes.
 
-Tags also grock paths:
+Tags also grok paths:
 
     <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
