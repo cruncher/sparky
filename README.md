@@ -168,7 +168,9 @@ avoids overwriting any new classes that have been added.
 
 Modify scope values with filters:
 
-    <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">{{title|uppercase}}</h1>
+    <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">
+        {{title|uppercase}}
+    </h1>
 
 More about <a href="#sparky-template-filters">filters</a>.
 
