@@ -443,7 +443,7 @@
 		var classList = getClassList(node);
 		var update = function update(newText, oldText) {
 		    	if (oldText) { removeClasses(classList, oldText); }
-		    	addClasses(classList, newText);
+		    	if (newText) { addClasses(classList, newText); }
 		    };
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
@@ -498,7 +498,7 @@
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('Sparky: filter \'' + filters[n].name + '\' is not a Sparky filter');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filters');
 			}
 
 			if (Sparky.debug === 'filter') {
@@ -545,6 +545,17 @@
 		}
 	}
 
+	function makeUpdateText(text, get, fn) {
+		var replaceText = makeReplaceText(get);
+		var oldText;
+
+		return function updateText() {
+			var newText = text.replace(rtags, replaceText);
+			fn(newText, oldText);
+			oldText = newText;
+		}
+	}
+
 	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var live = [];
 		var dead = [];
@@ -554,13 +565,7 @@
 
 		if (live.length === 0 && dead.length === 0) { return; }
 
-		var oldText;
-		var replaceText = makeReplaceText(get);
-		var update = function update() {
-			var newText = text.replace(rtags, replaceText);
-			fn(newText, oldText);
-			oldText = newText;
-		};
+		var update = makeUpdateText(text, get, fn);
 
 		if (live.length) {
 			unobservers.push(observeProperties2(bind, unbind, update, live));

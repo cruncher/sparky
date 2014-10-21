@@ -211,9 +211,9 @@ module('Child sparky', function(fixture) {
 */});
 
 module('Controller', function(fixture) {
-	console.log('Test Sparky()...');
+	console.log('Test tags in class attributes...');
 
-	asyncTest("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
+	asyncTest("Tags is class attributes", function() {
 		var node = fixture.querySelector('div');
 		var model = { property: 'peas' };
 
@@ -227,6 +227,33 @@ module('Controller', function(fixture) {
 
 			window.requestAnimationFrame(function() {
 				ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
+			});
+		});
+
+		window.requestAnimationFrame(function() {
+			window.requestAnimationFrame(function() {
+				window.requestAnimationFrame(function() {
+					QUnit.start();
+				});
+			});
+		});
+	});
+
+	asyncTest("Tags is class attributes", function() {
+		var node = fixture.querySelector('div');
+		var model = { property: 'peas' };
+
+		Sparky(node, model);
+		node.classList.remove('class-2');
+
+		window.requestAnimationFrame(function() {
+			ok(node.classList.contains('peas'), 'Classes expected to contain "peas", actual: "' + node.getAttribute('class') + '"');
+			ok(!node.classList.contains('class-2'), 'Classes not expected to contain "class-2", actual: "' + node.getAttribute('class') + '"');
+
+			model.property = undefined;
+
+			window.requestAnimationFrame(function() {
+				ok(!node.classList.contains('peas'), 'Classes not expected to contain "peas", actual: "' + node.getAttribute('class') + '"');
 			});
 		});
 
