@@ -1578,17 +1578,21 @@ if (!Number.isNaN) {
 		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
-	// ClassList constructor to emulate classList property
+	// TokenList constructor to emulate classList property. The get fn should
+	// take the arguments (node), and return a string of tokens. The set fn
+	// should take the arguments (node, string).
 
-	function ClassList(node) {
+	function TokenList(node, get, set) {
 		this.node = node;
+		this.get = get;
+		this.set = set;
 	}
 
-	ClassList.prototype = {
+	TokenList.prototype = {
 		add: function() {
 			var n = arguments.length;
-			var classes = getClass(this.node);
-			var array = classes ? classes.trim().split(rspaces) : [] ;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
 
 			while (n--) {
 				if (array.indexOf(arguments[n]) === -1) {
@@ -1596,13 +1600,13 @@ if (!Number.isNaN) {
 				}
 			}
 
-			setClass(this.node, array.join(' '));
+			this.set(this.node, array.join(' '));
 		},
 
 		remove: function() {
 			var n = arguments.length;
-			var classes = getClass(this.node);
-			var array = classes ? classes.trim().split(rspaces) : [] ;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
 			var i;
 
 			while (n--) {
@@ -1610,7 +1614,7 @@ if (!Number.isNaN) {
 				if (i !== -1) { array.splice(i, 1); }
 			}
 
-			setClass(this.node, array.join(' '));
+			this.set(this.node, array.join(' '));
 		}
 	};
 
@@ -1716,7 +1720,7 @@ if (!Number.isNaN) {
 	}
 
 	function getClassList(node) {
-		return node.classList || new ClassList(node);
+		return node.classList || new TokenList(node, getClass, setClass);
 	}
 
 	function setClass(node, classes) {
@@ -1759,7 +1763,7 @@ if (!Number.isNaN) {
 		var classList = getClassList(node);
 		var update = function update(newText, oldText) {
 		    	if (oldText) { removeClasses(classList, oldText); }
-		    	addClasses(classList, newText);
+		    	if (newText) { addClasses(classList, newText); }
 		    };
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
@@ -1814,7 +1818,7 @@ if (!Number.isNaN) {
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('Sparky: filter \'' + filters[n].name + '\' is not a Sparky filter');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filters');
 			}
 
 			if (Sparky.debug === 'filter') {
@@ -1861,6 +1865,17 @@ if (!Number.isNaN) {
 		}
 	}
 
+	function makeUpdateText(text, get, fn) {
+		var replaceText = makeReplaceText(get);
+		var oldText;
+
+		return function updateText() {
+			var newText = text.replace(rtags, replaceText);
+			fn(newText, oldText);
+			oldText = newText;
+		}
+	}
+
 	function observeProperties(text, bind, unbind, get, fn, unobservers) {
 		var live = [];
 		var dead = [];
@@ -1870,13 +1885,7 @@ if (!Number.isNaN) {
 
 		if (live.length === 0 && dead.length === 0) { return; }
 
-		var oldText;
-		var replaceText = makeReplaceText(get);
-		var update = function update() {
-			var newText = text.replace(rtags, replaceText);
-			fn(newText, oldText);
-			oldText = newText;
-		};
+		var update = makeUpdateText(text, get, fn);
 
 		if (live.length) {
 			unobservers.push(observeProperties2(bind, unbind, update, live));
