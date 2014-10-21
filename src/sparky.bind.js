@@ -39,7 +39,8 @@
 		'src',
 		'alt',
 		'min',
-		'max'
+		'max',
+		'value'
 	];
 	
 	var xlink = 'http://www.w3.org/1999/xlink';
@@ -298,7 +299,7 @@
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
 		// TODO: Why does empty string evaluate to true? There was a reason...
 		// is it still valid?
-		return value === '' ? true :
+		return value === '' ? '' :
 			value === 'true' ? true :
 			value === 'false' ? false :
 			isNaN(value) ? value :

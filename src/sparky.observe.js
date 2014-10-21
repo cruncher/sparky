@@ -5,14 +5,15 @@
 (function(Sparky) {
 	"use strict";
 
-	function noop() {}
-	function isDefined(val) { return val !== undefined && val !== null; }
-
 	// Handle paths
 
 	var rpathtrimmer = /^\[|]$/g;
 	var rpathsplitter = /\]?\.|\[/g;
 	var map = [];
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+	function isObject(obj) { return obj instanceof Object; }
 
 	function splitPath(path) {
 		return path
