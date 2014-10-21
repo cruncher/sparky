@@ -1370,10 +1370,16 @@ if (!Number.isNaN) {
 	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rname   = /(\{\{\{?)\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}\}\}?/g;
+	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}?/g;
+
+	// Matches tags plus any directly adjacent text
+	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
+
+	// Matches anything with a space
+	var rspaces = /\s+/;
 
 	var filterCache = {};
 
@@ -1389,7 +1395,7 @@ if (!Number.isNaN) {
 
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		var prop = (rname.exec(node.name) || empty)[2];
+	    		var prop = (rtags.exec(node.name) || empty)[2];
 
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
@@ -1482,7 +1488,7 @@ if (!Number.isNaN) {
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 
-	    		var prop = (rname.exec(node.name) || empty)[2];
+	    		var prop = (rtags.exec(node.name) || empty)[2];
 
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
@@ -1523,7 +1529,7 @@ if (!Number.isNaN) {
 	    	},
 
 	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers) {
-	    		var prop = (rname.exec(node.name) || empty)[2];
+	    		var prop = (rtags.exec(node.name) || empty)[2];
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
 	    		// name attribute.
@@ -1572,6 +1578,42 @@ if (!Number.isNaN) {
 		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
+	// ClassList constructor to emulate classList property
+
+	function ClassList(node) {
+		this.node = node;
+	}
+
+	ClassList.prototype = {
+		add: function() {
+			var n = arguments.length;
+			var classes = getClass(this.node);
+			var array = classes ? classes.trim().split(rspaces) : [] ;
+
+			while (n--) {
+				if (array.indexOf(arguments[n]) === -1) {
+					array.push(arguments[n]);
+				}
+			}
+
+			setClass(this.node, array.join(' '));
+		},
+
+		remove: function() {
+			var n = arguments.length;
+			var classes = getClass(this.node);
+			var array = classes ? classes.trim().split(rspaces) : [] ;
+			var i;
+
+			while (n--) {
+				i = array.indexOf(arguments[n]);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			setClass(this.node, array.join(' '));
+		}
+	};
+
 	function parseValue(value) {
 		// window.isNaN() coerces non-empty strings to numbers before asking if
 		// they are NaN. Number.isNaN() (ES6) does not, so beware.
@@ -1590,7 +1632,7 @@ if (!Number.isNaN) {
 
 		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
 
-		bindClass(node, bind, unbind, get, unobservers);
+		bindClasses(node, bind, unbind, get, unobservers);
 		bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
 		// Set up special binding for certain elements like form inputs
@@ -1661,40 +1703,69 @@ if (!Number.isNaN) {
 		}
 	}
 
-	function getClassList(node) {
-		return node.classList || node.className.trim().split(/\s+/);
-	}
-
-	function updateClassSVG(node, text) {
-		// Trying to use className sets a bunch of other
-		// attributes on the node, bizarrely.
-		node.setAttribute('class', text);
-	}
-
-	function updateClassHTML(node, text) {
-		node.className = text;
-	}
-
-	function updateAttributeSVG(node, attribute, value) {
+	function setAttributeSVG(node, attribute, value) {
 		node.setAttributeNS(xlink, attribute, value);
 	}
 
-	function updateAttributeHTML(node, attribute, value) {
+	function setAttributeHTML(node, attribute, value) {
 		node.setAttribute(attribute, value);
 	}
 
-	function bindClass(node, bind, unbind, get, unobservers) {
-		var value = node.getAttribute('class');
+	function getClass(node) {
+		return node.className || node.getAttribute('class');
+	}
 
-		if (!value) { return; }
-		if (Sparky.debug === 'verbose') { console.log('Sparky: checking class="' + value + '"'); }
+	function getClassList(node) {
+		return node.classList || new ClassList(node);
+	}
 
-		var update = node instanceof SVGElement ?
-				updateClassSVG.bind(this, node) :
-				updateClassHTML.bind(this, node) ;
+	function setClass(node, classes) {
+		if (node instanceof SVGElement) {
+			node.setAttribute('class', classes);
+		}
+		else {
+			node.className = classes;
+		}
+	}
 
-		// TODO: only replace classes we've previously set here
-		observeProperties(value, bind, unbind, get, update, unobservers);
+	function addClasses(classList, text) {
+		classList.add.apply(classList, text.trim().split(rspaces));
+	}
+
+	function removeClasses(classList, text) {
+		classList.remove.apply(classList, text.trim().split(rspaces));
+	}
+
+	function bindClasses(node, bind, unbind, get, unobservers) {
+		var classes = getClass(node);
+
+		// If there are no classes, go no further
+		if (!classes) { return; }
+
+		var tags = [];
+
+		// Remove tags and store them
+		classes = classes.replace(rclasstags, function($0) {
+			tags.push($0);
+			return '';
+		});
+
+		// Where no tags are found, go no further
+		if (!tags.length) { return; }
+
+		// Now that we extracted the tags, overwrite the class with remaining text
+		setClass(node, classes);
+
+		var classList = getClassList(node);
+
+		function update(newText, oldText) {
+			if (oldText) { removeClasses(classList, oldText); }
+			addClasses(classList, newText);
+		}
+
+		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
+
+		observeProperties(tags.join(' '), bind, unbind, get, update, unobservers);
 	}
 
 	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
@@ -1715,8 +1786,8 @@ if (!Number.isNaN) {
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
 
 		var update = isSVG ?
-			updateAttributeSVG.bind(this, node, attribute) :
-			updateAttributeHTML.bind(this, node, attribute) ;
+			setAttributeSVG.bind(this, node, attribute) :
+			setAttributeHTML.bind(this, node, attribute) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
@@ -1760,7 +1831,7 @@ if (!Number.isNaN) {
 	}
 
 	function extractProperties(str, live, dead) {
-		str.replace(rname, function($0, $1, $2){
+		str.replace(rtags, function($0, $1, $2){
 			// Sort the live properties from the dead properties.
 			var i;
 
@@ -1800,9 +1871,12 @@ if (!Number.isNaN) {
 
 		if (live.length === 0 && dead.length === 0) { return; }
 
+		var oldText;
 		var replaceText = makeReplaceText(get);
 		var update = function update() {
-			fn(text.replace(rname, replaceText));
+			var newText = text.replace(rtags, replaceText);
+			fn(newText, oldText);
+			oldText = newText;
 		};
 
 		if (live.length) {
