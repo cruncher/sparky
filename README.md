@@ -161,8 +161,8 @@ Tags also grok paths:
     <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
 Sparky treats tags in the <code>class</code> attribute as individual tokens: it
-is safe to modify the <code>class</code> attribute outside of Sparky, and Sparky
-will avoid overwriting any new classes that have been added.
+is safe to modify the <code>class</code> attribute outside of Sparky, as Sparky
+avoids overwriting any new classes that have been added.
 
 #### {{tag|filter}}
 
