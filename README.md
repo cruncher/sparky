@@ -153,15 +153,16 @@ template. Sparky tags, however, perform live data binding.
 
     <h1 data-model="my-model">{{ title }}</h1>
 
-The title tag is bound to changes in <code>my-model.title</code>.
+The text in the <code>&lt;h1&gt;</code> is now updated whenever
+<code>my-model.title</code> changes.
 
 Tags also grock paths:
 
     <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
-Sparky treats tags in the <code>class</code> attribute as individual tokens: it is safe to modify
-the <code>class</code> attribute outside of Sparky, and Sparky will avoid overwriting any new
-classes that may have been added.
+Sparky treats tags in the <code>class</code> attribute as individual tokens: it
+is safe to modify the <code>class</code> attribute outside of Sparky, and Sparky
+will avoid overwriting any new classes that have been added.
 
 #### {{tag|filter}}
 
@@ -177,8 +178,9 @@ A triple bracket tag updates from the scope once only.
 
     <h1 data-model="my-model">{{{ title }}}</h1>
 
-These tags are updated once from the scope (in this case my-model), but they don't live bind to changes.
-If you know where you can do it, this can be good for performance.
+These tags are updated once from the scope (in this case my-model), but they
+don't live bind to changes. If you know where you can do it, this can be good
+for performance.
 
 #### attributes
 
