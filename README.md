@@ -148,7 +148,7 @@ returns <code>undefined</code>, in which case the model is used as scope).
 
 #### {{tag}}
 
-Sparky template tags will be familiar to anyone who has written a Django
+Sparky template tags will look familiar to anyone who has written a Django
 template. Sparky tags, however, perform live data binding.
 
     <h1 data-model="my-model">{{ title }}</h1>
