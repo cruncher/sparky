@@ -1742,26 +1742,25 @@ if (!Number.isNaN) {
 		// If there are no classes, go no further
 		if (!classes) { return; }
 
-		var tags = [];
-
 		// Remove tags and store them
-		classes = classes.replace(rclasstags, function($0) {
+		var tags = [];
+		var text = classes.replace(rclasstags, function($0) {
 			tags.push($0);
 			return '';
 		});
 
-		// Where no tags are found, go no further
+		// Where no tags have been found, go no further
 		if (!tags.length) { return; }
 
 		// Now that we extracted the tags, overwrite the class with remaining text
-		setClass(node, classes);
+		setClass(node, text);
 
+		// Create an update function for keeping sparky's classes up-to-date
 		var classList = getClassList(node);
-
-		function update(newText, oldText) {
-			if (oldText) { removeClasses(classList, oldText); }
-			addClasses(classList, newText);
-		}
+		var update = function update(newText, oldText) {
+		    	if (oldText) { removeClasses(classList, oldText); }
+		    	addClasses(classList, newText);
+		    };
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
 
