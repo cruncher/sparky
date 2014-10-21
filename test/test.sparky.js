@@ -210,3 +210,36 @@ module('Child sparky', function(fixture) {
 
 */});
 
+module('Controller', function(fixture) {
+	console.log('Test Sparky()...');
+
+	asyncTest("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
+		var node = fixture.querySelector('div');
+		var model = { property: 'peas' };
+
+		Sparky(node, model);
+		node.classList.add('hello');
+
+		window.requestAnimationFrame(function() {
+			ok(node.getAttribute('class') === 'class-1 class-2 peas hello', 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+
+			model.property = 'ice';
+
+			window.requestAnimationFrame(function() {
+				ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
+			});
+		});
+
+		window.requestAnimationFrame(function() {
+			window.requestAnimationFrame(function() {
+				window.requestAnimationFrame(function() {
+					QUnit.start();
+				});
+			});
+		});
+	});
+}, function() {/*
+
+<div data-model="model" class="class-1 class-2 {{ property }}">{{property}}</div>
+
+*/});
