@@ -258,17 +258,21 @@
 		return n || n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
-	// ClassList constructor to emulate classList property
+	// TokenList constructor to emulate classList property. The get fn should
+	// take the arguments (node), and return a string of tokens. The set fn
+	// should take the arguments (node, string).
 
-	function ClassList(node) {
+	function TokenList(node, get, set) {
 		this.node = node;
+		this.get = get;
+		this.set = set;
 	}
 
-	ClassList.prototype = {
+	TokenList.prototype = {
 		add: function() {
 			var n = arguments.length;
-			var classes = getClass(this.node);
-			var array = classes ? classes.trim().split(rspaces) : [] ;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
 
 			while (n--) {
 				if (array.indexOf(arguments[n]) === -1) {
@@ -276,13 +280,13 @@
 				}
 			}
 
-			setClass(this.node, array.join(' '));
+			this.set(this.node, array.join(' '));
 		},
 
 		remove: function() {
 			var n = arguments.length;
-			var classes = getClass(this.node);
-			var array = classes ? classes.trim().split(rspaces) : [] ;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
 			var i;
 
 			while (n--) {
@@ -290,7 +294,7 @@
 				if (i !== -1) { array.splice(i, 1); }
 			}
 
-			setClass(this.node, array.join(' '));
+			this.set(this.node, array.join(' '));
 		}
 	};
 
@@ -396,7 +400,7 @@
 	}
 
 	function getClassList(node) {
-		return node.classList || new ClassList(node);
+		return node.classList || new TokenList(node, getClass, setClass);
 	}
 
 	function setClass(node, classes) {
