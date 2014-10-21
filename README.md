@@ -451,7 +451,7 @@ It actually looks like this:
 The comment node is added automatically and is required by Sparky to maintain
 the collection. This technique is nicked from AngularJS.
 
-#### Sparky says thankwoo
+## Sparky says thankwoo
 
 to Mariana Alt (<a href="http://www.alt-design.ch/">www.alt-design.ch</a>) for drawing me for my logo.
 
