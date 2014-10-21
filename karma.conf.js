@@ -53,7 +53,10 @@ module.exports = function(config) {
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress', 'coverage'],
+
+    // Commented for everyday use - the coverage reporter reduces scripts to one
+    // line, meaning that karma gives false line numbers for errors
+    //reporters: ['progress', 'coverage'],
 
     // optionally, configure the reporter
     coverageReporter: {

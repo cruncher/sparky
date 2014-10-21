@@ -396,7 +396,9 @@
 	}
 
 	function getClass(node) {
-		return node.className || node.getAttribute('class');
+		// node.className is an object in SVG. getAttribute
+		// is more consistent, if a tad slower.
+		return node.getAttribute('class');
 	}
 
 	function getClassList(node) {
@@ -425,7 +427,7 @@
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
-
+//console.log(classes);
 		// Remove tags and store them
 		var tags = [];
 		var text = classes.replace(rclasstags, function($0) {

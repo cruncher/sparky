@@ -210,7 +210,7 @@ module('Child sparky', function(fixture) {
 
 */});
 
-module('Controller', function(fixture) {
+module('Test tags in class attributes...', function(fixture) {
 	console.log('Test tags in class attributes...');
 
 	asyncTest("Tags is class attributes", function() {
@@ -268,5 +268,76 @@ module('Controller', function(fixture) {
 }, function() {/*
 
 <div data-model="model" class="class-1 class-2 {{ property }}">{{property}}</div>
+
+*/});
+
+module('Test some SVG features of this browser...', function(fixture) {
+	console.log('Test some SVG features of this browser...');
+
+	test("SVG features", function() {
+		var node = fixture.querySelector('line');
+		var model = { property: 'peas' };
+
+		// ------------------
+
+		// Test some SVG features in this browser. These tests are not directly
+		// Sparky's problem, just a note of what features are supported
+		//console.log('getAttribute("class")', node.getAttribute('class'));
+		//console.log('className', node.className);
+		//console.log('classList', node.classList);
+
+		ok(node.tagName.toLowerCase() === 'line', 'node.tagName should say "line"');
+		ok(typeof node.getAttribute('class') === 'string', 'Not a Sparky problem directly - SVG Node .getAttribute("class") not returning a string in this browser, actually "' + (typeof node.getAttribute('class')) + '"');
+		ok(node.getAttribute('class') === "class-1 class-2", 'Not a Sparky problem directly - SVG Node .getAttribute("class") expecting "class-1 class-2", actual: "' + node.getAttribute('class') + '"');
+
+		// ------------------
+	});
+}, function() {/*
+
+<div>
+	<svg x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20">
+		<line class="class-1 class-2" x1="0" y1="0" x2="0" y2="0"></line>
+	</svg>
+</div>
+
+*/});
+
+module('Test tags in SVG class attributes...', function(fixture) {
+	console.log('Test tags in SVG class attributes...');
+
+	asyncTest("Tags is class attributes", function() {
+		var node = fixture.querySelector('line');
+		var model = { property: 'peas' };
+
+		ok(node.classList, 'classList does not exist');
+
+		Sparky(node, model);
+		node.classList.add('hello');
+
+		window.requestAnimationFrame(function() {
+			ok(node.getAttribute('class') === 'class-1 class-2 peas hello', 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+
+			model.property = 'ice';
+
+			window.requestAnimationFrame(function() {
+				ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
+			});
+		});
+
+		window.requestAnimationFrame(function() {
+			window.requestAnimationFrame(function() {
+				window.requestAnimationFrame(function() {
+					QUnit.start();
+				});
+			});
+		});
+	});
+}, function() {/*
+
+<div>
+	<svg x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20">
+		<line class="class-1 class-2 {{property}}" x1="0" y1="0" x2="0" y2="0"></line>
+	</svg>
+</div>
 
 */});
