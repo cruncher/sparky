@@ -378,7 +378,7 @@ problems – with the exception of the <code>class</code> attribute: you can add
 and remove your own classes as much as you like without fear of upsetting
 Sparky.
 
-### Sparky utility functions
+### Utility functions
 
 #### Sparky.Collection(array, options)
 
@@ -393,8 +393,8 @@ frame rate.
 
 Calling <code>throttle()</code> causes <code>fn</code> to be called on the next
 browser frame. Multiple calls to <code>throttle()</code> result in just one call
-to <code>fn</code> on the next frame. <code>fn</code> is called with arguments
-from the latest call to <code>throttle(arg1, arg2, ...)</code>.
+to <code>fn</code> on the next frame. <code>fn</code> is called with the
+arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
 
 #### Sparky.extend(object1, object2, ... )
 
