@@ -50,7 +50,7 @@
 	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
+	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}?/g;
 
 	// Matches tags plus any directly adjacent text
 	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;
@@ -73,6 +73,82 @@
 
 	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
+	function makeUpdateInput(node, model, path, fn) {
+		var type = node.type;
+
+		return type === 'radio' || type === 'checkbox' ?
+			function updateChecked() {
+				var value = fn(Sparky.getPath(model, path));
+
+				// Deliberately use type coersion equality check
+				node.checked = node.value == value;
+				node.dispatchEvent(changeEvent);
+			} :
+			function updateValue() {
+				var value = fn(Sparky.getPath(model, path));
+
+				// Deliberately use type coersion equality check
+				if (node.value != value) {
+					node.value = value;
+					node.dispatchEvent(changeEvent);
+				}
+			} ;
+	}
+
+	function makeChangeListener(node, model, path, fn) {
+		var type = node.type;
+		
+		return type === 'radio' ? function radioChange(e) {
+				if (node.checked) {
+					Sparky.setPath(model, path, fn(node));
+				}
+			} :
+			type === 'checkbox' ? function checkboxChange(e) {
+				Sparky.setPath(model, path, node.checked ? fn(node) : undefined);
+			} :
+			function valueChange(e) {
+				Sparky.setPath(model, path, fn(node));
+			} ;
+	}
+
+	function bindPathToValue(node, model, to, from, path) {
+		var dataValue = Sparky.getPath(model, path);
+		var nodeValue = node.getAttribute('value');
+		var update = makeUpdateInput(node, model, path, to);
+		var throttle = Sparky.Throttle(update);
+		var change = makeChangeListener(node, model, path, from);
+		
+		Sparky.observePath(model, path, throttle);
+
+		node.addEventListener('change', change);
+		node.addEventListener('input', change);
+		
+		return function unbind() {
+			throttle.cancel();
+			Sparky.unobservePath(model, path, throttle);
+			node.removeEventListener('change', change);
+			node.removeEventListener('input', change);
+		}
+	}
+
+	function bindNameValue(node, model, to, from) {
+		var tag = (rtags.exec(node.name) || empty);
+		var path = tag[2];
+
+		if (!path) { return; }
+
+		if (tag[3]) {
+			console.warn('Sparky: Sparky tags in name attributes do not accept filters. Ignoring name="' + node.name + '".');
+			return;
+		}
+
+		// Take the tag parentheses away from the name, preventing this node
+		// from being name-value bound again.
+		node.name = path;
+
+		return bindPathToValue(node, model, to, from, path);
+	}
+
 	var tags = {
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
 	    		var prop = (rtags.exec(node.name) || empty)[2];
@@ -84,7 +160,6 @@
 	    		var value1 = get(prop);
 	    		var attr = node.getAttribute('value');
 	    		var value2 = isDefined(attr) && parseValue(attr) ;
-	    		var flag = false;
 	    		var throttle, change;
 
 	    		if (node.type === 'checkbox') {
