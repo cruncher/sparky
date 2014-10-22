@@ -42,7 +42,7 @@ Inputs get two-way binding. Typing text into the input will live update
 
 Sparky defaults to using models directly as scope for rendering templates,
 making it quick and easy to set up basic views for an app. Where more control is
-needed, a controller function can be used to return a different object to be
+needed, a controller function can be used to return an alternative object to be
 used as scope.
 
 HTML:
@@ -60,29 +60,24 @@ JS:
             type: model.type
         };
 
-        // Watch for changes to title
-        Sparky.observe(model, 'title', function() {
-            scope.title = model.title.toUpperCase();
-        });
+        // Do something with the node and/or model
 
-        Sparky.observe(scope, 'title', function() {
-            model.title = scope.title.toLowerCase();
-        });
-
-        // Return the scope object Sparky uses to
+        // Return the scope object Sparky should use to
         // render the node.
         return scope;
     };
 
-A controller function is passed the node and the model (where
-<code>data-model</code> is given). Here, the controller watches the model for
-changes to <code>title</code> and performs an uppercase/lowercase transform.
-<code>type</code> is set on <code>scope</code> once and then left unchanged.
-The controller returns <code>scope</code> to make Sparky use it to render the
-template.
+Sparky does not make scope objects for you, you create them where you need them.
+The controller function is passed the node, and the model where
+<code>data-model</code> is given. If it returns <code>undefined</code>, the
+scope defaults to the model.
 
 Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined
 for Sparky to template a node.
+
+It is not required to store data models in <code>Sparky.data</code> and
+controllers in <code>Sparky.ctrl</code>, nor to declare them in the DOM – a node
+can also be bound by calling <code>Sparky(node, model, controller)</code>.
 
 ## Sparky templates
 
