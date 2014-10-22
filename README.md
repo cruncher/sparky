@@ -77,8 +77,9 @@ for Sparky to template a node.
 
 It is not required to store data models in <code>Sparky.data</code> and
 controllers in <code>Sparky.ctrl</code>, nor to declare them in the DOM – a node
-can also be bound to a model object using a controller function by calling
-<code>Sparky(node, model, controller)</code>.
+can also be bound to a model object via a controller function by calling
+<code>Sparky(node, model, controller)</code>. Both the model and the controller
+are optional.
 
 ## Sparky templates
 
