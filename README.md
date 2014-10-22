@@ -37,8 +37,8 @@ The result is:
     </div>
 
 Live binding means that when the data changes, the DOM is kept up-to-date.
-Inputs get two-way binding. Typing text into the input will live update 
-<code>my-data.title</code> (and thus also the text in the paragraph).
+Inputs get two-way binding. Typing text into the input updates 
+<code>my-data.title</code>, and thus also the text in the paragraph.
 
 Sparky defaults to using models directly as scope for rendering templates,
 making it quick and easy to set up basic views for an app. Where more control is
