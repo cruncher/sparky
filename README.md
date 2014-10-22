@@ -378,7 +378,7 @@ problems – with the exception of the <code>class</code> attribute: you can add
 and remove your own classes as much as you like without fear of upsetting
 Sparky.
 
-### Utility functions
+### Object functions
 
 #### Sparky.Collection(array, options)
 
@@ -395,6 +395,8 @@ Calling <code>throttle()</code> causes <code>fn</code> to be called on the next
 browser frame. Multiple calls to <code>throttle()</code> result in just one call
 to <code>fn</code> on the next frame. <code>fn</code> is called with the
 arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
+
+### Utility functions
 
 #### Sparky.extend(object1, object2, ... )
 
