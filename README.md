@@ -384,6 +384,8 @@ Sparky.
 
 Returns an array-like object with a number of methods for managing a collection.
 
+    var collection = Sparky.Collection();
+
 ##### collection.add()
 ##### collection.remove()
 ##### collection.find()

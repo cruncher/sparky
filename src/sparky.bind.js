@@ -50,7 +50,7 @@
 	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}?/g;
+	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
 
 	// Matches tags plus any directly adjacent text
 	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;

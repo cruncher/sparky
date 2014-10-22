@@ -30,7 +30,7 @@ module('Controller', function(fixture) {
 */});
 
 
-module('Model', function(fixture) {
+module('Live tags', function(fixture) {
 	test("{{tag}} is replaced with model property", function() {
 		var node = fixture.querySelector('div');
 		
@@ -42,6 +42,28 @@ module('Model', function(fixture) {
 }, function() {/*
 
 <div data-model="test-model">{{property}}</div>
+
+*/});
+
+module('Static tags', function(fixture) {
+	asyncTest("{{{tag}}} is replaced with model property", function() {
+		var node = fixture.querySelector('div');
+
+		Sparky.data['test-model'] = { property: 'juice' };
+		Sparky(node);
+
+		window.requestAnimationFrame(function() {
+			ok(node.innerHTML === 'juice', 'node.innerHTML expected "juice", actually "' + node.innerHTML + '"');
+		});
+
+		// Restart QUnit
+		window.requestAnimationFrame(function() {
+			QUnit.start();
+		});
+	});
+}, function() {/*
+
+<div data-model="test-model">{{{property}}}</div>
 
 */});
 
