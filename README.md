@@ -276,6 +276,33 @@ scope objects are just plain objects you create.
 Where the <code>ctrl</code> function returns <code>undefined</code>, Sparky uses
 the model as scope.
 
+Controllers are called with a <code>sparky</code> object as their context
+<code>this</code>. It's common to listen to lifecycle events inside a
+controller:
+
+    Sparky.ctrl['my-ctrl-2'] = function myCtrl2(node, model) {
+        var scope = { day: 'unknown'; };
+        
+        this.on('ready', function() {
+            // The node has bound and has been populated with any
+            // existing model data.
+        });
+        
+        this.on('insert', function() {
+            // The node has been inserted into the DOM.
+        });
+        
+        this.on('destroy', function() {
+            // The node has been unbound from the model and
+            // removed from the DOM
+        });
+
+        return scope;
+    };
+
+Where multiple controllers are defined in <code>data-ctrl</code> they are all
+called with the same <code>sparky</code> object as context.
+
 #### Define a model object
 
 Models are stored in <code>Sparky.data</code>. A model is an object that Sparky
@@ -331,44 +358,9 @@ interacting with the template.
 - <code>destroy</code>: triggered when the node has been unbound from the model
 and removed from the DOM
 
-Controllers are called with the <code>sparky</code> object as their
-<code>this</code> context. It's common to listen to lifecycle events inside a
-controller:
-
-    function myCtrl(node, model) {
-        var scope = { day: 'unknown'; };
-        
-        this.on('ready', function() {
-            // The node has bound and has been populated with any
-            // existing model data.
-        });
-        
-        this.on('insert', function() {
-            // The node has been inserted into the DOM.
-        });
-        
-        this.on('destroy', function() {
-            // The node has been unbound from the model and
-            // removed from the DOM
-        });
-
-        return scope;
-    };
-
-    // Bind the node to data
-    var sparky = Sparky(node, 'user', myCtrl);
-    
-    // Destroy Sparky's bindings and remove the node from the DOM
-    sparky.destoy();
-
-Where multiple controllers are defined, they are called with the same
-<code>sparky</code> object as context.
-
 #### Methods
 
 - <code>.destroy()</code> Unbind all of this sparky's nodes from data models.
-
-
 
 ## Manipulating bound nodes in the DOM
 
@@ -382,11 +374,11 @@ jQuery, allowing you to use jQuery's API to move the templated nodes around:
 
     jQuery(sparky).appendTo(document.body);
 
-You should be aware, though, that trying to manipulate the text content or
-attributes of any of <code>sparky</code>'s nodes that have Sparky tags in them
-will likely cause problems – with the exception of the <code>class</code>
-attribute: you can add and remove your own classes to your heart's content
-without fear of upsetting Sparky.
+You should be aware, though, that trying to manipulate text content or
+attributes that had Sparky tags in them when they were bound will likely cause
+problems – with the exception of the <code>class</code> attribute: you can add
+and remove your own classes as much as you like without fear of upsetting
+Sparky.
 
 ## Sparky template filters
 
