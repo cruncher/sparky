@@ -343,7 +343,7 @@ stored in <code>Sparky.ctrl</code>. Controller functions are called with
 
 Used to listen to lifecycle events and can be used to communicate with controllers.
 
-## The sparky object
+### The sparky object
 
 A sparky object is an array-like object of DOM nodes that have been bound to
 data models. It also emits lifecycle events and exposes a few methods for
@@ -377,6 +377,50 @@ attributes that had Sparky tags in them when they were bound will likely cause
 problems – with the exception of the <code>class</code> attribute: you can add
 and remove your own classes as much as you like without fear of upsetting
 Sparky.
+
+### Sparky utility functions
+
+#### Sparky.Collection(array, options)
+
+Returns an array-like object with a number of methods for managing a collection.
+
+#### Sparky.Throttle(fn)
+
+Takes one function and returns a function that throttles calls to the browser
+frame rate.
+
+    var throttle = Sparky.throttle(fn);
+
+Calling <code>throttle()</code> causes <code>fn</code> to be called on the next
+browser frame. Multiple calls to <code>throttle()</code> result in just one call
+to <code>fn</code> on the next frame. <code>fn</code> is called with arguments
+from the latest call to <code>throttle(arg1, arg2, ...)</code>.
+
+#### Sparky.extend(object1, object2, ... )
+
+#### Sparky.observe(object, property, fn)
+
+#### Sparky.unobserve(object, property, fn)
+
+#### Sparky.observePath(object, path, fn)
+
+#### Sparky.observePathOnce(object, path, fn)
+
+#### Sparky.unobservePath(object, path, fn)
+
+#### Sparky.getPath(object, path)
+
+#### Sparky.setPath(object, path, value)
+
+#### Sparky.parseValue(value)
+
+#### Sparky.template(id)
+
+Given the id of a template tag in the DOM, <code>Sparky.template(id)</code>
+returns the cloned contents of that template as a document fragment.
+
+Supports browsers where <code>&lt;template&gt;</code> does not have the
+associated JavaScript property <code>template.content</code>.
 
 ## Sparky template filters
 
