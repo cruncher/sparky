@@ -2,9 +2,10 @@
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a model-agnostic live data binding view layer for an HTML/JS app. Sparky enhances
-the existing DOM with declarative data bindings, passes data properties through Django-style
-template filters and renders multiple changes in batches on browser frames for performance.</strong>
+<strong>Sparky is a flexible, model-agnostic live data binding view/controller
+layer for HTML/JS. Sparky enhances the DOM with declarative data bindings,
+passes data through Django-style template filters and renders multiple changes
+in batches on browser frames for performance.</strong>
 
 ## Quick start
 
@@ -317,24 +318,21 @@ stored in <code>Sparky.ctrl</code>. Controller functions are called with
 
 Used to listen to lifecycle events and can be used to communicate with controllers.
 
-##### The sparky object
+## The sparky object
 
 A sparky object is an array-like object of DOM nodes that have been bound to
 data models. It also emits lifecycle events and exposes a few methods for
 interacting with the template.
 
-A sparky object emits three lifecycle events:
+#### Events
 
 - <code>ready</code>: triggered after Sparky first updates the node
 - <code>insert</code>: triggered when the node is inserted into the DOM (CURRENTLY UNRELIABLE)
 - <code>destroy</code>: triggered when the node has been unbound from the model
 and removed from the DOM
 
-(The only way to destroy template binding is with <code>sparky.destroy()</code>)
-
-
 Controllers are called with the <code>sparky</code> object as their
-<code>this</code> value. It's common to listen to lifecycle events inside a
+<code>this</code> context. It's common to listen to lifecycle events inside a
 controller:
 
     function myCtrl(node, model) {
@@ -364,25 +362,31 @@ controller:
     sparky.destoy();
 
 Where multiple controllers are defined, they are called with the same
-<code>sparky</code> object as context. The sparky object could be used to pass
-messages between controllers.
+<code>sparky</code> object as context.
 
-## Manipulating to bound nodes in the DOM
+#### Methods
+
+- <code>.destroy()</code> Unbind all of this sparky's nodes from data models.
+
+
+
+## Manipulating bound nodes in the DOM
 
 Sparky templates are reasonably tolerant to being manipulated in the DOM.
 Nodes in a template will stay bound to models when they are moved around or
 removed from the DOM, or even when other nodes are inserted between them.
 
 Because <code>sparky</code> is an array-like object, and jQuery accepts node
-arrays, one easy way of manipulating Sparky's nodes is to simply wrap it in
+arrays, one easy way of manipulating its nodes is simply to wrap it in
 jQuery, allowing you to use jQuery's API to move the templated nodes around:
 
     jQuery(sparky).appendTo(document.body);
 
-You should be aware, though, that trying to manipulate the content or
-attributes of any of <code>sparky</code>'s nodes will likely cause problems –
-with the exception of the <code>class</code> attribute, which you can muck
-around with to your heart's content without fear of upsetting Sparky.
+You should be aware, though, that trying to manipulate the text content or
+attributes of any of <code>sparky</code>'s nodes that have Sparky tags in them
+will likely cause problems – with the exception of the <code>class</code>
+attribute: you can add and remove your own classes to your heart's content
+without fear of upsetting Sparky.
 
 ## Sparky template filters
 
