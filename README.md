@@ -94,9 +94,10 @@ You can find controllers by logging <code>Sparky.ctrl</code>.
 
 Controllers are simply functions that are called when Sparky scans this node.
 The return value of the controller is used as scope for the template to bind
-to, unless that value is <code>undefined</code>, in which case scope is the model.
+to, unless that value is <code>undefined</code>, in which case scope defaults
+to the model.
 
-You can define more than one controller. They are run in order. The return value
+More than one controller can be defined. They are run in order. The return value
 of the last controller is used as scope.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
@@ -138,9 +139,9 @@ It also understands relative paths to models in the current scope, when wrapped 
         <p data-model="{{path-to.meta}}">{{author}}</p>
     </div>
 
-If <code>data-ctrl</code> is defined the model is passed to a controller, and the return
-value of the controller is used as scope to update the template (unless the controller
-returns <code>undefined</code>, in which case the model is used as scope).
+If <code>data-ctrl</code> is defined the model is passed to a controller. By
+default, the model is used as scope to update the template, but if the
+controller returns an object that object is used as scope.
 
 <a href="#define-a-model-object">Define a model object</a>.
 
