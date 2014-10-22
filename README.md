@@ -384,6 +384,11 @@ Sparky.
 
 Returns an array-like object with a number of methods for managing a collection.
 
+##### collection.add()
+##### collection.remove()
+##### collection.find()
+##### collection.update()
+
 #### Sparky.Throttle(fn)
 
 Takes one function and returns a function that throttles calls to the browser
