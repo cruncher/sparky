@@ -68,7 +68,7 @@ JS:
     };
 
 Sparky does not make scope objects for you, you create them where you need them.
-The controller function is passed the node, and the model where
+The controller function is passed the node, and a model where
 <code>data-model</code> is given. If the function returns
 <code>undefined</code>, the scope defaults to the model.
 
