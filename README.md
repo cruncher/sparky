@@ -367,7 +367,7 @@ Where multiple controllers are defined, they are called with the same
 <code>sparky</code> object as context. The sparky object could be used to pass
 messages between controllers.
 
-## DOM manipulations to bound nodes
+## Manipulating to bound nodes in the DOM
 
 Sparky templates are reasonably tolerant to being manipulated in the DOM.
 Nodes in a template will stay bound to models when they are moved around or
