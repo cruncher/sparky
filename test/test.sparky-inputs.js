@@ -278,8 +278,8 @@ module('Test 2 way binding for value-boolean false...', function(fixture) {
 
 
 
-module('Test 2 way binding for value-boolean false...', function(fixture) {
-	console.log('Test 2 way binding for value-boolean false...');
+module('Test 2 way binding for textarea...', function(fixture) {
+	console.log('Test 2 way binding for textarea...');
 
 	asyncTest("text input", function() {
 		var text1 = fixture.querySelector('.text1');
@@ -314,5 +314,66 @@ module('Test 2 way binding for value-boolean false...', function(fixture) {
 
 <textarea class="text1" name="{{property1}}"></textarea>
 <textarea class="text2" name="{{property2}}">cooee</textarea>
+
+*/});
+
+
+module('Test 2 way binding for select...', function(fixture) {
+	console.log('Test 2 way binding for select...');
+
+	asyncTest("text input", function() {
+		var node1 = fixture.querySelector('.select-1');
+		var node2 = fixture.querySelector('.select-2');
+		var model = { property: '1' };
+
+		Sparky(node1, model);
+		Sparky(node2, model);
+
+		window.requestAnimationFrame(function() {
+			ok(node1.value === "1", 'Select value should be "1", actually: "' + node1.value + '"');
+			// In FireFox the initial value is 0. We'll tolerate this
+			ok(node2.value === "" || node2.value === "0", 'Select value should be "1", actually: "' + node2.value + '"');
+
+
+			// This gets coerced to string by the browser
+			node1.value = 2;
+			node1.dispatchEvent(changeEvent);
+
+			// But should be the correct type on the model
+			ok(model.property === '2', 'model.property should be string "2", actually: ' + (typeof model.property) + ' ' + model.property);
+
+			// This gets coerced to string by the browser
+			node2.value = 2;
+			node2.dispatchEvent(changeEvent);
+
+			// But should be the correct type on the model
+			ok(model.property === 2, 'model.property should be number 2, actually: ' + (typeof model.property) + ' ' + model.property);
+
+			// Set out of range value
+			model.property = 3;
+
+			window.requestAnimationFrame(function() {
+				ok(node1.value === "3", 'Select value should be "3", actually: "' + node1.value + '"');
+				ok(node2.value === "3", 'Select value should be "3", actually: "' + node2.value + '"');
+
+				QUnit.start();
+			});
+		});
+	});
+}, function() {/*
+
+<select class="select-1" name="{{property}}">
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+</select>
+
+<select class="select-2" name="{{property}}" data-ctrl="value-number">
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+</select>
 
 */});

@@ -33,13 +33,9 @@
 		'href',
 		'title',
 		'id',
-		'for',
 		'style',
 		'src',
-		'alt',
-		'min',
-		'max',
-		'value'
+		'alt'
 	];
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
@@ -66,41 +62,9 @@
 
 	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
-	var tags = {
-	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Effectively the same as a basic value-number or value-default controller
-	    		var type = node.type;
+	// Utility functions
 
-	    		var unbind = type === 'number' || type === 'range' ?
-	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
-	    		    	// Coerce any value to a string to set the others
-	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
-
-	    		unobservers.push(unbind);
-	    	},
-
-	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-
-	    		// Coerce any value to string to set it on the select
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
-
-	    		unobservers.push(unbind);
-	    	},
-
-	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-	    	},
-
-	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Only let strings into the textarea
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-
-	    		unobservers.push(unbind);
-	    	}
-	    };
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
 	function noop() {}
 
@@ -150,17 +114,51 @@
 		}
 	};
 
-	function parseValue(value) {
-		// window.isNaN() coerces non-empty strings to numbers before asking if
-		// they are NaN. Number.isNaN() (ES6) does not, so beware.
-		// TODO: Why does empty string evaluate to true? There was a reason...
-		// is it still valid?
-		return value === '' ? '' :
-			value === 'true' ? true :
-			value === 'false' ? false :
-			isNaN(value) ? value :
-			parseFloat(value) ;
-	}
+	// Nodes that require special bindings
+	var tags = {
+	    	label: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		// Effectively the same as a basic value-number or value-default controller
+	    		var type = node.type;
+
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindAttribute(node, 'min', bind, unbind, get, unobservers);
+	    		bindAttribute(node, 'max', bind, unbind, get, unobservers);
+
+	    		var unbind = type === 'number' || type === 'range' ?
+	    		    	// Only let numbers set the value of number and range inputs
+	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	// Coerce any value to a string to set the others
+	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
+
+	    		unobservers.push(unbind);
+	    	},
+
+	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+
+	    		// Coerce any value to string to set it on the select
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
+
+	    		unobservers.push(unbind);
+	    	},
+
+	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
+	    		// Only let strings into the textarea
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
+	    		unobservers.push(unbind);
+	    	}
+	    };
 
 	function domNode(node, bind, unbind, get, set, create, scope) {
 		var unobservers = [];
@@ -213,14 +211,14 @@
 	}
 
 	function bindNodes(node, bind, unbind, get, set, create, unobservers, scope) {
-		var nodes = [];
-		var n = -1;
-		var l, child, sparky;
+		if (node.childNodes.length === 0) { return; }
 
 		// childNodes is a live list, and we don't want it to be because we may
 		// be about to modify the DOM. Copy it.
-		nodes.push.apply(nodes, node.childNodes);
-		l = nodes.length;
+		var nodes = slice(node.childNodes);
+		var n = -1;
+		var l = nodes.length;
+		var child, sparky;
 
 		// Loop forwards through the children
 		while (++n < l) {
@@ -466,14 +464,6 @@
 
 	Sparky.bind = bind;
 	Sparky.attributes = attributes;
-	Sparky.parseValue = parseValue;
-
-
-
-
-
-
-
 
 
 	// -------------------------------------------------------------------
@@ -606,6 +596,12 @@
 		return Number.isNaN(n) ? undefined : n ;
 	}
 
+	function stringToInt(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined : n ;
+	}
+
 	function booleanToString(value) {
 		return typeof value === 'boolean' ? toString(value) :
 			typeof value === 'number' ? toString(!!value) :
@@ -630,6 +626,16 @@
 		this.on('destroy', unbind);
 	}
 
+	function valueIntegerCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
+		this.on('destroy', unbind);
+	}
+
+	function valueIntCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
+		this.on('destroy', unbind);
+	}
+
 	function valueBooleanCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean);
 		this.on('destroy', unbind);
@@ -638,7 +644,8 @@
 	Sparky.extend(Sparky.ctrl, {
 		'value-string':  valueStringCtrl,
 		'value-number':  valueNumberCtrl,
-		'value-boolean': valueBooleanCtrl
+		'value-boolean':    valueBooleanCtrl,
+		'value-int':     valueIntegerCtrl
 	});
 
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
