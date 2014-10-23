@@ -596,10 +596,10 @@
 		return Number.isNaN(n) ? undefined : n ;
 	}
 
-	function stringToInt(value) {
+	function stringToInteger(value) {
 		// coerse to number
 		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : n ;
+		return Number.isNaN(n) ? undefined : Math.round(n) ;
 	}
 
 	function booleanToString(value) {
@@ -608,11 +608,21 @@
 			'' ;
 	}
 
+	function booleanToStringInverted(value) {
+		return typeof value === 'boolean' ? toString(!value) :
+			typeof value === 'number' ? toString(!value) :
+			'' ;
+	}
+
 	function stringToBoolean(value) {
-		return value === 'true' ? true :
-			value === 'false' ? false :
+		return value === 'false' ? false :
 			value === '0' ? false :
+			value === '' ? false :
 			!!value ;
+	}
+
+	function stringToBooleanInverted(value) {
+		return !stringToBoolean(value);
 	}
 
 	function valueStringCtrl(node, model) {
@@ -627,7 +637,7 @@
 	}
 
 	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
 		this.on('destroy', unbind);
 	}
 
@@ -641,12 +651,38 @@
 		this.on('destroy', unbind);
 	}
 
+	function valueBooleanInvertCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
+		this.on('destroy', unbind);
+	}
+
+	function valueNumberInvertCtrl(node, model) {
+		var min = node.min ? parseFloat(node.min) : 0 ;
+		var max = mode.max ? parseFloat(node.max) : 1 ;
+		
+		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
+			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
+		}, function from(value) {
+			var n = parseFloat(value);
+			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
+		});
+		
+		this.on('destroy', unbind);
+	};
+
+
 	Sparky.extend(Sparky.ctrl, {
-		'value-string':  valueStringCtrl,
-		'value-number':  valueNumberCtrl,
-		'value-boolean':    valueBooleanCtrl,
-		'value-int':     valueIntegerCtrl
+		'value-string':         valueStringCtrl,
+		'value-number':         valueNumberCtrl,
+		'value-number-invert':  valueNumberInvertCtrl,
+		'value-boolean':        valueBooleanCtrl,
+		'value-boolean-invert': valueBooleanInvertCtrl,
+		'value-int':            valueIntegerCtrl
 	});
+
+	Sparky.ctrl['value-invert'] = function(node, model) {
+		console.warn('Sparky: ctrl "value-invert" is deprecated. Replace with "value-boolean-invert"');
+	};
 
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
