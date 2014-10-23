@@ -231,3 +231,19 @@
 		return scope;
 	};
 })();
+
+
+(function() {
+	"use strict";
+
+	Sparky.ctrl['value-number-invert'] = function(node, model) {
+		var min = parseFloat(node.min) || 0;
+		var max = parseFloat(node.max) || 1;
+		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
+			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
+		}, function from(value) {
+			var n = parseFloat(value);
+			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
+		});
+	};
+})();
