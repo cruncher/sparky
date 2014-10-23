@@ -4,7 +4,6 @@ module('Child sparky', function(fixture) {
 	asyncTest("Delayed models", function(assert) {
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.ctrl = {};
 
 		Sparky.data['dummy']   = {};
 

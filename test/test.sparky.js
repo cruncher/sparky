@@ -120,7 +120,6 @@ module('Child sparky', function(fixture) {
 	asyncTest("Test property changes update the DOM on animation frames.", function(assert) {
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
@@ -161,7 +160,6 @@ module('Child sparky', function(fixture) {
 	asyncTest("Tests .destroy()", function(assert) {
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
@@ -191,7 +189,6 @@ module('Child sparky', function(fixture) {
 		
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.ctrl = {};
 
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};

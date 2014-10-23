@@ -1180,34 +1180,40 @@ if (!Number.isNaN) {
 		}
 
 		// The bind function returns an array of unbind functions.
-		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
+		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 	}
 
-	function makeDistributeCtrl(ctrlPaths) {
+	function makeDistributeCtrl(ctrls) {
+		return ctrls.length === 1 ?
+			ctrls[0] :
+			function distributeCtrl(node, model) {
+				// Distributor controller
+				var l = ctrls.length;
+				var n = -1;
+				var scope, temp;
+
+				// Call the list of ctrls. Scope is the return value of
+				// the last ctrl in the list that does not return undefined
+				while (++n < l) {
+					temp = ctrls[n].call(this, node, model);
+					if (temp) { scope = temp; }
+				}
+
+				return scope;
+			} ;
+	}
+
+	function makeDistributeCtrlFromPaths(paths) {
 		var ctrls = [];
-		var l = ctrlPaths.length;
+		var l = paths.length;
 		var n = -1;
 
 		while (++n < l) {
-			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
+			ctrls.push(findByPath(Sparky.ctrl, paths[n]));
 		}
 
-		return function distributeCtrl(node, model) {
-			// Distributor controller
-			var l = ctrls.length;
-			var n = -1;
-			var scope, temp;
-
-			// Call the the list of ctrls. Scope is the return value of
-			// the last ctrl in the list that does not return undefined
-			while (++n < l) {
-				temp = ctrls[n].call(this, node, model);
-				if (temp) { scope = temp; }
-			}
-
-			return scope;
-		};
+		return makeDistributeCtrl(ctrls);
 	}
 
 	function makeCtrl(node) {
@@ -1221,7 +1227,7 @@ if (!Number.isNaN) {
 			return findByPath(Sparky.ctrl, array[0]);
 		}
 
-		return makeDistributeCtrl(array);
+		return makeDistributeCtrlFromPaths(array);
 	}
 
 	function Sparky(node, model, ctrl, loop) {
@@ -1313,7 +1319,7 @@ if (!Number.isNaN) {
 	Sparky.content      = getTemplateContent;
 	Sparky.extend       = extend;
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
-	Sparky.prototype    = prototype;
+	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
  
 	ns.Sparky = Sparky;
 })(window);
@@ -1349,7 +1355,6 @@ if (!Number.isNaN) {
 (function(Sparky) {
 	"use strict";
 
-	// For debugging
 	var attributes = [
 		'href',
 		'title',
@@ -1362,12 +1367,6 @@ if (!Number.isNaN) {
 		'max',
 		'value'
 	];
-	
-	var xlink = 'http://www.w3.org/1999/xlink';
-	var xsvg  = 'http://www.w3.org/2000/svg';
-
-	window.xlink = xlink;
-	window.xsvg = xsvg;
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
 	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
@@ -1394,100 +1393,21 @@ if (!Number.isNaN) {
 	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	var tags = {
-	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		var prop = (rtags.exec(node.name) || empty)[2];
+	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		// Effectively the same as a basic value-number or value-default controller
+	    		var type = node.type;
 
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
+	    		var unbind = type === 'number' || type === 'range' ?
+	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
 
-	    		var value1 = get(prop);
-	    		var attr = node.getAttribute('value');
-	    		var value2 = isDefined(attr) && parseValue(attr) ;
-	    		var flag = false;
-	    		var throttle, change;
-
-	    		if (node.type === 'checkbox') {
-	    			// If the model property does not yet exist and this input
-	    			// is checked, set model property from node's value.
-	    			if (node.checked && !isDefined(value1)) {
-	    				set(prop, value2);
-	    			}
-
-	    			throttle = Sparky.Throttle(function setChecked() {
-	    				node.checked = node.value === (get(prop) + '');
-	    				node.dispatchEvent(changeEvent);
-	    			});
-
-	    			bind(prop, throttle);
-
-	    			change = function change(e) {
-	    				set(prop, node.checked ? parseValue(node.value) : undefined);
-	    			};
-
-	    			node.addEventListener('change', change);
-	    		}
-	    		else if (node.type === 'radio') {
-	    			// If the model property does not yet exist and this input
-	    			// is checked, set model property from node's value.
-	    			if (!isDefined(value1) && node.checked) {
-	    				set(prop, value2);
-	    			}
-	    			
-	    			throttle = Sparky.Throttle(function setChecked() {
-	    				node.checked = node.value === (get(prop) + '');
-	    				node.dispatchEvent(changeEvent);
-	    			});
-	    			
-	    			bind(prop, throttle);
-	    			
-	    			change = function change(e) {
-	    				if (node.checked) { set(prop, parseValue(node.value)); }
-	    			};
-	    			
-	    			node.addEventListener('change', change);
-	    		}
-	    		else {
-	    			change = function change() {
-	    				set(prop, parseValue(node.value));
-	    			}
-
-	    			// Where the node has a value attribute and the model does
-	    			// not have value for the named property, give the model the
-	    			// node's value
-	    			if (value2 && !isDefined(value1)) {
-	    				change();
-	    			}
-
-	    			throttle = Sparky.Throttle(function setValue() {
-	    				var val = get(prop);
-	    				var value = isDefined(val) ? val : '' ;
-
-	    				// Avoid setting where the node already has this value, that
-	    				// causes the cursor to jump in text fields
-	    				if (node.value !== (value + '')) {
-	    					node.value = value;
-	    					node.dispatchEvent(changeEvent);
-	    				}
-	    			});
-
-	    			bind(prop, throttle);
-
-	    			node.addEventListener('change', change);
-	    			node.addEventListener('input', change);
-	    		}
-	    		
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    			node.removeEventListener('input', change);
-	    		});
+	    		unobservers.push(unbind);
 	    	},
 
-	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-
+	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    		
+	    		rtags.lastIndex = 0;
 	    		var prop = (rtags.exec(node.name) || empty)[2];
 
 	    		// Only bind to fields that have a sparky {{tag}} in their
@@ -1523,12 +1443,13 @@ if (!Number.isNaN) {
 	    		});
 	    	},
 
-	    	option: function(node, name, bind, unbind, get, set, create, unobservers) {
+	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
 
 	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers) {
+	    		rtags.lastIndex = 0;
 	    		var prop = (rtags.exec(node.name) || empty)[2];
 	    		
 	    		// Only bind to fields that have a sparky {{tag}} in their
@@ -1630,7 +1551,7 @@ if (!Number.isNaN) {
 			parseFloat(value) ;
 	}
 
-	function domNode(node, bind, unbind, get, set, create) {
+	function domNode(node, bind, unbind, get, set, create, scope) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
 
@@ -1641,12 +1562,12 @@ if (!Number.isNaN) {
 
 		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers);
+			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers, scope);
 		}
 
 		// Or sparkify the child nodes
 		else {
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 		}
 
 		if (Sparky.debug === 'verbose') { console.groupEnd(); }
@@ -1668,19 +1589,19 @@ if (!Number.isNaN) {
 		return unobservers;
 	}
 
-	function fragmentNode(node, bind, unbind, get, set, create) {
+	function fragmentNode(node, bind, unbind, get, set, create, scope) {
 		var unobservers = [];
 
 		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
 
-		bindNodes(node, bind, unbind, get, set, create, unobservers);
+		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 
 		if (Sparky.debug === 'verbose') { console.groupEnd(); }
 
 		return unobservers;
 	}
 
-	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
+	function bindNodes(node, bind, unbind, get, set, create, unobservers, scope) {
 		var nodes = [];
 		var n = -1;
 		var l, child, sparky;
@@ -1702,13 +1623,13 @@ if (!Number.isNaN) {
 				unobservers.push(sparky.destroy.bind(sparky));
 			}
 			else if (binders[child.nodeType]) {
-				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));
 			}
 		}
 	}
 
 	function setAttributeSVG(node, attribute, value) {
-		node.setAttributeNS(xlink, attribute, value);
+		node.setAttributeNS(Sparky.xlink, attribute, value);
 	}
 
 	function setAttributeHTML(node, attribute, value) {
@@ -1747,8 +1668,9 @@ if (!Number.isNaN) {
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
-//console.log(classes);
+
 		// Remove tags and store them
+		rclasstags.lastIndex = 0;
 		var tags = [];
 		var text = classes.replace(rclasstags, function($0) {
 			tags.push($0);
@@ -1784,7 +1706,7 @@ if (!Number.isNaN) {
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
 		var isSVG = node instanceof SVGElement;
 		var value = isSVG ?
-		    	node.getAttributeNS(xlink, attribute) :
+		    	node.getAttributeNS(Sparky.xlink, attribute) :
 		    	node.getAttribute(attribute) ;
 
 		if (!value) { return; }
@@ -1836,6 +1758,7 @@ if (!Number.isNaN) {
 	}
 
 	function extractProperties(str, live, dead) {
+		rtags.lastIndex = 0;
 		str.replace(rtags, function($0, $1, $2){
 			// Sort the live properties from the dead properties.
 			var i;
@@ -1872,6 +1795,7 @@ if (!Number.isNaN) {
 		var oldText;
 
 		return function updateText() {
+			rtags.lastIndex = 0;
 			var newText = text.replace(rtags, replaceText);
 			fn(newText, oldText);
 			oldText = newText;
@@ -1919,10 +1843,10 @@ if (!Number.isNaN) {
 		};
 	}
 
-	function bind(node, observe, unobserve, get, set, create) {
+	function bind(node, observe, unobserve, get, set, create, scope) {
 		// Assume this is a DOM node, and set the binder off. The
 		// binder returns a function that destroys the bindings.
-		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create);
+		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create, scope);
 
 		return function unbind() {
 			unobservers.forEach(call);
@@ -1932,7 +1856,171 @@ if (!Number.isNaN) {
 	Sparky.bind = bind;
 	Sparky.attributes = attributes;
 	Sparky.parseValue = parseValue;
-})(window.Sparky || require('sparky'));
+
+
+
+
+
+
+
+
+
+	// -------------------------------------------------------------------
+
+	// 2-way binding for form elements.
+	// HTML form elements are hard to handle. They do all sorts of strange
+	// things such as radios and checkboxes having a default value of 'on'
+	// where a value attribute is not given. This set of functions handles
+	// 2-way binding between a node and an object.
+
+	function returnArg(arg) { return arg; }
+
+	function toString(value) { return '' + value; }
+
+	function numberToString(value) {
+		return typeof value === 'number' ? toString(value) : '' ;
+	}
+
+	function stringToNumber(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined : n ;
+	}
+
+	function booleanToString(value) {
+		return typeof value === 'boolean' ? toString(value) :
+			typeof value === 'number' ? toString(!!value) :
+			'' ;
+	}
+
+	function stringToBoolean(value) {
+		return value === 'true' ? true :
+			value === 'false' ? false :
+			value === '0' ? false :
+			!!value ;
+	}
+
+	function makeUpdateInput(node, model, path, fn) {
+		var type = node.type;
+
+		return type === 'radio' || type === 'checkbox' ?
+			function updateChecked() {
+				var value = fn(Sparky.getPath(model, path));
+				node.checked = node.value === value;
+				node.dispatchEvent(changeEvent);
+			} :
+			function updateValue() {
+				var value = fn(Sparky.getPath(model, path));
+				if (node.value !== value) {
+					node.value = value;
+					node.dispatchEvent(changeEvent);
+				}
+			} ;
+	}
+
+	function makeChangeListener(node, model, path, fn) {
+		var type = node.type;
+		
+		return type === 'radio' ? function radioChange(e) {
+				if (node.checked) {
+					Sparky.setPath(model, path, fn(node.value));
+				}
+			} :
+			type === 'checkbox' ? function checkboxChange(e) {
+				Sparky.setPath(model, path, node.checked ? fn(node.value) : undefined);
+			} :
+			function valueChange(e) {
+				Sparky.setPath(model, path, fn(node.value));
+			} ;
+	}
+
+	function bindPathToValue(node, model, path, to, from) {
+		var nodeValue = node.getAttribute('value');
+		var update = makeUpdateInput(node, model, path, to);
+		var change = makeChangeListener(node, model, path, from);
+		var throttle;
+
+		node.addEventListener('change', change);
+		node.addEventListener('input', change);
+
+		// Wait for animation frame to let Sparky fill in tags in value, min
+		// and max before controlling. TODO: I'm not sure about this. I'd like
+		// to update the model immediately if possible, and start throttle on
+		// the animation frame.
+
+		var request = window.requestAnimationFrame(function() {
+			request = false;
+
+			// Where the model does not have value, set it from the node value.
+			if (!isDefined(Sparky.getPath(model, path))) {
+				change();
+			}
+
+			throttle = Sparky.Throttle(update);
+			Sparky.observePath(model, path, throttle);
+		});
+
+		return function unbind() {
+			node.removeEventListener('change', change);
+			node.removeEventListener('input', change);
+
+			if (request) {
+				window.cancelAnimationFrame(request);
+			}
+			else {
+				throttle.cancel();
+				Sparky.unobservePath(model, path, throttle);
+			}
+		}
+	}
+
+	function bindNamedValueToObject(node, model, to, from) {
+		var name = node.name;
+
+		if (!node.name) { return; }
+
+		rtags.lastIndex = 0;
+		var tag = (rtags.exec(name) || empty);
+		var path = tag[2];
+
+		if (!path) { return; }
+
+		if (tag[3]) {
+			console.warn('Sparky: Sparky tags in name attributes do not accept filters. Ignoring name="' + name + '".');
+			return;
+		}
+
+		// Take the tag parentheses away from the name, preventing this node
+		// from being name-value bound by any other controllers.
+		node.name = path;
+
+		return bindPathToValue(node, model, path, to, from);
+	}
+
+	function valueStringCtrl(node, model) {
+		// Don't coerce so that non-strings get caught by the equality checker
+		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
+		this.on('destroy', unbind);
+	}
+
+	function valueNumberCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
+		this.on('destroy', unbind);
+	}
+
+	function valueBooleanCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean);
+		this.on('destroy', unbind);
+	}
+
+	Sparky.extend(Sparky.ctrl, {
+		'value-string':  valueStringCtrl,
+		'value-number':  valueNumberCtrl,
+		'value-boolean': valueBooleanCtrl
+	});
+
+	Sparky.bindNamedValueToObject = bindNamedValueToObject;
+})(Sparky);
 
 
 // Sparky.observe()

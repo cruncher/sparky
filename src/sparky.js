@@ -403,34 +403,40 @@
 		}
 
 		// The bind function returns an array of unbind functions.
-		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
+		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 	}
 
-	function makeDistributeCtrl(ctrlPaths) {
+	function makeDistributeCtrl(ctrls) {
+		return ctrls.length === 1 ?
+			ctrls[0] :
+			function distributeCtrl(node, model) {
+				// Distributor controller
+				var l = ctrls.length;
+				var n = -1;
+				var scope, temp;
+
+				// Call the list of ctrls. Scope is the return value of
+				// the last ctrl in the list that does not return undefined
+				while (++n < l) {
+					temp = ctrls[n].call(this, node, model);
+					if (temp) { scope = temp; }
+				}
+
+				return scope;
+			} ;
+	}
+
+	function makeDistributeCtrlFromPaths(paths) {
 		var ctrls = [];
-		var l = ctrlPaths.length;
+		var l = paths.length;
 		var n = -1;
 
 		while (++n < l) {
-			ctrls.push(findByPath(Sparky.ctrl, ctrlPaths[n]));
+			ctrls.push(findByPath(Sparky.ctrl, paths[n]));
 		}
 
-		return function distributeCtrl(node, model) {
-			// Distributor controller
-			var l = ctrls.length;
-			var n = -1;
-			var scope, temp;
-
-			// Call the the list of ctrls. Scope is the return value of
-			// the last ctrl in the list that does not return undefined
-			while (++n < l) {
-				temp = ctrls[n].call(this, node, model);
-				if (temp) { scope = temp; }
-			}
-
-			return scope;
-		};
+		return makeDistributeCtrl(ctrls);
 	}
 
 	function makeCtrl(node) {
@@ -444,7 +450,7 @@
 			return findByPath(Sparky.ctrl, array[0]);
 		}
 
-		return makeDistributeCtrl(array);
+		return makeDistributeCtrlFromPaths(array);
 	}
 
 	function Sparky(node, model, ctrl, loop) {
@@ -536,7 +542,7 @@
 	Sparky.content      = getTemplateContent;
 	Sparky.extend       = extend;
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
-	Sparky.prototype    = prototype;
+	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
  
 	ns.Sparky = Sparky;
 })(window);

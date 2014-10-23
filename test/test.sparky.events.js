@@ -9,7 +9,6 @@ module('Event propogation', function(fixture) {
 
 		// Reset Sparky
 		Sparky.data = {};
-		Sparky.ctrl = {};
 
 		Sparky.ctrl['test-ctrl'] = function(node, model) {
 			this.on('boo', function(sparky) {
