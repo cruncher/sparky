@@ -3,6 +3,7 @@
 var changeEvent = new CustomEvent('change', { bubbles: true });
 
 
+
 module('Test initial value when model.property undefined...', function(fixture) {
 	console.log('Test initial value when model.property undefined...');
 
@@ -272,5 +273,46 @@ module('Test 2 way binding for value-boolean false...', function(fixture) {
 <input type="text" name="{{property}}" data-ctrl="value-boolean" />
 <input type="radio" name="{{property}}" data-ctrl="value-boolean" value="false" />
 <input type="checkbox" name="{{property}}" data-ctrl="value-boolean" value="false" />
+
+*/});
+
+
+
+module('Test 2 way binding for value-boolean false...', function(fixture) {
+	console.log('Test 2 way binding for value-boolean false...');
+
+	asyncTest("text input", function() {
+		var text1 = fixture.querySelector('.text1');
+		var text2 = fixture.querySelector('.text2');
+		var model = { property1: 'hello' };
+
+		Sparky(text1, model);
+		Sparky(text2, model);
+
+		window.requestAnimationFrame(function() {
+			ok(text1.value === "hello", 'Input text value should be "hello", actually: "' + text1.value + '"');
+			ok(text2.value === "cooee", 'Input text value should be "cooee", actually: "' + text2.value + '"');
+			ok(model.property2 === "cooee", 'model.property2 should be "cooee", actually: "' + model.property2 + '"');
+
+			// This gets coerced to string by the browser
+			text1.value = true;
+			text1.dispatchEvent(changeEvent);
+
+			// But should be the correct type on the model
+			ok(model.property1 === 'true', 'model.property should be string "true", actually: ' + (typeof model.property1) + ' ' + model.property1);
+
+			model.property2 = 4;
+
+			window.requestAnimationFrame(function() {
+				ok(text2.value === "", 'textarea value should be "", actually: "' + text2.value + '"');
+
+				QUnit.start();
+			});
+		});
+	});
+}, function() {/*
+
+<textarea class="text1" name="{{property1}}"></textarea>
+<textarea class="text2" name="{{property2}}">cooee</textarea>
 
 */});

@@ -72,7 +72,9 @@
 	    		var type = node.type;
 
 	    		var unbind = type === 'number' || type === 'range' ?
+	    		    	// Only let numbers set the value of number and range inputs
 	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	// Coerce any value to a string to set the others
 	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
 
 	    		unobservers.push(unbind);
@@ -80,41 +82,11 @@
 
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-	    		
-	    		rtags.lastIndex = 0;
-	    		var prop = (rtags.exec(node.name) || empty)[2];
 
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
+	    		// Coerce any value to string to set it on the select
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
 
-	    		var value = get(prop);
-
-	    		var change = function change(e) {
-	    		    	set(prop, parseValue(node.value));
-	    		    };
-
-	    		// If the model property does not yet exist, set it from the
-	    		// node's value.
-	    		if (!isDefined(value)) {
-	    			change();
-	    		}
-
-	    		var throttle = Sparky.Throttle(function setValue() {
-	    			var value = get(prop);
-	    			node.value = isDefined(value) ? value : '' ;
-	    			node.dispatchEvent(changeEvent);
-	    		});
-
-	    		bind(prop, throttle);
-
-	    		node.addEventListener('change', change);
-
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    		});
+	    		unobservers.push(unbind);
 	    	},
 
 	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
@@ -122,46 +94,11 @@
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
 
-	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers) {
-	    		rtags.lastIndex = 0;
-	    		var prop = (rtags.exec(node.name) || empty)[2];
-	    		
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
+	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
+	    		// Only let strings into the textarea
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 
-	    		var value1 = get(prop);
-	    		var value2 = node.value;
-	    		var change = function change(e) {
-	    			set(prop, node.value);
-	    		};
-
-	    		// If the model property does not yet exist and this input
-	    		// has value, set model property from node's value.
-	    		if (!isDefined(value1) && value2) {
-	    			change();
-	    		}
-
-	    		var throttle = Sparky.Throttle(function setValue() {
-	    			var value = get(prop);
-
-	    			// Avoid setting where the node already has this value, that
-	    			// causes the cursor to jump in text fields
-	    			if (node.value !== (value + '')) {
-	    				node.value = isDefined(value) ? value : '' ;
-	    				node.dispatchEvent(changeEvent);
-	    			}
-	    		});
-
-	    		bind(prop, throttle);
-
-	    		node.addEventListener('change', change);
-
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    		});
+	    		unobservers.push(unbind);
 	    	}
 	    };
 
@@ -547,33 +484,6 @@
 	// where a value attribute is not given. This set of functions handles
 	// 2-way binding between a node and an object.
 
-	function returnArg(arg) { return arg; }
-
-	function toString(value) { return '' + value; }
-
-	function numberToString(value) {
-		return typeof value === 'number' ? toString(value) : '' ;
-	}
-
-	function stringToNumber(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : n ;
-	}
-
-	function booleanToString(value) {
-		return typeof value === 'boolean' ? toString(value) :
-			typeof value === 'number' ? toString(!!value) :
-			'' ;
-	}
-
-	function stringToBoolean(value) {
-		return value === 'true' ? true :
-			value === 'false' ? false :
-			value === '0' ? false :
-			!!value ;
-	}
-
 	function makeUpdateInput(node, model, path, fn) {
 		var type = node.type;
 
@@ -585,7 +495,14 @@
 			} :
 			function updateValue() {
 				var value = fn(Sparky.getPath(model, path));
-				if (node.value !== value) {
+
+				// Check against the current value - resetting the same string
+				// causes the cursor to jump.
+				if (typeof value !== 'string') {
+					node.value = '';
+					node.dispatchEvent(changeEvent);
+				}
+				else if (node.value !== value) {
 					node.value = value;
 					node.dispatchEvent(changeEvent);
 				}
@@ -669,6 +586,37 @@
 		node.name = path;
 
 		return bindPathToValue(node, model, path, to, from);
+	}
+
+
+
+	// Controllers
+
+	function returnArg(arg) { return arg; }
+
+	function toString(value) { return '' + value; }
+
+	function numberToString(value) {
+		return typeof value === 'number' ? toString(value) : '' ;
+	}
+
+	function stringToNumber(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined : n ;
+	}
+
+	function booleanToString(value) {
+		return typeof value === 'boolean' ? toString(value) :
+			typeof value === 'number' ? toString(!!value) :
+			'' ;
+	}
+
+	function stringToBoolean(value) {
+		return value === 'true' ? true :
+			value === 'false' ? false :
+			value === '0' ? false :
+			!!value ;
 	}
 
 	function valueStringCtrl(node, model) {
