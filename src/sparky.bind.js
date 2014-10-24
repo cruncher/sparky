@@ -131,7 +131,7 @@
 
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
 	    		    	// Coerce any value to a string to set the others
 	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
 
