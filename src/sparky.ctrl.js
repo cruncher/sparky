@@ -19,8 +19,8 @@
 	}
 
 	Sparky.ctrl['value-number-pow-2'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
@@ -38,12 +38,13 @@
 	};
 
 	Sparky.ctrl['value-number-pow-3'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			return denormalise(pow(normalise(value, min, max), 1/3), min, max);
+			var n = denormalise(pow(normalise(value, min, max), 1/3), min, max);
+			return n + '';
 		}
 
 		function from(value) {
@@ -57,19 +58,19 @@
 	};
 
 	Sparky.ctrl['value-number-log'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
 
 		if (min <= 0) {
 			console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
-			return scope;
+			return;
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return '' + n;
+			return n;
 		}
 
 		function from(value) {

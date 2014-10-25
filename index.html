@@ -61,9 +61,12 @@
 	<p data-model="object">input: {{b}}</p>
 	<input type="checkbox" data-model="object" name="{{c}}" value="aye" />
 	<p data-model="object">input: {{c}}</p>
-	
+
 	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div-->
-	
+
+	<input type="range" data-ctrl="value-number-pow-3" data-model="dummy" name="{{c}}" step="any" />
+	<output data-model="dummy">{{c}}</output>
+
 	<div class="{{a.b.c|yesno:'checked',''}}" data-model="object">{{a.b.c}}</div>
 </div>
 
@@ -80,7 +83,7 @@
 <script src="src/sparky.observe.js"></script>
 <script src="src/sparky.bind.js"></script>
 <script src="src/sparky.filters.js"></script>
-<script src="src/sparky.ctrls.js"></script>
+<script src="src/sparky.ctrl.js"></script>
 <script src="src/sparky.ready.js"></script>
 
 <script>

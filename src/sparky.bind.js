@@ -131,7 +131,7 @@
 
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
 	    		    	// Coerce any value to a string to set the others
 	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
 
@@ -488,13 +488,18 @@
 
 				// Check against the current value - resetting the same string
 				// causes the cursor to jump.
-				if (typeof value !== 'string') {
+				if (!isDefined(value)) {
 					node.value = '';
 					node.dispatchEvent(changeEvent);
+					return;
 				}
-				else if (node.value !== value) {
+
+				var string = value + '';
+
+				if (value !== node.value) {
 					node.value = value;
 					node.dispatchEvent(changeEvent);
+					return;
 				}
 			} ;
 	}
@@ -657,9 +662,9 @@
 	}
 
 	function valueNumberInvertCtrl(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = mode.max ? parseFloat(node.max) : 1 ;
-		
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
+
 		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
 			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
 		}, function from(value) {
