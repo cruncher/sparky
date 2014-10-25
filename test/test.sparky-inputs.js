@@ -304,7 +304,7 @@ module('Test 2 way binding for textarea...', function(fixture) {
 			model.property2 = 4;
 
 			window.requestAnimationFrame(function() {
-				ok(text2.value === "", 'textarea value should be "", actually: "' + text2.value + '"');
+				ok(text2.value === "4", 'textarea value should be "", actually: "' + text2.value + '"');
 
 				QUnit.start();
 			});

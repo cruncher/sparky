@@ -1457,7 +1457,7 @@ if (!Number.isNaN) {
 
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber) :
+	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
 	    		    	// Coerce any value to a string to set the others
 	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
 
@@ -1814,13 +1814,18 @@ if (!Number.isNaN) {
 
 				// Check against the current value - resetting the same string
 				// causes the cursor to jump.
-				if (typeof value !== 'string') {
+				if (!isDefined(value)) {
 					node.value = '';
 					node.dispatchEvent(changeEvent);
+					return;
 				}
-				else if (node.value !== value) {
+
+				var string = value + '';
+
+				if (value !== node.value) {
 					node.value = value;
 					node.dispatchEvent(changeEvent);
+					return;
 				}
 			} ;
 	}
@@ -1983,9 +1988,9 @@ if (!Number.isNaN) {
 	}
 
 	function valueNumberInvertCtrl(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = mode.max ? parseFloat(node.max) : 1 ;
-		
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
+
 		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
 			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
 		}, function from(value) {
@@ -2434,8 +2439,8 @@ if (!Number.isNaN) {
 	}
 
 	Sparky.ctrl['value-number-pow-2'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
@@ -2453,12 +2458,13 @@ if (!Number.isNaN) {
 	};
 
 	Sparky.ctrl['value-number-pow-3'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			return denormalise(pow(normalise(value, min, max), 1/3), min, max);
+			var n = denormalise(pow(normalise(value, min, max), 1/3), min, max);
+			return n + '';
 		}
 
 		function from(value) {
@@ -2472,19 +2478,19 @@ if (!Number.isNaN) {
 	};
 
 	Sparky.ctrl['value-number-log'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
+		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
 
 		if (min <= 0) {
 			console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
-			return scope;
+			return;
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return '' + n;
+			return n;
 		}
 
 		function from(value) {
