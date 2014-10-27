@@ -2633,8 +2633,11 @@ if (!Number.isNaN) {
 			var rletter = /([a-zA-Z])/g;
 			
 			return function formatDate(value, format) {
-				console.log('formatDate', value, format);
-				if (!isDefined(value)) { console.warn('Sparky: date filter does not accept value', value); }
+				if (!isDefined(value)) {
+					console.warn('Sparky: date filter does not accept value', value);
+					return '';
+				}
+
 				var date = value instanceof Date ? value : new Date(value) ;
 
 				return format.replace(rletter, function($0, $1) {
