@@ -475,10 +475,14 @@
 			if (!node) {
 				node = document.getElementById(id);
 			}
+
+			if (!node) {
+				throw new Error('Sparky: Sparky() called but id of node not found: #' + id);
+			}
 		}
 
 		if (!node) {
-			throw new Error('Sparky: Sparky() called without node or valid id of node. ' + node);
+			throw new Error('Sparky: Sparky() called without node: ' + node);
 		}
 
 		// Where model is not defined look for the data-model
