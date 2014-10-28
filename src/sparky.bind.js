@@ -689,5 +689,6 @@
 		console.warn('Sparky: ctrl "value-invert" is deprecated. Replace with "value-boolean-invert"');
 	};
 
+	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);

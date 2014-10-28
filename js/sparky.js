@@ -1266,6 +1266,10 @@ if (!Number.isNaN) {
 			
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
+
+				if (!model) {
+					throw new Error('Sparky: data-model="' + modelPath + '" model not found in Sparky.data' );
+				}
 			}
 		}
 
@@ -2015,6 +2019,7 @@ if (!Number.isNaN) {
 		console.warn('Sparky: ctrl "value-invert" is deprecated. Replace with "value-boolean-invert"');
 	};
 
+	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
 
