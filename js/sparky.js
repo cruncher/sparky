@@ -1254,8 +1254,12 @@ if (!Number.isNaN) {
 			}
 
 			if (!node) {
-				throw new Error('Sparky: Sparky() called without valid id of node. #' + id);
+				throw new Error('Sparky: Sparky() called but id of node not found: #' + id);
 			}
+		}
+
+		if (!node) {
+			throw new Error('Sparky: Sparky() called without node: ' + node);
 		}
 
 		// Where model is not defined look for the data-model
