@@ -414,12 +414,13 @@
 				// Distributor controller
 				var l = ctrls.length;
 				var n = -1;
-				var scope, temp;
+				var scope = model;
+				var temp;
 
 				// Call the list of ctrls. Scope is the return value of
 				// the last ctrl in the list that does not return undefined
 				while (++n < l) {
-					temp = ctrls[n].call(this, node, model);
+					temp = ctrls[n].call(this, node, scope);
 					if (temp) { scope = temp; }
 				}
 
