@@ -91,7 +91,7 @@ if (!Number.isNaN) {
 })(this);
 
 
-// mixin.events
+// mixin.listeners
 
 // .on(types, fn, [args...])
 // Binds a function to be called on events in types. The
@@ -129,14 +129,14 @@ if (!Number.isNaN) {
 	var eventObject = {};
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
-	function getEvents(object) {
-		if (!object.events) {
-			Object.defineProperty(object, 'events', {
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
 				value: {}
 			});
 		}
 
-		return object.events;
+		return object.listeners;
 	}
 
 	function getDependents(object) {
@@ -187,7 +187,7 @@ if (!Number.isNaN) {
 				return this;
 			}
 
-			var events = getEvents(this);
+			var events = getListeners(this);
 			var type, item;
 
 			if (typeof types === 'string') {
@@ -222,10 +222,10 @@ if (!Number.isNaN) {
 			if (arguments.length === 0) {
 				teardownPropagation(this);
 
-				if (this.events) {
-					for (type in this.events) {
-						this.events[type].length = 0;
-						delete this.events[type];
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
 					}
 				}
 
@@ -240,7 +240,7 @@ if (!Number.isNaN) {
 			}
 
 			// No events.
-			if (!this.events) { return this; }
+			if (!this.listeners) { return this; }
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
@@ -249,19 +249,19 @@ if (!Number.isNaN) {
 			else {
 				// .off(fn)
 				fn = types;
-				types = Object.keys(this.events);
+				types = Object.keys(this.listeners);
 			}
 
 			while (type = types.shift()) {
-				listeners = this.events[type];
+				listeners = this.listeners[type];
 
 				if (!listeners) {
 					continue;
 				}
 
 				if (!fn) {
-					this.events[type].length = 0;
-					delete this.events[type];
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
 					continue;
 				}
 
@@ -287,7 +287,7 @@ if (!Number.isNaN) {
 				target = e.target;
 			}
 
-			var events = getEvents(this);
+			var events = getListeners(this);
 
 			args = slice(arguments);
 
@@ -1271,8 +1271,8 @@ if (!Number.isNaN) {
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
-				if (!model) {
-					throw new Error('Sparky: data-model="' + modelPath + '" model not found in Sparky.data' );
+				if (Sparky.debug && !model) {
+					console.log('Sparky: data-model="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
 				}
 			}
 		}
