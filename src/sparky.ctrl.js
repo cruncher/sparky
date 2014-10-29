@@ -102,7 +102,24 @@
 	var n = 0;
 
 	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('Sparky:DEBUG', n++);
+		console.log('DEBUG', n++);
 		debugger;
+	};
+
+	Sparky.ctrl['debug-events'] = function(node, model) {
+		var ready = 0;
+		var insert = 0;
+		var destroy = 0;
+
+		this
+		.on('ready', function() {
+			console.log('READY', ready++, node);
+		})
+		.on('insert', function() {
+			console.log('INSERT', insert++, node);
+		})
+		.on('destroy', function() {
+			console.log('DESTROY', destroy++, node);
+		});
 	};
 })();
