@@ -104,10 +104,7 @@
 			var rletter = /([a-zA-Z])/g;
 			
 			return function formatDate(value, format) {
-				if (!isDefined(value)) {
-					console.warn('Sparky: date filter does not accept value', value);
-					return '';
-				}
+				if (!isDefined(value)) { return ''; }
 
 				var date = value instanceof Date ? value : new Date(value) ;
 
