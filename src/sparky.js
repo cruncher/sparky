@@ -494,8 +494,8 @@
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
-				if (!model) {
-					throw new Error('Sparky: data-model="' + modelPath + '" model not found in Sparky.data' );
+				if (Sparky.debug && !model) {
+					console.log('Sparky: data-model="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
 				}
 			}
 		}
