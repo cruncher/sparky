@@ -635,7 +635,9 @@ if (!Number.isNaN) {
 		find: function(obj) {
 			var index = this.index;
 
-			return typeof obj === 'string' || typeof obj === 'number' ?
+			return !isDefined(obj) ?
+					undefined :
+				typeof obj === 'string' || typeof obj === 'number' ?
 					findByIndex(this, obj) :
 				isDefined(obj[index]) ?
 					findByIndex(this, obj[index]) :
