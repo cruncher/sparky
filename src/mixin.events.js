@@ -1,5 +1,5 @@
 
-// mixin.events
+// mixin.listeners
 
 // .on(types, fn, [args...])
 // Binds a function to be called on events in types. The
@@ -37,14 +37,14 @@
 	var eventObject = {};
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
-	function getEvents(object) {
-		if (!object.events) {
-			Object.defineProperty(object, 'events', {
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
 				value: {}
 			});
 		}
 
-		return object.events;
+		return object.listeners;
 	}
 
 	function getDependents(object) {
@@ -95,7 +95,7 @@
 				return this;
 			}
 
-			var events = getEvents(this);
+			var events = getListeners(this);
 			var type, item;
 
 			if (typeof types === 'string') {
@@ -130,10 +130,10 @@
 			if (arguments.length === 0) {
 				teardownPropagation(this);
 
-				if (this.events) {
-					for (type in this.events) {
-						this.events[type].length = 0;
-						delete this.events[type];
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
 					}
 				}
 
@@ -148,7 +148,7 @@
 			}
 
 			// No events.
-			if (!this.events) { return this; }
+			if (!this.listeners) { return this; }
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
@@ -157,19 +157,19 @@
 			else {
 				// .off(fn)
 				fn = types;
-				types = Object.keys(this.events);
+				types = Object.keys(this.listeners);
 			}
 
 			while (type = types.shift()) {
-				listeners = this.events[type];
+				listeners = this.listeners[type];
 
 				if (!listeners) {
 					continue;
 				}
 
 				if (!fn) {
-					this.events[type].length = 0;
-					delete this.events[type];
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
 					continue;
 				}
 
@@ -195,7 +195,7 @@
 				target = e.target;
 			}
 
-			var events = getEvents(this);
+			var events = getListeners(this);
 
 			args = slice(arguments);
 
