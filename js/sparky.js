@@ -1469,7 +1469,7 @@ if (!Number.isNaN) {
 	    		    	// Only let numbers set the value of number and range inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
 	    		    	// Coerce any value to a string to set the others
-	    		    	Sparky.bindNamedValueToObject(node, scope, toString, returnArg) ;
+	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
 
 	    		unobservers.push(unbind);
 	    	},
@@ -2351,7 +2351,7 @@ if (!Number.isNaN) {
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 	
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object);
 					return poll(object, property, fn);
 				}
 			}
