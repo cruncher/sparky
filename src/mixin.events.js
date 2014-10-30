@@ -95,6 +95,8 @@
 				return this;
 			}
 
+			if (!fn) { throw new Error('Sparky: calling .on(' + types + ', fn) but fn is ' + typeof fn); }
+
 			var events = getListeners(this);
 			var type, item;
 
