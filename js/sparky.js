@@ -977,6 +977,7 @@ if (!Number.isNaN) {
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
+		var inserted;
 
 		function updateNodes() {
 			var n = -1;
@@ -1018,6 +1019,7 @@ if (!Number.isNaN) {
 				}
 
 				insertNode(endNode, nodes[n]);
+				sparkies[n].trigger('insert');
 			}
 
 			if (Sparky.debug) {
@@ -1055,7 +1057,7 @@ if (!Number.isNaN) {
 				Sparky.unobserve(model, 'length', throttle);
 			},
 
-			trigger: function() {
+			trigger: function(string) {
 				var l = sparkies.length;
 				var n = -1;
 				while (++n < l) {

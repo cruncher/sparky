@@ -197,6 +197,7 @@
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
+		var inserted;
 
 		function updateNodes() {
 			var n = -1;
@@ -238,6 +239,7 @@
 				}
 
 				insertNode(endNode, nodes[n]);
+				sparkies[n].trigger('insert');
 			}
 
 			if (Sparky.debug) {
@@ -275,7 +277,7 @@
 				Sparky.unobserve(model, 'length', throttle);
 			},
 
-			trigger: function() {
+			trigger: function(string) {
 				var l = sparkies.length;
 				var n = -1;
 				while (++n < l) {
