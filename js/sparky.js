@@ -291,6 +291,10 @@ if (!Number.isNaN) {
 
 			args = slice(arguments);
 
+			// Copy dependents if they exist. We may be about to
+			// mutate the dependents list.
+			var dependents = this.dependents && this.dependents.slice();
+
 			if (events[type]) {
 				// Use a copy of the event list in case it gets mutated while
 				// we're triggering the callbacks.
@@ -305,9 +309,6 @@ if (!Number.isNaN) {
 				}
 			}
 
-			// Propagate to dependents
-			var dependents = this.dependents;
-			
 			if (!dependents) { return this; }
 
 			i = -1;
@@ -2527,6 +2528,7 @@ if (!Number.isNaN) {
 		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
 	};
 })();
+
 
 (function() {
 	"use strict";
