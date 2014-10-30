@@ -122,7 +122,6 @@
 	    	},
 
 	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Effectively the same as a basic value-number or value-default controller
 	    		var type = node.type;
 
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -134,8 +133,7 @@
 	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
 	    		    	// Coerce any value to a string to set the others
 	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
-
-	    		unobservers.push(unbind);
+	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
 	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
@@ -144,8 +142,7 @@
 
 	    		// Coerce any value to string to set it on the select
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
-
-	    		unobservers.push(unbind);
+	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
 	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
@@ -156,7 +153,7 @@
 	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
 	    		// Only let strings into the textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-	    		unobservers.push(unbind);
+	    		if (unbind) { unobservers.push(unbind); }
 	    	}
 	    };
 
@@ -218,7 +215,7 @@
 		var nodes = slice(node.childNodes);
 		var n = -1;
 		var l = nodes.length;
-		var child, sparky;
+		var child, sparky, unbind;
 
 		// Loop forwards through the children
 		while (++n < l) {
