@@ -2354,7 +2354,7 @@ if (!Number.isNaN) {
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 	
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object);
+					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
 					return poll(object, property, fn);
 				}
 			}
