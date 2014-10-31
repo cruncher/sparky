@@ -2774,7 +2774,8 @@ if (!Number.isNaN) {
 		},
 
 		lowercase: function(value) {
-			String.prototype.toLowerCase.apply(value);
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toLowerCase.apply(value);
 		},
 		
 		//make_list 
