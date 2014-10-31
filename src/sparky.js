@@ -434,9 +434,16 @@
 		var ctrls = [];
 		var l = paths.length;
 		var n = -1;
+		var ctrl;
 
 		while (++n < l) {
-			ctrls.push(findByPath(Sparky.ctrl, paths[n]));
+			ctrl = findByPath(Sparky.ctrl, paths[n]);
+			
+			if (!ctrl) {
+				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+			}
+			
+			ctrls.push(ctrl);
 		}
 
 		return makeDistributeCtrl(ctrls);
@@ -444,13 +451,20 @@
 
 	function makeCtrl(node) {
 		var ctrlPaths = node.getAttribute('data-ctrl');
+		var ctrl;
 
 		if (!isDefined(ctrlPaths)) { return; }
 
 		var array = ctrlPaths.split(/\s+/);
 
 		if (array.length === 1) {
-			return findByPath(Sparky.ctrl, array[0]);
+			ctrl = findByPath(Sparky.ctrl, array[0]);
+
+			if (!ctrl) {
+				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+			}
+
+			return ctrl;
 		}
 
 		return makeDistributeCtrlFromPaths(array);
