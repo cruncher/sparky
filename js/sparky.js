@@ -278,7 +278,9 @@ if (!Number.isNaN) {
 		},
 
 		trigger: function(e) {
-			var type, target, listeners, i, l, args, params;
+			var events = getListeners(this);
+			var args = slice(arguments);
+			var type, target, listeners, i, l, params;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -288,10 +290,6 @@ if (!Number.isNaN) {
 				type = e.type;
 				target = e.target;
 			}
-
-			var events = getListeners(this);
-
-			args = slice(arguments);
 
 			// Copy dependents if they exist. We may be about to
 			// mutate the dependents list.
