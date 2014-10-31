@@ -204,13 +204,13 @@
 			if (typeof value !== 'string') { return; }
 			return String.prototype.toLowerCase.apply(value);
 		},
-		
+
 		//make_list 
-		
+
 		multiply: function(value, n) {
 			return value * n;
 		},
-		
+
 		parseint: function(value) {
 			return parseInt(value, 10);
 		},
