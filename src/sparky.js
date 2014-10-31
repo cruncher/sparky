@@ -455,19 +455,19 @@
 
 		if (!isDefined(ctrlPaths)) { return; }
 
-		var array = ctrlPaths.split(/\s+/);
+		var paths = ctrlPaths.split(/\s+/);
 
-		if (array.length === 1) {
-			ctrl = findByPath(Sparky.ctrl, array[0]);
+		if (paths.length === 1) {
+			ctrl = findByPath(Sparky.ctrl, paths[0]);
 
 			if (!ctrl) {
-				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
 			}
 
 			return ctrl;
 		}
 
-		return makeDistributeCtrlFromPaths(array);
+		return makeDistributeCtrlFromPaths(paths);
 	}
 
 	function Sparky(node, model, ctrl, loop) {
