@@ -569,7 +569,9 @@ if (!Number.isNaN) {
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
+			console.log(i, obj, array[i]);
 			if (obj === array[i]) {
+				console.log('HIT', i);
 				array.splice(i, 1);
 				--i;
 				found = true;
@@ -589,6 +591,7 @@ if (!Number.isNaN) {
 
 	function multiarg(fn) {
 		return function(data) {
+			console.log('YEAH');
 			var n = -1;
 			var l = arguments.length;
 
@@ -2400,11 +2403,11 @@ if (!Number.isNaN) {
 	function noop() {}
 
 	function Throttle(fn) {
-		var queued, scope, args;
+		var queued, context, args;
 
 		function update() {
 			queued = false;
-			fn.apply(scope, args);
+			fn.apply(context, args);
 		}
 
 		function cancel() {
@@ -2419,10 +2422,6 @@ if (!Number.isNaN) {
 		}
 
 		function queue() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
 			// Don't queue update if it's already queued
 			if (queued) { return; }
 
@@ -2432,7 +2431,12 @@ if (!Number.isNaN) {
 		}
 
 		function throttle() {
-			queue.apply(this, arguments);
+			// Store the latest context and arguments
+			context = this;
+			args = arguments;
+
+			// Queue the update
+			queue();
 		}
 
 		throttle.cancel = cancel;

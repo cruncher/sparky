@@ -104,7 +104,9 @@
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
+			console.log(i, obj, array[i]);
 			if (obj === array[i]) {
+				console.log('HIT', i);
 				array.splice(i, 1);
 				--i;
 				found = true;
@@ -124,6 +126,7 @@
 
 	function multiarg(fn) {
 		return function(data) {
+			console.log('YEAH');
 			var n = -1;
 			var l = arguments.length;
 
