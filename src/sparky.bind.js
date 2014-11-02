@@ -454,6 +454,10 @@
 		// binder returns a function that destroys the bindings.
 		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create, scope);
 
+		if (Sparky.debug && unobservers.length === 0) {
+			console.log('Sparky: No Sparky tags found in', node);
+		}
+
 		return function unbind() {
 			unobservers.forEach(call);
 		};
