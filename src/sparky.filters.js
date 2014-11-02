@@ -28,6 +28,10 @@
 		23: 'rd',
 		31: 'st'
 	});
+	
+	// This list could get huge, but it's exposed so that it
+	// can be updated with problem words occuring in your project.
+	settings.plurals   = ('crew sheep').split(' ');
 
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
@@ -222,9 +226,11 @@
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
+			if (settings.plurals.indexOf(value) !== -1) { return value; }
+
 			str1 = str1 || '';
 			str2 = str2 || 's';
-			
+
 			if (lang === 'fr') {
 				return value < 2 ? str1 : str2;
 			}
