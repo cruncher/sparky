@@ -139,38 +139,38 @@ if (!Number.isNaN) {
 		return object.listeners;
 	}
 
-	function getDependents(object) {
-		if (!object.dependents) {
-			Object.defineProperty(object, 'dependents', {
+	function getDelegates(object) {
+		if (!object.delegates) {
+			Object.defineProperty(object, 'delegates', {
 				value: []
 			});
 		}
 
-		return object.dependents;
+		return object.delegates;
 	}
 
 	function setupPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
-		// Make sure dependents stays unique
-		if (dependents.indexOf(object2) === -1) {
-			dependents.push(object2);
+		// Make sure delegates stays unique
+		if (delegates.indexOf(object2) === -1) {
+			delegates.push(object2);
 		}
 	}
 
 	function teardownPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
 		if (object2 === undefined) {
-			dependents.length = 0;
+			delegates.length = 0;
 			return;
 		}
 
-		var i = dependents.indexOf(object2);
+		var i = delegates.indexOf(object2);
 
 		if (i === -1) { return; }
 
-		dependents.splice(i, 1);
+		delegates.splice(i, 1);
 	}
 
 
@@ -187,7 +187,7 @@ if (!Number.isNaN) {
 				return this;
 			}
 
-			if (!fn) { throw new Error('Sparky: calling .on(' + types + ', fn) but fn is ' + typeof fn); }
+			if (!fn) { throw new Error('Sparky: calling .on("' + types + '", fn) but fn is ' + typeof fn); }
 
 			var events = getListeners(this);
 			var type, item;
@@ -291,9 +291,9 @@ if (!Number.isNaN) {
 				target = e.target;
 			}
 
-			// Copy dependents if they exist. We may be about to
-			// mutate the dependents list.
-			var dependents = this.dependents && this.dependents.slice();
+			// Copy delegates if they exist. We may be about to
+			// mutate the delegates list.
+			var delegates = this.delegates && this.delegates.slice();
 
 			if (events[type]) {
 				// Use a copy of the event list in case it gets mutated while
@@ -309,10 +309,10 @@ if (!Number.isNaN) {
 				}
 			}
 
-			if (!dependents) { return this; }
+			if (!delegates) { return this; }
 
 			i = -1;
-			l = dependents.length;
+			l = delegates.length;
 
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
@@ -324,7 +324,7 @@ if (!Number.isNaN) {
 			}
 
 			while (++i < l) {
-				dependents[i].trigger.apply(dependents[i], args);
+				delegates[i].trigger.apply(delegates[i], args);
 			}
 
 			// Return this for chaining
@@ -1485,8 +1485,13 @@ if (!Number.isNaN) {
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
-	    		    	// Coerce any value to a string to set the others
+	    		    // Checkboxes default to value "on" when the value attribute
+	    		    // is not given. Make them behave as booleans.
+	    		    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+	    		    	Sparky.bindNamedValueToObject(node, scope, booleanToStringOn, stringOnToBoolean) :
+	    		    	// Only let strings set the value of other inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
+
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
@@ -1494,8 +1499,8 @@ if (!Number.isNaN) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 
-	    		// Coerce any value to string to set it on the select
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
+	    		// Only let strings set the value of selects
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
@@ -1505,7 +1510,7 @@ if (!Number.isNaN) {
 	    	},
 
 	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Only let strings into the textarea
+	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
 	    	}
@@ -1841,21 +1846,20 @@ if (!Number.isNaN) {
 			function updateValue() {
 				var value = fn(Sparky.getPath(model, path));
 
-				// Check against the current value - resetting the same string
-				// causes the cursor to jump.
-				if (!isDefined(value)) {
-					node.value = '';
-					node.dispatchEvent(changeEvent);
-					return;
-				}
+				if (typeof value === 'string') {
+					// Check against the current value - resetting the same
+					// string causes the cursor to jump in inputs, and we dont
+					// want to send a change event where nothing changed.
+					if (value === node.value) { return; }
 
-				var string = value + '';
-
-				if (value !== node.value) {
 					node.value = value;
-					node.dispatchEvent(changeEvent);
-					return;
 				}
+				else {
+					node.value = '';
+				}
+
+				// Send change event.
+				node.dispatchEvent(changeEvent);
 			} ;
 	}
 
@@ -1868,7 +1872,7 @@ if (!Number.isNaN) {
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.setPath(model, path, node.checked ? fn(node.value) : undefined);
+				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
 				Sparky.setPath(model, path, fn(node.value));
@@ -1912,7 +1916,7 @@ if (!Number.isNaN) {
 				throttle.cancel();
 				Sparky.unobservePath(model, path, throttle);
 			}
-		}
+		};
 	}
 
 	function bindNamedValueToObject(node, model, to, from) {
@@ -1946,32 +1950,18 @@ if (!Number.isNaN) {
 
 	function toString(value) { return '' + value; }
 
-	function numberToString(value) {
-		return typeof value === 'number' ? toString(value) : '' ;
-	}
-
 	function stringToNumber(value) {
 		// coerse to number
 		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : n ;
+		return Number.isNaN(n) ? undefined :
+			n ;
 	}
 
 	function stringToInteger(value) {
 		// coerse to number
 		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : Math.round(n) ;
-	}
-
-	function booleanToString(value) {
-		return typeof value === 'boolean' ? toString(value) :
-			typeof value === 'number' ? toString(!!value) :
-			'' ;
-	}
-
-	function booleanToStringInverted(value) {
-		return typeof value === 'boolean' ? toString(!value) :
-			typeof value === 'number' ? toString(!value) :
-			'' ;
+		return Number.isNaN(n) ? undefined :
+			Math.round(n) ;
 	}
 
 	function stringToBoolean(value) {
@@ -1981,12 +1971,55 @@ if (!Number.isNaN) {
 			!!value ;
 	}
 
+	function stringOnToBoolean(value) {
+		return value === 'on' ;
+	}
+
 	function stringToBooleanInverted(value) {
 		return !stringToBoolean(value);
 	}
 
+	function definedToString(value) {
+		return isDefined(value) ? value + '' :
+			undefined ;
+	}
+
+	function numberToString(value) {
+		return typeof value === 'number' ? value + '' :
+			undefined ;
+	}
+
+	function integerToString(value) {
+		return typeof value === 'number' && value % 1 === 0 ? value + '' :
+			undefined ;
+	}
+
+	function booleanToString(value) {
+		return typeof value === 'boolean' ? value + '' :
+			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function booleanToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
+			undefined ;
+	}
+
+	function booleanToStringInverted(value) {
+		return typeof value === 'boolean' ? !value + '' :
+			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
+	function valueAnyCtrl(node, model) {
+		// Coerce any defined value to string so that any values pass the type checker
+		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
+		this.on('destroy', unbind);
+	}
+
 	function valueStringCtrl(node, model) {
-		// Don't coerce so that non-strings get caught by the equality checker
+		// Don't coerce so that only strings pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
 		this.on('destroy', unbind);
 	}
@@ -1998,11 +2031,6 @@ if (!Number.isNaN) {
 
 	function valueIntegerCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		this.on('destroy', unbind);
-	}
-
-	function valueIntCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
 		this.on('destroy', unbind);
 	}
 
@@ -2032,17 +2060,14 @@ if (!Number.isNaN) {
 
 
 	Sparky.extend(Sparky.ctrl, {
+		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl,
-		'value-int':            valueIntegerCtrl
+		'value-integer':        valueIntegerCtrl
 	});
-
-	Sparky.ctrl['value-invert'] = function(node, model) {
-		console.warn('Sparky: ctrl "value-invert" is deprecated. Replace with "value-boolean-invert"');
-	};
 
 	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
