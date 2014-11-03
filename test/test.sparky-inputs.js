@@ -10,20 +10,26 @@ module('Test 2 way binding...', function(fixture) {
 		var node1 = fixture.querySelector('.node-1');
 		var node2 = fixture.querySelector('.node-2');
 		var model1 = { property: true };
-		var model2 = { property: true };
-
-console.log('node1', node1.value, node1.getAttribute('value'), node2.value, node2.getAttribute('value'));
+		var model2 = { };
 
 		Sparky(node1, model1);
 		Sparky(node2, model2);
 
 		window.requestAnimationFrame(function() {
 			ok(node1.checked === true, 'Checkbox 1 should be checked, actually: ' + node1.checked);
-			ok(node2.checked === false, 'Checkbox 2 should not be checked, actually: ' + node2.checked);
+			ok(node2.checked === true, 'Checkbox 2 should be checked, actually: ' + node2.checked);
+			ok(model2.property === true, 'model2.property should be true, actually: ' + node2.checked);
 
 			node1.checked = false;
 			node1.dispatchEvent(changeEvent);
 			ok(model1.property === false, 'model.property should be false, actually: ' + model1.property);
+
+			node1.checked = true;
+			node1.dispatchEvent(changeEvent);
+			ok(model1.property === true, 'model.property should be true, actually: ' + model1.property);
+
+			model1.property = false;
+			model2.property = 'eg';
 
 			window.requestAnimationFrame(function() {
 				ok(node1.checked === false, 'Checkbox 1 should not be checked, actually: ' + node1.checked);
@@ -36,7 +42,7 @@ console.log('node1', node1.value, node1.getAttribute('value'), node2.value, node
 }, function() {/*
 
 <input class="node-1" type="checkbox" name="{{property}}" />
-<input class="node-2" type="checkbox" name="{{property}}" value="" />
+<input class="node-2" type="checkbox" name="{{property}}" checked="checked" />
 
 */});
 
