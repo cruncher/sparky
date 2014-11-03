@@ -131,8 +131,13 @@
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
+	    		    // Checkboxes default to value "on" when the value attribute
+	    		    // is not given. Make them behave as booleans.
+	    		    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+	    		    	Sparky.bindNamedValueToObject(node, scope, booleanToStringOn, stringOnToBoolean) :
 	    		    	// Only let strings set the value of other inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
+
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
@@ -513,7 +518,7 @@
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.setPath(model, path, node.checked ? fn(node.value) : undefined);
+				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
 				Sparky.setPath(model, path, fn(node.value));
@@ -612,6 +617,10 @@
 			!!value ;
 	}
 
+	function stringOnToBoolean(value) {
+		return value === 'on' ;
+	}
+
 	function stringToBooleanInverted(value) {
 		return !stringToBoolean(value);
 	}
@@ -634,6 +643,12 @@
 	function booleanToString(value) {
 		return typeof value === 'boolean' ? value + '' :
 			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function booleanToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
 			undefined ;
 	}
 
