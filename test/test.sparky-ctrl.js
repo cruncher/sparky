@@ -5,22 +5,22 @@ module('Multiple controllers', function(fixture) {
 		Sparky.data.model = {};
 
 		var sparky;
+		var scope = { property: 'value-1' };
 
 		Sparky.ctrl['ctrl-1'] = function(node, model) {
 			sparky = this;
-			ok(model === Sparky.data.model);
-			return { property: 'value-1' };
+			ok(model === Sparky.data.model, 'ctrl-1 should be passed model object.');
 		};
 
 		Sparky.ctrl['ctrl-2'] = function(node, model) {
 			ok(this === sparky);
-			ok(model === Sparky.data.model);
-			return { property: 'value-2' };
+			ok(model === Sparky.data.model, 'ctrl-2 should be passed model object.');
+			return scope;
 		};
 
 		Sparky.ctrl['ctrl-3'] = function(node, model) {
 			ok(this === sparky);
-			ok(model === Sparky.data.model);
+			ok(model === scope, 'ctrl-3 should be passed the scope object.');
 			return;
 		};
 
@@ -29,7 +29,7 @@ module('Multiple controllers', function(fixture) {
 		Sparky(fixture);
 
 		window.requestAnimationFrame(function() {
-			ok(p.innerHTML === 'value-2');
+			ok(p.innerHTML === 'value-1');
 		});
 
 		// Restart QUnit
