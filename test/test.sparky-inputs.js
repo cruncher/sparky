@@ -58,17 +58,17 @@ module('Test 2 way binding...', function(fixture) {
 		Sparky(checkbox, model);
 
 		window.requestAnimationFrame(function() {
-			ok(text.value === "3", 'Input text value should be "3", actually: "' + text.value + '"');
-			ok(radio.checked === true, 'Input radio should be checked, actually: ' + radio.checked);
-			ok(checkbox.checked === true, 'Input checkbox should be checked, actually: ' + checkbox.checked);
+			ok(text.value === "", 'Input text value should be "", actually: "' + text.value + '"');
+			ok(radio.checked === false, '1. Input radio should not be checked, actually: ' + radio.checked);
+			ok(checkbox.checked === false, '1. Input checkbox should not be checked, actually: ' + checkbox.checked);
 
 			text.value = 4;
 			text.dispatchEvent(changeEvent);
 			ok(model.property === '4', 'model.property should be 4, actually: ' + model.property);
 			
 			window.requestAnimationFrame(function() {
-				ok(radio.checked === false, 'Input radio should not be checked, actually: ' + radio.checked);
-				ok(checkbox.checked === false, 'Input checkbox should not be checked, actually: ' + checkbox.checked);
+				ok(radio.checked === false, '2. Input radio should not be checked, actually: ' + radio.checked);
+				ok(checkbox.checked === false, '2. Input checkbox should not be checked, actually: ' + checkbox.checked);
 
 				QUnit.start();
 			});
@@ -98,16 +98,16 @@ module('Test 2 way input binding for value-string...', function(fixture) {
 
 		window.requestAnimationFrame(function() {
 			ok(text.value === "3", 'Input text value should be "3", actually: "' + text.value + '"');
-			ok(radio.checked === true, 'Input radio should be checked, value: "' + radio.value + '"');
-			ok(checkbox.checked === true, 'Input checkbox should be checked, value: "' + checkbox.value + '"');
+			ok(radio.checked === true, '3. Input radio should be checked, value: "' + radio.value + '"');
+			ok(checkbox.checked === true, '3. Input checkbox should be checked, value: "' + checkbox.value + '"');
 
 			text.value = '4';
 			text.dispatchEvent(changeEvent);
 			ok(model.property === '4', 'model.property should be 4, actually: ' + model.property);
 
 			window.requestAnimationFrame(function() {
-				ok(radio.checked === false, 'Input radio should not be checked, actually: ' + radio.checked);
-				ok(checkbox.checked === false, 'Input checkbox should not be checked, actually: ' + checkbox.checked);
+				ok(radio.checked === false, '4. Input radio should not be checked, actually: ' + radio.checked);
+				ok(checkbox.checked === false, '4. Input checkbox should not be checked, actually: ' + checkbox.checked);
 
 				// Set property with the wrong type
 				model.property = 3;
@@ -145,16 +145,16 @@ module('Test 2 way binding for value-number...', function(fixture) {
 
 		window.requestAnimationFrame(function() {
 			ok(text.value === "3", 'Input text value should be "3", actually: "' + text.value + '"');
-			ok(radio.checked === true, 'Input radio should be checked, actually: ' + radio.checked);
-			ok(checkbox.checked === true, 'Input checkbox should be checked, actually: ' + checkbox.checked);
+			ok(radio.checked === true, '5. Input radio should be checked, actually: ' + radio.checked);
+			ok(checkbox.checked === true, '5. Input checkbox should be checked, actually: ' + checkbox.checked);
 
 			text.value = 4;
 			text.dispatchEvent(changeEvent);
 			ok(model.property === 4, 'model.property should be number 4, actually: ' + (typeof model.property) + ' ' + model.property);
 			
 			window.requestAnimationFrame(function() {
-				ok(radio.checked === false, 'Input radio should not be checked, actually: ' + radio.checked);
-				ok(checkbox.checked === false, 'Input checkbox should not be checked, actually: ' + checkbox.checked);
+				ok(radio.checked === false, '6. Input radio should not be checked, actually: ' + radio.checked);
+				ok(checkbox.checked === false, '6. Input checkbox should not be checked, actually: ' + checkbox.checked);
 
 				// Set property with the wrong type
 				model.property = '3';
@@ -304,7 +304,7 @@ module('Test 2 way binding for textarea...', function(fixture) {
 			model.property2 = 4;
 
 			window.requestAnimationFrame(function() {
-				ok(text2.value === "4", 'textarea value should be "", actually: "' + text2.value + '"');
+				ok(text2.value === "", 'textarea value should be "", actually: "' + text2.value + '"');
 
 				QUnit.start();
 			});
@@ -334,7 +334,6 @@ module('Test 2 way binding for select...', function(fixture) {
 			// In FireFox the initial value is 0. We'll tolerate this
 			ok(node2.value === "" || node2.value === "0", 'Select value should be "1", actually: "' + node2.value + '"');
 
-
 			// This gets coerced to string by the browser
 			node1.value = 2;
 			node1.dispatchEvent(changeEvent);
@@ -349,11 +348,13 @@ module('Test 2 way binding for select...', function(fixture) {
 			// But should be the correct type on the model
 			ok(model.property === 2, 'model.property should be number 2, actually: ' + (typeof model.property) + ' ' + model.property);
 
-			// Set out of range value
+			// Set value of type number
 			model.property = 3;
 
 			window.requestAnimationFrame(function() {
-				ok(node1.value === "3", 'Select value should be "3", actually: "' + node1.value + '"');
+				// Firefox keeps value '2' whereas other browsers happily
+				// set ''. Test for non-equality.
+				ok(node1.value !== "3", 'Select value should not be "3", actually: "' + node1.value + '"');
 				ok(node2.value === "3", 'Select value should be "3", actually: "' + node2.value + '"');
 
 				QUnit.start();

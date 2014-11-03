@@ -131,7 +131,7 @@
 	    		var unbind = type === 'number' || type === 'range' ?
 	    		    	// Only let numbers set the value of number and range inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
-	    		    	// Coerce any value to a string to set the others
+	    		    	// Only let strings set the value of other inputs
 	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
@@ -140,8 +140,8 @@
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 
-	    		// Coerce any value to string to set it on the select
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, toString, returnArg);
+	    		// Only let strings set the value of selects
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
@@ -151,7 +151,7 @@
 	    	},
 
 	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Only let strings into the textarea
+	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
 	    	}
@@ -487,21 +487,20 @@
 			function updateValue() {
 				var value = fn(Sparky.getPath(model, path));
 
-				// Check against the current value - resetting the same string
-				// causes the cursor to jump.
-				if (!isDefined(value)) {
-					node.value = '';
-					node.dispatchEvent(changeEvent);
-					return;
-				}
+				if (typeof value === 'string') {
+					// Check against the current value - resetting the same
+					// string causes the cursor to jump in inputs, and we dont
+					// want to send a change event where nothing changed.
+					if (value === node.value) { return; }
 
-				var string = value + '';
-
-				if (value !== node.value) {
 					node.value = value;
-					node.dispatchEvent(changeEvent);
-					return;
 				}
+				else {
+					node.value = '';
+				}
+
+				// Send change event.
+				node.dispatchEvent(changeEvent);
 			} ;
 	}
 
@@ -558,7 +557,7 @@
 				throttle.cancel();
 				Sparky.unobservePath(model, path, throttle);
 			}
-		}
+		};
 	}
 
 	function bindNamedValueToObject(node, model, to, from) {
@@ -592,32 +591,18 @@
 
 	function toString(value) { return '' + value; }
 
-	function numberToString(value) {
-		return typeof value === 'number' ? toString(value) : '' ;
-	}
-
 	function stringToNumber(value) {
 		// coerse to number
 		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : n ;
+		return Number.isNaN(n) ? undefined :
+			n ;
 	}
 
 	function stringToInteger(value) {
 		// coerse to number
 		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined : Math.round(n) ;
-	}
-
-	function booleanToString(value) {
-		return typeof value === 'boolean' ? toString(value) :
-			typeof value === 'number' ? toString(!!value) :
-			'' ;
-	}
-
-	function booleanToStringInverted(value) {
-		return typeof value === 'boolean' ? toString(!value) :
-			typeof value === 'number' ? toString(!value) :
-			'' ;
+		return Number.isNaN(n) ? undefined :
+			Math.round(n) ;
 	}
 
 	function stringToBoolean(value) {
@@ -631,8 +616,41 @@
 		return !stringToBoolean(value);
 	}
 
+	function definedToString(value) {
+		return isDefined(value) ? value + '' :
+			undefined ;
+	}
+
+	function numberToString(value) {
+		return typeof value === 'number' ? value + '' :
+			undefined ;
+	}
+
+	function integerToString(value) {
+		return typeof value === 'number' && value % 1 === 0 ? value + '' :
+			undefined ;
+	}
+
+	function booleanToString(value) {
+		return typeof value === 'boolean' ? value + '' :
+			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function booleanToStringInverted(value) {
+		return typeof value === 'boolean' ? !value + '' :
+			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
+	function valueAnyCtrl(node, model) {
+		// Coerce any defined value to string so that any values pass the type checker
+		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
+		this.on('destroy', unbind);
+	}
+
 	function valueStringCtrl(node, model) {
-		// Don't coerce so that non-strings get caught by the equality checker
+		// Don't coerce so that only strings pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
 		this.on('destroy', unbind);
 	}
@@ -644,11 +662,6 @@
 
 	function valueIntegerCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		this.on('destroy', unbind);
-	}
-
-	function valueIntCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
 		this.on('destroy', unbind);
 	}
 
@@ -678,17 +691,14 @@
 
 
 	Sparky.extend(Sparky.ctrl, {
+		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl,
-		'value-int':            valueIntegerCtrl
+		'value-integer':        valueIntegerCtrl
 	});
-
-	Sparky.ctrl['value-invert'] = function(node, model) {
-		console.warn('Sparky: ctrl "value-invert" is deprecated. Replace with "value-boolean-invert"');
-	};
 
 	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
