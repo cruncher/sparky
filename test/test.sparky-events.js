@@ -245,7 +245,7 @@ module('Event propogation insert event', function(fixture) {
 
 		Sparky.ctrl['test-ctrl-3'] = function(node, model) {
 			sparky4 = this;
-			console.log('TEST 3');
+			
 			this
 			.on('ready', function() {
 				sparky5 = Sparky('content-to-insert-2');
@@ -258,7 +258,6 @@ module('Event propogation insert event', function(fixture) {
 		};
 
 		Sparky.ctrl['test-ctrl-4'] = function(node, model) {
-			console.log('TEST 4');
 			this
 			.on('insert', function(sparky) {
 				ok(sparky === sparky5, 'sparky should be sparky5.');

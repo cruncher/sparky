@@ -813,19 +813,20 @@ if (!Number.isNaN) {
 
 		reset: function() {},
 
-		destroy: function() {},
+		destroy: function destroy() {
+			return this
+				.unbind()
+				.remove()
+				.trigger('destroy')
+				.off();
+		},
 
 		remove: function() {
 			while (this.length--) {
 				removeNode(this[this.length]);
 			}
-		},
 
-		observe: function(object, property, fn) {
-			Sparky.observe(object, property, fn);
-			this.on('destroy', function() {
-				Sparky.unobserve(object, property, fn);
-			});
+			return this;
 		},
 
 		appendTo: function(node) {
@@ -834,16 +835,8 @@ if (!Number.isNaN) {
 				node.appendChild(this[n]);
 			}
 			return this;
-		},
-
-		removeFrom: function(node) {
-			var n = -1;
-			while (++n < this.length) {
-				node.removeChild(this[n]);
-			}
-			return this;
 		}
-	}, ns.mixin.events);
+	}, ns.mixin.events, ns.mixin.array);
 
 
 	// Pure functions
@@ -961,9 +954,8 @@ if (!Number.isNaN) {
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
-		// When sparky is ready, overwrite the trigger method
-		// to trigger all events on the slave sparky immediately
-		// following the trigger on the master.
+		// When sparky is ready, delegate the new sparky to
+		// the old.
 		sparky1.on('ready', function() {
 			sparky1.on(sparky2);
 		});
@@ -978,6 +970,9 @@ if (!Number.isNaN) {
 		var sparkies = [];
 		var cache = [];
 		var inserted;
+		// A pseudo-sparky that delegates events to all
+		// sparkies in the collection.
+		var sparky = Object.create(prototype);
 
 		function updateNodes() {
 			var n = -1;
@@ -994,6 +989,7 @@ if (!Number.isNaN) {
 				if (i === -1) {
 					removeNode(nodes[l]);
 					sparkies[l].destroy();
+					sparky.off(sparkies[l]);
 				}
 				else if (nodes[l] && sparkies[l]) {
 					map[i] = [nodes[l], sparkies[l]];
@@ -1016,10 +1012,14 @@ if (!Number.isNaN) {
 				else {
 					nodes[n] = node.cloneNode(true);
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
+					sparky.on(sparkies[n]);
 				}
 
 				insertNode(endNode, nodes[n]);
-				sparkies[n].trigger('insert');
+
+				if (document.body.contains(sparkies[n][0])) {
+					sparkies[n].trigger('insert');
+				}
 			}
 
 			if (Sparky.debug) {
@@ -1043,34 +1043,63 @@ if (!Number.isNaN) {
 
 		Sparky.observe(model, 'length', throttle);
 
-		// Return a pseudo-sparky that delegates events to all
-		// sparkies in the collection.
-		return {
-			destroy: function() {
-				var l = sparkies.length;
-				var n = -1;
-				while (++n < l) {
-					sparkies[n].destroy();
-				}
+		sparky.on('destroy', function destroy() {
+			throttle.cancel();
+			Sparky.unobserve(model, 'length', throttle);
+		});
 
-				throttle.cancel();
-				Sparky.unobserve(model, 'length', throttle);
-			},
-
-			trigger: function(string) {
-				var l = sparkies.length;
-				var n = -1;
-				while (++n < l) {
-					sparkies[n].trigger.apply(sparkies[n], arguments);
-				}
-			}
-		};
+		return sparky;
 	}
+
+	function createChild(sparky, node, scope, model, path) {
+		var data;
+
+		// no data-model
+		if (!isDefined(path)) {
+			// We know that model is not defined, and we don't want child
+			// sparkies to loop unless explicitly told to do so, so stop
+			// it from looping. TODO: clean up Sparky's looping behaviour.
+			return slaveSparky(sparky, Sparky(node, scope, undefined, false));
+		}
+
+		// data-model="."
+		if (path === '.') {
+			return slaveSparky(sparky, Sparky(node, model));
+		}
+
+		// data-model=".path.to.data"
+		if (rrelativepath.test(path)) {
+			data = findByPath(model, path.replace(rrelativepath, ''));
+
+			if (!data) {
+				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
+			}
+
+			return slaveSparky(sparky, Sparky(node, data));
+		}
+
+		// data-model="{{path.to.data}}"
+		rtag.lastIndex = 0;
+		if (rtag.test(path)) {
+			rtag.lastIndex = 0;
+			data = findByPath(scope, rtag.exec(path)[1]);
+
+			if (!data) {
+				rtag.lastIndex = 0;
+				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+			}
+
+			return slaveSparky(sparky, Sparky(node, data));
+		}
+
+		return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+	}
+
 
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
-		var scope, unbind;
+		var scope, timer;
 
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
@@ -1078,7 +1107,7 @@ if (!Number.isNaN) {
 				replace(node, templateFragment);
 				sparky.trigger('template', node);
 			});
-		};
+		}
 
 		function insert() {
 			insertTemplate(sparky, node, templateFragment);
@@ -1095,45 +1124,12 @@ if (!Number.isNaN) {
 
 		function create(node) {
 			var path = node.getAttribute('data-model');
-			var data;
 
-			if (!isDefined(path)) {
-				// We know that model is not defined, and we don't want child
-				// sparkies to loop unless explicitly told to do so, so stop
-				// it from looping. TODO: I really must clean up Sparky's
-				// looping behaviour.
-				return slaveSparky(sparky, Sparky(node, scope, undefined, false));
-			}
+			return createChild(sparky, node, scope, model, path);
+		}
 
-			if (path === '.') {
-				return slaveSparky(sparky, Sparky(node, model));
-			}
-
-			if (rrelativepath.test(path)) {
-				data = findByPath(model, path.replace(rrelativepath, ''));
-
-				if (!data) {
-					throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
-				}
-
-				return slaveSparky(sparky, Sparky(node, data));
-			}
-
-			rtag.lastIndex = 0;
-			if (rtag.test(path)) {
-				
-				rtag.lastIndex = 0;
-				data = findByPath(scope, rtag.exec(path)[1]);
-
-				if (!data) {
-					rtag.lastIndex = 0;
-					throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
-				}
-
-				return Sparky(node, data);
-			}
-
-			return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		function cancelTimer() {
+			window.cancelAnimationFrame(timer);
 		}
 
 		if (node.nodeType === 11) {
@@ -1146,16 +1142,6 @@ if (!Number.isNaN) {
 			sparky.length = 1;
 		}
 
-		sparky.destroy = function destroy() {
-			this.detach();
-			this.detach = noop;
-			this.remove();
-
-			return this
-				.trigger('destroy')
-				.off();
-		};
-
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope, and if that doesn't exist use an
 		// empty object. This means we can launch sparky on a node where a
@@ -1163,14 +1149,14 @@ if (!Number.isNaN) {
 		// child nodes.
 		scope = ctrl && ctrl.call(sparky, node, model);
 
-		// A controller returning false is telling us not to use data binding.
+		// A controller returning false is telling us not to do data binding.
+		// TODO: this is in the wrong place. We still need to handle the
+		// insert event.
 		if (scope === false) { return; }
 
 		scope = scope || model || {};
 
-		if (Sparky.debug && templateId) {
-			console.log('Sparky: template:', templateId);
-		}
+		if (Sparky.debug && templateId) { console.log('Sparky: template:', templateId); }
 
 		function observe(property, fn) {
 			Sparky.observePath(scope, property, fn);
@@ -1184,10 +1170,40 @@ if (!Number.isNaN) {
 			Sparky.unobservePath(scope, property, fn);
 		}
 
-		// The bind function returns an array of unbind functions.
-		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
+		var inserted = document.body.contains(sparky[0]);
+
+		// Gaurantee that insert handlers are only fired once.
+		sparky.on('insert', offInsert);
+
+		function poll() {
+			// Is this node in the DOM ?
+			if (document.body.contains(sparky[0])) {
+				//console.log('ASYNC  DOM', sparky.length, sparky[0].nodeType, sparky[0]);
+				sparky.trigger('insert');
+			}
+			else {
+				//console.log('NOPE', sparky[0]);
+				timer = window.requestAnimationFrame(poll);
+			}
+		}
+
+		// If this template is not already in the DOM, poll it until it is. We
+		// schedule the poll before binding in order that child sparkies that
+		// result from binding will hear this 'insert' before their own.
+		if (!inserted) {
+			sparky.on('insert', cancelTimer);
+			timer = window.requestAnimationFrame(poll);
+		}
+
+		// The bind function returns an unbind function.
+		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
+
+		// If this sparky is in the DOM, send the insert event right away.
+		if (inserted) { sparky.trigger('insert'); }
 	}
+
+	function offInsert() { this.off('insert'); }
 
 	function makeDistributeCtrl(ctrls) {
 		return ctrls.length === 1 ?
@@ -1348,6 +1364,7 @@ if (!Number.isNaN) {
 	Sparky.extend       = extend;
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
+	Sparky.prototype    = prototype;
  
 	ns.Sparky = Sparky;
 })(window);
@@ -1421,6 +1438,8 @@ if (!Number.isNaN) {
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
 	function noop() {}
+
+	function returnThis() { return this; }
 
 	function call(fn) { fn(); }
 
@@ -1817,13 +1836,17 @@ if (!Number.isNaN) {
 			console.log('Sparky: No Sparky tags found in', node);
 		}
 
-		return function unbind() {
+		this.unbind = function unbind() {
 			unobservers.forEach(call);
+			return this;
 		};
+
+		return this;
 	}
 
-	Sparky.bind = bind;
 	Sparky.attributes = attributes;
+	Sparky.prototype.bind = bind;
+	Sparky.prototype.unbind = returnThis;
 
 
 	// -------------------------------------------------------------------
