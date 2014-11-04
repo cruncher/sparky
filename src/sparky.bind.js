@@ -68,6 +68,8 @@
 
 	function noop() {}
 
+	function returnThis() { return this; }
+
 	function call(fn) { fn(); }
 
 	function isDefined(n) {
@@ -463,13 +465,17 @@
 			console.log('Sparky: No Sparky tags found in', node);
 		}
 
-		return function unbind() {
+		this.unbind = function unbind() {
 			unobservers.forEach(call);
+			return this;
 		};
+
+		return this;
 	}
 
-	Sparky.bind = bind;
 	Sparky.attributes = attributes;
+	Sparky.prototype.bind = bind;
+	Sparky.prototype.unbind = returnThis;
 
 
 	// -------------------------------------------------------------------
