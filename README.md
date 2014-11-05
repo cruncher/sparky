@@ -183,6 +183,62 @@ These tags are updated once from the scope (in this case my-model), but they
 don't live bind to changes. If you know where you can do it, this can be good
 for performance.
 
+#### input, select and textarea elements
+
+By putting a Sparky tag in the <code>name</code> attribute, inputs, selects and
+textareas get 2-way data binding. When the scope changes, their values are
+updated, and when their values are changed, the scope is updated.
+
+    <form class="user-form" data-model="my-model">
+        <input type="text" name="{{title}}" value="" />
+    </form>
+
+By default Sparky is strict about type in form elements. The input above is
+<code>type="text"</code> and it will only get the <code>title</code> property
+if it is a string. Other types will display as an empty string.
+
+    model.title = 'Sparky loves you'; // input.value is 'Sparky loves you'
+    model.title = 3;                  // input.value is ''
+
+Similarly, <code>type="number"</code> and <code>type="range"</code> will only
+get and set numbers, and if the value attribute is not given
+<code>type="checkbox"</code> will only get and set <code>true</code> or
+<code>false</code>. (If the value attribute is given, the property must be a
+string matching the value attribute for the checkbox to be checked).
+
+To get and set other types, use one of Sparky's value controllers:
+
+- <code>value-string</code> gets and sets strings
+- <code>value-number</code> gets and sets numbers
+- <code>value-integer</code> gets and sets integer numbers, rounding if necessary
+- <code>value-boolean</code> gets and sets <code>true</code> or <code>false</code>
+- <code>value-number-inverted</code> gets and sets numbers, inverting the range between max and min
+- <code>value-boolean-inverted</code> gets and sets true or false, inverting the state of the input
+- <code>value-any</code> gets any type, sets strings
+
+Here are some examples. Radio inputs that sets scope.property to <code>1</code> or <code>2</code>:
+
+    <input type="radio" data-ctrl="value-number" name="{{property}}" value="1" />
+    <input type="radio" data-ctrl="value-number" name="{{property}}" value="2" />
+
+A select that sets scope.property to <code>true</code> or <code>false</code>:
+
+    <select data-ctrl="value-boolean" name="{{property}}">
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+    </select>
+
+A checkbox that is checked when <code>scope.property === 3</code>:
+
+    <input type="checkbox" data-ctrl="value-number" name="{{property}}" value="3" />
+
+A range slider that sets scope.property as a string:
+
+    <input type="range" data-ctrl="value-string" name="{{property}}" min="0" max="1" step="any" />
+
+You get the idea.
+
+
 #### attributes
 
 Sparky looks for tags in text nodes and the following attributes:
@@ -204,20 +260,6 @@ inputs, selects and textareas also use:
 - <code>min</code>
 
 They're a bit special. They get two-way data binding.
-
-#### input, select and textarea nodes
-
-Inputs, selects and textareas get 2-way data binding.
-When the scope changes, their values are updated.
-And when their values are changed, the scope is updated.
-
-    <form class="user-form" data-model="my-model">
-        <input type="text" name="{{title}}" value="" />
-    </form>
-
-The <code>name</code> attribute is used to tell Sparky which
-property of the current scope to bind to. Probably best not
-to leave spaces in the tag.
 
 #### Loop over a collection
 
