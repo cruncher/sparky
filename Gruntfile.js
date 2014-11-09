@@ -4,21 +4,34 @@ module.exports = function(grunt) {
 			'js/sparky.js': [
 				'src/window.customevent.js',
 				'src/window.requestanimationframe.js',
+				'src/number.isnan.js',
 				'src/mixin.array.js',
 				'src/mixin.events.js',
 				'src/observe.js',
 				'src/collection.js',
 				'src/sparky.js',
+				'src/sparky.bind.js',
 				'src/sparky.observe.js',
 				'src/sparky.throttle.js',
-				'src/sparky.bind.js',
 				'src/sparky.ctrl.js',
-				'src/sparky.filters.js'
+				'src/sparky.filters.js',
+				'src/sparky.ready.js',
+				'build-settings.js'
 			]
 		},
 
 		uglify: {
-			'js/sparky.min.js': ['js/sparky.js']
+			target: {
+				files: {
+					'js/sparky.min.js': ['js/sparky.js']
+				}
+			},
+			options: {
+				maxLineLen: 4096,
+				compress: {
+					dead_code: true
+				}
+			}
 		}
 	});
 

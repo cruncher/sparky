@@ -39,8 +39,7 @@ module('mixin.events', function(fixture) {
 
 		ok(n === 2, 'Listeners are unbound by .off(typesString)');
 
-		object
-		.on(assign);
+		object.off(assign);
 
 		n = 8;
 

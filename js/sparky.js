@@ -1,8 +1,8 @@
-// Polyfill the CustomEvent API for brosers that don't have
-// it (IE9 and IE10).
+
+// window.CustomEvent polyfill
 
 (function(window, undefined) {
-	if (window.CustomEvent) { return; }
+	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
@@ -15,37 +15,56 @@
 	
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
-// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
- 
-// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
- 
-// MIT license
- 
-(function() {
-    var lastTime = 0;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
-                                   || window[vendors[x]+'CancelRequestAnimationFrame'];
-    }
- 
-    if (!window.requestAnimationFrame)
-        window.requestAnimationFrame = function(callback, element) {
-            var currTime = new Date().getTime();
-            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
-              timeToCall);
-            lastTime = currTime + timeToCall;
-            return id;
-        };
- 
-    if (!window.cancelAnimationFrame)
-        window.cancelAnimationFrame = function(id) {
-            clearTimeout(id);
-        };
-}());
+
+// window.requestAnimationFrame polyfill
+
+(function(window) {
+	var frameDuration = 40;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	var n = vendors.length;
+
+	while (n-- && !window.requestAnimationFrame) {
+		window.requestAnimationFrame = window[vendors[n]+'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[n]+'CancelAnimationFrame'] || window[vendors[n]+'CancelRequestAnimationFrame'];
+	}
+
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var lastTime = frameDuration * (currTime % frameDuration);
+			var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
+			return id;
+		};
+	}
+
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		};
+	}
+})(window);
+
+
+// Number.isNaN(n) polyfill
+
+if (!Number.isNaN) {
+	(function(globalIsNaN) {
+		"use strict";
+	
+		Object.defineProperty(Number, 'isNaN', {
+			value: function isNaN(value) {
+				return typeof value === 'number' && globalIsNaN(value);
+			},
+			configurable: true,
+			enumerable: false,
+			writable: true
+		});
+	})(isNaN);
+}
+
+
+// mixin.array
+
 (function(ns, undefined) {
 	"use strict";
 
@@ -71,7 +90,8 @@
 	};
 })(this);
 
-// mixin.events
+
+// mixin.listeners
 
 // .on(types, fn, [args...])
 // Binds a function to be called on events in types. The
@@ -109,48 +129,48 @@
 	var eventObject = {};
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
-	function getEvents(object) {
-		if (!object.events) {
-			Object.defineProperty(object, 'events', {
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
 				value: {}
 			});
 		}
 
-		return object.events;
+		return object.listeners;
 	}
 
-	function getDependents(object) {
-		if (!object.dependents) {
-			Object.defineProperty(object, 'dependents', {
+	function getDelegates(object) {
+		if (!object.delegates) {
+			Object.defineProperty(object, 'delegates', {
 				value: []
 			});
 		}
 
-		return object.dependents;
+		return object.delegates;
 	}
 
 	function setupPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
-		// Make sure dependents stays unique
-		if (dependents.indexOf(object2) === -1) {
-			dependents.push(object2);
+		// Make sure delegates stays unique
+		if (delegates.indexOf(object2) === -1) {
+			delegates.push(object2);
 		}
 	}
 
 	function teardownPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
 		if (object2 === undefined) {
-			dependents.length = 0;
+			delegates.length = 0;
 			return;
 		}
 
-		var i = dependents.indexOf(object2);
+		var i = delegates.indexOf(object2);
 
 		if (i === -1) { return; }
 
-		dependents.splice(i, 1);
+		delegates.splice(i, 1);
 	}
 
 
@@ -167,7 +187,9 @@
 				return this;
 			}
 
-			var events = getEvents(this);
+			if (!fn) { throw new Error('Sparky: calling .on("' + types + '", fn) but fn is ' + typeof fn); }
+
+			var events = getListeners(this);
 			var type, item;
 
 			if (typeof types === 'string') {
@@ -202,10 +224,10 @@
 			if (arguments.length === 0) {
 				teardownPropagation(this);
 
-				if (this.events) {
-					for (type in this.events) {
-						this.events[type].length = 0;
-						delete this.events[type];
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
 					}
 				}
 
@@ -220,7 +242,7 @@
 			}
 
 			// No events.
-			if (!this.events) { return this; }
+			if (!this.listeners) { return this; }
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
@@ -229,19 +251,19 @@
 			else {
 				// .off(fn)
 				fn = types;
-				types = Object.keys(this.events);
+				types = Object.keys(this.listeners);
 			}
 
 			while (type = types.shift()) {
-				listeners = this.events[type];
+				listeners = this.listeners[type];
 
 				if (!listeners) {
 					continue;
 				}
 
 				if (!fn) {
-					this.events[type].length = 0;
-					delete this.events[type];
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
 					continue;
 				}
 
@@ -256,7 +278,9 @@
 		},
 
 		trigger: function(e) {
-			var type, target, listeners, i, l, args, params;
+			var events = getListeners(this);
+			var args = slice(arguments);
+			var type, target, listeners, i, l, params;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -267,9 +291,9 @@
 				target = e.target;
 			}
 
-			var events = getEvents(this);
-
-			args = slice(arguments);
+			// Copy delegates if they exist. We may be about to
+			// mutate the delegates list.
+			var delegates = this.delegates && this.delegates.slice();
 
 			if (events[type]) {
 				// Use a copy of the event list in case it gets mutated while
@@ -285,13 +309,10 @@
 				}
 			}
 
-			// Propagate to dependents
-			var dependents = this.dependents;
-			
-			if (!dependents) { return this; }
+			if (!delegates) { return this; }
 
 			i = -1;
-			l = dependents.length;
+			l = delegates.length;
 
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
@@ -303,7 +324,7 @@
 			}
 
 			while (++i < l) {
-				dependents[i].trigger.apply(dependents[i], args);
+				delegates[i].trigger.apply(delegates[i], args);
 			}
 
 			// Return this for chaining
@@ -311,14 +332,14 @@
 		}
 	};
 })(this);
-// Observe and unobserve
-// 
+
+
 // observe(obj, [prop], fn)
 // unobserve(obj, [prop], [fn])
 // 
-// Crudely observes object properties for changes by redefining
-// properties of the observable object with setters that fire
-// a callback function whenever the property changes.
+// Observes object properties for changes by redefining
+// properties of the observable object with setters that
+// fire a callback function whenever the property changes.
 
 (function(ns){
 	var slice = Array.prototype.slice,
@@ -441,6 +462,10 @@
 	ns.observe = observe;
 	ns.unobserve = unobserve;
 })(window);
+
+
+// Collection()
+
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -539,13 +564,19 @@
 	}
 
 	function remove(array, obj, i) {
+		var found = false;
+
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
 			if (obj === array[i]) {
 				array.splice(i, 1);
+				--i;
+				found = true;
 			}
 		}
+		
+		return found;
 	}
 
 	function invalidateCaches(collection) {
@@ -579,9 +610,12 @@
 		}),
 
 		remove: multiarg(function(item) {
-			item = this.find(item);
-			remove(this, item);
-			this.trigger('remove', item);
+			var obj = this.find(item);
+
+			if (!obj) { return; }
+
+			remove(this, obj);
+			this.trigger('remove', obj);
 		}),
 
 		update: multiarg(function(obj) {
@@ -602,7 +636,9 @@
 		find: function(obj) {
 			var index = this.index;
 
-			return typeof obj === 'string' || typeof obj === 'number' ?
+			return !isDefined(obj) ?
+					undefined :
+				typeof obj === 'string' || typeof obj === 'number' ?
 					findByIndex(this, obj) :
 				isDefined(obj[index]) ?
 					findByIndex(this, obj[index]) :
@@ -613,36 +649,31 @@
 			return this.indexOf(object) !== -1;
 		},
 
+		// Get the value of a property of all the objects in
+		// the collection if they all have the same value.
+		// Otherwise return undefined.
+
 		get: function(property) {
-			// Returns a value if all the objects in the selection
-			// have the same value for this property, otherwise
-			// returns undefined.
 			var n = this.length;
 
 			if (n === 0) { return; }
 
 			while (--n) {
-				if (this[n][property] !== this[n - 1][property]) {
-					return;
-				}
+				if (this[n][property] !== this[n - 1][property]) { return; }
 			}
 
 			return this[n][property];
 		},
-		
+
+		// Set a property on every object in the collection.
+
 		set: function(property, value) {
 			if (arguments.length !== 2) {
-				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
-				return;
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
 
-			// For every object in the selection set property = value.
 			var n = this.length;
-
-			while (n--) {
-				this[n][property] = value;
-			}
-
+			while (n--) { this[n][property] = value; }
 			return this;
 		},
 
@@ -653,6 +684,8 @@
 		toObject: function(key) {
 			var object = {};
 			var prop, type;
+
+			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];
@@ -745,6 +778,7 @@
 	ns.Collection = Collection;
 })(this, this.mixin);
 
+
 // Sparky
 // 
 // Reads data attributes in the DOM to bind dynamic data to
@@ -764,44 +798,35 @@
 (function(ns){
 	"use strict";
 
+	var empty = [];
 	var templates   = {};
 	var features    = {
 	    	template: 'content' in document.createElement('template')
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
-	    rbracket = /\]$/,
-	    rpathsplitter = /\]?\.|\[/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
 
-	var empty = [];
-
-	var reduce = Array.prototype.reduce,
-	    slice = Array.prototype.slice;
-
 	var prototype = extend({
-		get: function() {
-			
+		create: function() {},
+
+		reset: function() {},
+
+		destroy: function destroy() {
+			return this
+				.unbind()
+				.remove()
+				.trigger('destroy')
+				.off();
 		},
 
-		set: function() {
-			
-		},
+		remove: function() {
+			while (this.length--) {
+				removeNode(this[this.length]);
+			}
 
-		create: function() {
-			
-		},
-
-		destroy: function() {
-			
-		},
-
-		observe: function(object, property, fn) {
-			Sparky.observe(object, property, fn);
-			this.on('destroy', function() {
-				Sparky.unobserve(object, property, fn);
-			});
+			return this;
 		},
 
 		appendTo: function(node) {
@@ -810,26 +835,17 @@
 				node.appendChild(this[n]);
 			}
 			return this;
-		},
-
-		removeFrom: function(node) {
-			var n = -1;
-			while (++n < this.length) {
-				node.removeChild(this[n]);
-			}
-			return this;
 		}
-	}, ns.mixin.events);
-	
-	var changeEvent = new window.CustomEvent('change');
+	}, ns.mixin.events, ns.mixin.array);
+
 
 	// Pure functions
 
+	var slice  = Function.prototype.call.bind(Array.prototype.slice);
+	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
+
 	function noop() {}
-	function call(fn) { fn(); }
 	function isDefined(val) { return val !== undefined && val !== null; }
-	function isObject(obj) { return obj instanceof Object; }
-	function getProperty(obj, property) { return obj[property]; }
 
 	// Object helpers
 
@@ -855,10 +871,23 @@
 		Array.prototype.push.apply(array2, array1);
 	}
 
-	function isConfigurable(obj, prop) {
-		return Object.getOwnPropertyDescriptor(obj, prop).configurable;
+
+	// Debug helpers
+
+	function nodeToText(node) {
+		return [
+			'<',
+			node.tagName.toLowerCase(),
+			//(node.className ? ' class="' + node.className + '"' : ''),
+			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
+			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
+			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
+			(node.id ? ' id="' + node.id + '"' : ''),
+			'>'
+		].join('');
 	}
-	
+
+
 	// DOM helpers
 
 	function append(parent, child) {
@@ -878,92 +907,60 @@
 	}
 
 	function fragmentFromChildren(template) {
-		var children = slice.apply(template.childNodes);
+		var children = slice(template.childNodes);
 		var fragment = document.createDocumentFragment();
-		return reduce.call(children, append, fragment);
+		return reduce(children, append, fragment);
 	}
-	
-	function getTemplate(id) {
-		var node = document.getElementById(id);
-		
-		if (!node) { return; }
-		
+
+	function getTemplateContent(node) {
 		// A template tag has a content property that gives us a document
 		// fragment. If that doesn't exist we must make a document fragment.
 		return node.content || fragmentFromChildren(node);
 	}
-	
+
+	function getTemplate(id) {
+		var node = document.getElementById(id);
+		return node && getTemplateContent(node);
+	}
+
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		
 		if (Sparky.debug && !template) {
-			console.warn('[Sparky] template #' + id + ' not found.');
+			console.warn('Sparky: template #' + id + ' not found.');
 		}
 
 		return template && template.cloneNode(true);
 	}
 
-
-	// Sparky
-	
 	function removeNode(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-	
+
 	function insertNode(node1, node2) {
 		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
 	}
 
-	function defaultCtrl(node, model) {
-		this.on('destroy', function(sparky, node) { removeNode(node) }, node);
-		return model;
-	}
-
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
-		
-		//if (val === undefined) {
-		//	val = obj[key] = {};
-		//}
-		
-		return isDefined(val) && array.length ?
-			objFrom(val, array) :
-			val ;
-	}
-
-	function objFromPath(obj, path) {
-		return objFrom(obj, path.replace(rbracket, '').split(rpathsplitter));
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-		
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
-	}
-
-	function objToPath(root, path, obj) {
-		return objTo(root, path.replace(rbracket, '').split(rpathsplitter), obj);
-	}
+	// Getting and setting
 
 	function findByPath(obj, path) {
-		if (!isDefined(obj) || !isDefined(path) || path === '') { return; }
+		if (!isDefined(obj) || !isDefined(path)) { return; }
 		
 		return path === '.' ?
 			obj :
-			objFromPath(obj, path) ;
+			Sparky.getPath(obj, path) ;
 	}
-	
-	function dirtyObserve(obj, prop, fn) {
-		var array = obj.slice();
-		
-		setInterval(function() {
-			if (obj.length === array.length) { return; }
-			array = obj.slice();
-			fn(obj);
-		}, 16);
+
+	// Sparky - the meat and potatoes
+
+	function slaveSparky(sparky1, sparky2) {
+		// When sparky is ready, delegate the new sparky to
+		// the old.
+		sparky1.on('ready', function() {
+			sparky1.on(sparky2);
+		});
+
+		return sparky2;
 	}
 
 	function setupCollection(node, model, ctrl) {
@@ -972,6 +969,10 @@
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
+		var inserted;
+		// A pseudo-sparky that delegates events to all
+		// sparkies in the collection.
+		var sparky = Object.create(prototype);
 
 		function updateNodes() {
 			var n = -1;
@@ -988,6 +989,7 @@
 				if (i === -1) {
 					removeNode(nodes[l]);
 					sparkies[l].destroy();
+					sparky.off(sparkies[l]);
 				}
 				else if (nodes[l] && sparkies[l]) {
 					map[i] = [nodes[l], sparkies[l]];
@@ -1010,13 +1012,18 @@
 				else {
 					nodes[n] = node.cloneNode(true);
 					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
+					sparky.on(sparkies[n]);
 				}
 
 				insertNode(endNode, nodes[n]);
+
+				if (document.body.contains(sparkies[n][0])) {
+					sparkies[n].trigger('insert');
+				}
 			}
 
 			if (Sparky.debug) {
-				console.log('[Sparky] collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
+				console.log('Sparky: collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
 			}
 		}
 
@@ -1026,7 +1033,7 @@
 		// Remove the node
 		removeNode(node);
 
-		// Remove anything that would make Sparky to bind the node
+		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
 		// by a controller without waiting for it's 'ready' event.
 		node.removeAttribute('data-model');
@@ -1036,62 +1043,63 @@
 
 		Sparky.observe(model, 'length', throttle);
 
-		// Return a pseudo-sparky that delegates events to all
-		// sparkies in the collection.
-		return {
-			destroy: function() {
-				var l = sparkies.length;
-				var n = -1;
-				while (++n < l) {
-					sparkies[n].destroy();
-				}
-
-				throttle.cancel();
-				Sparky.unobserve(model, 'length', throttle);
-			},
-
-			trigger: function() {
-				var l = sparkies.length;
-				var n = -1;
-				while (++n < l) {
-					sparkies[n].trigger.apply(sparkies[n], arguments);
-				}
-			}
-		};
-	}
-
-	function nodeToText(node) {
-		return [
-			'<',
-			node.tagName.toLowerCase(),
-			(node.className ? ' class="' + node.className + '"' : ''),
-			(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
-			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
-			(node.id ? ' id="' + node.id + '"' : ''),
-			'>'
-		].join('');
-	}
-
-	function slaveSparky(sparky1, sparky2) {
-		// When sparky is ready, overwrite the trigger method
-		// to trigger all events on the slave sparky immediately
-		// following the trigger on the master.
-		sparky1.on('ready', function() {
-			sparky1.on(sparky2);
+		sparky.on('destroy', function destroy() {
+			throttle.cancel();
+			Sparky.unobserve(model, 'length', throttle);
 		});
 
-		return sparky2;
+		return sparky;
 	}
 
-	function isAudioParam(object) {
-		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	function createChild(sparky, node, scope, model, path) {
+		var data;
+
+		// no data-model
+		if (!isDefined(path)) {
+			// We know that model is not defined, and we don't want child
+			// sparkies to loop unless explicitly told to do so, so stop
+			// it from looping. TODO: clean up Sparky's looping behaviour.
+			return slaveSparky(sparky, Sparky(node, scope, undefined, false));
+		}
+
+		// data-model="."
+		if (path === '.') {
+			return slaveSparky(sparky, Sparky(node, model));
+		}
+
+		// data-model=".path.to.data"
+		if (rrelativepath.test(path)) {
+			data = findByPath(model, path.replace(rrelativepath, ''));
+
+			if (!data) {
+				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
+			}
+
+			return slaveSparky(sparky, Sparky(node, data));
+		}
+
+		// data-model="{{path.to.data}}"
+		rtag.lastIndex = 0;
+		if (rtag.test(path)) {
+			rtag.lastIndex = 0;
+			data = findByPath(scope, rtag.exec(path)[1]);
+
+			if (!data) {
+				rtag.lastIndex = 0;
+				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+			}
+
+			return slaveSparky(sparky, Sparky(node, data));
+		}
+
+		return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 	}
+
 
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
-		var scope, unbind;
+		var scope, timer;
 
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
@@ -1099,7 +1107,7 @@
 				replace(node, templateFragment);
 				sparky.trigger('template', node);
 			});
-		};
+		}
 
 		function insert() {
 			insertTemplate(sparky, node, templateFragment);
@@ -1107,54 +1115,21 @@
 		}
 
 		function get(property) {
-			return scope[property];
+			return Sparky.getPath(scope, property);
 		}
 
 		function set(property, value) {
-			scope[property] = value;
+			Sparky.setPath(scope, property, value);
 		}
 
 		function create(node) {
 			var path = node.getAttribute('data-model');
-			var data;
 
-			if (!isDefined(path)) {
-				// We know that model is not defined, and we don't want child
-				// sparkies to loop unless explicitly told to do so, so stop
-				// it from looping. TODO: I really must clean up Sparky's
-				// looping behaviour.
-				return slaveSparky(sparky, Sparky(node, scope, undefined, false));
-			}
+			return createChild(sparky, node, scope, model, path);
+		}
 
-			if (path === '.') {
-				return slaveSparky(sparky, Sparky(node, model));
-			}
-
-			if (rrelativepath.test(path)) {
-				data = findByPath(model, path.replace(rrelativepath, ''));
-
-				if (!data) {
-					throw new Error('[Sparky] No object at relative path \'' + path + '\' of model#' + model.id);
-				}
-
-				return slaveSparky(sparky, Sparky(node, data));
-			}
-
-			rtag.lastIndex = 0;
-			if (rtag.test(path)) {
-				
-				rtag.lastIndex = 0;
-				data = findByPath(scope, rtag.exec(path)[1]);
-
-				if (!data) {
-					rtag.lastIndex = 0;
-					throw new Error('[Sparky] Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
-				}
-
-				return Sparky(node, data);
-			}
-
-			return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		function cancelTimer() {
+			window.cancelAnimationFrame(timer);
 		}
 
 		if (node.nodeType === 11) {
@@ -1167,15 +1142,6 @@
 			sparky.length = 1;
 		}
 
-		sparky.destroy = function destroy() {
-			this.detach();
-			this.detach = noop;
-
-			return this
-				.trigger('destroy')
-				.off();
-		};
-
 		// If a scope object is returned by the ctrl, we use that, otherwise
 		// we use the model object as scope, and if that doesn't exist use an
 		// empty object. This means we can launch sparky on a node where a
@@ -1183,45 +1149,134 @@
 		// child nodes.
 		scope = ctrl && ctrl.call(sparky, node, model);
 
-		// A controller returning false is telling us not to use data binding.
+		// A controller returning false is telling us not to do data binding.
+		// TODO: this is in the wrong place. We still need to handle the
+		// insert event.
 		if (scope === false) { return; }
 
 		scope = scope || model || {};
 
-		if (Sparky.debug && templateId) {
-			console.log('[Sparky] template:', templateId);
-		}
+		if (Sparky.debug && templateId) { console.log('Sparky: template:', templateId); }
 
 		function observe(property, fn) {
-			Sparky.observe(scope, property, fn);
+			Sparky.observePath(scope, property, fn);
 
 			if (templateFragment) {
-				Sparky.observe(scope, property, insert);
+				Sparky.observePath(scope, property, insert);
 			}
 		}
 
 		function unobserve(property, fn) {
-			Sparky.unobserve(scope, property, fn);
+			Sparky.unobservePath(scope, property, fn);
 		}
 
-		// The bind function returns an array of unbind functions.
-		sparky.detach = unbind = Sparky.bind(templateFragment || node, observe, unobserve, get, set, create);
+		var inserted = document.body.contains(sparky[0]);
 
+		// Gaurantee that insert handlers are only fired once.
+		sparky.on('insert', offInsert);
+
+		function poll() {
+			// Is this node in the DOM ?
+			if (document.body.contains(sparky[0])) {
+				//console.log('ASYNC  DOM', sparky.length, sparky[0].nodeType, sparky[0]);
+				sparky.trigger('insert');
+			}
+			else {
+				//console.log('NOPE', sparky[0]);
+				timer = window.requestAnimationFrame(poll);
+			}
+		}
+
+		// If this template is not already in the DOM, poll it until it is. We
+		// schedule the poll before binding in order that child sparkies that
+		// result from binding will hear this 'insert' before their own.
+		if (!inserted) {
+			sparky.on('insert', cancelTimer);
+			timer = window.requestAnimationFrame(poll);
+		}
+
+		// The bind function returns an unbind function.
+		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
+
+		// If this sparky is in the DOM, send the insert event right away.
+		if (inserted) { sparky.trigger('insert'); }
 	}
 
-	// The Sparky function
+	function offInsert() { this.off('insert'); }
+
+	function makeDistributeCtrl(ctrls) {
+		return ctrls.length === 1 ?
+			ctrls[0] :
+			function distributeCtrl(node, model) {
+				// Distributor controller
+				var l = ctrls.length;
+				var n = -1;
+				var scope = model;
+				var temp;
+
+				// Call the list of ctrls. Scope is the return value of
+				// the last ctrl in the list that does not return undefined
+				while (++n < l) {
+					temp = ctrls[n].call(this, node, scope);
+					if (temp) { scope = temp; }
+				}
+
+				return scope;
+			} ;
+	}
+
+	function makeDistributeCtrlFromPaths(paths) {
+		var ctrls = [];
+		var l = paths.length;
+		var n = -1;
+		var ctrl;
+
+		while (++n < l) {
+			ctrl = findByPath(Sparky.ctrl, paths[n]);
+			
+			if (!ctrl) {
+				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+			}
+			
+			ctrls.push(ctrl);
+		}
+
+		return makeDistributeCtrl(ctrls);
+	}
+
+	function makeCtrl(node) {
+		var ctrlPaths = node.getAttribute('data-ctrl');
+		var ctrl;
+
+		if (!isDefined(ctrlPaths)) { return; }
+
+		var paths = ctrlPaths.split(/\s+/);
+
+		if (paths.length === 1) {
+			ctrl = findByPath(Sparky.ctrl, paths[0]);
+
+			if (!ctrl) {
+				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
+			}
+
+			return ctrl;
+		}
+
+		return makeDistributeCtrlFromPaths(paths);
+	}
 
 	function Sparky(node, model, ctrl, loop) {
 		if (Sparky.debug === 'verbose') {
-			console.log('Sparky', '\n', 'node', node, '\n', 'model', model, '\n', 'ctrl', ctrl && ctrl.name, '\n', 'loop', loop);
+			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
+				(model && '{}'), ',',
+				(ctrl && (ctrl.name || 'anonymous function')), ')'
+			);
 		}
 
-		var sparky, modelPath, ctrlPath, tag, id;
+		var modelPath, ctrlPath, tag, id;
 
-		if (loop !== false) {
-			loop = true;
-		}
+		if (loop !== false) { loop = true; }
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
@@ -1233,19 +1288,27 @@
 			if (!node) {
 				node = document.getElementById(id);
 			}
+
+			if (!node) {
+				throw new Error('Sparky: Sparky() called but id of node not found: #' + id);
+			}
+		}
+
+		if (!node) {
+			throw new Error('Sparky: Sparky() called without node: ' + node);
 		}
 
 		// Where model is not defined look for the data-model
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-model');
 			
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
-				
-				if (model === undefined) {
-					throw new Error('[Sparky] ' + nodeToText(node) + ' model not found in Sparky.data');
+
+				if (Sparky.debug && !model) {
+					console.log('Sparky: data-model="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
 				}
 			}
 		}
@@ -1256,14 +1319,10 @@
 		}
 
 		// Where ctrl is not defined look for the data-ctrl
-		// attribute. Docuent fragments do not have a getAttribute
+		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!ctrl && node.getAttribute) {
-			ctrlPath = node.getAttribute('data-ctrl');
-			tag = node.tagName.toLowerCase();
-			
-			ctrl = isDefined(ctrlPath) ? findByPath(Sparky.ctrl, ctrlPath) :
-				defaultCtrl ;
+			ctrl = makeCtrl(node);
 		}
 
 		// Where model is an array or array-like object with a length property,
@@ -1273,112 +1332,954 @@
 			return setupCollection(node, model, ctrl);
 		}
 
-		if (Sparky.debug === 'verbose') {
-			console.groupCollapsed('[Sparky] Sparky(', node, ',',
-				(model && ('model#' + model.id)), ',',
-				(ctrl && 'ctrl'), ')'
-			);
+		var sparky = Object.create(prototype);
+
+		// Check if there should be a model, but it isn't available yet. If so,
+		// observe the path to the model until it appears.
+		if (modelPath && !model) {
+			Sparky.observePathOnce(Sparky.data, modelPath, function(model) {
+				setupSparky(sparky, node, model, ctrl);
+			});
 		}
-
-		sparky = Object.create(prototype);
-		setupSparky(sparky, node, model, ctrl);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+		else {
+			setupSparky(sparky, node, model, ctrl);
+		}
 
 		return sparky;
 	}
 
-	Sparky.debug       = false;
-	Sparky.config      = {};
-	Sparky.settings    = {};
-	Sparky.data        = {};
-	Sparky.ctrl        = {};
-	Sparky.mixin       = ns.mixin || (ns.mixin = {});
-	Sparky.Collection  = ns.Collection;
-	Sparky.templates   = templates;
-	Sparky.features    = features;
-	Sparky.template    = fetchTemplate;
-	Sparky.extend      = extend;
-	Sparky.prototype   = prototype;
 
+	// Expose
+
+	Sparky.debug        = false;
+	Sparky.config       = {};
+	Sparky.settings     = {};
+	Sparky.data         = {};
+	Sparky.ctrl         = {};
+	Sparky.Collection   = window.Collection;
+	Sparky.templates    = templates;
+	Sparky.features     = features;
+	Sparky.template     = fetchTemplate;
+	Sparky.content      = getTemplateContent;
+	Sparky.extend       = extend;
+	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
+	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
+	Sparky.prototype    = prototype;
+ 
 	ns.Sparky = Sparky;
 })(window);
 
 
-
-// Sparky onload
+// Sparky.bind
 //
-// If jQuery is present and when the DOM is ready, traverse it looking for
-// data-model and data-ctrl attributes and use them to instantiate Sparky.
+// Binds data to the DOM. Changes in data are then immediately rendered
+// in the nodes that display that data via template tags such as {{ name }}.
+// Only those nodes containing the changed data are updated, other nodes are
+// left alone. The actual DOM tree does not change. Template tags can also
+// be used in the attributes href, title, id, class, style and value.
+//
+// dataBind(node, observeFn, unobserveFn, getFn)
+//
+// node
+//
+// A DOM node to use as a route. The inner DOM tree is traversed and references
+// to property names written as {{ name }} cause bindFn to be called with name
+// as property.
+//
+// bindFn(property, fn)
+//
+// Responsible for listening to changes to properties on a data object or model.
+// When the named property changes, function fn must be called.
+//
+// getFn(property)
+//
+// Responsible for returning the value of the named property from a data object
+// or model.
 
-(function(jQuery, Sparky) {
-	if (!jQuery) { return; }
-
-	var doc = jQuery(document);
-
-	function isInTemplate(node) {
-		if (node.tagName.toLowerCase() === 'template') { return true; }
-		if (node === document.documentElement) { return false; }
-		return isInTemplate(node.parentNode);
-	}
-
-	doc.ready(function(){
-		var start;
-		
-		if (window.console) { start = Date.now(); }
-		
-		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
-		var n = -1;
-		var l = nodes.length;
-		var node;
-		var array = [];
-		var modelPath;
-		
-		// Remove child sparkies
-		while (++n < l) {
-			node = nodes[n];
-			array.push(node);
-			while (++n < l && node.contains(nodes[n])) {
-				// But do add children that have absolute model paths.
-
-				modelPath = nodes[n].getAttribute('data-model');
-
-				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
-					//array.push(nodes[n]);
-				}
-			};
-			--n;
-		}
-		
-		// Normally <template>s are inert, but if they are not a supported
-		// feature their content is part of the DOM so we have to remove those,
-		// too. 
-		if (!Sparky.features.template) {
-			n = array.length;
-			
-			while (n--) {
-				if (isInTemplate(array[n])) {
-					array.splice(n, 1);
-				}
-			}
-		}
-
-		if (Sparky.debug) { console.log('[Sparky] DOM nodes to initialise:', array); }
-
-		array.forEach(function(node) {
-			Sparky(node);
-		});
-		
-		window.requestAnimationFrame(function sparkyready() {
-			doc.trigger('sparkyready');
-		});
-		
-		if (window.console) { console.log('[Sparky] DOM initialised in ' + (Date.now() - start) + 'ms'); }
-	});
-})(jQuery, Sparky);
 
 (function(Sparky) {
 	"use strict";
+
+	var attributes = [
+		'href',
+		'title',
+		'id',
+		'style',
+		'src',
+		'alt'
+	];
+
+	// Matches a sparky template tag, capturing (tag name, filter string)
+	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
+
+	// Matches tags plus any directly adjacent text
+	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;
+
+	// Matches filter string, capturing (filter name, filter parameter string)
+	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
+
+	// Matches anything with a space
+	var rspaces = /\s+/;
+
+	var filterCache = {};
+
+	var binders = {
+	    	1: domNode,
+	    	3: textNode,
+	    	11: fragmentNode
+	    };
+
+	var empty = [];
+
+	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
+
+	// Utility functions
+
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+
+	function noop() {}
+
+	function returnThis() { return this; }
+
+	function call(fn) { fn(); }
+
+	function isDefined(n) {
+		return n || n !== undefined && n !== null && !Number.isNaN(n);
+	}
+
+	// TokenList constructor to emulate classList property. The get fn should
+	// take the arguments (node), and return a string of tokens. The set fn
+	// should take the arguments (node, string).
+
+	function TokenList(node, get, set) {
+		this.node = node;
+		this.get = get;
+		this.set = set;
+	}
+
+	TokenList.prototype = {
+		add: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+
+			while (n--) {
+				if (array.indexOf(arguments[n]) === -1) {
+					array.push(arguments[n]);
+				}
+			}
+
+			this.set(this.node, array.join(' '));
+		},
+
+		remove: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var i;
+
+			while (n--) {
+				i = array.indexOf(arguments[n]);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			this.set(this.node, array.join(' '));
+		}
+	};
+
+	// Nodes that require special bindings
+	var tags = {
+	    	label: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		var type = node.type;
+
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindAttribute(node, 'min', bind, unbind, get, unobservers);
+	    		bindAttribute(node, 'max', bind, unbind, get, unobservers);
+
+	    		var unbind = type === 'number' || type === 'range' ?
+	    		    	// Only let numbers set the value of number and range inputs
+	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
+	    		    // Checkboxes default to value "on" when the value attribute
+	    		    // is not given. Make them behave as booleans.
+	    		    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+	    		    	Sparky.bindNamedValueToObject(node, scope, booleanToStringOn, stringOnToBoolean) :
+	    		    	// Only let strings set the value of other inputs
+	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
+
+	    		if (unbind) { unobservers.push(unbind); }
+	    	},
+
+	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+
+	    		// Only let strings set the value of selects
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
+	    		if (unbind) { unobservers.push(unbind); }
+	    	},
+
+	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers, scope) {
+	    		// Only let strings set the value of a textarea
+	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
+	    		if (unbind) { unobservers.push(unbind); }
+	    	}
+	    };
+
+	function domNode(node, bind, unbind, get, set, create, scope) {
+		var unobservers = [];
+		var tag = node.tagName.toLowerCase();
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+
+		bindClasses(node, bind, unbind, get, unobservers);
+		bindAttributes(node, bind, unbind, get, unobservers, attributes);
+
+		// Set up special binding for certain elements like form inputs
+		if (tags[tag]) {
+			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers, scope);
+		}
+
+		// Or sparkify the child nodes
+		else {
+			bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+		}
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function textNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+
+		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+			node.nodeValue = text;
+		}, unobservers);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function fragmentNode(node, bind, unbind, get, set, create, scope) {
+		var unobservers = [];
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+
+		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function bindNodes(node, bind, unbind, get, set, create, unobservers, scope) {
+		if (node.childNodes.length === 0) { return; }
+
+		// childNodes is a live list, and we don't want it to be because we may
+		// be about to modify the DOM. Copy it.
+		var nodes = slice(node.childNodes);
+		var n = -1;
+		var l = nodes.length;
+		var child, sparky, unbind;
+
+		// Loop forwards through the children
+		while (++n < l) {
+			child = nodes[n];
+
+			// Don't bind child nodes that have their own Sparky controllers.
+			if (child.getAttribute &&
+			   (isDefined(child.getAttribute('data-ctrl')) ||
+			    isDefined(child.getAttribute('data-model')))) {
+				sparky = create(child);
+				unobservers.push(sparky.destroy.bind(sparky));
+			}
+			else if (binders[child.nodeType]) {
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));
+			}
+		}
+	}
+
+	function setAttributeSVG(node, attribute, value) {
+		node.setAttributeNS(Sparky.xlink, attribute, value);
+	}
+
+	function setAttributeHTML(node, attribute, value) {
+		node.setAttribute(attribute, value);
+	}
+
+	function getClass(node) {
+		// node.className is an object in SVG. getAttribute
+		// is more consistent, if a tad slower.
+		return node.getAttribute('class');
+	}
+
+	function getClassList(node) {
+		return node.classList || new TokenList(node, getClass, setClass);
+	}
+
+	function setClass(node, classes) {
+		if (node instanceof SVGElement) {
+			node.setAttribute('class', classes);
+		}
+		else {
+			node.className = classes;
+		}
+	}
+
+	function addClasses(classList, text) {
+		classList.add.apply(classList, text.trim().split(rspaces));
+	}
+
+	function removeClasses(classList, text) {
+		classList.remove.apply(classList, text.trim().split(rspaces));
+	}
+
+	function bindClasses(node, bind, unbind, get, unobservers) {
+		var classes = getClass(node);
+
+		// If there are no classes, go no further
+		if (!classes) { return; }
+
+		// Remove tags and store them
+		rclasstags.lastIndex = 0;
+		var tags = [];
+		var text = classes.replace(rclasstags, function($0) {
+			tags.push($0);
+			return '';
+		});
+
+		// Where no tags have been found, go no further
+		if (!tags.length) { return; }
+
+		// Now that we extracted the tags, overwrite the class with remaining text
+		setClass(node, text);
+
+		// Create an update function for keeping sparky's classes up-to-date
+		var classList = getClassList(node);
+		var update = function update(newText, oldText) {
+		    	if (oldText) { removeClasses(classList, oldText); }
+		    	if (newText) { addClasses(classList, newText); }
+		    };
+
+		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
+
+		observeProperties(tags.join(' '), bind, unbind, get, update, unobservers);
+	}
+
+	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
+		var a = attributes.length;
+
+		while (a--) {
+			bindAttribute(node, attributes[a], bind, unbind, get, unobservers);
+		}
+	}
+
+	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
+		var isSVG = node instanceof SVGElement;
+		var value = isSVG ?
+		    	node.getAttributeNS(Sparky.xlink, attribute) :
+		    	node.getAttribute(attribute) ;
+
+		if (!value) { return; }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
+
+		var update = isSVG ?
+			setAttributeSVG.bind(this, node, attribute) :
+			setAttributeHTML.bind(this, node, attribute) ;
+
+		observeProperties(value, bind, unbind, get, update, unobservers);
+	}
+
+	function toFilter(filter) {
+		var parts = rfilter.exec(filter);
+
+		return {
+			name: parts[1],
+			fn: Sparky.filters[parts[1]],
+
+			// Leave the first arg empty. It will be populated with the value to
+			// be filtered when the filter fn is called.
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
+		};
+	}
+
+	function applyFilters(word, filterString) {
+		var filters = filterCache[filterString] || (
+		    	filterCache[filterString] = filterString.split('|').map(toFilter)
+		    );
+		var l = filters.length;
+		var n = -1;
+		var args;
+
+		while (++n < l) {
+			if (!filters[n].fn) {
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filters');
+			}
+
+			if (Sparky.debug === 'filter') {
+				console.log('Sparky: filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
+			}
+
+			args = filters[n].args;
+			args[0] = word;
+			word = filters[n].fn.apply(Sparky, args);
+		}
+
+		return word;
+	}
+
+	function extractProperties(str, live, dead) {
+		rtags.lastIndex = 0;
+		str.replace(rtags, function($0, $1, $2){
+			// Sort the live properties from the dead properties.
+			var i;
+
+			// If it's already in live, our work here is done
+			if (live.indexOf($2) !== -1) { return; }
+
+			// It's a live tag, so put it in live, and if it's already
+			// in dead remove it from there.
+			if ($1.length === 2) {
+				live.push($2);
+				i = dead.indexOf($2);
+				if (i !== -1) { dead.splice(i, 1); }
+			}
+			
+			// It's a dead tag, check if it's in dead and if not stick
+			// it in there.
+			else if (dead.indexOf($2) === -1) {
+				dead.push($2);
+			}
+		});
+	}
+
+	function makeReplaceText(get) {
+		return function replaceText($0, $1, $2, $3) {
+			var value1 = get($2);
+			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
+			return isDefined(value2) ? value2 : '' ;
+		}
+	}
+
+	function makeUpdateText(text, get, fn) {
+		var replaceText = makeReplaceText(get);
+		var oldText;
+
+		return function updateText() {
+			rtags.lastIndex = 0;
+			var newText = text.replace(rtags, replaceText);
+			fn(newText, oldText);
+			oldText = newText;
+		}
+	}
+
+	function observeProperties(text, bind, unbind, get, fn, unobservers) {
+		var live = [];
+		var dead = [];
+
+		// Populate live and dead property lists
+		extractProperties(text, live, dead);
+
+		if (live.length === 0 && dead.length === 0) { return; }
+
+		var update = makeUpdateText(text, get, fn);
+
+		if (live.length) {
+			unobservers.push(observeProperties2(bind, unbind, update, live));
+		}
+		else {
+			update();
+		}
+	}
+
+	function observeProperties2(bind, unbind, update, properties) {
+		// Start throttling changes. The first update is immediate.
+		var throttle = Sparky.Throttle(update);
+
+		// Observe properties that are to be live updated
+		properties.forEach(function attach(property) {
+			bind(property, throttle);
+		});
+
+		// Return a function that destroys live bindings
+		return function() {
+			properties.forEach(function detach(property) {
+				// Unobserve properties
+				unbind(property, throttle);
+			});
+
+			// Cancel already bound updates. If updates are queued,
+			// the throttle applies them before bowing out.
+			throttle.cancel();
+		};
+	}
+
+	function bind(node, observe, unobserve, get, set, create, scope) {
+		// Assume this is a DOM node, and set the binder off. The
+		// binder returns a function that destroys the bindings.
+		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create, scope);
+
+		if (Sparky.debug && unobservers.length === 0) {
+			console.log('Sparky: No Sparky tags found in', node);
+		}
+
+		this.unbind = function unbind() {
+			unobservers.forEach(call);
+			return this;
+		};
+
+		return this;
+	}
+
+	Sparky.attributes = attributes;
+	Sparky.prototype.bind = bind;
+	Sparky.prototype.unbind = returnThis;
+
+
+	// -------------------------------------------------------------------
+
+	// 2-way binding for form elements.
+	// HTML form elements are hard to handle. They do all sorts of strange
+	// things such as radios and checkboxes having a default value of 'on'
+	// where a value attribute is not given. This set of functions handles
+	// 2-way binding between a node and an object.
+
+	function makeUpdateInput(node, model, path, fn) {
+		var type = node.type;
+
+		return type === 'radio' || type === 'checkbox' ?
+			function updateChecked() {
+				var value = fn(Sparky.getPath(model, path));
+				node.checked = node.value === value;
+				node.dispatchEvent(changeEvent);
+			} :
+			function updateValue() {
+				var value = fn(Sparky.getPath(model, path));
+
+				if (typeof value === 'string') {
+					// Check against the current value - resetting the same
+					// string causes the cursor to jump in inputs, and we dont
+					// want to send a change event where nothing changed.
+					if (value === node.value) { return; }
+
+					node.value = value;
+				}
+				else {
+					node.value = '';
+				}
+
+				// Send change event.
+				node.dispatchEvent(changeEvent);
+			} ;
+	}
+
+	function makeChangeListener(node, model, path, fn) {
+		var type = node.type;
+		
+		return type === 'radio' ? function radioChange(e) {
+				if (node.checked) {
+					Sparky.setPath(model, path, fn(node.value));
+				}
+			} :
+			type === 'checkbox' ? function checkboxChange(e) {
+				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
+			} :
+			function valueChange(e) {
+				Sparky.setPath(model, path, fn(node.value));
+			} ;
+	}
+
+	function bindPathToValue(node, model, path, to, from) {
+		var nodeValue = node.getAttribute('value');
+		var update = makeUpdateInput(node, model, path, to);
+		var change = makeChangeListener(node, model, path, from);
+		var throttle;
+
+		node.addEventListener('change', change);
+		node.addEventListener('input', change);
+
+		// Wait for animation frame to let Sparky fill in tags in value, min
+		// and max before controlling. TODO: I'm not sure about this. I'd like
+		// to update the model immediately if possible, and start throttle on
+		// the animation frame.
+
+		var request = window.requestAnimationFrame(function() {
+			request = false;
+
+			// Where the model does not have value, set it from the node value.
+			if (!isDefined(Sparky.getPath(model, path))) {
+				change();
+			}
+
+			throttle = Sparky.Throttle(update);
+			Sparky.observePath(model, path, throttle);
+		});
+
+		return function unbind() {
+			node.removeEventListener('change', change);
+			node.removeEventListener('input', change);
+
+			if (request) {
+				window.cancelAnimationFrame(request);
+			}
+			else {
+				throttle.cancel();
+				Sparky.unobservePath(model, path, throttle);
+			}
+		};
+	}
+
+	function bindNamedValueToObject(node, model, to, from) {
+		var name = node.name;
+
+		if (!node.name) { return; }
+
+		rtags.lastIndex = 0;
+		var tag = (rtags.exec(name) || empty);
+		var path = tag[2];
+
+		if (!path) { return; }
+
+		if (tag[3]) {
+			console.warn('Sparky: Sparky tags in name attributes do not accept filters. Ignoring name="' + name + '".');
+			return;
+		}
+
+		// Take the tag parentheses away from the name, preventing this node
+		// from being name-value bound by any other controllers.
+		node.name = path;
+
+		return bindPathToValue(node, model, path, to, from);
+	}
+
+
+
+	// Controllers
+
+	function returnArg(arg) { return arg; }
+
+	function toString(value) { return '' + value; }
+
+	function stringToNumber(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			n ;
+	}
+
+	function stringToInteger(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			Math.round(n) ;
+	}
+
+	function stringToBoolean(value) {
+		return value === 'false' ? false :
+			value === '0' ? false :
+			value === '' ? false :
+			!!value ;
+	}
+
+	function stringOnToBoolean(value) {
+		return value === 'on' ;
+	}
+
+	function stringToBooleanInverted(value) {
+		return !stringToBoolean(value);
+	}
+
+	function definedToString(value) {
+		return isDefined(value) ? value + '' :
+			undefined ;
+	}
+
+	function numberToString(value) {
+		return typeof value === 'number' ? value + '' :
+			undefined ;
+	}
+
+	function integerToString(value) {
+		return typeof value === 'number' && value % 1 === 0 ? value + '' :
+			undefined ;
+	}
+
+	function booleanToString(value) {
+		return typeof value === 'boolean' ? value + '' :
+			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function booleanToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
+			undefined ;
+	}
+
+	function booleanToStringInverted(value) {
+		return typeof value === 'boolean' ? !value + '' :
+			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
+	function valueAnyCtrl(node, model) {
+		// Coerce any defined value to string so that any values pass the type checker
+		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
+		this.on('destroy', unbind);
+	}
+
+	function valueStringCtrl(node, model) {
+		// Don't coerce so that only strings pass the type checker
+		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
+		this.on('destroy', unbind);
+	}
+
+	function valueNumberCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
+		this.on('destroy', unbind);
+	}
+
+	function valueIntegerCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
+		this.on('destroy', unbind);
+	}
+
+	function valueBooleanCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean);
+		this.on('destroy', unbind);
+	}
+
+	function valueBooleanInvertCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
+		this.on('destroy', unbind);
+	}
+
+	function valueNumberInvertCtrl(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
+
+		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
+			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
+		}, function from(value) {
+			var n = parseFloat(value);
+			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
+		});
+		
+		this.on('destroy', unbind);
+	};
+
+
+	Sparky.extend(Sparky.ctrl, {
+		'value-any':            valueAnyCtrl,
+		'value-string':         valueStringCtrl,
+		'value-number':         valueNumberCtrl,
+		'value-number-invert':  valueNumberInvertCtrl,
+		'value-boolean':        valueBooleanCtrl,
+		'value-boolean-invert': valueBooleanInvertCtrl,
+		'value-integer':        valueIntegerCtrl
+	});
+
+	Sparky.getClassList = getClassList;
+	Sparky.bindNamedValueToObject = bindNamedValueToObject;
+})(Sparky);
+
+
+// Sparky.observe()
+// Sparky.unobserve()
+
+(function(Sparky) {
+	"use strict";
+
+	// Handle paths
+
+	var rpathtrimmer = /^\[|]$/g;
+	var rpathsplitter = /\]?\.|\[/g;
+	var map = [];
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+	function isObject(obj) { return obj instanceof Object; }
+
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
+	function objFrom(obj, array) {
+		var key = array.shift();
+		var val = obj[key];
+
+		return array.length === 0 ? val :
+			isDefined(val) ? objFrom(val, array) :
+			val ;
+	}
+
+	function objTo(root, array, obj) {
+		var key = array[0];
+		
+		return array.length > 1 ?
+			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
+			(root[key] = obj) ;
+	}
+
+	function observePath3(root, prop, array, fn, notify) {
+		function update() {
+			if (Sparky.debug === 'verbose') {
+				console.log('Sparky: path resolved. Value:', root[prop]);
+			}
+
+			fn(root[prop]);
+		}
+
+		if (notify) { update(); }
+
+		Sparky.observe(root, prop, update);
+
+		return function unobserve() {
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath2(root, prop, array, fn, notify) {
+		var destroy = noop;
+
+		function update() {
+			var object = root[prop];
+
+			destroy();
+
+			if (typeof object !== 'object' && typeof object !== 'function') {
+				destroy = noop;
+				if (notify) { fn(); }
+			}
+			else {
+				destroy = observePath1(object, array.slice(), fn, notify) ;
+			}
+		};
+
+		Sparky.observe(root, prop, update);
+		update();
+		notify = true;
+
+		return function unobserve() {
+			destroy();
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath1(root, array, fn, notify) {
+		if (array.length === 0) { return noop; }
+
+		var prop = array.shift();
+
+		return array.length === 0 ?
+			observePath3(root, prop, array, fn, notify) :
+			observePath2(root, prop, array, fn, notify) ;
+	}
+
+	function observePath(root, path, fn) {
+		var array = splitPath(path);
+
+		// Observe path without logs.
+		var destroy = observePath1(root, array, fn, false) ;
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function observePathOnce(root, path, fn) {
+		var array = splitPath(path);
+		var value = objFrom(root, array.slice());
+
+		if (isDefined(value)) {
+			fn(value);
+			return;
+		}
+
+		var destroy = observePath1(root, array, update, false);
+
+		// Hack around the fact that the first call to destroy()
+		// is not ready yet, becuase at the point update has been
+		// called by the observe recursers, the destroy fn has
+		// not been returned yet. TODO: we should make direct returns
+		// async to get around this - they would be async if they were
+		// using Object.observe after all...
+		var hasRun = false;
+
+		function update(value) {
+			if (hasRun) { return; }
+			if (isDefined(value)) {
+				hasRun = true;
+				fn(value);
+				setTimeout(function() {
+					unobservePath(root, path, fn);
+				}, 0);
+			}
+		}
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function unobservePath(root, path, fn) {
+		var n = map.length;
+		var record;
+
+		// Allow for the call signatures (root) and (root, fn)
+		if (typeof path !== 'string') {
+			fn = path;
+			path = undefined;
+		}
+
+		while (n--) {
+			record = map[n];
+			if ((root === record[0]) &&
+				(!path || path === record[1]) &&
+				(!fn || fn === record[2])) {
+				record[3]();
+				map.splice(n, 1);
+			}
+		}
+	}
+
+	function getPath(obj, path) {
+		var array = splitPath(path);
+		
+		return array.length === 1 ?
+			obj[path] :
+			objFrom(obj, array) ;
+	}
+
+	function setPath(root, path, obj) {
+		var array = splitPath(path);
+
+		return array.length === 1 ?
+			(root[path] = obj) :
+			objTo(root, array, obj);
+	}
+
+	Sparky.getPath = getPath;
+	Sparky.setPath = setPath;
+	Sparky.observePath = observePath;
+	Sparky.unobservePath = unobservePath;
+	Sparky.observePathOnce = observePathOnce;
+
+
+	// Binding
 
 	function isAudioParam(object) {
 		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
@@ -1435,7 +2336,7 @@
 	}
 
 	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('[Sparky] Ooo. Lucky you, using Object.observe and WeakMap.'); }
+		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
 
 		var map = new WeakMap();
 		var names = [];
@@ -1517,7 +2418,7 @@
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 	
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('[Sparky] Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.');
+					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
 					return poll(object, property, fn);
 				}
 			}
@@ -1541,17 +2442,21 @@
 		};
 	})(Sparky)
 })(Sparky);
+
+
+// Sparky.Throttle(fn)
+
 (function() {
 	"use strict";
 
 	function noop() {}
 
 	function Throttle(fn) {
-		var queued, scope, args;
+		var queued, context, args;
 
 		function update() {
 			queued = false;
-			fn.apply(scope, args);
+			fn.apply(context, args);
 		}
 
 		function cancel() {
@@ -1566,10 +2471,6 @@
 		}
 
 		function queue() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
 			// Don't queue update if it's already queued
 			if (queued) { return; }
 
@@ -1579,7 +2480,12 @@
 		}
 
 		function throttle() {
-			queue.apply(this, arguments);
+			// Store the latest context and arguments
+			context = this;
+			args = arguments;
+
+			// Queue the update
+			queue();
 		}
 
 		throttle.cancel = cancel;
@@ -1590,509 +2496,17 @@
 
 	Sparky.Throttle = Throttle;
 })(Sparky);
-// DOM Binder
-//
-// Binds data to the DOM. Changes in data are then immediately rendered
-// in the nodes that display that data via template tags such as {{ name }}.
-// Only those nodes containing the changed data are updated, other nodes are
-// left alone. The actual DOM tree does not change. Template tags can also
-// be used in the attributes href, title, id, class, style and value.
-//
-// dataBind(node, observeFn, unobserveFn, getFn)
-//
-// node
-//
-// A DOM node to use as a route. The inner DOM tree is traversed and references
-// to property names written as {{ name }} cause bindFn to be called with name
-// as property.
-//
-// bindFn(property, fn)
-//
-// Responsible for listening to changes to properties on a data object or model.
-// When the named property changes, function fn must be called.
-//
-// getFn(property)
-//
-// Responsible for returning the value of the named property from a data object
-// or model.
 
 
-(function(Sparky) {
-	"use strict";
-
-	// For debugging
-	var attributes = [
-		'href',
-		'title',
-		'id',
-		'for',
-		'style',
-		'src',
-		'alt',
-		'min',
-		'max'
-	];
-	
-	var xlink = 'http://www.w3.org/1999/xlink';
-	var xsvg  = 'http://www.w3.org/2000/svg';
-
-	window.xlink = xlink;
-	window.xsvg = xsvg;
-
-	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rname   = /(\{\{\{?)\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}\}\}?/g;
-
-	// Matches filter string, capturing (filter name, filter parameter string)
-	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
-
-	var filterCache = {};
-
-	var nodeTypes = {
-	    	1: domNode,
-	    	3: textNode,
-	    	11: fragmentNode
-	    };
-
-	var empty = [];
-
-	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
-
-	var tags = {
-	    	input: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		var prop = (rname.exec(node.name) || empty)[2];
-
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
-
-	    		var value1 = get(prop);
-	    		var value2 = normalise(node.getAttribute('value'));
-	    		var flag = false;
-	    		var throttle, change;
-
-	    		if (node.type === 'checkbox') {
-	    			// If the model property does not yet exist and this input
-	    			// is checked, set model property from node's value.
-	    			if (node.checked && !isDefined(value1)) {
-	    				set(prop, value2);
-	    			}
-	    			
-	    			throttle = Sparky.Throttle(function setChecked() {
-	    				node.checked = node.value === (get(prop) + '');
-	    				node.dispatchEvent(changeEvent);
-	    			});
-	    			
-	    			bind(prop, throttle);
-	    			
-	    			change = function change(e) {
-	    				set(prop, node.checked ? normalise(node.value) : undefined);
-	    			};
-	    			
-	    			node.addEventListener('change', change);
-	    		}
-	    		else if (node.type === 'radio') {
-	    			// If the model property does not yet exist and this input
-	    			// is checked, set model property from node's value.
-	    			if (!isDefined(value1) && node.checked) {
-	    				set(prop, value2);
-	    			}
-	    			
-	    			throttle = Sparky.Throttle(function setChecked() {
-	    				node.checked = node.value === (get(prop) + '');
-	    				node.dispatchEvent(changeEvent);
-	    			});
-	    			
-	    			bind(prop, throttle);
-	    			
-	    			change = function change(e) {
-	    				if (node.checked) { set(prop, normalise(node.value)); }
-	    			};
-	    			
-	    			node.addEventListener('change', change);
-	    		}
-	    		else {
-	    			change = function change() {
-	    				set(prop, normalise(node.value));
-	    			}
-
-	    			// Where the node has a value attribute and the model does
-	    			// not have value for the named property, give the model the
-	    			// node's value
-	    			if (value2 && !isDefined(value1)) {
-	    				change();
-	    			}
-
-	    			throttle = Sparky.Throttle(function setValue() {
-	    				var val = get(prop);
-	    				var value = isDefined(val) ? val : '' ;
-
-	    				// Avoid setting where the node already has this value, that
-	    				// causes the cursor to jump in text fields
-	    				if (node.value !== (value + '')) {
-	    					node.value = value;
-	    					node.dispatchEvent(changeEvent);
-	    				}
-	    			});
-
-	    			bind(prop, throttle);
-
-	    			node.addEventListener('change', change);
-	    			node.addEventListener('input', change);
-	    		}
-	    		
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    			node.removeEventListener('input', change);
-	    		});
-	    	},
-	    	
-	    	select: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-
-	    		var prop = (rname.exec(node.name) || empty)[2];
-
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
-
-	    		var value = get(prop);
-
-	    		var change = function change(e) {
-	    		    	set(prop, normalise(node.value));
-	    		    };
-
-	    		// If the model property does not yet exist, set it from the
-	    		// node's value.
-	    		if (!isDefined(value)) {
-	    			change();
-	    		}
-
-	    		var throttle = Sparky.Throttle(function setValue() {
-	    			var value = get(prop);
-	    			node.value = isDefined(value) ? value : '' ;
-	    			node.dispatchEvent(changeEvent);
-	    		});
-
-	    		bind(prop, throttle);
-
-	    		node.addEventListener('change', change);
-
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    		});
-	    	},
-
-	    	option: function(node, name, bind, unbind, get, set, create, unobservers) {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['value']);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-	    	},
-
-	    	textarea: function(node, prop, bind, unbind, get, set, create, unobservers) {
-	    		var prop = (rname.exec(node.name) || empty)[2];
-	    		
-	    		// Only bind to fields that have a sparky {{tag}} in their
-	    		// name attribute.
-	    		if (!prop) { return; }
-
-	    		var value1 = get(prop);
-	    		var value2 = node.value;
-	    		var change = function change(e) {
-	    			set(prop, node.value);
-	    		};
-
-	    		// If the model property does not yet exist and this input
-	    		// has value, set model property from node's value.
-	    		if (!isDefined(value1) && value2) {
-	    			change();
-	    		}
-
-	    		var throttle = Sparky.Throttle(function setValue() {
-	    			var value = get(prop);
-
-	    			// Avoid setting where the node already has this value, that
-	    			// causes the cursor to jump in text fields
-	    			if (node.value !== (value + '')) {
-	    				node.value = isDefined(value) ? value : '' ;
-	    				node.dispatchEvent(changeEvent);
-	    			}
-	    		});
-
-	    		bind(prop, throttle);
-
-	    		node.addEventListener('change', change);
-
-	    		unobservers.push(function() {
-	    			unbind(prop, throttle);
-	    			throttle.cancel();
-	    			node.removeEventListener('change', change);
-	    		});
-	    	}
-	    };
-
-	function noop() {}
-
-	function call(fn) {
-		fn();
-	}
-
-	function isDefined(val) {
-		return val !== undefined && val !== null;
-	}
-
-	function normalise(value) {
-		// window.isNaN() coerces non-empty strings to numbers before asking if
-		// they are NaN. Number.isNaN() (ES6) does not, so beware.
-		return value === '' || isNaN(value) ? value : parseFloat(value) ;
-	}
-
-	function domNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-		var tag = node.tagName.toLowerCase();
-		//var isSVG = node instanceof SVGElement;
-
-		if (Sparky.debug === 'verbose') {
-			console.log('[Sparky] <' + tag + '>, children:', node.childNodes.length, Array.prototype.slice.apply(node.childNodes));
-		}
-		
-		bindClass(node, bind, unbind, get, unobservers);
-		bindAttributes(node, bind, unbind, get, unobservers, attributes);
-
-		// Set up special binding for certain elements like form inputs
-		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers);
-		}
-
-		// Or sparkify the child nodes
-		else {
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
-		}
-
-		return unobservers;
-	}
-
-	function textNode(node, bind, unbind, get, set, create) {
-		var detachFn = observeProperties(node.nodeValue, bind, unbind, get, function(text) {
-			node.nodeValue = text;
-		});
-
-		return [detachFn];
-	}
-
-	function fragmentNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-		
-		bindNodes(node, bind, unbind, get, set, create, unobservers);
-		
-		return unobservers;
-	}
-
-	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
-		var nodes = [];
-		var n = -1;
-		var l, child, sparky;
-
-		// childNodes is a live list, and we don't want it to be because we may
-		// be about to modify the DOM. Copy it.
-		nodes.push.apply(nodes, node.childNodes);
-		l = nodes.length;
-		
-		// Loop forwards through the children
-		while (++n < l) {
-			child = nodes[n];
-
-			// Don't bind child nodes that have their own Sparky controllers.
-			if (child.getAttribute &&
-			   (isDefined(child.getAttribute('data-ctrl')) ||
-			    isDefined(child.getAttribute('data-model')))) {
-				sparky = create(child);
-				unobservers.push(sparky.destroy.bind(sparky));
-			}
-			else if (nodeTypes[child.nodeType]) {
-				unobservers.push.apply(unobservers, nodeTypes[child.nodeType](child, bind, unbind, get, set, create));
-			}
-		}
-	}
-
-	function getClassList(node) {
-		return node.classList || node.className.trim().split(/\s+/);
-	}
-
-	function updateClassSVG(node, text) {
-		// Trying to use className sets a bunch of other
-		// attributes on the node, bizarrely.
-		node.setAttribute('class', text);
-	}
-
-	function updateClassHTML(node, text) {
-		node.className = text;
-	}
-
-	function updateAttributeSVG(node, attribute, value) {
-		node.setAttributeNS(xlink, attribute, value);
-	}
-
-	function updateAttributeHTML(node, attribute, value) {
-		node.setAttribute(attribute, value);
-	}
-
-	function bindClass(node, bind, unbind, get, unobservers) {
-		var value = node.getAttribute('class');
-
-		if (!value) { return; }
-
-		var update = node instanceof SVGElement ?
-				updateClassSVG.bind(this, node) :
-				updateClassHTML.bind(this, node) ;
-
-		// TODO: only replace classes we've previously set here
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
-	}
-
-	function bindAttributes(node, bind, unbind, get, unobservers, attributes) {
-		var a = attributes.length;
-
-		while (a--) {
-			bindAttribute(node, attributes[a], bind, unbind, get, unobservers);
-		}
-	}
-
-	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
-		var isSVG = node instanceof SVGElement;
-		var value = isSVG ?
-		    	node.getAttributeNS(xlink, attribute) :
-		    	node.getAttribute(attribute) ;
-		var update;
-
-		if (!isDefined(value) || value === '') { return; }
-
-		update = isSVG ?
-			updateAttributeSVG.bind(this, node, attribute) :
-			updateAttributeHTML.bind(this, node, attribute) ;
-
-		unobservers.push(observeProperties(value, bind, unbind, get, update));
-	}
-
-	function toFilter(filter) {
-		var parts = rfilter.exec(filter);
-
-		return {
-			name: parts[1],
-			fn: Sparky.filters[parts[1]],
-			args: parts[2] && JSON.parse('[' + parts[2].replace(/\'/g, '\"') + ']')
-		};
-	}
-
-	function applyFilters(word, filterString) {
-		var filters = filterCache[filterString] || (
-		    	filterCache[filterString] = filterString.split('|').map(toFilter)
-		    ),
-		    l = filters.length,
-		    n = -1;
-
-		while (++n < l) {
-			if (!filters[n].fn) {
-				throw new Error('[Sparky] filter \'' + filters[n].name + '\' is not a Sparky filter');
-			}
-			
-			if (Sparky.debug === 'filter') {
-				console.log('[Sparky] filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
-			}
-			
-			word = filters[n].fn.apply(word, filters[n].args);
-		}
-
-		return word;
-	}
-
-	function extractProperties(str) {
-		var properties = [];
-
-		str.replace(rname, function($0, $1, $2){
-			// And properties that are to be live updated,
-			// and make sure properties are only added once.
-			if ($1.length === 2 && properties.indexOf($2) === -1) {
-				properties.push($2);
-			}
-		});
-
-		return properties;
-	}
-
-	function observeProperties(text, bind, unbind, get, fn) {
-		var properties = extractProperties(text);
-
-		function replaceText($0, $1, $2, $3) {
-			var word = get($2);
-
-			return !isDefined(word) ? '' :
-				$3 ? applyFilters(word, $3) :
-				word ;
-		}
-
-		function update() {
-			fn(text.replace(rname, replaceText));
-		}
-
-		// Start throttling changes. The first update is immediate.
-		var throttle = Sparky.Throttle(update);
-
-		// Observe properties that are to be live updated
-		properties.forEach(function attach(property) {
-			bind(property, throttle);
-		});
-
-		// Return a function that destroys live bindings
-		return function() {
-			properties.forEach(function detach(property) {
-				// Unobserve properties
-				unbind(property, throttle);
-			});
-
-			// Cancel already bound updates. If updates are queued,
-			// the throttle applies them before bowing out.
-			throttle.cancel();
-		};
-	}
-
-	function traverse(node, observe, unobserve, get, set, create) {
-		// Assume this is a DOM node, and set the binder off. The
-		// binder returns an array of unobserve functions that
-		// should be kept around in case the DOM element is removed
-		// and the bindings should be thrown away.
-		var unobservers = nodeTypes[node.nodeType](node, observe, unobserve, get, set, create);
-
-		return function unbind() {
-			unobservers.forEach(call);
-		};
-	}
-
-	Sparky.bind = traverse;
-	Sparky.attributes = attributes;
-})(window.Sparky || require('sparky'));
+// Sparky.ctrls
 
 (function() {
 	"use strict";
-	
+
 	var pow = Math.pow;
 
-	var root2 = Math.sqrt(2);
-	
-	var n2p1 = pow(2, 0.5);
-	var n2p2 = 2;
-	var n2p3 = pow(2, 1.5);
-	var n2p4 = pow(2, 2);
-	var n2p5 = pow(2, 2.5);
-	
 	function isDefined(val) {
 		return val !== undefined && val !== null;
-	}
-
-	function getName(node) {
-		return node.name.replace('{{', '').replace('}}', '');
 	}
 
 	function normalise(value, min, max) {
@@ -2103,94 +2517,84 @@
 		return value * (max - min) + min;
 	}
 
-	function ready(sparky, node, scope, model, to, from) {
-		var name = getName(node);
-		var min = node.min ? parseFloat(node.min) : 0 ;
-		var max = node.max ? parseFloat(node.max) : 1 ;
-		var flag = false;
+	Sparky.ctrl['value-number-pow-2'] = function(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
-		function updateScope() {
-			var value;
-
-			if (flag) { return; }
-
-			value = denormalise(from(normalise(model[name], min, max)), min, max);
-
-			if (value !== scope[name]) {
-				flag = true;
-				scope[name] = value;
-				flag = false;
-			}
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			return denormalise(pow(normalise(value, min, max), 1/2), min, max);
 		}
 
-		function updateModel() {
-			var value;
-
-			if (flag) { return; }
-
-			value = denormalise(to(normalise(scope[name], min, max)), min, max);
-
-			if (value !== model[name]) {
-				flag = true;
-				model[name] = value;
-				flag = false;
-			}
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			return denormalise(pow(normalise(n, min, max), 2), min, max);
 		}
 
-		Sparky.observe(model, name, updateScope);
-		Sparky.observe(scope, name, updateModel);
-		updateScope();
-
-		sparky.on('destroy', function() {
-			Sparky.unobserve(model, name, updateScope);
-			Sparky.unobserve(scope, name, updateModel);
-		});
+		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		this.on('destroy', unbind);
 	};
 
-	function createInputCtrl(to, from) {
-		return function(node, model) {
-			var scope = Sparky.extend({}, model);
-			this.on('ready', ready, node, scope, model, to, from);
-			return scope;
-		};
+	Sparky.ctrl['value-number-pow-3'] = function(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
+
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			var n = denormalise(pow(normalise(value, min, max), 1/3), min, max);
+			return n + '';
+		}
+
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			return denormalise(pow(normalise(n, min, max), 3), min, max);
+		}
+
+		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['input-pow-1'] = createInputCtrl(function to(value) {
-		return pow(value, n2p1);
-	}, function from(value) {
-		return pow(value, 1/n2p1);
-	});
+	Sparky.ctrl['value-number-log'] = function(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
+		var ratio = max / min;
 
-	Sparky.ctrl['input-pow-3'] = createInputCtrl(function to(value) {
-		return pow(value, n2p3);
-	}, function from(value) {
-		return pow(value, 1/n2p3);
-	});
+		if (min <= 0) {
+			console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
+			return;
+		}
 
-	Sparky.ctrl['input-pow-4'] = createInputCtrl(function to(value) {
-		return pow(value, n2p4);
-	}, function from(value) {
-		return pow(value, 1/n2p4);
-	});
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
+			return n;
+		}
 
-	Sparky.ctrl['value-exp-10'] = createInputCtrl(function to(value) {
-		return (Math.exp(value * Math.LN10) - 1) / 9;
-	}, function from(value) {
-		return Math.log(value * 9 + 1) / Math.LN10;
-	});
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			return min * Math.pow(ratio, normalise(n, min, max));
+		}
 
-	Sparky.ctrl['value-pow-2'] = createInputCtrl(function to(value) {
-		return pow(value, 2);
-	}, function from(value) {
-		return pow(value, 1/2);
-	});
+		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		this.on('destroy', unbind);
+	};
 
-	Sparky.ctrl['value-pow-3'] = createInputCtrl(function to(value) {
-		return pow(value, 3);
-	}, function from(value) {
-		return pow(value, 1/3);
-	});
+	Sparky.ctrl['value-pow-2'] = function() {
+		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
+	};
+
+	Sparky.ctrl['value-pow-3'] = function() {
+		console.warn('Sparky: ctrl "value-pow-3" is deprecated. Use "value-number-pow-3"');
+	};
+
+	Sparky.ctrl['value-log'] = function(node, model) {
+		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
+	};
 })();
+
 
 (function() {
 	"use strict";
@@ -2198,11 +2602,30 @@
 	var n = 0;
 
 	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('Sparky DEBUG', n++);
+		console.log('DEBUG', n++);
 		debugger;
+	};
+
+	Sparky.ctrl['debug-events'] = function(node, model) {
+		var ready = 0;
+		var insert = 0;
+		var destroy = 0;
+
+		this
+		.on('ready', function() {
+			console.log('READY', ready++, node);
+		})
+		.on('insert', function() {
+			console.log('INSERT', insert++, node);
+		})
+		.on('destroy', function() {
+			console.log('DESTROY', destroy++, node);
+		});
 	};
 })();
 
+
+// Sparky.filters
 
 (function(Sparky, undefined) {
 	"use strict";
@@ -2231,6 +2654,10 @@
 		23: 'rd',
 		31: 'st'
 	});
+	
+	// This list could get huge, but it's exposed so that it
+	// can be updated with problem words occuring in your project.
+	settings.plurals   = ('crew sheep').split(' ');
 
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
@@ -2242,17 +2669,23 @@
 		return s;
 	}
 
+	function isDefined(val) {
+		return !!val || val !== undefined && val !== null && !Number.isNaN(val);
+	}
+
 	Sparky.filters = {
-		add: function(n) {
-			return parseFloat(this) + n ;
+		add: function(value, n) {
+			var result = parseFloat(value) + n ;
+			if (Number.isNaN(result)) { return; }
+			return result;
 		},
 
-		capfirst: function() {
-			return this.charAt(0).toUpperCase() + string.substring(1);
+		capfirst: function(value) {
+			return value.charAt(0).toUpperCase() + string.substring(1);
 		},
 
-		cut: function(string) {
-			return this.replace(RegExp(string, 'g'), '');
+		cut: function(value, string) {
+			return value.replace(RegExp(string, 'g'), '');
 		},
 
 		date: (function(M, F, D, l, s) {
@@ -2300,20 +2733,24 @@
 			
 			var rletter = /([a-zA-Z])/g;
 			
-			return function formatDate(format) {
-				var date = this instanceof Date ? this : new Date(this) ;
-				
+			return function formatDate(value, format) {
+				if (!isDefined(value)) { return; }
+
+				var date = value instanceof Date ? value : new Date(value) ;
+
 				return format.replace(rletter, function($0, $1) {
 					return formatters[$1](date);
 				});
 			};
 		})(settings),
 
-		decibels: function() {
-			return 20 * log10(this);
+		decibels: function(value) {
+			return typeof value === 'number' && 20 * log10(value);
 		},
 
-		decimals: Number.prototype.toFixed,
+		decimals: function(value, n) {
+			return typeof value === 'number' && Number.prototype.toFixed.call(value, n);
+		},
 
 		// .default() can't work, because Sparky does not send undefined or null
 		// values to be filtered. 
@@ -2331,43 +2768,49 @@
 
 			pre.appendChild(text);
 			
-			return function() {
-				text.textContent = this;
+			return function(value) {
+				text.textContent = value;
 				return pre.innerHTML;
 			};
 		})(),
 
-		equal: function(val, string1, string2) {
-			return (this === val ? string1 : string2) || '';
+		equal: function(value, val, string1, string2) {
+			return (value === val ? string1 : string2) || '';
 		},
 
 		//filesizeformat
 
-		first: function() {
-			return this[0];
+		first: function(value) {
+			return value[0];
 		},
 
-		floatformat: Number.prototype.toFixed,
+		floatformat: function(value, n) {
+			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
+				!isDefined(value) ? '' :
+				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
+		},
 
-		get: function(name) {
-			return this[name];
+		get: function(value, name) {
+			return value[name];
 		},
 
 		//get_digit
 		//iriencode
 
-		join: Array.prototype.join,
-
-		json: function() {
-			return JSON.stringify(this);
+		join: function(value) {
+			return Array.prototype.join.apply(value);
 		},
 
-		last: function() {
-			return this[this.length - 1];
+		json: function(value) {
+			return JSON.stringify(value);
 		},
 
-		length: function() {
-			return this.length;
+		last: function(value) {
+			return value[value.length - 1];
+		},
+
+		length: function(value) {
+			return value.length;
 		},
 
 		//length_is
@@ -2376,52 +2819,62 @@
 		linebreaksbr: (function() {
 			var rbreaks = /\n/;
 			
-			return function() {
-				return this.replace(rbreaks, '<br/>')
+			return function(value) {
+				return value.replace(rbreaks, '<br/>')
 			};
 		})(),
 
 		//linenumbers
 
-		lower: String.prototype.toLowerCase,
-		lowercase: String.prototype.toLowerCase,
-		
-		//make_list 
-		
-		multiply: function(n) {
-			return this * n;
-		},
-		
-		parseint: function() {
-			return parseInt(this, 10);
+		lower: function(value) {
+			String.prototype.toLowerCase.apply(value);
 		},
 
-		percent: function() {
-			return this * 100;
+		lowercase: function(value) {
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toLowerCase.apply(value);
+		},
+
+		//make_list 
+
+		multiply: function(value, n) {
+			return value * n;
+		},
+
+		parseint: function(value) {
+			return parseInt(value, 10);
+		},
+
+		percent: function(value) {
+			return value * 100;
 		},
 
 		//phone2numeric
 
-		pluralize: function(str1, str2, lang) {
+		pluralize: function(value, str1, str2, lang) {
+			if (settings.plurals.indexOf(value) !== -1) { return value; }
+
 			str1 = str1 || '';
 			str2 = str2 || 's';
-			
+
 			if (lang === 'fr') {
-				return this < 2 ? str1 : str2;
+				return value < 2 ? str1 : str2;
 			}
 			else {
-				return this === 1 ? str1 : str2;
+				return value === 1 ? str1 : str2;
 			}
 		},
 
 		//pprint
 
-		prepad: function(n, char) {
-			var string = this.toString();
+		prepad: function(value, n, char) {
+			if (!isDefined(value)) { return ''; }
+
+			var string = value.toString();
 			var l = string.length;
 
 			// String is longer then padding: let it through unprocessed
-			if (n - l < 1) { return this; }
+			if (n - l < 1) { return value; }
 
 			array.length = 0;
 			array.length = n - l;
@@ -2429,39 +2882,46 @@
 			return array.join(char || ' ');
 		},
 
-		postpad: function(n) {
-			var string = this.toString();
+		postpad: function(value, n) {
+			if (!isDefined(value)) { return ''; }
+
+			var string = value.toString();
 			var l = string.length;
 			var m = parseInt(n, 10);
 
-			return m === l ? this :
+			return m === l ? value :
 				m > l ? string + spaces(m-l) :
 				string.substring(0, m) ;
 		},
 
-		random: function() {
-			return this[Math.floor(Math.random() * this.length)];
+		random: function(value) {
+			return value[Math.floor(Math.random() * value.length)];
 		},
 		
 		//raw
 		//removetags
 		
-		replace: function(str1, str2) {
-			return this.replace(RegExp(str1, 'g'), str2);
+		replace: function(value, str1, str2) {
+			return value.replace(RegExp(str1, 'g'), str2);
 		},
 		
 		//reverse
 
-		safe: function() {
-			
+		safe: function(string) {
+			if (typeof string !== string) { return; }
+			// Actually, we can't do this here, because we cant return DOM nodes
+			return;
 		},
 
 		//safeseq
 
-		slice: Array.prototype.slice,
-		
-		slugify: function() {
-			return this.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
+		slice: function(value) {
+			return Array.prototype.slice.apply(value);
+		},
+
+		slugify: function(value) {
+			if (typeof value !== 'string') { return; }
+			return value.trim().toLowerCase().replace(/\W/g, '-').replace(/[_]/g, '-');
 		},
 
 		//sort
@@ -2470,8 +2930,8 @@
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
 			
-			return function() {
-				return this.replace(rtag, '');
+			return function(value) {
+				return value.replace(rtag, '');
 			};
 		})(),
 		
@@ -2486,22 +2946,22 @@
 					'' ;
 			}
 			
-			return function(tags) {
+			return function(value, tags) {
 				if (!tags) {
-					return this.replace(rtag, '');
+					return value.replace(rtag, '');
 				}
 				
 				allowedTags = tags.split(' ');
-				result = this.replace(rtag, strip);
+				result = value.replace(rtag, strip);
 				allowedTags = false;
 
 				return result;
 			};
 		})(),
 
-		symbolise: function() {
+		symbolise: function(value) {
 			// Takes infinity values and convert them to infinity symbol
-			var string = this + '';
+			var string = value + '';
 			var infinity = Infinity + '';
 			
 			if (string === infinity) {
@@ -2512,7 +2972,7 @@
 				return '-∞';
 			}
 
-			return this;
+			return value;
 		},
 
 		time: function() {
@@ -2523,19 +2983,19 @@
 		//timeuntil
 		//title
 
-		truncatechars: function(n) {
-			return this.length > n ?
-				this.length.slice(0, n) + '&hellips;' :
-				this ;
+		truncatechars: function(value, n) {
+			return value.length > n ?
+				value.length.slice(0, n) + '&hellips;' :
+				value ;
 		},
 
 		//truncatewords
 		//truncatewords_html
 		//unique
 		
-		unordered_list: function() {
+		unordered_list: function(value) {
 			// TODO: Django supports nested lists. 
-			var list = this,
+			var list = value,
 			    length = list.length,
 			    i = -1,
 			    html = '';
@@ -2555,8 +3015,84 @@
 		//wordcount
 		//wordwrap
 
-		yesno: function(truthy, falsy) {
-			return this ? truthy : falsy ;
+		yesno: function(value, truthy, falsy) {
+			return value ? truthy : falsy ;
 		}
 	};
 })(window.Sparky || require('sparky'));
+
+
+// Sparky ready
+//
+// If jQuery is present and when the DOM is ready, traverse it looking for
+// data-model and data-ctrl attributes and use them to instantiate Sparky.
+
+(function(jQuery, Sparky) {
+	if (!jQuery) { return; }
+
+	var doc = jQuery(document);
+
+	function isInTemplate(node) {
+		if (node.tagName.toLowerCase() === 'template') { return true; }
+		if (node === document.documentElement) { return false; }
+		return isInTemplate(node.parentNode);
+	}
+
+	doc.ready(function(){
+		var start;
+		
+		if (window.console) { start = Date.now(); }
+		
+		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var n = -1;
+		var l = nodes.length;
+		var node;
+		var array = [];
+		var modelPath;
+		
+		// Remove child sparkies
+		while (++n < l) {
+			node = nodes[n];
+			array.push(node);
+			while (++n < l && node.contains(nodes[n])) {
+				// But do add children that have absolute model paths.
+
+				modelPath = nodes[n].getAttribute('data-model');
+
+				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
+					//array.push(nodes[n]);
+				}
+			};
+			--n;
+		}
+		
+		// Normally <template>s are inert, but if they are not a supported
+		// feature their content is part of the DOM so we have to remove those,
+		// too. 
+		if (!Sparky.features.template) {
+			n = array.length;
+			
+			while (n--) {
+				if (isInTemplate(array[n])) {
+					array.splice(n, 1);
+				}
+			}
+		}
+
+		if (Sparky.debug) { console.log('Sparky: DOM nodes to initialise:', array); }
+
+		array.forEach(function(node) {
+			Sparky(node);
+		});
+		
+		window.requestAnimationFrame(function sparkyready() {
+			doc.trigger('sparkyready');
+		});
+		
+		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
+	});
+})(jQuery, Sparky);
+
+
+// Make the minifier remove debug code paths
+Sparky.debug = false;

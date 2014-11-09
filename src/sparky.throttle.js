@@ -1,14 +1,17 @@
+
+// Sparky.Throttle(fn)
+
 (function() {
 	"use strict";
 
 	function noop() {}
 
 	function Throttle(fn) {
-		var queued, scope, args;
+		var queued, context, args;
 
 		function update() {
 			queued = false;
-			fn.apply(scope, args);
+			fn.apply(context, args);
 		}
 
 		function cancel() {
@@ -23,10 +26,6 @@
 		}
 
 		function queue() {
-			// Store the latest scope and arguments
-			scope = this;
-			args = arguments;
-
 			// Don't queue update if it's already queued
 			if (queued) { return; }
 
@@ -36,7 +35,12 @@
 		}
 
 		function throttle() {
-			queue.apply(this, arguments);
+			// Store the latest context and arguments
+			context = this;
+			args = arguments;
+
+			// Queue the update
+			queue();
 		}
 
 		throttle.cancel = cancel;

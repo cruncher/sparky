@@ -1,3 +1,4 @@
+
 // delegate
 //
 // An event delegate function that understands both HTML and

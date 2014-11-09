@@ -1,4 +1,22 @@
-module('Sparky collections', function(fixture) {
+module('Sparky:collections', function(fixture) {
+	console.log('Test Sparky.Collection()...');
+
+	test('Sparky should bind to an empty collection by inserting no nodes.', function() {
+		var collection = Sparky.Collection([]);
+
+		Sparky.ctrl['test-ctrl'] = function(node, model) {
+			return {
+				collection: collection
+			};
+		};
+
+		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+
+		Sparky(ul);
+
+		ok(ul.querySelectorAll('li').length === 0, 'All is well.');
+	});
+
 	test('Initial length', function() {
 		var collection = Sparky.Collection([{
 		    	property: 1
@@ -16,7 +34,11 @@ module('Sparky collections', function(fixture) {
 
 		Sparky(ul);
 
-		ok(ul.querySelectorAll('li').length === 2, 'All is well.');
+		var lis = ul.querySelectorAll('li');
+
+		ok(lis.length === 2, 'Two <li>s inserted in the DOM');
+		ok(lis[0].innerHTML === '1', "First li content from collection item should be '1', is '" + lis[0].innerHTML + "'");
+		ok(lis[1].innerHTML === '2', "Second li content from collection item should be '2', is '" + lis[1].innerHTML + "'");
 	});
 
 	asyncTest("Two or three", function(assert) {

@@ -15,6 +15,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'src/jquery-2.1.1.js',
+      'src/number.isnan.js',
       'src/window.customevent.js',
       'src/window.requestanimationframe.js',
       'src/observe.js',
@@ -28,10 +29,12 @@ module.exports = function(config) {
       'src/sparky.bind.js',
       'src/sparky.ctrl.js',
       'src/sparky.filters.js',
+      'src/sparky.ready.js',
 
       'test/module.js',
-      'test/test.*.js',
-      //'test/test.sparky.js'
+      'test/test.*.js'
+      //'test/test.sparky-collection.js',
+      //'test/test.sparky-events.js'
     ],
 
     // list of files to exclude
@@ -51,6 +54,9 @@ module.exports = function(config) {
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+
+    // Commented for everyday use - the coverage reporter reduces scripts to one
+    // line, meaning that karma gives false line numbers for errors
     reporters: ['progress', 'coverage'],
 
     // optionally, configure the reporter

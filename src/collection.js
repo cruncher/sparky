@@ -1,3 +1,6 @@
+
+// Collection()
+
 (function(ns, mixin, undefined) {
 	"use strict";
 
@@ -96,13 +99,19 @@
 	}
 
 	function remove(array, obj, i) {
+		var found = false;
+
 		if (i === undefined) { i = -1; }
 
 		while (++i < array.length) {
 			if (obj === array[i]) {
 				array.splice(i, 1);
+				--i;
+				found = true;
 			}
 		}
+		
+		return found;
 	}
 
 	function invalidateCaches(collection) {
@@ -136,9 +145,12 @@
 		}),
 
 		remove: multiarg(function(item) {
-			item = this.find(item);
-			remove(this, item);
-			this.trigger('remove', item);
+			var obj = this.find(item);
+
+			if (!obj) { return; }
+
+			remove(this, obj);
+			this.trigger('remove', obj);
 		}),
 
 		update: multiarg(function(obj) {
@@ -159,7 +171,9 @@
 		find: function(obj) {
 			var index = this.index;
 
-			return typeof obj === 'string' || typeof obj === 'number' ?
+			return !isDefined(obj) ?
+					undefined :
+				typeof obj === 'string' || typeof obj === 'number' ?
 					findByIndex(this, obj) :
 				isDefined(obj[index]) ?
 					findByIndex(this, obj[index]) :
@@ -170,36 +184,31 @@
 			return this.indexOf(object) !== -1;
 		},
 
+		// Get the value of a property of all the objects in
+		// the collection if they all have the same value.
+		// Otherwise return undefined.
+
 		get: function(property) {
-			// Returns a value if all the objects in the selection
-			// have the same value for this property, otherwise
-			// returns undefined.
 			var n = this.length;
 
 			if (n === 0) { return; }
 
 			while (--n) {
-				if (this[n][property] !== this[n - 1][property]) {
-					return;
-				}
+				if (this[n][property] !== this[n - 1][property]) { return; }
 			}
 
 			return this[n][property];
 		},
-		
+
+		// Set a property on every object in the collection.
+
 		set: function(property, value) {
 			if (arguments.length !== 2) {
-				if (debug) { console.warn('[tb-app] Can\'t set selection with [property, value]', arguments, '. Don\'t be absurd.'); }
-				return;
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
 
-			// For every object in the selection set property = value.
 			var n = this.length;
-
-			while (n--) {
-				this[n][property] = value;
-			}
-
+			while (n--) { this[n][property] = value; }
 			return this;
 		},
 
@@ -210,6 +219,8 @@
 		toObject: function(key) {
 			var object = {};
 			var prop, type;
+
+			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];

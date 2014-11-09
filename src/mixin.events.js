@@ -1,4 +1,5 @@
-// mixin.events
+
+// mixin.listeners
 
 // .on(types, fn, [args...])
 // Binds a function to be called on events in types. The
@@ -36,48 +37,48 @@
 	var eventObject = {};
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
-	function getEvents(object) {
-		if (!object.events) {
-			Object.defineProperty(object, 'events', {
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
 				value: {}
 			});
 		}
 
-		return object.events;
+		return object.listeners;
 	}
 
-	function getDependents(object) {
-		if (!object.dependents) {
-			Object.defineProperty(object, 'dependents', {
+	function getDelegates(object) {
+		if (!object.delegates) {
+			Object.defineProperty(object, 'delegates', {
 				value: []
 			});
 		}
 
-		return object.dependents;
+		return object.delegates;
 	}
 
 	function setupPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
-		// Make sure dependents stays unique
-		if (dependents.indexOf(object2) === -1) {
-			dependents.push(object2);
+		// Make sure delegates stays unique
+		if (delegates.indexOf(object2) === -1) {
+			delegates.push(object2);
 		}
 	}
 
 	function teardownPropagation(object1, object2) {
-		var dependents = getDependents(object1);
+		var delegates = getDelegates(object1);
 
 		if (object2 === undefined) {
-			dependents.length = 0;
+			delegates.length = 0;
 			return;
 		}
 
-		var i = dependents.indexOf(object2);
+		var i = delegates.indexOf(object2);
 
 		if (i === -1) { return; }
 
-		dependents.splice(i, 1);
+		delegates.splice(i, 1);
 	}
 
 
@@ -94,7 +95,9 @@
 				return this;
 			}
 
-			var events = getEvents(this);
+			if (!fn) { throw new Error('Sparky: calling .on("' + types + '", fn) but fn is ' + typeof fn); }
+
+			var events = getListeners(this);
 			var type, item;
 
 			if (typeof types === 'string') {
@@ -129,10 +132,10 @@
 			if (arguments.length === 0) {
 				teardownPropagation(this);
 
-				if (this.events) {
-					for (type in this.events) {
-						this.events[type].length = 0;
-						delete this.events[type];
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
 					}
 				}
 
@@ -147,7 +150,7 @@
 			}
 
 			// No events.
-			if (!this.events) { return this; }
+			if (!this.listeners) { return this; }
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
@@ -156,19 +159,19 @@
 			else {
 				// .off(fn)
 				fn = types;
-				types = Object.keys(this.events);
+				types = Object.keys(this.listeners);
 			}
 
 			while (type = types.shift()) {
-				listeners = this.events[type];
+				listeners = this.listeners[type];
 
 				if (!listeners) {
 					continue;
 				}
 
 				if (!fn) {
-					this.events[type].length = 0;
-					delete this.events[type];
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
 					continue;
 				}
 
@@ -183,7 +186,9 @@
 		},
 
 		trigger: function(e) {
-			var type, target, listeners, i, l, args, params;
+			var events = getListeners(this);
+			var args = slice(arguments);
+			var type, target, listeners, i, l, params;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -194,9 +199,9 @@
 				target = e.target;
 			}
 
-			var events = getEvents(this);
-
-			args = slice(arguments);
+			// Copy delegates if they exist. We may be about to
+			// mutate the delegates list.
+			var delegates = this.delegates && this.delegates.slice();
 
 			if (events[type]) {
 				// Use a copy of the event list in case it gets mutated while
@@ -212,13 +217,10 @@
 				}
 			}
 
-			// Propagate to dependents
-			var dependents = this.dependents;
-			
-			if (!dependents) { return this; }
+			if (!delegates) { return this; }
 
 			i = -1;
-			l = dependents.length;
+			l = delegates.length;
 
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
@@ -230,7 +232,7 @@
 			}
 
 			while (++i < l) {
-				dependents[i].trigger.apply(dependents[i], args);
+				delegates[i].trigger.apply(delegates[i], args);
 			}
 
 			// Return this for chaining

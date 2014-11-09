@@ -1,8 +1,8 @@
-// Polyfill the CustomEvent API for brosers that don't have
-// it (IE9 and IE10).
+
+// window.CustomEvent polyfill
 
 (function(window, undefined) {
-	if (window.CustomEvent) { return; }
+	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
