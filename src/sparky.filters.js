@@ -200,7 +200,7 @@
 		pluralize: function(str1, str2, lang) {
 			str1 = str1 || '';
 			str2 = str2 || 's';
-			
+
 			if (lang === 'fr') {
 				return this < 2 ? str1 : str2;
 			}
