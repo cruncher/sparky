@@ -1086,6 +1086,7 @@ if (!Number.isNaN) {
 
 			if (!data) {
 				rtag.lastIndex = 0;
+				console.log('Sparky: parent scope', scope);
 				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 			}
 
