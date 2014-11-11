@@ -1097,11 +1097,11 @@ if (!Number.isNaN) {
 		rtag.lastIndex = 0;
 		if (rtag.test(path)) {
 			rtag.lastIndex = 0;
-			path = rtag.exec(path)[1];
-			data = findByPath(scope, path);
+			var path1 = rtag.exec(path)[1];
+			data = findByPath(scope, path1);
 
 			if (!data) {
-				var comment = document.createComment(' [Sparky] data-model="' + modelName + '" ');
+				var comment = document.createComment(' [Sparky] data-model="' + path + '" ');
 				var setup = function setup(data) {
 				    	insertAfter(commentNode, node);
 				    	remove(commentNode);
@@ -1112,10 +1112,10 @@ if (!Number.isNaN) {
 				remove(node);
 
 				sparky.on('destroy', function destroy() {
-					Sparky.unobservePath(scope, path, setup);
+					Sparky.unobservePath(scope, path1, setup);
 				});
 
-				Sparky.observePathOnce(scope, path, setup);
+				Sparky.observePathOnce(scope, path1, setup);
 			}
 
 			//if (!data) {
