@@ -119,11 +119,13 @@
 		})(settings),
 
 		decibels: function(value) {
-			return typeof value === 'number' && 20 * log10(value);
+			if (typeof value !== 'number') { return; }
+			return 20 * log10(value);
 		},
 
 		decimals: function(value, n) {
-			return typeof value === 'number' && Number.prototype.toFixed.call(value, n);
+			if (typeof value !== 'number') { return; }
+			return Number.prototype.toFixed.call(value, n);
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
@@ -226,17 +228,14 @@
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
-			if (settings.plurals.indexOf(value) !== -1) { return value; }
+			if (settings.plurals.indexOf(value) !== -1) { return ''; }
 
 			str1 = str1 || '';
 			str2 = str2 || 's';
 
-			if (lang === 'fr') {
-				return value < 2 ? str1 : str2;
-			}
-			else {
-				return value === 1 ? str1 : str2;
-			}
+			return lang === 'fr' ?
+				value < 2 ? str1 : str2 :
+				value === 1 ? str1 : str2 ;
 		},
 
 		//pprint
