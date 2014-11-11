@@ -232,8 +232,9 @@
 			if (child.getAttribute &&
 			   (isDefined(child.getAttribute('data-ctrl')) ||
 			    isDefined(child.getAttribute('data-model')))) {
-				sparky = create(child);
-				unobservers.push(sparky.destroy.bind(sparky));
+				create(child);
+				//sparky = create(child);
+				//unobservers.push(sparky.destroy.bind(sparky));
 			}
 			else if (binders[child.nodeType]) {
 				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));

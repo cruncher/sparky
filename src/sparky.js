@@ -287,7 +287,7 @@
 			return slaveSparky(sparky, Sparky(node, model));
 		}
 
-		// data-model=".path.to.data"
+		// data-model="path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -302,12 +302,20 @@
 		rtag.lastIndex = 0;
 		if (rtag.test(path)) {
 			rtag.lastIndex = 0;
-			data = findByPath(scope, rtag.exec(path)[1]);
+			path = rtag.exec(path)[1];
+			data = findByPath(scope, path);
 
 			if (!data) {
-				rtag.lastIndex = 0;
-				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+				Sparky.observePathOnce(scope, path, function(model) {
+					var slave = slaveSparky(sparky, Sparky(node, data));
+				});
 			}
+
+			//if (!data) {
+			//	rtag.lastIndex = 0;
+			//	console.log('Sparky: parent scope', scope);
+			//	throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+			//}
 
 			return slaveSparky(sparky, Sparky(node, data));
 		}

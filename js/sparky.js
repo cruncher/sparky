@@ -1086,6 +1086,7 @@ if (!Number.isNaN) {
 
 			if (!data) {
 				rtag.lastIndex = 0;
+				console.log('Sparky: parent scope', scope);
 				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 			}
 
@@ -2734,7 +2735,7 @@ if (!Number.isNaN) {
 			var rletter = /([a-zA-Z])/g;
 			
 			return function formatDate(value, format) {
-				if (!isDefined(value)) { return ''; }
+				if (!isDefined(value)) { return; }
 
 				var date = value instanceof Date ? value : new Date(value) ;
 
