@@ -157,8 +157,12 @@
 		node.parentNode && node.parentNode.removeChild(node);
 	}
 
-	function insertNode(node1, node2) {
-		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
+	function insertBefore(node, target) {
+		target.parentNode && target.parentNode.insertBefore(node, target);
+	}
+
+	function insertAfter(node, target) {
+		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
 
 	// Getting and setting
@@ -176,7 +180,11 @@
 	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, delegate the new sparky to
 		// the old.
-		sparky1.on('ready', function() {
+		sparky1
+		.on('destroy', function destroy() {
+			sparky2.destroy();
+		})
+		.on('ready', function ready() {
 			sparky1.on(sparky2);
 		});
 
@@ -235,7 +243,7 @@
 					sparky.on(sparkies[n]);
 				}
 
-				insertNode(endNode, nodes[n]);
+				insertBefore(nodes[n], endNode);
 
 				if (document.body.contains(sparkies[n][0])) {
 					sparkies[n].trigger('insert');
@@ -248,7 +256,7 @@
 		}
 
 		// Put the marker node in place
-		insertNode(node, endNode);
+		insertBefore(endNode, node);
 
 		// Remove the node
 		removeNode(node);
@@ -279,12 +287,14 @@
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			return slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			return;
 		}
 
 		// data-model="."
 		if (path === '.') {
-			return slaveSparky(sparky, Sparky(node, model));
+			slaveSparky(sparky, Sparky(node, model));
+			return;
 		}
 
 		// data-model="path.to.data"
@@ -295,7 +305,8 @@
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			return slaveSparky(sparky, Sparky(node, data));
+			slaveSparky(sparky, Sparky(node, data));
+			return;
 		}
 
 		// data-model="{{path.to.data}}"
@@ -306,9 +317,21 @@
 			data = findByPath(scope, path);
 
 			if (!data) {
-				Sparky.observePathOnce(scope, path, function(model) {
-					var slave = slaveSparky(sparky, Sparky(node, data));
+				var comment = document.createComment(' [Sparky] data-model="' + modelName + '" ');
+				var setup = function setup(data) {
+				    	insertAfter(commentNode, node);
+				    	removeNode(commentNode);
+				    	slaveSparky(sparky, Sparky(node, data));
+				    };
+
+				insertBefore(node, commentNode);
+				removeNode(node);
+
+				sparky.on('destroy', function destroy() {
+					Sparky.unobservePath(scope, path, setup);
 				});
+
+				Sparky.observePathOnce(scope, path, setup);
 			}
 
 			//if (!data) {
@@ -317,10 +340,11 @@
 			//	throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
 			//}
 
-			return slaveSparky(sparky, Sparky(node, data));
+			slaveSparky(sparky, Sparky(node, data));
+			return;
 		}
 
-		return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 	}
 
 

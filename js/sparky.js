@@ -937,8 +937,12 @@ if (!Number.isNaN) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
 
-	function insertNode(node1, node2) {
-		node1.parentNode && node1.parentNode.insertBefore(node2, node1);
+	function insertBefore(node, target) {
+		target.parentNode && target.parentNode.insertBefore(node, target);
+	}
+
+	function insertAfter(node, target) {
+		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
 
 	// Getting and setting
@@ -956,7 +960,11 @@ if (!Number.isNaN) {
 	function slaveSparky(sparky1, sparky2) {
 		// When sparky is ready, delegate the new sparky to
 		// the old.
-		sparky1.on('ready', function() {
+		sparky1
+		.on('destroy', function destroy() {
+			sparky2.destroy();
+		})
+		.on('ready', function ready() {
 			sparky1.on(sparky2);
 		});
 
@@ -1015,7 +1023,7 @@ if (!Number.isNaN) {
 					sparky.on(sparkies[n]);
 				}
 
-				insertNode(endNode, nodes[n]);
+				insertBefore(nodes[n], endNode);
 
 				if (document.body.contains(sparkies[n][0])) {
 					sparkies[n].trigger('insert');
@@ -1028,7 +1036,7 @@ if (!Number.isNaN) {
 		}
 
 		// Put the marker node in place
-		insertNode(node, endNode);
+		insertBefore(endNode, node);
 
 		// Remove the node
 		removeNode(node);
@@ -1059,15 +1067,17 @@ if (!Number.isNaN) {
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			return slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			return;
 		}
 
 		// data-model="."
 		if (path === '.') {
-			return slaveSparky(sparky, Sparky(node, model));
+			slaveSparky(sparky, Sparky(node, model));
+			return;
 		}
 
-		// data-model=".path.to.data"
+		// data-model="path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -1075,25 +1085,46 @@ if (!Number.isNaN) {
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			return slaveSparky(sparky, Sparky(node, data));
+			slaveSparky(sparky, Sparky(node, data));
+			return;
 		}
 
 		// data-model="{{path.to.data}}"
 		rtag.lastIndex = 0;
 		if (rtag.test(path)) {
 			rtag.lastIndex = 0;
-			data = findByPath(scope, rtag.exec(path)[1]);
+			path = rtag.exec(path)[1];
+			data = findByPath(scope, path);
 
 			if (!data) {
-				rtag.lastIndex = 0;
-				console.log('Sparky: parent scope', scope);
-				throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+				var comment = document.createComment(' [Sparky] data-model="' + modelName + '" ');
+				var setup = function setup(data) {
+				    	insertAfter(commentNode, node);
+				    	removeNode(commentNode);
+				    	slaveSparky(sparky, Sparky(node, data));
+				    };
+
+				insertBefore(node, commentNode);
+				removeNode(node);
+
+				sparky.on('destroy', function destroy() {
+					Sparky.unobservePath(scope, path, setup);
+				});
+
+				Sparky.observePathOnce(scope, path, setup);
 			}
 
-			return slaveSparky(sparky, Sparky(node, data));
+			//if (!data) {
+			//	rtag.lastIndex = 0;
+			//	console.log('Sparky: parent scope', scope);
+			//	throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
+			//}
+
+			slaveSparky(sparky, Sparky(node, data));
+			return;
 		}
 
-		return slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 	}
 
 
@@ -1604,8 +1635,9 @@ if (!Number.isNaN) {
 			if (child.getAttribute &&
 			   (isDefined(child.getAttribute('data-ctrl')) ||
 			    isDefined(child.getAttribute('data-model')))) {
-				sparky = create(child);
-				unobservers.push(sparky.destroy.bind(sparky));
+				create(child);
+				//sparky = create(child);
+				//unobservers.push(sparky.destroy.bind(sparky));
 			}
 			else if (binders[child.nodeType]) {
 				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));
