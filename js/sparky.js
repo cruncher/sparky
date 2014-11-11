@@ -2691,9 +2691,10 @@ if (!Number.isNaN) {
 		23: 'rd',
 		31: 'st'
 	});
-	
-	// This list could get huge, but it's exposed so that it
-	// can be updated with problem words occuring in your project.
+
+	// Words that are both singular and plural. This list
+	// could get huge, but it's exposed so that it can be
+	// updated with problem words occuring in your project.
 	settings.plurals   = ('crew sheep').split(' ');
 
 	var log10 = Math.log10 || (function log10(n) {
@@ -2813,7 +2814,7 @@ if (!Number.isNaN) {
 			};
 		})(),
 
-		equal: function(value, val, string1, string2) {
+		is: function(value, val, string1, string2) {
 			return (value === val ? string1 : string2) || '';
 		},
 
