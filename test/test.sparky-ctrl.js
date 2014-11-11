@@ -39,7 +39,7 @@ module('Multiple controllers', function(fixture) {
 	});
 }, function() {/*
 
-<div data-model="model">
+<div data-scope="model">
 	<p data-ctrl="ctrl-1 ctrl-2 ctrl-3">{{property}}</p>
 </div>
 

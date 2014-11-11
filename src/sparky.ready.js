@@ -2,7 +2,7 @@
 // Sparky ready
 //
 // If jQuery is present and when the DOM is ready, traverse it looking for
-// data-model and data-ctrl attributes and use them to instantiate Sparky.
+// data-scope and data-ctrl attributes and use them to instantiate Sparky.
 
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
@@ -20,7 +20,7 @@
 		
 		if (window.console) { start = Date.now(); }
 		
-		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;
@@ -34,7 +34,7 @@
 			while (++n < l && node.contains(nodes[n])) {
 				// But do add children that have absolute model paths.
 
-				modelPath = nodes[n].getAttribute('data-model');
+				modelPath = nodes[n].getAttribute('data-scope');
 
 				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
 					//array.push(nodes[n]);

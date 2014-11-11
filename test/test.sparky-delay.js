@@ -47,8 +47,8 @@ module('Child sparky', function(fixture) {
 
 }, function() {/*
 
-<div data-model="dummy">
-	<a data-model="model.object.thing" href="#{{blah}}">{{property}}</a>
+<div data-scope="dummy">
+	<a data-scope="model.object.thing" href="#{{blah}}">{{property}}</a>
 </div>
 
 */});

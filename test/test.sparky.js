@@ -41,7 +41,7 @@ module('Live tags', function(fixture) {
 	});
 }, function() {/*
 
-<div data-model="test-model">{{property}}</div>
+<div data-scope="test-model">{{property}}</div>
 
 */});
 
@@ -63,7 +63,7 @@ module('Static tags', function(fixture) {
 	});
 }, function() {/*
 
-<div data-model="test-model">{{{property}}}</div>
+<div data-scope="test-model">{{{property}}}</div>
 
 */});
 
@@ -101,15 +101,15 @@ module('Child sparky', function(fixture) {
 		ok(p1.innerHTML === 'value-1');
 		ok(p2.innerHTML === 'value-2');
 
-		var p3   = fixture.querySelector('[data-model="{{sub-model-1}}"]');
-		var p4   = fixture.querySelector('[data-model="{{sub-model-2}}"]');
+		var p3   = fixture.querySelector('[data-scope="{{sub-model-1}}"]');
+		var p4   = fixture.querySelector('[data-scope="{{sub-model-2}}"]');
 
 		ok(p3.innerHTML === 'sub-1');
 		ok(p4.innerHTML === 'sub-2');
 
-		var div2 = fixture.querySelector('[data-model="test-model"]');
-		var p5   = fixture.querySelector('[data-model="test-model-1"]');
-		var p6   = fixture.querySelector('[data-model="test-model-2"]');
+		var div2 = fixture.querySelector('[data-scope="test-model"]');
+		var p5   = fixture.querySelector('[data-scope="test-model-1"]');
+		var p6   = fixture.querySelector('[data-scope="test-model-2"]');
 
 		Sparky(div2);
 
@@ -126,9 +126,9 @@ module('Child sparky', function(fixture) {
 		var model2 = Sparky.data['test-model-2'] = {
 		    	property: 'Boil yer heid'
 		    };
-		var div2 = fixture.querySelector('[data-model="test-model"]');
-		var p5   = fixture.querySelector('[data-model="test-model-1"]');
-		var p6   = fixture.querySelector('[data-model="test-model-2"]');
+		var div2 = fixture.querySelector('[data-scope="test-model"]');
+		var p5   = fixture.querySelector('[data-scope="test-model-1"]');
+		var p6   = fixture.querySelector('[data-scope="test-model-2"]');
 
 		Sparky(div2);
 
@@ -164,7 +164,7 @@ module('Child sparky', function(fixture) {
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
 		var model2 = Sparky.data['test-model-2'] = {};
-		var p5     = fixture.querySelector('[data-model="test-model-1"]');
+		var p5     = fixture.querySelector('[data-scope="test-model-1"]');
 		var sparky = Sparky(p5);
 
 		assert.ok(p5.innerHTML === '', 'p5 is empty.');
@@ -193,8 +193,8 @@ module('Child sparky', function(fixture) {
 		var model  = Sparky.data['test-model']   = {};
 		var model1 = Sparky.data['test-model-1'] = {};
 		var model2 = Sparky.data['test-model-2'] = {};
-		var div2 = fixture.querySelector('[data-model="test-model"]');
-		var p5   = fixture.querySelector('[data-model="test-model-1"]');
+		var div2 = fixture.querySelector('[data-scope="test-model"]');
+		var p5   = fixture.querySelector('[data-scope="test-model-1"]');
 		var sparky = Sparky(div2);
 
 		assert.ok(p5.innerHTML === '', 'p5 is empty.');
@@ -218,13 +218,13 @@ module('Child sparky', function(fixture) {
 	<p data-ctrl="test-ctrl-1">{{property}}</p>
 	<p data-ctrl="test-ctrl-2">{{property}}</p>
 
-	<p data-model="{{sub-model-1}}">{{property}}</p>
-	<p data-model="{{sub-model-2}}">{{property}}</p>
+	<p data-scope="{{sub-model-1}}">{{property}}</p>
+	<p data-scope="{{sub-model-2}}">{{property}}</p>
 </div>
 
-<div data-model="test-model">
-	<p data-model="test-model-1">{{property}}</p>
-	<p data-model="test-model-2">{{property}}</p>
+<div data-scope="test-model">
+	<p data-scope="test-model-1">{{property}}</p>
+	<p data-scope="test-model-2">{{property}}</p>
 </div>
 
 */});
@@ -286,7 +286,7 @@ module('Test tags in class attributes...', function(fixture) {
 	});
 }, function() {/*
 
-<div data-model="model" class="class-1 class-2 {{ property }}">{{property}}</div>
+<div data-scope="model" class="class-1 class-2 {{ property }}">{{property}}</div>
 
 */});
 

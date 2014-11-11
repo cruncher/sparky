@@ -53,21 +53,21 @@
 <body>
 
 <div class="site-wrap wrap">
-	<!--input type="text" data-model="object" name="{{a}}" />
-	<p data-model="object">input text: {{a}}</p>
-	<input type="text" data-model="object" name="{{data.name}}" />
-	<p data-model="object">input text: {{data.name}}</p>
-	<input type="radio" data-model="object" name="{{b}}" value="oui" />
-	<p data-model="object">input: {{b}}</p>
-	<input type="checkbox" data-model="object" name="{{c}}" value="aye" />
-	<p data-model="object">input: {{c}}</p>
+	<!--input type="text" data-scope="object" name="{{a}}" />
+	<p data-scope="object">input text: {{a}}</p>
+	<input type="text" data-scope="object" name="{{data.name}}" />
+	<p data-scope="object">input text: {{data.name}}</p>
+	<input type="radio" data-scope="object" name="{{b}}" value="oui" />
+	<p data-scope="object">input: {{b}}</p>
+	<input type="checkbox" data-scope="object" name="{{c}}" value="aye" />
+	<p data-scope="object">input: {{c}}</p>
 
-	<div class="{{a}} {{b|yesno:'checked',''}}" data-model="object">Classes</div-->
+	<div class="{{a}} {{b|yesno:'checked',''}}" data-scope="object">Classes</div-->
 
-	<input type="range" data-ctrl="value-number-pow-3" data-model="dummy" name="{{c}}" step="any" />
-	<output data-model="dummy">{{c}}</output>
+	<input type="range" data-ctrl="value-number-pow-3" data-scope="dummy" name="{{c}}" step="any" />
+	<output data-scope="dummy">{{c}}</output>
 
-	<div class="{{a.b.c|yesno:'checked',''}}" data-model="object">{{a.b.c}}</div>
+	<div class="{{a.b.c|yesno:'checked',''}}" data-scope="object">{{a.b.c}}</div>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -90,8 +90,8 @@
 	Sparky.debug = 'verbose';
 </script>
 
-<!--div data-model="dummy">
-	<a id="test" data-model="model.object.thing" href="#{{blah}}">{{property}}</a>
+<!--div data-scope="dummy">
+	<a id="test" data-scope="model.object.thing" href="#{{blah}}">{{property}}</a>
 </div-->
 
 <script>

@@ -786,7 +786,7 @@ if (!Number.isNaN) {
 // 
 // Views
 // 
-// <div data-ctrl="name" data-model="path.to.data">
+// <div data-ctrl="name" data-scope="path.to.data">
 //     <h1>Hello world</h1>
 // </div>
 // 
@@ -881,7 +881,7 @@ if (!Number.isNaN) {
 			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
-			(node.getAttribute('data-model') ? ' data-model="' + node.getAttribute('data-model') + '"' : ''),
+			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
 		].join('');
@@ -976,8 +976,8 @@ if (!Number.isNaN) {
 	}
 
 	function setupCollection(node, model, ctrl) {
-		var modelName = node.getAttribute('data-model');
-		var endNode = document.createComment(' [Sparky] data-model="' + modelName + '" ');
+		var modelName = node.getAttribute('data-scope');
+		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
 		var nodes = [];
 		var sparkies = [];
 		var cache = [];
@@ -1048,7 +1048,7 @@ if (!Number.isNaN) {
 		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
 		// by a controller without waiting for it's 'ready' event.
-		node.removeAttribute('data-model');
+		node.removeAttribute('data-scope');
 		node.removeAttribute('data-ctrl');
 
 		var throttle = Sparky.Throttle(updateNodes);
@@ -1066,7 +1066,7 @@ if (!Number.isNaN) {
 	function createChild(sparky, node, scope, model, path) {
 		var data;
 
-		// no data-model
+		// no data-scope
 		if (!isDefined(path)) {
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
@@ -1075,13 +1075,13 @@ if (!Number.isNaN) {
 			return;
 		}
 
-		// data-model="."
+		// data-scope="."
 		if (path === '.') {
 			slaveSparky(sparky, Sparky(node, model));
 			return;
 		}
 
-		// data-model="path.to.data"
+		// data-scope="path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -1093,7 +1093,7 @@ if (!Number.isNaN) {
 			return;
 		}
 
-		// data-model="{{path.to.data}}"
+		// data-scope="{{path.to.data}}"
 		rtag.lastIndex = 0;
 		if (rtag.test(path)) {
 			rtag.lastIndex = 0;
@@ -1101,7 +1101,7 @@ if (!Number.isNaN) {
 			data = findByPath(scope, path1);
 
 			if (!data) {
-				var comment = document.createComment(' [Sparky] data-model="' + path + '" ');
+				var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
 				var setup = function setup(data) {
 				    	insertAfter(comment, node);
 				    	remove(comment);
@@ -1159,7 +1159,7 @@ if (!Number.isNaN) {
 		}
 
 		function create(node) {
-			var path = node.getAttribute('data-model');
+			var path = node.getAttribute('data-scope');
 
 			return createChild(sparky, node, scope, model, path);
 		}
@@ -1334,17 +1334,17 @@ if (!Number.isNaN) {
 			throw new Error('Sparky: Sparky() called without node: ' + node);
 		}
 
-		// Where model is not defined look for the data-model
+		// Where model is not defined look for the data-scope
 		// attribute. Document fragments do not have a getAttribute
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
-			modelPath = node.getAttribute('data-model');
+			modelPath = node.getAttribute('data-scope');
 			
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
 				if (Sparky.debug && !model) {
-					console.log('Sparky: data-model="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
+					console.log('Sparky: data-scope="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
 				}
 			}
 		}
@@ -1638,7 +1638,7 @@ if (!Number.isNaN) {
 			// Don't bind child nodes that have their own Sparky controllers.
 			if (child.getAttribute &&
 			   (isDefined(child.getAttribute('data-ctrl')) ||
-			    isDefined(child.getAttribute('data-model')))) {
+			    isDefined(child.getAttribute('data-scope')))) {
 				create(child);
 				//sparky = create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));
@@ -3062,7 +3062,7 @@ if (!Number.isNaN) {
 // Sparky ready
 //
 // If jQuery is present and when the DOM is ready, traverse it looking for
-// data-model and data-ctrl attributes and use them to instantiate Sparky.
+// data-scope and data-ctrl attributes and use them to instantiate Sparky.
 
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
@@ -3080,7 +3080,7 @@ if (!Number.isNaN) {
 		
 		if (window.console) { start = Date.now(); }
 		
-		var nodes = document.querySelectorAll('[data-ctrl], [data-model]');
+		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;
@@ -3094,7 +3094,7 @@ if (!Number.isNaN) {
 			while (++n < l && node.contains(nodes[n])) {
 				// But do add children that have absolute model paths.
 
-				modelPath = nodes[n].getAttribute('data-model');
+				modelPath = nodes[n].getAttribute('data-scope');
 
 				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
 					//array.push(nodes[n]);

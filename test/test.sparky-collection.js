@@ -147,7 +147,7 @@ module('Sparky:collections', function(fixture) {
 }, function() {/*
 
 <ul data-ctrl="test-ctrl">
-	<li class="li-{{property}}" data-model="{{collection}}">{{property}}</li>
+	<li class="li-{{property}}" data-scope="{{collection}}">{{property}}</li>
 </ul>
 
 */});

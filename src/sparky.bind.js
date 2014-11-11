@@ -231,7 +231,7 @@
 			// Don't bind child nodes that have their own Sparky controllers.
 			if (child.getAttribute &&
 			   (isDefined(child.getAttribute('data-ctrl')) ||
-			    isDefined(child.getAttribute('data-model')))) {
+			    isDefined(child.getAttribute('data-scope')))) {
 				create(child);
 				//sparky = create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));

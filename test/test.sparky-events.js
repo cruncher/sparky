@@ -330,7 +330,7 @@ module('Event propogation insert event', function(fixture) {
 }, function() {/*
 
 <div class="node-1" data-ctrl="test-ctrl-1">
-	<div class="node-2" data-model="collection" data-ctrl="test-ctrl-2">{{property}}</div>
+	<div class="node-2" data-scope="collection" data-ctrl="test-ctrl-2">{{property}}</div>
 </div>
 
 */});
