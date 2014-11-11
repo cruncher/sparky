@@ -1103,12 +1103,12 @@ if (!Number.isNaN) {
 			if (!data) {
 				var comment = document.createComment(' [Sparky] data-model="' + path + '" ');
 				var setup = function setup(data) {
-				    	insertAfter(commentNode, node);
-				    	remove(commentNode);
+				    	insertAfter(comment, node);
+				    	remove(comment);
 				    	slaveSparky(sparky, Sparky(node, data));
 				    };
 
-				insertBefore(node, commentNode);
+				insertBefore(node, comment);
 				remove(node);
 
 				sparky.on('destroy', function destroy() {
