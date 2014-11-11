@@ -10,13 +10,13 @@ in batches on browser frames for performance.</strong>
 ## Quick start
 
 Sparky wires up the DOM automatically on <code>load</code>. He binds nodes with
-a <code>data-model</code> attribute to model objects stored in
+a <code>data-scope</code> attribute to model objects stored in
 <code>Sparky.data</code>, and passes nodes with a <code>data-ctrl</code>
 attribute to controller functions stored in <code>Sparky.ctrl</code>.
 
 HTML:
 
-    <div class="{{type}}-block" data-model="my-data">
+    <div class="{{type}}-block" data-scope="my-data">
         <input type="text" name="{{title}}" />
         <p>{{title|uppercase}} loves you!</p>
     </div>
@@ -31,7 +31,7 @@ JS:
 Here a Sparky template is live bound to the properties of <code>my-data</code>.
 The result is:
 
-    <div class="user-block" data-model="my-data">
+    <div class="user-block" data-scope="my-data">
         <input type="text" name="{{title}}" value="Sparky" />
         <p>SPARKY loves you!</p>
     </div>
@@ -47,7 +47,7 @@ used as scope.
 
 HTML:
 
-    <div class="{{type}}-block" data-model="my-data" data-ctrl="my-ctrl">
+    <div class="{{type}}-block" data-scope="my-data" data-ctrl="my-ctrl">
         <input type="text" name="{{title}}" />
         <p>{{title}} loves you!</p>
     </div>
@@ -69,10 +69,10 @@ JS:
 
 Sparky does not make scope objects for you, you create them where you need them.
 The controller function is passed the node, and a model where
-<code>data-model</code> is given. If the function returns
+<code>data-scope</code> is given. If the function returns
 <code>undefined</code>, the scope defaults to the model.
 
-Either or both <code>data-model</code> and <code>data-ctrl</code> can be defined
+Either or both <code>data-scope</code> and <code>data-ctrl</code> can be defined
 for Sparky to template a node.
 
 It is not required to store data models in <code>Sparky.data</code> and
@@ -106,12 +106,12 @@ of the last controller is used as scope.
 
 <a href="#define-a-controller-function">Define a controller function</a>.
 
-#### The data-model attribute
+#### The data-scope attribute
 
-The <code>data-model</code> attribute names a model object in
+The <code>data-scope</code> attribute names a model object in
 <code>Sparky.data</code> to use as scope.
 
-    <div data-model="my-model">
+    <div data-scope="my-model">
         <h1>{{title}}</h1>
     </div>
 
@@ -127,16 +127,16 @@ The <code>data-model</code> attribute names a model object in
         }
     };
 
-The <code>data-model</code> attribute understands absolute paths to models
+The <code>data-scope</code> attribute understands absolute paths to models
 inside <code>Sparky.data</code> written in dot notation:
 
-    <p data-model="text.path-to.meta">author: {{author}}, words: {{word-count}}</p>
+    <p data-scope="text.path-to.meta">author: {{author}}, words: {{word-count}}</p>
 
 Yes, it's fine with property names with a '-' in them.
 It also understands relative paths to models in the current scope, when wrapped in a tag:
 
-    <div data-model="my-model">
-        <p data-model="{{path-to.meta}}">{{author}}</p>
+    <div data-scope="my-model">
+        <p data-scope="{{path-to.meta}}">{{author}}</p>
     </div>
 
 If <code>data-ctrl</code> is defined the model is passed to a controller. By
@@ -150,14 +150,14 @@ controller returns an object that object is used as scope.
 Sparky template tags will look familiar to anyone who has written a Django
 template. Sparky tags, however, perform live data binding.
 
-    <h1 data-model="my-model">{{ title }}</h1>
+    <h1 data-scope="my-model">{{ title }}</h1>
 
 The text in the <code>&lt;h1&gt;</code> is now updated whenever
 <code>my-model.title</code> changes.
 
 Tags also grok paths:
 
-    <h1 data-model="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
+    <h1 data-scope="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
 
 Sparky treats tags in the <code>class</code> attribute as individual tokens: it
 is safe to modify the <code>class</code> attribute outside of Sparky, as Sparky
@@ -167,7 +167,7 @@ avoids overwriting any new classes that have been added.
 
 Modify scope values with filters:
 
-    <h1 data-model="my-model" class="{{selected|yesno:'active','inactive'}}">
+    <h1 data-scope="my-model" class="{{selected|yesno:'active','inactive'}}">
         {{title|uppercase}}
     </h1>
 
@@ -177,7 +177,7 @@ More about <a href="#sparky-template-filters">filters</a>.
 
 A triple bracket tag updates from the scope once only.
 
-    <h1 data-model="my-model">{{{ title }}}</h1>
+    <h1 data-scope="my-model">{{{ title }}}</h1>
 
 These tags are updated once from the scope (in this case my-model), but they
 don't live bind to changes. If you know where you can do it, this can be good
@@ -189,7 +189,7 @@ By putting a Sparky tag in the <code>name</code> attribute, inputs, selects and
 textareas get 2-way data binding. When the scope changes, their values are
 updated, and when their values are changed, the scope is updated.
 
-    <form class="user-form" data-model="my-model">
+    <form class="user-form" data-scope="my-model">
         <input type="text" name="{{title}}" value="" />
     </form>
 
@@ -261,12 +261,12 @@ They're a bit special. They get two-way data binding.
 #### Loop over a collection
 
 Sparky has no special syntax for looping over a collection, but where
-<code>data-model</code> resolves to an array or array-like object
+<code>data-scope</code> resolves to an array or array-like object
 Sparky automatically loops over it, cloning the corresponding DOM node for all
 the items in the collection. So this...
 
     <ul>
-        <li data-model="contributors">
+        <li data-scope="contributors">
             <a href="{{url}}">{{name}}</a>
         </li>
     </ul>
@@ -472,7 +472,7 @@ associated JavaScript property <code>template.content</code>.
 
 Display the date, formatted:
 
-    <h1 class="language-{{lang}}" data-model="text">
+    <h1 class="language-{{lang}}" data-scope="text">
         {{title}}
         <time>{{date|date:'d M Y'}}</time>
     </h1>
@@ -534,7 +534,7 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
 <code>{% verbatim %}</code> tag:
 
     {% verbatim %}
-    <h1 class="language-{{lang}}" data-model="text">
+    <h1 class="language-{{lang}}" data-scope="text">
         {{title}}
         <time>{{date|date:'d M Y'}}</time>
     </h1>
@@ -551,7 +551,7 @@ It actually looks like this:
         <li>
             <a href="http://cruncher.ch">Marco</a>
         </li>
-        <!-- [Sparky] data-model="text.meta.contributors" -->
+        <!-- [Sparky] data-scope="text.meta.contributors" -->
     </ul>
 
 The comment node is added automatically and is required by Sparky to maintain
