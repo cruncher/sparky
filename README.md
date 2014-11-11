@@ -206,14 +206,14 @@ get and set numbers, and if the value attribute is not given
 <code>false</code>. (If the value attribute is given, the property must be a
 string matching the value attribute for the checkbox to be checked).
 
-To get and set other types, use one of Sparky's value controllers:
+To get and set other types, give the element one of Sparky's value controllers:
 
 - <code>value-string</code> gets and sets strings
 - <code>value-number</code> gets and sets numbers
 - <code>value-integer</code> gets and sets integer numbers, rounding if necessary
 - <code>value-boolean</code> gets and sets <code>true</code> or <code>false</code>
 - <code>value-number-inverted</code> gets and sets numbers, inverting the range between max and min
-- <code>value-boolean-inverted</code> gets and sets true or false, inverting the state of the input
+- <code>value-boolean-inverted</code> gets and sets <code>true</code> or <code>false</code>, inverting the state of the input
 - <code>value-any</code> gets any type, sets strings
 
 Here are some examples. Radio inputs that sets scope.property to <code>1</code> or <code>2</code>:
@@ -235,9 +235,6 @@ A checkbox that is checked when <code>scope.property === 3</code>:
 A range slider that sets scope.property as a string:
 
     <input type="range" data-ctrl="value-string" name="{{property}}" min="0" max="1" step="any" />
-
-You get the idea.
-
 
 #### attributes
 
