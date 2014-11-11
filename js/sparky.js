@@ -823,7 +823,7 @@ if (!Number.isNaN) {
 
 		remove: function() {
 			while (this.length--) {
-				removeNode(this[this.length]);
+				remove(this[this.length]);
 			}
 
 			return this;
@@ -933,7 +933,11 @@ if (!Number.isNaN) {
 		return template && template.cloneNode(true);
 	}
 
-	function removeNode(node) {
+	function tagName(node) {
+		return node.tagName.toLowerCase();
+	}
+
+	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
 
@@ -995,7 +999,7 @@ if (!Number.isNaN) {
 				i = model.indexOf(obj);
 
 				if (i === -1) {
-					removeNode(nodes[l]);
+					remove(nodes[l]);
 					sparkies[l].destroy();
 					sparky.off(sparkies[l]);
 				}
@@ -1039,7 +1043,7 @@ if (!Number.isNaN) {
 		insertBefore(endNode, node);
 
 		// Remove the node
-		removeNode(node);
+		remove(node);
 
 		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
@@ -1100,12 +1104,12 @@ if (!Number.isNaN) {
 				var comment = document.createComment(' [Sparky] data-model="' + modelName + '" ');
 				var setup = function setup(data) {
 				    	insertAfter(commentNode, node);
-				    	removeNode(commentNode);
+				    	remove(commentNode);
 				    	slaveSparky(sparky, Sparky(node, data));
 				    };
 
 				insertBefore(node, commentNode);
-				removeNode(node);
+				remove(node);
 
 				sparky.on('destroy', function destroy() {
 					Sparky.unobservePath(scope, path, setup);
