@@ -151,7 +151,7 @@
 			};
 		})(),
 
-		is: function(value, val, string1, string2) {
+		equals: function(value, val, string1, string2) {
 			return (value === val ? string1 : string2) || '';
 		},
 
