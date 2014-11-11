@@ -456,17 +456,10 @@ arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
 
 #### Sparky.getPath(object, path)
 
-Gets value from <code>path.to.value</code> inside <code>object</code>.
+Gets value from <code>'path.to.value'</code> inside <code>object</code>.
 
-    var object = {
-            path: {
-                to: {
-                    value: 3
-                }
-            }
-        };
-    
-    Sparky.getPath(object, 'path.to.value')  // Returns 3
+    var object = { path: { to: { value: 3 }}};
+    var value = Sparky.getPath(object, 'path.to.value')  // Returns 3
 
 If any object in the path does not exist, <code>getPath</code> returns <code>undefined</code>
 
