@@ -129,10 +129,6 @@
 			return Number.prototype.toFixed.call(value, n);
 		},
 
-		defined: function(value, str1, str2) {
-			return isDefined(value) ? str1 : str2 ;
-		},
-
 		// .default() can't work, because Sparky does not send undefined or null
 		// values to be filtered. 
 		//'default': function(value) {
