@@ -1902,8 +1902,6 @@ if (!Number.isNaN) {
 				var value = fn(Sparky.getPath(model, path));
 				var checked = node.value === value;
 
-				console.log('updateChecked', value, node.value);
-
 				// Don't set checked state if it already has that state, and
 				// certainly don't simulate a change event.
 				if (node.checked === checked) { return; }
@@ -1940,7 +1938,6 @@ if (!Number.isNaN) {
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				console.log('CHANGE', node.checked, node.value);
 				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
@@ -2073,15 +2070,15 @@ if (!Number.isNaN) {
 			undefined ;
 	}
 
-	function booleanToStringOn(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? 'on' : '' :
-			undefined ;
-	}
-
 	function booleanToStringInverted(value) {
 		return typeof value === 'boolean' ? !value + '' :
 			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
+	function booleanToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
 			undefined ;
 	}
 
@@ -2815,10 +2812,6 @@ if (!Number.isNaN) {
 		decimals: function(value, n) {
 			if (typeof value !== 'number') { return; }
 			return Number.prototype.toFixed.call(value, n);
-		},
-
-		defined: function(value, str1, str2) {
-			return isDefined(value) ? str1 : str2 ;
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null

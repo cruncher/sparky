@@ -663,15 +663,21 @@
 			undefined ;
 	}
 
+	function booleanToStringInverted(value) {
+		return typeof value === 'boolean' ? !value + '' :
+			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
 	function booleanToStringOn(value) {
 		return typeof value === 'boolean' || typeof value === 'number' ?
 			value ? 'on' : '' :
 			undefined ;
 	}
 
-	function booleanToStringInverted(value) {
-		return typeof value === 'boolean' ? !value + '' :
-			typeof value === 'number' ? !value + '' :
+	function booleanToStringOnInverted(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? '' : 'on' :
 			undefined ;
 	}
 
