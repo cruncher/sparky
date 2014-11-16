@@ -1900,7 +1900,15 @@ if (!Number.isNaN) {
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
 				var value = fn(Sparky.getPath(model, path));
-				node.checked = node.value === value;
+				var checked = node.value === value;
+
+				console.log('updateChecked', value, node.value);
+
+				// Don't set checked state if it already has that state, and
+				// certainly don't simulate a change event.
+				if (node.checked === checked) { return; }
+
+				node.checked = checked;
 				node.dispatchEvent(changeEvent);
 			} :
 			function updateValue() {
@@ -1910,7 +1918,7 @@ if (!Number.isNaN) {
 					// Check against the current value - resetting the same
 					// string causes the cursor to jump in inputs, and we dont
 					// want to send a change event where nothing changed.
-					if (value === node.value) { return; }
+					if (node.value === value) { return; }
 
 					node.value = value;
 				}
@@ -1932,6 +1940,7 @@ if (!Number.isNaN) {
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
+				console.log('CHANGE', node.checked, node.value);
 				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
@@ -2031,12 +2040,16 @@ if (!Number.isNaN) {
 			!!value ;
 	}
 
+	function stringToBooleanInverted(value) {
+		return !stringToBoolean(value);
+	}
+
 	function stringOnToBoolean(value) {
 		return value === 'on' ;
 	}
 
-	function stringToBooleanInverted(value) {
-		return !stringToBoolean(value);
+	function stringOnToBooleanInverted(value) {
+		return value !== 'on';
 	}
 
 	function definedToString(value) {
@@ -2072,6 +2085,12 @@ if (!Number.isNaN) {
 			undefined ;
 	}
 
+	function booleanToStringOnInverted(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? '' : 'on' :
+			undefined ;
+	}
+
 	function valueAnyCtrl(node, model) {
 		// Coerce any defined value to string so that any values pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
@@ -2095,12 +2114,18 @@ if (!Number.isNaN) {
 	}
 
 	function valueBooleanCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean);
+		var type = node.type;
+		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOn, stringOnToBoolean) :
+		    	Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean) ;
 		this.on('destroy', unbind);
 	}
 
 	function valueBooleanInvertCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
+		var type = node.type;
+		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOnInverted, stringOnToBooleanInverted) :
+		    	Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
 		this.on('destroy', unbind);
 	}
 
