@@ -42,7 +42,7 @@
 		},
 
 		remove: function() {
-			while (this.length--) {
+			while (this.length-- > 0) {
 				remove(this[this.length]);
 			}
 
