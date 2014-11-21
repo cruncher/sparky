@@ -274,11 +274,12 @@
 
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
-		classList.add.apply(classList, );
+		classList.add.apply(classList, classes);
 	}
 
 	function removeClasses(classList, text) {
-		classList.remove.apply(classList, text.trim().split(rspaces));
+		var classes = text.trim().split(rspaces);
+		classList.remove.apply(classList, classes);
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
