@@ -50,6 +50,9 @@
 	// Matches anything with a space
 	var rspaces = /\s+/;
 
+	// Matches anything that contains a non-space character
+	var rtext = /\S/;
+
 	var filterCache = {};
 
 	var binders = {
@@ -270,7 +273,8 @@
 	}
 
 	function addClasses(classList, text) {
-		classList.add.apply(classList, text.trim().split(rspaces));
+		var classes = text.trim().split(rspaces);
+		classList.add.apply(classList, );
 	}
 
 	function removeClasses(classList, text) {
@@ -300,8 +304,8 @@
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = getClassList(node);
 		var update = function update(newText, oldText) {
-		    	if (oldText) { removeClasses(classList, oldText); }
-		    	if (newText) { addClasses(classList, newText); }
+		    	if (rtext.test(oldText)) { removeClasses(classList, oldText); }
+		    	if (rtext.test(newText)) { addClasses(classList, newText); }
 		    };
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
