@@ -304,8 +304,8 @@
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = getClassList(node);
 		var update = function update(newText, oldText) {
-		    	if (rtext.test(oldText)) { removeClasses(classList, oldText); }
-		    	if (rtext.test(newText)) { addClasses(classList, newText); }
+		    	if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
+		    	if (newText && rtext.test(newText)) { addClasses(classList, newText); }
 		    };
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
