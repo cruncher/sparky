@@ -363,6 +363,10 @@
 				value ;
 		},
 
+		type: function(value) {
+			return typeof value;
+		},
+
 		//truncatewords
 		//truncatewords_html
 		//unique
