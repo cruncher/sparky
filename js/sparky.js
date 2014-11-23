@@ -813,6 +813,8 @@ if (!Number.isNaN) {
 
 		reset: function() {},
 
+		unbind: noop,
+
 		destroy: function destroy() {
 			return this
 				.unbind()
@@ -849,6 +851,10 @@ if (!Number.isNaN) {
 
 	// Object helpers
 
+	function copy(array1, array2) {
+		Array.prototype.push.apply(array2, array1);
+	}
+
 	function extend(obj) {
 		var i = 0,
 		    length = arguments.length,
@@ -865,10 +871,6 @@ if (!Number.isNaN) {
 		}
 
 		return obj;
-	}
-
-	function copy(array1, array2) {
-		Array.prototype.push.apply(array2, array1);
 	}
 
 
@@ -890,8 +892,8 @@ if (!Number.isNaN) {
 
 	// DOM helpers
 
-	function append(parent, child) {
-		parent.appendChild(child);
+	function append(parent, node) {
+		parent.appendChild(node);
 		return parent;
 	}
 	
@@ -3051,6 +3053,10 @@ if (!Number.isNaN) {
 			return value.length > n ?
 				value.length.slice(0, n) + '&hellips;' :
 				value ;
+		},
+
+		type: function(value) {
+			return typeof value;
 		},
 
 		//truncatewords
