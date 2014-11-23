@@ -33,6 +33,8 @@
 
 		reset: function() {},
 
+		unbind: noop,
+
 		destroy: function destroy() {
 			return this
 				.unbind()
@@ -69,6 +71,10 @@
 
 	// Object helpers
 
+	function copy(array1, array2) {
+		Array.prototype.push.apply(array2, array1);
+	}
+
 	function extend(obj) {
 		var i = 0,
 		    length = arguments.length,
@@ -85,10 +91,6 @@
 		}
 
 		return obj;
-	}
-
-	function copy(array1, array2) {
-		Array.prototype.push.apply(array2, array1);
 	}
 
 
@@ -110,8 +112,8 @@
 
 	// DOM helpers
 
-	function append(parent, child) {
-		parent.appendChild(child);
+	function append(parent, node) {
+		parent.appendChild(node);
 		return parent;
 	}
 	
