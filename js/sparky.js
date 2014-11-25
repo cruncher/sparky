@@ -1733,23 +1733,18 @@ if (!Number.isNaN) {
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
 		var isSVG = node instanceof SVGElement;
-		var alias = isSVG ?
-		    	node.getAttributeNS(Sparky.xlink, 'data-' + attribute) :
-		    	node.getAttribute('data-' + attribute) ;
-		var isAliased = isDefined(alias);
-		var value = isAliased ?
-		    	alias :
-		    	isSVG ?
-		    		node.getAttributeNS(Sparky.xlink, attribute) :
+		var alias = node.getAttribute('data-' + attribute) ;
+		var value = alias ? alias : isSVG ?
+		    		node.getAttributeNS(Sparky.xlink, attribute) || node.getAttribute(attribute) :
 		    		node.getAttribute(attribute) ;
 
 		if (!value) { return; }
-		if (isAliased) { node.removeAttribute('data-' + attribute); }
+		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
 
 		var update = isSVG ?
-			setAttributeSVG.bind(this, node, attribute) :
-			setAttributeHTML.bind(this, node, attribute) ;
+		    	setAttributeSVG.bind(this, node, attribute) :
+		    	setAttributeHTML.bind(this, node, attribute) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
