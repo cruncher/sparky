@@ -324,12 +324,18 @@
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
 		var isSVG = node instanceof SVGElement;
-		var alias = attribute === 'style' ? 'data-style' : attribute ;
-		var value = isSVG ?
-		    	node.getAttributeNS(Sparky.xlink, attribute) :
-		    	node.getAttribute(attribute) ;
+		var alias = isSVG ?
+		    	node.getAttributeNS(Sparky.xlink, 'data-' + attribute) :
+		    	node.getAttribute('data-' + attribute) ;
+		var isAliased = isDefined(alias);
+		var value = isAliased ?
+		    	alias :
+		    	isSVG ?
+		    		node.getAttributeNS(Sparky.xlink, attribute) :
+		    		node.getAttribute(attribute) ;
 
 		if (!value) { return; }
+		if (isAliased) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
 
 		var update = isSVG ?
@@ -337,6 +343,10 @@
 			setAttributeHTML.bind(this, node, attribute) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
+	}
+
+	function getAttribute() {
+		
 	}
 
 	function toFilter(filter) {
