@@ -64,10 +64,12 @@
 
 	<div class="{{a}} {{b|yesno:'checked',''}}" data-scope="object">Classes</div-->
 
-	<input type="range" data-ctrl="value-number-pow-3" data-scope="dummy" name="{{c}}" step="any" />
+	<!--input type="range" data-ctrl="value-number-pow-3" data-scope="dummy" name="{{c}}" step="any" />
 	<output data-scope="dummy">{{c}}</output>
 
-	<div class="{{a.b.c|yesno:'checked',''}}" data-scope="object">{{a.b.c}}</div>
+	<div class="{{a.b.c|yesno:'checked',''}}" data-scope="object">{{a.b.c}}</div-->
+
+	<div data-scope="object" class="hello" data-style="width: {{width}}%; height: 3rem;" id="style-test">Hello</div>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -99,11 +101,12 @@
 	"use strict";
 
 	Sparky.data.object = {
-		a: 0
+		a: 0,
 		//c: '',
 		//data: {
 		//	name: 'Sparky'
 		//}
+		width: 50
 	};
 
 	Sparky.data['dummy']   = {};
