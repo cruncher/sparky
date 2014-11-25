@@ -1733,6 +1733,7 @@ if (!Number.isNaN) {
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
 		var isSVG = node instanceof SVGElement;
+		var alias = attribute === 'style' ? 'data-style' : attribute ;
 		var value = isSVG ?
 		    	node.getAttributeNS(Sparky.xlink, attribute) :
 		    	node.getAttribute(attribute) ;
