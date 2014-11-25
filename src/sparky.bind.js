@@ -330,8 +330,8 @@
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 		var value = alias ? alias : isSVG ?
-		    		node.getAttributeNS(Sparky.xlink, attribute) || node.getAttribute(attribute) :
-		    		node.getAttribute(attribute) ;
+		    	node.getAttributeNS(Sparky.xlink, attribute) || node.getAttribute(attribute) :
+		    	node.getAttribute(attribute) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
