@@ -326,7 +326,7 @@
 		var isSVG = node instanceof SVGElement;
 
 		// Look for data- aliased attributes before attributes. This is
-		// particularly important for the style attribute IE, as it does not
+		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 		var value = alias ? alias : isSVG ?
