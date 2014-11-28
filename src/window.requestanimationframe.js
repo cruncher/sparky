@@ -12,9 +12,9 @@
 
 	if (!window.requestAnimationFrame) {
 		window.requestAnimationFrame = function(callback, element) {
-			var currTime = new Date().getTime();
-			var lastTime = frameDuration * (currTime % frameDuration);
-			var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
+			var currTime = +new Date();
+			var nextTime = frameDuration - (currTime % frameDuration);
+			var id = window.setTimeout(function() { callback(nextTime); }, nextTime);
 			return id;
 		};
 	}

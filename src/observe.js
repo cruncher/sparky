@@ -74,7 +74,7 @@
 	
 	function observe(obj, prop, fn) {
 		var args, key;
-		
+
 		// Overload observe to handle observing all properties with
 		// the function signature observe(obj, fn).
 		if (toString.call(prop) === '[object Function]') {

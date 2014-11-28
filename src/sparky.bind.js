@@ -460,7 +460,7 @@
 		});
 
 		// Return a function that destroys live bindings
-		return function() {
+		return function destroyBinding() {
 			properties.forEach(function detach(property) {
 				// Unobserve properties
 				unbind(property, throttle);
