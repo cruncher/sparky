@@ -30,9 +30,9 @@
 
 	if (!window.requestAnimationFrame) {
 		window.requestAnimationFrame = function(callback, element) {
-			var currTime = new Date().getTime();
-			var lastTime = frameDuration * (currTime % frameDuration);
-			var id = window.setTimeout(function() { callback(lastTime + frameDuration); }, lastTime + frameDuration - currTime);
+			var currTime = +new Date();
+			var nextTime = frameDuration - (currTime % frameDuration);
+			var id = window.setTimeout(function() { callback(nextTime); }, nextTime);
 			return id;
 		};
 	}
@@ -409,7 +409,7 @@ if (!Number.isNaN) {
 	
 	function observe(obj, prop, fn) {
 		var args, key;
-		
+
 		// Overload observe to handle observing all properties with
 		// the function signature observe(obj, fn).
 		if (toString.call(prop) === '[object Function]') {
@@ -1735,7 +1735,7 @@ if (!Number.isNaN) {
 		var isSVG = node instanceof SVGElement;
 
 		// Look for data- aliased attributes before attributes. This is
-		// particularly important for the style attribute IE, as it does not
+		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 		var value = alias ? alias : isSVG ?
@@ -1869,7 +1869,7 @@ if (!Number.isNaN) {
 		});
 
 		// Return a function that destroys live bindings
-		return function() {
+		return function destroyBinding() {
 			properties.forEach(function detach(property) {
 				// Unobserve properties
 				unbind(property, throttle);
