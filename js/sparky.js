@@ -2931,7 +2931,8 @@ if (!Number.isNaN) {
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
-			if (settings.plurals.indexOf(value) !== -1) { return ''; }
+			if (!value) { return; }
+			if (settings.plurals.indexOf(value.toLowerCase()) !== -1) { return ''; }
 
 			str1 = str1 || '';
 			str2 = str2 || 's';
