@@ -2979,6 +2979,7 @@ if (!Number.isNaN) {
 		//removetags
 		
 		replace: function(value, str1, str2) {
+			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
 		},
 		
