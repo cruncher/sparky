@@ -539,7 +539,7 @@
 
 	function makeChangeListener(node, model, path, fn) {
 		var type = node.type;
-		
+
 		return type === 'radio' ? function radioChange(e) {
 				if (node.checked) {
 					Sparky.setPath(model, path, fn(node.value));

@@ -24,12 +24,15 @@
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			return denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			console.log('to  ', denormalise(pow(normalise(value, min, max), 1/2), min, max));
+			var n = denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			return n + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
+			console.log('from', denormalise(pow(normalise(n, min, max), 2), min, max));
 			return denormalise(pow(normalise(n, min, max), 2), min, max);
 		}
 
@@ -70,7 +73,7 @@
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return n;
+			return n + '';
 		}
 
 		function from(value) {
