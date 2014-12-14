@@ -243,9 +243,7 @@
 		//pprint
 
 		prepad: function(value, n, char) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 
 			// String is longer then padding: let it through unprocessed
@@ -258,9 +256,7 @@
 		},
 
 		postpad: function(value, n) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 			var m = parseInt(n, 10);
 

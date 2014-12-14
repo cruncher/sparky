@@ -24,7 +24,6 @@
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			console.log('to  ', denormalise(pow(normalise(value, min, max), 1/2), min, max));
 			var n = denormalise(pow(normalise(value, min, max), 1/2), min, max);
 			return n + '';
 		}
@@ -32,7 +31,6 @@
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
-			console.log('from', denormalise(pow(normalise(n, min, max), 2), min, max));
 			return denormalise(pow(normalise(n, min, max), 2), min, max);
 		}
 

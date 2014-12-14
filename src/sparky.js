@@ -142,16 +142,12 @@
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
+		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
 		return node && getTemplateContent(node);
 	}
 
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
-		
-		if (Sparky.debug && !template) {
-			console.warn('Sparky: template #' + id + ' not found.');
-		}
-
 		return template && template.cloneNode(true);
 	}
 
