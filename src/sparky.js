@@ -368,8 +368,10 @@
 			insert = noop;
 		}
 
-		function get(property) {
-			return Sparky.getPath(scope, property);
+		function get(path) {
+			return path === '.' ?
+				scope :
+				Sparky.getPath(scope, path) ;
 		}
 
 		function set(property, value) {
