@@ -753,10 +753,10 @@
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
+		'value-number-integer': valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl,
-		'value-integer':        valueIntegerCtrl
+		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 
 	Sparky.getClassList = getClassList;
