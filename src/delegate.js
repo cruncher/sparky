@@ -18,34 +18,33 @@
 			node.oMatchesSelector ? node.oMatchesSelector(selector) :
 			node.tagName.toLowerCase() === selector ;
 	}
-	
-	function closest(node, root, selector) {
+
+	function closest(node, selector, root) {
 		if (node.correspondingUseElement) {
 			// SVG <use> elements store their DOM reference in
 			// .correspondingUseElement.
 			node = node.correspondingUseElement;
 		}
-		
-		if (node === root) { return; }
-		
+
+		if (node === root || node === document) { return; }
 		if (matches(node, selector)) { return node; }
-		
-		return closest(node.parentNode, root, selector);
+
+		return closest(node.parentNode, selector, root);
 	}
-	
+
 	function delegate(selector, fn) {
 		// Create an event handler that looks up the ancestor tree
 		// to find selector.
-		
-		return function(e) {
-			var node = closest(e.target, e.currentTarget, selector);
-			
+		return function handler(e) {
+			var node = closest(e.target, selector, e.currentTarget);
+
 			if (!node) { return; }
-			
+
 			e.delegateTarget = node;
 			return fn(e);
 		};
 	}
-	
+
+	ns.closest = closest;
 	ns.delegate = delegate;
 })(window);
