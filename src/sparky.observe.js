@@ -174,12 +174,11 @@
 			objTo(root, array, obj);
 	}
 
-	Sparky.getPath = getPath;
-	Sparky.setPath = setPath;
+	Sparky.get = getPath;
+	Sparky.set = setPath;
 	Sparky.observePath = observePath;
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
-
 
 	// Binding
 

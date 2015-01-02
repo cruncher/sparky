@@ -174,7 +174,7 @@
 		
 		return path === '.' ?
 			obj :
-			Sparky.getPath(obj, path) ;
+			Sparky.get(obj, path) ;
 	}
 
 	// Sparky - the meat and potatoes
@@ -371,11 +371,11 @@
 		function get(path) {
 			return path === '.' ?
 				scope :
-				Sparky.getPath(scope, path) ;
+				Sparky.get(scope, path) ;
 		}
 
 		function set(property, value) {
-			Sparky.setPath(scope, property, value);
+			Sparky.set(scope, property, value);
 		}
 
 		function create(node) {
