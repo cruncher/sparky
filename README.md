@@ -95,10 +95,10 @@ You can find controllers by logging <code>Sparky.ctrl</code>.
 Controllers are simply functions that are called when Sparky scans this node.
 The return value of the controller is used as scope for the template to bind
 to, unless that value is <code>undefined</code>, in which case scope defaults
-to the model.
+to the current scope.
 
 More than one controller can be defined. They are run in order. The return value
-of the last controller is used as scope.
+of the previous controller is past to current controller as scope.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
         Today is {{day}}.
