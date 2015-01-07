@@ -98,7 +98,7 @@ to, unless that value is <code>undefined</code>, in which case scope defaults
 to the current scope.
 
 More than one controller can be defined. They are run in order. The return value
-of the previous controller is past to current controller as scope.
+of a controller is passed to the next as <code>scope</code>.
 
     <div data-ctrl="my-ctrl-1 my-ctrl-2">
         Today is {{day}}.
