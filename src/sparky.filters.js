@@ -56,7 +56,7 @@
 		},
 
 		capfirst: function(value) {
-			return value.charAt(0).toUpperCase() + string.substring(1);
+			return value.charAt(0).toUpperCase() + value.substring(1);
 		},
 
 		cut: function(value, string) {
@@ -229,7 +229,8 @@
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
-			if (settings.plurals.indexOf(value) !== -1) { return ''; }
+			if (!value) { return; }
+			if (settings.plurals.indexOf(value.toLowerCase()) !== -1) { return ''; }
 
 			str1 = str1 || '';
 			str2 = str2 || 's';
@@ -242,9 +243,7 @@
 		//pprint
 
 		prepad: function(value, n, char) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 
 			// String is longer then padding: let it through unprocessed
@@ -257,9 +256,7 @@
 		},
 
 		postpad: function(value, n) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 			var m = parseInt(n, 10);
 
@@ -276,6 +273,7 @@
 		//removetags
 		
 		replace: function(value, str1, str2) {
+			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
 		},
 		

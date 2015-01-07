@@ -73,13 +73,13 @@
 		}
 	}
 
-	function findByObject(collection, object) {
-		var i = collection.indexOf(object);
-		
-		if (i === -1) { return; }
-		
-		return collection[i];
-	}
+//	function findByObject(collection, object) {
+//		var i = collection.indexOf(object);
+//		
+//		if (i === -1) { return; }
+//		
+//		return collection[i];
+//	}
 
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
@@ -171,13 +171,9 @@
 		find: function(obj) {
 			var index = this.index;
 
-			return !isDefined(obj) ?
-					undefined :
-				typeof obj === 'string' || typeof obj === 'number' ?
-					findByIndex(this, obj) :
-				isDefined(obj[index]) ?
-					findByIndex(this, obj[index]) :
-					findByObject(this, obj) ;
+			return typeof obj === 'string' || typeof obj === 'number' || obj === undefined ?
+				findByIndex(this, obj) :
+				findByIndex(this, obj[index]) ;
 		},
 
 		contains: function(object) {

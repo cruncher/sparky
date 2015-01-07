@@ -142,16 +142,12 @@
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
+		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
 		return node && getTemplateContent(node);
 	}
 
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
-		
-		if (Sparky.debug && !template) {
-			console.warn('Sparky: template #' + id + ' not found.');
-		}
-
 		return template && template.cloneNode(true);
 	}
 
@@ -178,7 +174,7 @@
 		
 		return path === '.' ?
 			obj :
-			Sparky.getPath(obj, path) ;
+			Sparky.get(obj, path) ;
 	}
 
 	// Sparky - the meat and potatoes
@@ -372,12 +368,14 @@
 			insert = noop;
 		}
 
-		function get(property) {
-			return Sparky.getPath(scope, property);
+		function get(path) {
+			return path === '.' ?
+				scope :
+				Sparky.get(scope, path) ;
 		}
 
 		function set(property, value) {
-			Sparky.setPath(scope, property, value);
+			Sparky.set(scope, property, value);
 		}
 
 		function create(node) {

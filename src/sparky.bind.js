@@ -507,7 +507,7 @@
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
-				var value = fn(Sparky.getPath(model, path));
+				var value = fn(Sparky.get(model, path));
 				var checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
@@ -518,7 +518,7 @@
 				node.dispatchEvent(changeEvent);
 			} :
 			function updateValue() {
-				var value = fn(Sparky.getPath(model, path));
+				var value = fn(Sparky.get(model, path));
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -539,17 +539,17 @@
 
 	function makeChangeListener(node, model, path, fn) {
 		var type = node.type;
-		
+
 		return type === 'radio' ? function radioChange(e) {
 				if (node.checked) {
-					Sparky.setPath(model, path, fn(node.value));
+					Sparky.set(model, path, fn(node.value));
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
+				Sparky.set(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
-				Sparky.setPath(model, path, fn(node.value));
+				Sparky.set(model, path, fn(node.value));
 			} ;
 	}
 
@@ -571,7 +571,7 @@
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(Sparky.getPath(model, path))) {
+			if (!isDefined(Sparky.get(model, path))) {
 				change();
 			}
 
@@ -753,10 +753,10 @@
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
+		'value-number-integer': valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl,
-		'value-integer':        valueIntegerCtrl
+		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 
 	Sparky.getClassList = getClassList;

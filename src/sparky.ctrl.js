@@ -24,7 +24,8 @@
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			return denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			var n = denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			return n + '';
 		}
 
 		function from(value) {
@@ -70,7 +71,7 @@
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return n;
+			return n + '';
 		}
 
 		function from(value) {

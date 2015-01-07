@@ -454,7 +454,7 @@ arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
 
 #### Sparky.unobservePath(object, path, fn)
 
-#### Sparky.getPath(object, path)
+#### Sparky.get(object, path)
 
 Gets value from <code>'path.to.value'</code> inside <code>object</code>.
 
@@ -463,7 +463,7 @@ Gets value from <code>'path.to.value'</code> inside <code>object</code>.
 
 If any object in the path does not exist, <code>getPath</code> returns <code>undefined</code>
 
-#### Sparky.setPath(object, path, value)
+#### Sparky.set(object, path, value)
 
 #### Sparky.template(id)
 
