@@ -5,6 +5,9 @@
 	"use strict";
 
 	var debug = false;
+	var defualts = {
+	    	index: 'id'
+	    };
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
@@ -247,19 +250,18 @@
 		}
 	};
 
-	function Collection(data, index) {
+	function Collection(data, options) {
+		var settings = extend({}, defaults, options);
 		var collection = Object.create(prototype, properties);
 
-		index = index || 'id';
-
 		function byIndex(a, b) {
-			return a[index] > b[index] ? 1 : -1 ;
+			return a[settings.index] > b[settings.index] ? 1 : -1 ;
 		}
 
 		Object.defineProperties(collection, {
 			// Define the name of the property that will be used to sort and
 			// index this collection.
-			index: { value: index }
+			index: { value: settings.index }
 		});
 
 		if (data === undefined) {
