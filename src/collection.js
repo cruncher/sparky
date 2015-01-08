@@ -5,7 +5,7 @@
 	"use strict";
 
 	var debug = false;
-	var defualts = {
+	var defaults = {
 	    	index: 'id'
 	    };
 
