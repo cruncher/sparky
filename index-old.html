@@ -60,7 +60,7 @@
 	
 	<p>Changes cause this unrendered template to update...</p>
 
-	<div class="sparky-block state-{{ state }}" data-data="data" id="template1">
+	<div class="sparky-block state-{{ state }}" data-scope="data" id="template1">
 		<p>Hello {{ name }}.</p>
 		<p>It's {{ date | date: 'H:i' }} on the {{ date | date: 'dS F'}}.</p>
 		<p>{{ list | join: '...' }}</p>
@@ -87,7 +87,7 @@
 		</table>
 	</div>
 	
-	<p>All that was done by adding the attribute <code>data-data="data"</code></p>
+	<p>All that was done by adding the attribute <code>data-scope="data"</code></p>
 	
 	<h2>But... I don't want to render directly from a data model.</h2>
 	
@@ -97,19 +97,19 @@
 		Here's a view function for a clock that updates every second.
 	</p>
 	
-	<pre data-view="code" data-source="clock-source"></pre>
+	<pre data-ctrl="code" data-source="clock-source"></pre>
 
-	<p>Add the attribute <code>data-view="clock"</code> to a node, and Sparky calls this view function, passing in the node as the first argument.</p>
+	<p>Add the attribute <code>data-ctrl="clock"</code> to a node, and Sparky calls this view function, passing in the node as the first argument.</p>
 
-	<div class="sparky-block block" data-view="clock" data-data="data" id="template2">
+	<div class="sparky-block block" data-ctrl="clock" data-scope="data" id="template2">
 		<p>{{ time | date: 'H:i.s' }}</p>
 	</div>
 
 	<p>
 		That view function is passed the node and the data object.
-		The <code>data</code> object is found at the path in the <code>data-data="path.to.data"</code> attribute.
+		The <code>data</code> object is found at the path in the <code>data-scope="path.to.data"</code> attribute.
 		This is where you put your data 'model': <code>sparky.data.path.to.data = {};</code>
-		If <code>data-data=""</code> is an emtpy string, the root data object, <code>sparky.data</code>, is returned.
+		If <code>data-scope=""</code> is an emtpy string, the root data object, <code>sparky.data</code>, is returned.
 		If nothing is found, or where there is no <code>data-data</code> attribute, the data object is undefined.
 	</p>
 </div>
@@ -181,18 +181,18 @@ Sparky.ctrl.clock = function(node, data) {
 
 <div class="n3-col-block col-block block">
 	<div class="html-block block">
-		<pre class="html-code" data-view="code" data-source="weather-html"></pre>
+		<pre class="html-code" data-ctrl="code" data-source="weather-html"></pre>
 	</div
 	><div class="js-block block">
-		<pre class="js-code run-code" data-view="run">
+		<pre class="js-code run-code" data-ctrl="run">
 jQuery.extend(sparky.data.weather, {
 	feel: 'cold',
 	date: new Date(),
 	url: 'images/rowan.jpg',
 	description: 'Rowan berries in the snow.'
 });</pre>
-		<pre class="js-code run-code" data-view="run">sparky.data.weather.feel = 'very chilly';</pre>
-		<pre class="js-code run-code" data-view="run">
+		<pre class="js-code run-code" data-ctrl="run">sparky.data.weather.feel = 'very chilly';</pre>
+		<pre class="js-code run-code" data-ctrl="run">
 jQuery.extend(sparky.data.weather, {
 	feel: 'toasty',
 	url: 'images/guesswhere.jpg',
@@ -200,7 +200,7 @@ jQuery.extend(sparky.data.weather, {
 });</pre>
 	</div
 	><div class="view-block block" id="weather-html">
-<div data-data="weather" data-template="weather-template" >
+<div data-scope="weather" data-template="weather-template" >
 	<p>Loading...</p>
 </div>
 
@@ -223,18 +223,18 @@ jQuery.extend(sparky.data.weather, {
 
 <div class="n3-col-block col-block block">
 	<div class="html-block block">
-		<pre class="html-code" data-view="code" data-source="weather2-html"></pre>
+		<pre class="html-code" data-ctrl="code" data-source="weather2-html"></pre>
 	</div
 	><div class="js-block block">
-		<pre class="js-code run-code" data-view="run">
+		<pre class="js-code run-code" data-ctrl="run">
 jQuery.extend(sparky.data.weather2, {
 	feel: 'cold',
 	date: new Date(),
 	url: 'images/rowan.jpg',
 	description: 'Rowan berries in the snow.'
 });</pre>
-		<pre class="js-code run-code" data-view="run">sparky.data.weather2.feel = 'very chilly';</pre>
-		<pre class="js-code run-code" data-view="run">
+		<pre class="js-code run-code" data-ctrl="run">sparky.data.weather2.feel = 'very chilly';</pre>
+		<pre class="js-code run-code" data-ctrl="run">
 jQuery.extend(sparky.data.weather2, {
 	feel: 'toasty',
 	url: 'images/guesswhere.jpg',
@@ -242,7 +242,7 @@ jQuery.extend(sparky.data.weather2, {
 });</pre>
 	</div
 	><div class="view-block block" id="weather2-html">
-<div data-data="weather2" data-template="weather-template" >
+<div data-scope="weather2" data-template="weather-template" >
 	<p>It's the 27th October and it's cold outside.</p>
 	<img src="images/rowan.jpg" alt="Rowan berries in the snow." />
 </div>
