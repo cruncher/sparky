@@ -102,13 +102,13 @@ module('Sparky:collections', function(fixture) {
 
 	asyncTest("Detach collection items", function(assert) {
 		expect(5);
-		
+
 		var collection = Sparky.Collection([{
 		    	property: 1
 		    }, {
 		    	property: 2
 		    }]);
-		
+
 		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
 			return {
 				collection: collection
