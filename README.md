@@ -88,62 +88,60 @@ are optional.
 The <code>data-ctrl</code> attribute defines which controller(s) to run when
 sparky binds this element.
 
-    <div data-ctrl="my-ctrl">{{day}}</div>
+    <form data-ctrl="validate-on-submit">{{day}}</form>
 
 You can find controllers by logging <code>Sparky.ctrl</code>.
 
 Controllers are simply functions that are called when Sparky scans this node.
+
+    Sparky.ctrl['validate-on-submit'] = function validateCtrl(node, scope) {
+        node.addEventListener('submit', function(e) {
+            // TODO: Validate the form node
+            e.preventDefault();
+        });
+    };
+
 The return value of the controller is used as scope for the template to bind
 to, unless that value is <code>undefined</code>, in which case scope defaults
-to the model.
+to the current scope.
 
 More than one controller can be defined. They are run in order. The return value
-of the last controller is used as scope.
+of one controller is passed to the next as the <code>scope</code> argument.
 
-    <div data-ctrl="my-ctrl-1 my-ctrl-2">
-        Today is {{day}}.
-    </div>
+    <form data-ctrl="my-app-scope validate-on-submit">
+        <input type="range" name="{{volume}}" min="0" max="11" data-ctrl="value-number-pow-3" />
+        <output>{{volume|decibels}}dB</output>
+    </form>
 
 <a href="#define-a-controller-function">Define a controller function</a>.
 
 #### The data-scope attribute
 
-The <code>data-scope</code> attribute names a model object in
-<code>Sparky.data</code> to use as scope.
+The <code>data-scope</code> attribute describes a path to an object in the
+current scope to use as scope to render this node, in dot notation.
 
-    <div data-scope="my-model">
+    <div data-scope="{{path.to.object}}">
         <h1>{{title}}</h1>
     </div>
 
-    Sparky.data['my-model'] = {
-        "title": "Splodge",
-        "lang": "en",
-        "path-to": {
-            "meta": {
-                "author": "Sparky",
-                "word-count": 1,
-                "url": 'http://'
-            }
-        }
+Without the <code>{{}}</code> brackets, <code>data-scope</code> is a path
+to an object in <code>Sparky.data</code>.
+
+    Sparky.data['my-app'] = {
+        author: { name: 'Nigel' }
     };
 
-The <code>data-scope</code> attribute understands absolute paths to models
-inside <code>Sparky.data</code> written in dot notation:
-
-    <p data-scope="text.path-to.meta">author: {{author}}, words: {{word-count}}</p>
-
-Yes, it's fine with property names with a '-' in them.
-It also understands relative paths to models in the current scope, when wrapped in a tag:
-
-    <div data-scope="my-model">
-        <p data-scope="{{path-to.meta}}">{{author}}</p>
+    <div data-scope="my-app.author">
+        <h1>{{name}}</h1>
     </div>
 
-If <code>data-ctrl</code> is defined the model is passed to a controller. By
-default, the model is used as scope to update the template, but if the
-controller returns an object that object is used as scope.
+It's ok to write paths that have an '-' in their property names.
 
-<a href="#define-a-model-object">Define a model object</a>.
+If <code>data-ctrl</code> is defined the scope is passed to a controller.
+
+Where <code>data-scope</code> resolves to an array or array-like object such as
+a <code>Sparky.Collection()</code>, the node is cloned for each item in the
+collection and controllers called on each new node.
 
 #### {{tag}}
 

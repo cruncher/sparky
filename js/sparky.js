@@ -470,6 +470,9 @@ if (!Number.isNaN) {
 	"use strict";
 
 	var debug = false;
+	var defaults = {
+	    	index: 'id'
+	    };
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
@@ -538,13 +541,13 @@ if (!Number.isNaN) {
 		}
 	}
 
-	function findByObject(collection, object) {
-		var i = collection.indexOf(object);
-		
-		if (i === -1) { return; }
-		
-		return collection[i];
-	}
+//	function findByObject(collection, object) {
+//		var i = collection.indexOf(object);
+//		
+//		if (i === -1) { return; }
+//		
+//		return collection[i];
+//	}
 
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
@@ -636,13 +639,9 @@ if (!Number.isNaN) {
 		find: function(obj) {
 			var index = this.index;
 
-			return !isDefined(obj) ?
-					undefined :
-				typeof obj === 'string' || typeof obj === 'number' ?
-					findByIndex(this, obj) :
-				isDefined(obj[index]) ?
-					findByIndex(this, obj[index]) :
-					findByObject(this, obj) ;
+			return typeof obj === 'string' || typeof obj === 'number' || obj === undefined ?
+				findByIndex(this, obj) :
+				findByIndex(this, obj[index]) ;
 		},
 
 		contains: function(object) {
@@ -716,19 +715,18 @@ if (!Number.isNaN) {
 		}
 	};
 
-	function Collection(data, index) {
+	function Collection(data, options) {
+		var settings = extend({}, defaults, options);
 		var collection = Object.create(prototype, properties);
 
-		index = index || 'id';
-
 		function byIndex(a, b) {
-			return a[index] > b[index] ? 1 : -1 ;
+			return a[settings.index] > b[settings.index] ? 1 : -1 ;
 		}
 
 		Object.defineProperties(collection, {
 			// Define the name of the property that will be used to sort and
 			// index this collection.
-			index: { value: index }
+			index: { value: settings.index }
 		});
 
 		if (data === undefined) {
@@ -922,16 +920,12 @@ if (!Number.isNaN) {
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
+		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
 		return node && getTemplateContent(node);
 	}
 
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
-		
-		if (Sparky.debug && !template) {
-			console.warn('Sparky: template #' + id + ' not found.');
-		}
-
 		return template && template.cloneNode(true);
 	}
 
@@ -958,7 +952,7 @@ if (!Number.isNaN) {
 		
 		return path === '.' ?
 			obj :
-			Sparky.getPath(obj, path) ;
+			Sparky.get(obj, path) ;
 	}
 
 	// Sparky - the meat and potatoes
@@ -1152,12 +1146,14 @@ if (!Number.isNaN) {
 			insert = noop;
 		}
 
-		function get(property) {
-			return Sparky.getPath(scope, property);
+		function get(path) {
+			return path === '.' ?
+				scope :
+				Sparky.get(scope, path) ;
 		}
 
 		function set(property, value) {
-			Sparky.setPath(scope, property, value);
+			Sparky.set(scope, property, value);
 		}
 
 		function create(node) {
@@ -1916,7 +1912,7 @@ if (!Number.isNaN) {
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
-				var value = fn(Sparky.getPath(model, path));
+				var value = fn(Sparky.get(model, path));
 				var checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
@@ -1927,7 +1923,7 @@ if (!Number.isNaN) {
 				node.dispatchEvent(changeEvent);
 			} :
 			function updateValue() {
-				var value = fn(Sparky.getPath(model, path));
+				var value = fn(Sparky.get(model, path));
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -1948,17 +1944,17 @@ if (!Number.isNaN) {
 
 	function makeChangeListener(node, model, path, fn) {
 		var type = node.type;
-		
+
 		return type === 'radio' ? function radioChange(e) {
 				if (node.checked) {
-					Sparky.setPath(model, path, fn(node.value));
+					Sparky.set(model, path, fn(node.value));
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.setPath(model, path, fn(node.checked ? node.value : undefined));
+				Sparky.set(model, path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
-				Sparky.setPath(model, path, fn(node.value));
+				Sparky.set(model, path, fn(node.value));
 			} ;
 	}
 
@@ -1980,7 +1976,7 @@ if (!Number.isNaN) {
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(Sparky.getPath(model, path))) {
+			if (!isDefined(Sparky.get(model, path))) {
 				change();
 			}
 
@@ -2162,10 +2158,10 @@ if (!Number.isNaN) {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
+		'value-number-integer': valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl,
-		'value-integer':        valueIntegerCtrl
+		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 
 	Sparky.getClassList = getClassList;
@@ -2348,12 +2344,11 @@ if (!Number.isNaN) {
 			objTo(root, array, obj);
 	}
 
-	Sparky.getPath = getPath;
-	Sparky.setPath = setPath;
+	Sparky.get = getPath;
+	Sparky.set = setPath;
 	Sparky.observePath = observePath;
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
-
 
 	// Binding
 
@@ -2599,7 +2594,8 @@ if (!Number.isNaN) {
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
-			return denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			var n = denormalise(pow(normalise(value, min, max), 1/2), min, max);
+			return n + '';
 		}
 
 		function from(value) {
@@ -2645,7 +2641,7 @@ if (!Number.isNaN) {
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return n;
+			return n + '';
 		}
 
 		function from(value) {
@@ -2758,7 +2754,7 @@ if (!Number.isNaN) {
 		},
 
 		capfirst: function(value) {
-			return value.charAt(0).toUpperCase() + string.substring(1);
+			return value.charAt(0).toUpperCase() + value.substring(1);
 		},
 
 		cut: function(value, string) {
@@ -2945,9 +2941,7 @@ if (!Number.isNaN) {
 		//pprint
 
 		prepad: function(value, n, char) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 
 			// String is longer then padding: let it through unprocessed
@@ -2960,9 +2954,7 @@ if (!Number.isNaN) {
 		},
 
 		postpad: function(value, n) {
-			if (!isDefined(value)) { return ''; }
-
-			var string = value.toString();
+			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
 			var m = parseInt(n, 10);
 

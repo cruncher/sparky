@@ -117,7 +117,7 @@
 		return parent;
 	}
 	
-	function replace(parent, child) {
+	function fill(parent, child) {
 		// Remove all children.
 		while (parent.lastChild) {
 			parent.removeChild(parent.lastChild);
@@ -358,14 +358,14 @@
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				replace(node, templateFragment);
+				fill(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
 
 		function insert() {
 			insertTemplate(sparky, node, templateFragment);
-			insert = noop;
+			insertTemplate = noop;
 		}
 
 		function get(path) {
@@ -399,10 +399,7 @@
 		}
 
 		// If a scope object is returned by the ctrl, we use that, otherwise
-		// we use the model object as scope, and if that doesn't exist use an
-		// empty object. This means we can launch sparky on a node where a
-		// model is not defined and it will nonetheless pick up and spark
-		// child nodes.
+		// we use the model object as scope.
 		scope = ctrl && ctrl.call(sparky, node, model);
 
 		// A controller returning false is telling us not to do data binding.
@@ -452,6 +449,9 @@
 		}
 
 		// The bind function returns an unbind function.
+		// TODO: Where templateFragment exists, we still want to bind the
+		// node - but not it's contents. Becuase we still want, say, the class
+		// attribute on the node itself to work.
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 
