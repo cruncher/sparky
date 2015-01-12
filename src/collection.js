@@ -67,22 +67,46 @@
 
 	function findByIndex(collection, id) {
 		var index = collection.index;
+		var n = -1;
 		var l = collection.length;
 
-		while (l--) {
-			if (collection[l][index] === id) {
-				return collection[l];
+		while (++n < l) {
+			if (collection[n][index] === id) {
+				return collection[n];
 			}
 		}
 	}
 
-//	function findByObject(collection, object) {
-//		var i = collection.indexOf(object);
-//		
-//		if (i === -1) { return; }
-//		
-//		return collection[i];
-//	}
+	function findByObject(collection, query) {
+		var i = collection.indexOf(query);
+
+		// query IS the object in the collection. Fast out.
+		if (i > -1) { return query; }
+
+		// object has one property, index. Find by index.
+		return findByIndex(collection, query[collection.index]);
+	}
+
+	function queryByObject(collection, query) {
+		var keys = Object.keys(query);
+
+		// Match properties of query against objects in the collection.
+		return keys.length === 0 ?
+			collection.slice() :
+			collection.filter(function(object) {
+				var k = keys.length;
+				var key;
+
+				while (k--) {
+					key = keys[k];
+					if (object[key] !== query[key]) {
+						return false;
+					}
+				}
+
+				return true;
+			}) ;
+	}
 
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
@@ -125,15 +149,20 @@
 		return collection.map(toArray);
 	}
 
-	function multiarg(fn) {
-		return function(data) {
+	function multiarg(fn1, fn2) {
+		return function distributeArgs(object) {
+			invalidateCaches(this);
+
+			if (object === undefined) {
+				if (fn2) { fn2.apply(this); }
+				return this;
+			}
+
 			var n = -1;
 			var l = arguments.length;
 
-			invalidateCaches(this);
-
 			while (++n < l) {
-				fn.call(this, arguments[n]);
+				fn1.call(this, arguments[n]);
 			}
 
 			return this;
@@ -154,6 +183,9 @@
 
 			remove(this, obj);
 			this.trigger('remove', obj);
+		}, function() {
+			// If item is undefined, remove all objects from the collection.
+			this.length = 0;
 		}),
 
 		update: multiarg(function(obj) {
@@ -171,12 +203,22 @@
 			return this;
 		}),
 
-		find: function(obj) {
+		find: function(query) {
 			var index = this.index;
 
-			return typeof obj === 'string' || typeof obj === 'number' || obj === undefined ?
-				findByIndex(this, obj) :
-				findByIndex(this, obj[index]) ;
+			// find() returns the first object with matching key in the collection.
+			return arguments.length === 0 ?
+					undefined :
+				typeof query === 'string' || typeof query === 'number' || query === undefined ?
+					findByIndex(this, query) :
+					findByObject(this, query) ;
+		},
+
+		query: function(query) {
+			// query() is gauranteed to return an array.
+			return query ?
+				queryByObject(this, query) :
+				[] ;
 		},
 
 		contains: function(object) {
@@ -283,10 +325,14 @@
 		// Watch the length and delete indexes when the length becomes shorter
 		// like a nice array does.
 		observe(collection, 'length', function(collection) {
+			var object;
+
 			while (length-- > collection.length) {
 				// JIT compiler notes suggest that setting undefined is
 				// quicker than deleting a property.
+				object = collection[length];
 				collection[length] = undefined;
+				//collection.trigger('remove', object);
 			}
 
 			length = collection.length;
