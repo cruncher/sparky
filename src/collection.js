@@ -125,19 +125,19 @@
 		collection.splice(l + 1, 0, object);
 	}
 
-	function remove(array, obj, i) {
-		var found = false;
+	function remove(collection, obj, i) {
+		var found;
 
 		if (i === undefined) { i = -1; }
 
-		while (++i < array.length) {
-			if (obj === array[i]) {
-				array.splice(i, 1);
+		while (++i < collection.length) {
+			if (obj === collection[i]) {
+				collection.splice(i, 1);
 				--i;
 				found = true;
 			}
 		}
-		
+
 		return found;
 	}
 
@@ -177,16 +177,54 @@
 		}),
 
 		remove: multiarg(function(item) {
-			var obj = this.find(item);
-
-			if (!obj) { return; }
-
-			remove(this, obj);
-			this.trigger('remove', obj);
+			var object = this.find(item);
+			if (!object) { return; }
+			remove(this, object);
 		}, function() {
 			// If item is undefined, remove all objects from the collection.
-			this.length = 0;
+			var n = this.length;
+			var object;
+
+			while (n--) { this.pop(); }
 		}),
+
+		push: function push() {
+			var l = arguments.length;
+			var n = -1;
+
+			Array.prototype.push.apply(this, arguments);
+			while (++n < l) {
+				this.trigger('add', arguments[n]);
+			}
+
+			return this;
+		},
+
+		pop: function pop() {
+			var i = this.length - 1;
+			var object = this[i];
+			this.length = i;
+			this.trigger('remove', object, i);
+			return object;
+		},
+
+		splice: function splice(i, n) {
+			var removed = Array.prototype.splice.apply(this, arguments);
+			var r = removed.length;
+			var added = Array.prototype.slice.call(arguments, 2);
+			var l = added.length;
+			var a = -1;
+
+			while (r--) {
+				this.trigger('remove', removed[r], i + r);
+			}
+
+			while (++a < l) {
+				this.trigger('add', added[a], a);
+			}
+
+			return removed;
+		},
 
 		update: multiarg(function(obj) {
 			var item = this.find(obj);
@@ -203,7 +241,7 @@
 			return this;
 		}),
 
-		find: function(query) {
+		find: function find(query) {
 			var index = this.index;
 
 			// find() returns the first object with matching key in the collection.
@@ -214,14 +252,14 @@
 					findByObject(this, query) ;
 		},
 
-		query: function(query) {
+		query: function query(query) {
 			// query() is gauranteed to return an array.
 			return query ?
 				queryByObject(this, query) :
 				[] ;
 		},
 
-		contains: function(object) {
+		contains: function contains(object) {
 			return this.indexOf(object) !== -1;
 		},
 
@@ -229,7 +267,7 @@
 		// the collection if they all have the same value.
 		// Otherwise return undefined.
 
-		get: function(property) {
+		get: function get(property) {
 			var n = this.length;
 
 			if (n === 0) { return; }
@@ -243,7 +281,7 @@
 
 		// Set a property on every object in the collection.
 
-		set: function(property, value) {
+		set: function set(property, value) {
 			if (arguments.length !== 2) {
 				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
@@ -253,11 +291,11 @@
 			return this;
 		},
 
-		toJSON: function() {
+		toJSON: function toJSON() {
 			return this.map(returnArg);
 		},
 
-		toObject: function(key) {
+		toObject: function toObject(key) {
 			var object = {};
 			var prop, type;
 
@@ -328,11 +366,7 @@
 			var object;
 
 			while (length-- > collection.length) {
-				// JIT compiler notes suggest that setting undefined is
-				// quicker than deleting a property.
-				object = collection[length];
-				collection[length] = undefined;
-				//collection.trigger('remove', object);
+				delete collection[length];
 			}
 
 			length = collection.length;
