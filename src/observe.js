@@ -9,16 +9,16 @@
 (function(ns){
 	var slice = Array.prototype.slice,
 	    toString = Object.prototype.toString;
-	
+
 	function isFunction(obj) {
 		toString.call(obj) === '[object Function]';
 	}
-	
+
 	function call(array) {
 		// Call observer with stored arguments
 		array[0].apply(null, array[1]);
 	}
-	
+
 	function replaceProperty(obj, prop, desc, observer, call) {
 		var v = obj[prop],
 		    observers = [observer],
@@ -32,11 +32,13 @@
 
 		    	set: desc && desc.set ? function(u) {
 		    		desc.set.call(this, u);
-		    		observers.forEach(call);
+		    		// Copy the array in case an onbserver modifies it.
+		    		observers.slice().forEach(call);
 		    	} : function(u) {
 		    		if (u === v) { return; }
 		    		v = u;
-		    		observers.forEach(call);
+		    		// Copy the array in case an onbserver modifies it.
+		    		observers.slice().forEach(call);
 		    	}
 		    };
 
@@ -45,7 +47,7 @@
 
 		Object.defineProperty(obj, prop, descriptor);
 	}
-	
+
 	function observeProperty(obj, prop, fn) {
 		var desc = Object.getOwnPropertyDescriptor(obj, prop),
 		    args = slice.call(arguments, 0),
@@ -96,21 +98,23 @@
 	function unobserve(obj, prop, fn) {
 		var desc, observers, index;
 
+		if (obj.prop === undefined) { return; }
+
 		if (prop instanceof Function) {
 			fn = prop;
-			
+
 			for (prop in obj) {
 				unobserve(data, key, fn);
 			};
-			
+
 			return;
 		}
-		
+
 		desc = Object.getOwnPropertyDescriptor(obj, prop);
 		observers = desc.set && desc.set.observers;
 
 		if (!observers) { return; }
-		
+
 		if (fn) {
 			// Remove all references to fn
 			observers.forEach(function(observer, i, observers) {
