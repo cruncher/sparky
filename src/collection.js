@@ -355,22 +355,26 @@
 		// Populate the collection
 		data.forEach(setValue, collection);
 
-		var length = collection.length = data.length;
-
 		// Sort the collection
 		collection.sort(byIndex);
 
-		// Watch the length and delete indexes when the length becomes shorter
-		// like a nice array does.
-		observe(collection, 'length', function(collection) {
+		var length = collection.length = data.length;
+
+		function observeLength(collection) {
 			var object;
 
 			while (length-- > collection.length) {
-				delete collection[length];
+				// According to V8 optimisations, setting undefined is quicker
+				// than delete.
+				collection[length] = undefined;
 			}
 
 			length = collection.length;
-		});
+		}
+
+		// Watch the length and delete indexes when the length becomes shorter
+		// like a nice array does.
+		observe(collection, 'length', observeLength);
 
 		// Delegate events
 		//collection
