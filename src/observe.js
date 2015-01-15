@@ -98,7 +98,7 @@
 	function unobserve(obj, prop, fn) {
 		var desc, observers, index;
 
-		if (obj.prop === undefined) { return; }
+		if (obj[prop] === undefined) { return; }
 
 		if (prop instanceof Function) {
 			fn = prop;
@@ -115,13 +115,15 @@
 
 		if (!observers) { return; }
 
+		var n;
+
 		if (fn) {
-			// Remove all references to fn
-			observers.forEach(function(observer, i, observers) {
-				if (observer[0] === fn) {
-					observers.splice(i, 1);
+			n = observers.length;
+			while (n--) {
+				if (observers[n][0] === fn) {
+					observers.splice(n, 1);
 				}
-			});
+			}
 		}
 		else {
 			desc.set.observers.length = 0;
