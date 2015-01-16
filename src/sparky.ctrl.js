@@ -102,7 +102,7 @@
 	}
 
 	Sparky.extend(Sparky.ctrl, {
-		"prevent-click": function preventClickCtrl() {
+		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {
 				node.removeEventListener('click', preventDefault);
