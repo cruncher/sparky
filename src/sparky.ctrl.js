@@ -95,6 +95,27 @@
 	Sparky.ctrl['value-log'] = function(node, model) {
 		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
 	};
+
+
+	function preventDefault(e) {
+		e.preventDefault();
+	}
+
+	Sparky.extend(Sparky.ctrl, {
+		"prevent-click": function preventClickCtrl() {
+			node.addEventListener('click', preventDefault);
+			this.on('destroy', function() {
+				node.removeEventListener('click', preventDefault);
+			});
+		},
+
+		"prevent-submit": function preventSubmitCtrl(node) {
+			node.addEventListener('submit', preventDefault);
+			this.on('destroy', function() {
+				node.removeEventListener('submit', preventDefault);
+			});
+		}
+	});
 })();
 
 

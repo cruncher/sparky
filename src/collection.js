@@ -391,6 +391,9 @@
 	Collection.prototype = prototype;
 	Collection.add = add;
 	Collection.remove = remove;
+	Collection.isCollection = function(object) {
+		return Collection.prototype.isPrototypeOf(object);
+	};
 
 	ns.Collection = Collection;
 })(this, this.mixin);
