@@ -29,11 +29,6 @@
 		31: 'st'
 	});
 
-	// Words that are both singular and plural. This list
-	// could get huge, but it's exposed so that it can be
-	// updated with problem words occuring in your project.
-	settings.plurals   = ('crew sheep').split(' ');
-
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
 	    });
@@ -229,8 +224,7 @@
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
-			if (!value) { return; }
-			if (settings.plurals.indexOf(value.toLowerCase()) !== -1) { return ''; }
+			if (typeof value !== 'number') { return; }
 
 			str1 = str1 || '';
 			str2 = str2 || 's';

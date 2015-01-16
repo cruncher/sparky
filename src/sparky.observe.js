@@ -317,9 +317,10 @@
 				// Observe length and update the DOM on next
 				// animation frame if it changes.
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-	
+
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
+					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
+					console.trace && console.trace();
 					return poll(object, property, fn);
 				}
 			}
