@@ -596,9 +596,7 @@
 	function bindNamedValueToObject(node, model, to, from) {
 		var name = node.name;
 
-		if (!node.name) {
-			throw new Error('Sparky: ctrl requires node with a name attribute.')
-		}
+		if (!node.name) { return; }
 
 		rtags.lastIndex = 0;
 		var tag = (rtags.exec(name) || empty);
