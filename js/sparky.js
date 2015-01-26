@@ -1197,33 +1197,51 @@ if (!Number.isNaN) {
 		if (rtag.test(path)) {
 			rtag.lastIndex = 0;
 			var path1 = rtag.exec(path)[1];
+
 			data = findByPath(scope, path1);
 
-			if (!data) {
-				var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
-				var setup = function setup(data) {
-				    	insertAfter(comment, node);
-				    	remove(comment);
-				    	slaveSparky(sparky, Sparky(node, data));
-				    };
+			var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
+			var master = node.cloneNode(true);
+			var childSparky;
 
-				insertBefore(node, comment);
+			var setup = function(data) {
+				if (childSparky) {
+					childSparky.destroy();
+				}
+
+				if (!node) {
+					node = master.cloneNode(true);
+				}
+
+				childSparky = Sparky(node, data);
+				insertAfter(node, comment);
+				remove(comment);
+				slaveSparky(sparky, childSparky);
+			};
+
+			var teardown = function() {
+				insertBefore(comment, node);
 				remove(node);
 
-				sparky.on('destroy', function destroy() {
-					Sparky.unobservePath(scope, path1, setup);
-				});
+				if (childSparky) {
+					childSparky.destroy();
+					childSparky = undefined;
+					node = undefined;
+				}
+			};
 
-				Sparky.observePathOnce(scope, path1, setup);
-			}
+			var update = function(data) {
+				return data ? setup(data) : teardown() ;
+			};
 
-			//if (!data) {
-			//	rtag.lastIndex = 0;
-			//	console.log('Sparky: parent scope', scope);
-			//	throw new Error('Sparky: Property \'' + rtag.exec(path)[1] + '\' not in parent scope. ' + nodeToText(node));
-			//}
+			Sparky.observePath(scope, path1, update);
+			update(data);
 
-			slaveSparky(sparky, Sparky(node, data));
+			sparky.on('destroy', function destroy() {
+				Sparky.unobservePath(scope, path1, update);
+				teardown();
+			});
+
 			return;
 		}
 
@@ -2104,7 +2122,9 @@ if (!Number.isNaN) {
 	function bindNamedValueToObject(node, model, to, from) {
 		var name = node.name;
 
-		if (!node.name) { return; }
+		if (!node.name) {
+			throw new Error('Sparky: ctrl requires node with a name attribute.')
+		}
 
 		rtags.lastIndex = 0;
 		var tag = (rtags.exec(name) || empty);
