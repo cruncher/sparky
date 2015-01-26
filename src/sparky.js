@@ -321,12 +321,12 @@
 			if (!data) {
 				var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
 				var setup = function setup(data) {
-				    	insertAfter(comment, node);
+				    	insertAfter(node, comment);
 				    	remove(comment);
 				    	slaveSparky(sparky, Sparky(node, data));
 				    };
 
-				insertBefore(node, comment);
+				insertBefore(comment, node);
 				remove(node);
 
 				sparky.on('destroy', function destroy() {
