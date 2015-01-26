@@ -712,21 +712,21 @@ if (!Number.isNaN) {
 			return this;
 		}),
 
-		find: function find(query) {
+		find: function find(object) {
 			var index = this.index;
 
 			// find() returns the first object with matching key in the collection.
 			return arguments.length === 0 ?
 					undefined :
-				typeof query === 'string' || typeof query === 'number' || query === undefined ?
-					findByIndex(this, query) :
-					findByObject(this, query) ;
+				typeof object === 'string' || typeof object === 'number' || object === undefined ?
+					findByIndex(this, object) :
+					findByObject(this, object) ;
 		},
 
-		query: function query(query_) {
+		query: function query(object) {
 			// query() is gauranteed to return an array.
-			return query_ ?
-				queryByObject(this, query_) :
+			return object ?
+				queryByObject(this, object) :
 				[] ;
 		},
 
