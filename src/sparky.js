@@ -135,15 +135,26 @@
 	}
 
 	function getTemplateContent(node) {
-		// A template tag has a content property that gives us a document
-		// fragment. If that doesn't exist we must make a document fragment.
-		return node.content || fragmentFromChildren(node);
+		// A template tag has a content property that is a document fragment.
+		if (node.content) {
+			return node.content;
+		}
+
+		// If that doesn't exist we must make a document fragment.
+		var content = fragmentFromChildren(node);
+
+		// In browsers where templates are not inert, ids used inside them 
+		// conflict with ids in any rendered result. To go some way to tackling
+		// this, remove the template once we have its content.
+		remove(template);
+
+		return content;
 	}
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return node && getTemplateContent(node);
+		return getTemplateContent(node);
 	}
 
 	function fetchTemplate(id) {
