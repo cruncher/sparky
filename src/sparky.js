@@ -364,7 +364,7 @@
 			};
 
 			Sparky.observePath(scope, path1, update);
-			update();
+			update(data);
 
 			sparky.on('destroy', function destroy() {
 				Sparky.unobservePath(scope, path1, update);
