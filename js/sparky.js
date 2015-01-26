@@ -723,10 +723,10 @@ if (!Number.isNaN) {
 					findByObject(this, query) ;
 		},
 
-		query: function query(query) {
+		query: function query(query_) {
 			// query() is gauranteed to return an array.
-			return query ?
-				queryByObject(this, query) :
+			return query_ ?
+				queryByObject(this, query_) :
 				[] ;
 		},
 
