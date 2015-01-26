@@ -744,7 +744,7 @@
 			var n = parseFloat(value);
 			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
 		});
-		
+
 		this.on('destroy', unbind);
 	};
 

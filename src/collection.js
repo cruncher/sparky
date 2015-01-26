@@ -153,13 +153,14 @@
 		return function distributeArgs(object) {
 			invalidateCaches(this);
 
-			if (object === undefined) {
+			var l = arguments.length;
+
+			if (l === 0) {
 				if (fn2) { fn2.apply(this); }
 				return this;
 			}
 
 			var n = -1;
-			var l = arguments.length;
 
 			while (++n < l) {
 				fn1.call(this, arguments[n]);
