@@ -344,16 +344,16 @@ if (!Number.isNaN) {
 (function(ns){
 	var slice = Array.prototype.slice,
 	    toString = Object.prototype.toString;
-	
+
 	function isFunction(obj) {
 		toString.call(obj) === '[object Function]';
 	}
-	
+
 	function call(array) {
 		// Call observer with stored arguments
 		array[0].apply(null, array[1]);
 	}
-	
+
 	function replaceProperty(obj, prop, desc, observer, call) {
 		var v = obj[prop],
 		    observers = [observer],
@@ -367,11 +367,13 @@ if (!Number.isNaN) {
 
 		    	set: desc && desc.set ? function(u) {
 		    		desc.set.call(this, u);
-		    		observers.forEach(call);
+		    		// Copy the array in case an onbserver modifies it.
+		    		observers.slice().forEach(call);
 		    	} : function(u) {
 		    		if (u === v) { return; }
 		    		v = u;
-		    		observers.forEach(call);
+		    		// Copy the array in case an onbserver modifies it.
+		    		observers.slice().forEach(call);
 		    	}
 		    };
 
@@ -380,7 +382,7 @@ if (!Number.isNaN) {
 
 		Object.defineProperty(obj, prop, descriptor);
 	}
-	
+
 	function observeProperty(obj, prop, fn) {
 		var desc = Object.getOwnPropertyDescriptor(obj, prop),
 		    args = slice.call(arguments, 0),
@@ -431,28 +433,32 @@ if (!Number.isNaN) {
 	function unobserve(obj, prop, fn) {
 		var desc, observers, index;
 
+		if (obj[prop] === undefined) { return; }
+
 		if (prop instanceof Function) {
 			fn = prop;
-			
+
 			for (prop in obj) {
 				unobserve(data, key, fn);
 			};
-			
+
 			return;
 		}
-		
+
 		desc = Object.getOwnPropertyDescriptor(obj, prop);
 		observers = desc.set && desc.set.observers;
 
 		if (!observers) { return; }
-		
+
+		var n;
+
 		if (fn) {
-			// Remove all references to fn
-			observers.forEach(function(observer, i, observers) {
-				if (observer[0] === fn) {
-					observers.splice(i, 1);
+			n = observers.length;
+			while (n--) {
+				if (observers[n][0] === fn) {
+					observers.splice(n, 1);
 				}
-			});
+			}
 		}
 		else {
 			desc.set.observers.length = 0;
@@ -532,22 +538,46 @@ if (!Number.isNaN) {
 
 	function findByIndex(collection, id) {
 		var index = collection.index;
+		var n = -1;
 		var l = collection.length;
 
-		while (l--) {
-			if (collection[l][index] === id) {
-				return collection[l];
+		while (++n < l) {
+			if (collection[n][index] === id) {
+				return collection[n];
 			}
 		}
 	}
 
-//	function findByObject(collection, object) {
-//		var i = collection.indexOf(object);
-//		
-//		if (i === -1) { return; }
-//		
-//		return collection[i];
-//	}
+	function findByObject(collection, query) {
+		var i = collection.indexOf(query);
+
+		// query IS the object in the collection. Fast out.
+		if (i > -1) { return query; }
+
+		// object has one property, index. Find by index.
+		return findByIndex(collection, query[collection.index]);
+	}
+
+	function queryByObject(collection, query) {
+		var keys = Object.keys(query);
+
+		// Match properties of query against objects in the collection.
+		return keys.length === 0 ?
+			collection.slice() :
+			collection.filter(function(object) {
+				var k = keys.length;
+				var key;
+
+				while (k--) {
+					key = keys[k];
+					if (object[key] !== query[key]) {
+						return false;
+					}
+				}
+
+				return true;
+			}) ;
+	}
 
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
@@ -566,19 +596,19 @@ if (!Number.isNaN) {
 		collection.splice(l + 1, 0, object);
 	}
 
-	function remove(array, obj, i) {
-		var found = false;
+	function remove(collection, obj, i) {
+		var found;
 
 		if (i === undefined) { i = -1; }
 
-		while (++i < array.length) {
-			if (obj === array[i]) {
-				array.splice(i, 1);
+		while (++i < collection.length) {
+			if (obj === collection[i]) {
+				collection.splice(i, 1);
 				--i;
 				found = true;
 			}
 		}
-		
+
 		return found;
 	}
 
@@ -590,15 +620,20 @@ if (!Number.isNaN) {
 		return collection.map(toArray);
 	}
 
-	function multiarg(fn) {
-		return function(data) {
+	function multiarg(fn1, fn2) {
+		return function distributeArgs(object) {
+			invalidateCaches(this);
+
+			if (object === undefined) {
+				if (fn2) { fn2.apply(this); }
+				return this;
+			}
+
 			var n = -1;
 			var l = arguments.length;
 
-			invalidateCaches(this);
-
 			while (++n < l) {
-				fn.call(this, arguments[n]);
+				fn1.call(this, arguments[n]);
 			}
 
 			return this;
@@ -613,13 +648,54 @@ if (!Number.isNaN) {
 		}),
 
 		remove: multiarg(function(item) {
-			var obj = this.find(item);
+			var object = this.find(item);
+			if (!object) { return; }
+			remove(this, object);
+		}, function() {
+			// If item is undefined, remove all objects from the collection.
+			var n = this.length;
+			var object;
 
-			if (!obj) { return; }
-
-			remove(this, obj);
-			this.trigger('remove', obj);
+			while (n--) { this.pop(); }
 		}),
+
+		push: function push() {
+			var l = arguments.length;
+			var n = -1;
+
+			Array.prototype.push.apply(this, arguments);
+			while (++n < l) {
+				this.trigger('add', arguments[n]);
+			}
+
+			return this;
+		},
+
+		pop: function pop() {
+			var i = this.length - 1;
+			var object = this[i];
+			this.length = i;
+			this.trigger('remove', object, i);
+			return object;
+		},
+
+		splice: function splice(i, n) {
+			var removed = Array.prototype.splice.apply(this, arguments);
+			var r = removed.length;
+			var added = Array.prototype.slice.call(arguments, 2);
+			var l = added.length;
+			var a = -1;
+
+			while (r--) {
+				this.trigger('remove', removed[r], i + r);
+			}
+
+			while (++a < l) {
+				this.trigger('add', added[a], a);
+			}
+
+			return removed;
+		},
 
 		update: multiarg(function(obj) {
 			var item = this.find(obj);
@@ -636,15 +712,25 @@ if (!Number.isNaN) {
 			return this;
 		}),
 
-		find: function(obj) {
+		find: function find(object) {
 			var index = this.index;
 
-			return typeof obj === 'string' || typeof obj === 'number' || obj === undefined ?
-				findByIndex(this, obj) :
-				findByIndex(this, obj[index]) ;
+			// find() returns the first object with matching key in the collection.
+			return arguments.length === 0 ?
+					undefined :
+				typeof object === 'string' || typeof object === 'number' || object === undefined ?
+					findByIndex(this, object) :
+					findByObject(this, object) ;
 		},
 
-		contains: function(object) {
+		query: function query(object) {
+			// query() is gauranteed to return an array.
+			return object ?
+				queryByObject(this, object) :
+				[] ;
+		},
+
+		contains: function contains(object) {
 			return this.indexOf(object) !== -1;
 		},
 
@@ -652,7 +738,7 @@ if (!Number.isNaN) {
 		// the collection if they all have the same value.
 		// Otherwise return undefined.
 
-		get: function(property) {
+		get: function get(property) {
 			var n = this.length;
 
 			if (n === 0) { return; }
@@ -666,7 +752,7 @@ if (!Number.isNaN) {
 
 		// Set a property on every object in the collection.
 
-		set: function(property, value) {
+		set: function set(property, value) {
 			if (arguments.length !== 2) {
 				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
@@ -676,11 +762,11 @@ if (!Number.isNaN) {
 			return this;
 		},
 
-		toJSON: function() {
+		toJSON: function toJSON() {
 			return this.map(returnArg);
 		},
 
-		toObject: function(key) {
+		toObject: function toObject(key) {
 			var object = {};
 			var prop, type;
 
@@ -740,22 +826,26 @@ if (!Number.isNaN) {
 		// Populate the collection
 		data.forEach(setValue, collection);
 
-		var length = collection.length = data.length;
-
 		// Sort the collection
 		collection.sort(byIndex);
 
-		// Watch the length and delete indexes when the length becomes shorter
-		// like a nice array does.
-		observe(collection, 'length', function(collection) {
+		var length = collection.length = data.length;
+
+		function observeLength(collection) {
+			var object;
+
 			while (length-- > collection.length) {
-				// JIT compiler notes suggest that setting undefined is
-				// quicker than deleting a property.
+				// According to V8 optimisations, setting undefined is quicker
+				// than delete.
 				collection[length] = undefined;
 			}
 
 			length = collection.length;
-		});
+		}
+
+		// Watch the length and delete indexes when the length becomes shorter
+		// like a nice array does.
+		observe(collection, 'length', observeLength);
 
 		// Delegate events
 		//collection
@@ -772,6 +862,9 @@ if (!Number.isNaN) {
 	Collection.prototype = prototype;
 	Collection.add = add;
 	Collection.remove = remove;
+	Collection.isCollection = function(object) {
+		return Collection.prototype.isPrototypeOf(object);
+	};
 
 	ns.Collection = Collection;
 })(this, this.mixin);
@@ -895,7 +988,7 @@ if (!Number.isNaN) {
 		return parent;
 	}
 	
-	function replace(parent, child) {
+	function fill(parent, child) {
 		// Remove all children.
 		while (parent.lastChild) {
 			parent.removeChild(parent.lastChild);
@@ -913,15 +1006,25 @@ if (!Number.isNaN) {
 	}
 
 	function getTemplateContent(node) {
-		// A template tag has a content property that gives us a document
-		// fragment. If that doesn't exist we must make a document fragment.
-		return node.content || fragmentFromChildren(node);
+		// A template tag has a content property that is a document fragment.
+		if (node.content) {
+			return node.content;
+		}
+
+		// If that doesn't exist we must make a document fragment.
+		var content = fragmentFromChildren(node);
+
+		// In browsers where templates are not inert, ids used inside them 
+		// conflict with ids in any rendered result. To go some way to tackling
+		// this, remove the template once we have its content.
+		remove(node);
+		return content;
 	}
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return node && getTemplateContent(node);
+		return getTemplateContent(node);
 	}
 
 	function fetchTemplate(id) {
@@ -1136,14 +1239,14 @@ if (!Number.isNaN) {
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				replace(node, templateFragment);
+				fill(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
 
 		function insert() {
 			insertTemplate(sparky, node, templateFragment);
-			insert = noop;
+			insertTemplate = noop;
 		}
 
 		function get(path) {
@@ -1177,10 +1280,7 @@ if (!Number.isNaN) {
 		}
 
 		// If a scope object is returned by the ctrl, we use that, otherwise
-		// we use the model object as scope, and if that doesn't exist use an
-		// empty object. This means we can launch sparky on a node where a
-		// model is not defined and it will nonetheless pick up and spark
-		// child nodes.
+		// we use the model object as scope.
 		scope = ctrl && ctrl.call(sparky, node, model);
 
 		// A controller returning false is telling us not to do data binding.
@@ -1230,6 +1330,9 @@ if (!Number.isNaN) {
 		}
 
 		// The bind function returns an unbind function.
+		// TODO: Where templateFragment exists, we still want to bind the
+		// node - but not it's contents. Becuase we still want, say, the class
+		// attribute on the node itself to work.
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 
@@ -2487,9 +2590,10 @@ if (!Number.isNaN) {
 				// Observe length and update the DOM on next
 				// animation frame if it changes.
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-	
+
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
+					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
+					console.trace && console.trace();
 					return poll(object, property, fn);
 				}
 			}
@@ -2665,6 +2769,27 @@ if (!Number.isNaN) {
 	Sparky.ctrl['value-log'] = function(node, model) {
 		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
 	};
+
+
+	function preventDefault(e) {
+		e.preventDefault();
+	}
+
+	Sparky.extend(Sparky.ctrl, {
+		"prevent-click": function preventClickCtrl(node) {
+			node.addEventListener('click', preventDefault);
+			this.on('destroy', function() {
+				node.removeEventListener('click', preventDefault);
+			});
+		},
+
+		"prevent-submit": function preventSubmitCtrl(node) {
+			node.addEventListener('submit', preventDefault);
+			this.on('destroy', function() {
+				node.removeEventListener('submit', preventDefault);
+			});
+		}
+	});
 })();
 
 
@@ -2726,11 +2851,6 @@ if (!Number.isNaN) {
 		23: 'rd',
 		31: 'st'
 	});
-
-	// Words that are both singular and plural. This list
-	// could get huge, but it's exposed so that it can be
-	// updated with problem words occuring in your project.
-	settings.plurals   = ('crew sheep').split(' ');
 
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
@@ -2927,8 +3047,7 @@ if (!Number.isNaN) {
 		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
-			if (!value) { return; }
-			if (settings.plurals.indexOf(value.toLowerCase()) !== -1) { return ''; }
+			if (typeof value !== 'number') { return; }
 
 			str1 = str1 || '';
 			str2 = str2 || 's';
