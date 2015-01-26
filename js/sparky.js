@@ -1017,8 +1017,7 @@ if (!Number.isNaN) {
 		// In browsers where templates are not inert, ids used inside them 
 		// conflict with ids in any rendered result. To go some way to tackling
 		// this, remove the template once we have its content.
-		remove(template);
-
+		remove(node);
 		return content;
 	}
 
