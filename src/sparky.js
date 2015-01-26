@@ -157,7 +157,6 @@
 	}
 
 	function fetchTemplate(id) {
-		console.log('FETCH TEMPALTE ' + id);
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		return template && template.cloneNode(true);
 	}
