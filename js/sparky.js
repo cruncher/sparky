@@ -624,13 +624,14 @@ if (!Number.isNaN) {
 		return function distributeArgs(object) {
 			invalidateCaches(this);
 
-			if (object === undefined) {
+			var l = arguments.length;
+
+			if (l === 0) {
 				if (fn2) { fn2.apply(this); }
 				return this;
 			}
 
 			var n = -1;
-			var l = arguments.length;
 
 			while (++n < l) {
 				fn1.call(this, arguments[n]);
@@ -1647,12 +1648,12 @@ if (!Number.isNaN) {
 
 	// Nodes that require special bindings
 	var tags = {
-	    	label: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	label: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
 
-	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	input: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		var type = node.type;
 
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -1672,7 +1673,7 @@ if (!Number.isNaN) {
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	select: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 
@@ -1681,7 +1682,7 @@ if (!Number.isNaN) {
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	option: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
@@ -1704,7 +1705,7 @@ if (!Number.isNaN) {
 
 		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers, scope);
+			tags[tag](node, bind, unbind, get, set, create, unobservers, scope);
 		}
 
 		// Or sparkify the child nodes
@@ -2137,7 +2138,7 @@ if (!Number.isNaN) {
 
 		// Take the tag parentheses away from the name, preventing this node
 		// from being name-value bound by any other controllers.
-		node.name = path;
+		node.name = name.replace(rtags, path);
 
 		return bindPathToValue(node, model, path, to, from);
 	}
@@ -2270,7 +2271,7 @@ if (!Number.isNaN) {
 			var n = parseFloat(value);
 			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
 		});
-		
+
 		this.on('destroy', unbind);
 	};
 
