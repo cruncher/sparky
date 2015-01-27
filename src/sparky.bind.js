@@ -121,12 +121,12 @@
 
 	// Nodes that require special bindings
 	var tags = {
-	    	label: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	label: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
 
-	    	input: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	input: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		var type = node.type;
 
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -146,7 +146,7 @@
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	select: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	select: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 
@@ -155,7 +155,7 @@
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	option: function(node, name, bind, unbind, get, set, create, unobservers, scope) {
+	    	option: function(node, bind, unbind, get, set, create, unobservers, scope) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	},
@@ -178,7 +178,7 @@
 
 		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
-			tags[tag](node, node.name, bind, unbind, get, set, create, unobservers, scope);
+			tags[tag](node, bind, unbind, get, set, create, unobservers, scope);
 		}
 
 		// Or sparkify the child nodes
@@ -611,7 +611,7 @@
 
 		// Take the tag parentheses away from the name, preventing this node
 		// from being name-value bound by any other controllers.
-		node.name = path;
+		node.name = name.replace(rtags, path);
 
 		return bindPathToValue(node, model, path, to, from);
 	}
