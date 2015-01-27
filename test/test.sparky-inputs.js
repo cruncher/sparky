@@ -356,7 +356,7 @@ module('Test 2 way binding for textarea...', function(fixture) {
 }, function() {/*
 
 <textarea class="text1" name="{{property1}}"></textarea>
-<textarea class="text2" name="{{property2}}">cooee</textarea>
+<textarea class="text2" name="blabla-{{property2}}">cooee</textarea>
 
 */});
 

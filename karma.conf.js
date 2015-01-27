@@ -33,7 +33,7 @@ module.exports = function(config) {
 
       'test/module.js',
       'test/test.*.js'
-      //'test/test.sparky-collection.js',
+      //'test/test.sparky-inputs.js',
       //'test/test.sparky-events.js'
     ],
 
