@@ -401,14 +401,14 @@ if (!Number.isNaN) {
 			}
 			
 			if (desc.configurable === false) {
-				console.warn('Property \"' + prop + '\" is not observable: configurable === false. Ignoring.');
+				console.warn('Property \"' + prop + '\" is not observable (configurable: false) in object:', obj);
 				return;
 			}
 		}
 
 		replaceProperty(obj, prop, desc, observer, call);
 	}
-	
+
 	function observe(obj, prop, fn) {
 		var args, key;
 
