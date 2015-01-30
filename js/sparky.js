@@ -645,7 +645,7 @@ if (!Number.isNaN) {
 	mixin.collection = {
 		add: multiarg(function(item) {
 			add(this, item);
-			this.trigger('add', item);
+			//this.trigger('add', item);
 		}),
 
 		remove: multiarg(function(item) {
@@ -707,7 +707,7 @@ if (!Number.isNaN) {
 			}
 			else {
 				this.add(obj);
-				this.trigger('add', obj);
+				//this.trigger('add', obj);
 			}
 
 			return this;
