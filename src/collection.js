@@ -460,7 +460,12 @@
 		}
 	};
 
-	function Collection(data, options) {
+	function Collection(array, options) {
+		if (!(array instanceof Array)) {
+			options = array;
+			array = [];
+		}
+
 		var settings = extend({}, defaults, options);
 		var collection = Object.create(prototype, properties);
 
@@ -474,21 +479,13 @@
 			index: { value: settings.index }
 		});
 
-		if (data === undefined) {
-			data = [];
-		}
-		else if (!(data instanceof Array)) {
-			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
-			data = [];
-		}
-
 		// Populate the collection
-		data.forEach(setValue, collection);
+		array.forEach(setValue, collection);
 
 		// Sort the collection
 		collection.sort(byIndex);
 
-		var length = collection.length = data.length;
+		var length = collection.length = array.length;
 
 		function observeLength(collection) {
 			var object;
