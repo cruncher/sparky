@@ -87,6 +87,23 @@
 		return findByIndex(collection, query[collection.index]);
 	}
 
+	function queryObject(object, query, keys) {
+		// Optionally pass in keys to avoid having to get them repeatedly.
+		keys = keys || Object.keys(query);
+
+		var k = keys.length;
+		var key;
+
+		while (k--) {
+			key = keys[k];
+			if (object[key] !== query[key]) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	function queryByObject(collection, query) {
 		var keys = Object.keys(query);
 
@@ -94,17 +111,7 @@
 		return keys.length === 0 ?
 			collection.slice() :
 			collection.filter(function(object) {
-				var k = keys.length;
-				var key;
-
-				while (k--) {
-					key = keys[k];
-					if (object[key] !== query[key]) {
-						return false;
-					}
-				}
-
-				return true;
+				return queryObject(object, query, keys);
 			}) ;
 	}
 
@@ -258,6 +265,70 @@
 			return object ?
 				queryByObject(this, object) :
 				[] ;
+		},
+
+		sub: function sub(query, options) {
+			var collection = this;
+			var subset = Collection([], options);
+			var keys = Object.keys(query);
+
+			function update(object) {
+				var i = subset.indexOf(object);
+
+				if (queryObject(object, query, keys)) {
+					if (i === -1) {
+						subset.add(object);
+					}
+				}
+				else {
+					if (i !== -1) {
+						subset.remove(object);
+					}
+				}
+			}
+
+			function add(collection, object) {
+				var n = keys.length;
+				var key;
+console.log('ADD', collection, object);
+				while (n--) {
+					key = keys[n];
+					observe(object, key, update);
+				}
+
+				subset.add(object);
+			}
+
+			function remove(collection, object) {
+				var n = keys.length;
+				var key;
+
+				while (n--) {
+					key = keys[n];
+					unobserve(object, key, update);
+				}
+
+				subset.remove(object);
+			}
+
+			function destroy(collection) {
+				collection.forEach(function(object) {
+					remove(collection, object);
+				});
+			}
+
+			collection
+			.on('add', add)
+			.on('remove', remove)
+			.on('destroy', destroy)
+			.forEach(update);
+
+			subset.destroy = function() {
+				// Lots of unbinding
+				destroy(collection);
+			};
+
+			return subset;
 		},
 
 		contains: function contains(object) {
