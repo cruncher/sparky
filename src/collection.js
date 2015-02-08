@@ -9,6 +9,8 @@
 	    	index: 'id'
 	    };
 
+	var modifierMethods = ['add', 'remove', 'push', 'pop', 'splice'];
+
 	function isDefined(val) {
 		return val !== undefined && val !== null;
 	}
@@ -282,12 +284,18 @@
 
 				if (queryObject(object, query, keys)) {
 					if (i === -1) {
-						subset.add(object);
+						subset
+						.off('add', subsetAdd)
+						.add(object)
+						.on('add', subsetAdd);
 					}
 				}
 				else {
 					if (i !== -1) {
-						subset.remove(object);
+						subset
+						.off('remove', subsetRemove)
+						.remove(object)
+						.on('remove', subsetRemove);
 					}
 				}
 			}
@@ -314,7 +322,10 @@
 				}
 
 				if (subset.indexOf(object) !== -1) {
-					subset.remove(object);
+					subset
+					.off('remove', subsetRemove)
+					.remove(object)
+					.on('remove', subsetRemove);
 				}
 			}
 
@@ -322,19 +333,57 @@
 				collection.forEach(function(object) {
 					remove(collection, object);
 				});
+
+				subset
+				.off('add', subsetAdd)
+				.off('remove', subsetRemove);
 			}
 
+			function subsetAdd(subset, object) {
+				collection.add(object);
+			}
+
+			function subsetRemove(subset, object) {
+				collection.remove(object);
+			}
+
+			// Observe the collection to update the subset
 			collection
 			.on('add', add)
 			.on('remove', remove)
-			.on('destroy', destroy)
-			.forEach(function(object) {
-				add(collection, object);
-			});
+			.on('destroy', destroy);
+
+			// Initialise existing object in collection and echo subset
+			// add and remove operations to collection.
+			if (collection.length) {
+				collection.forEach(function(object) {
+					add(collection, object);
+				});
+			}
+			else {
+				subset
+				.on('add', subsetAdd)
+				.on('remove', subsetRemove);
+			}
 
 			subset.destroy = function() {
 				// Lots of unbinding
 				destroy(collection);
+
+				collection
+				.off('add', add)
+				.off('remove', remove)
+				.off('destroy', destroy);
+
+				subset.off();
+			};
+
+			// Enable us to force a sync from code that only has
+			// access to the subset
+			subset.synchronise = function() {
+				collection.forEach(function(object) {
+					update(object);
+				});
 			};
 
 			return subset;
