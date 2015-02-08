@@ -96,6 +96,11 @@
 
 		while (k--) {
 			key = keys[k];
+
+			if (typeof query[key] === 'function') {
+				return query[key](object, key);
+			}
+
 			if (object[key] !== query[key]) {
 				return false;
 			}
@@ -290,13 +295,13 @@
 			function add(collection, object) {
 				var n = keys.length;
 				var key;
-console.log('ADD', collection, object);
+
 				while (n--) {
 					key = keys[n];
 					observe(object, key, update);
 				}
 
-				subset.add(object);
+				update(object);
 			}
 
 			function remove(collection, object) {
@@ -308,7 +313,9 @@ console.log('ADD', collection, object);
 					unobserve(object, key, update);
 				}
 
-				subset.remove(object);
+				if (subset.indexOf(object) !== -1) {
+					subset.remove(object);
+				}
 			}
 
 			function destroy(collection) {
@@ -321,7 +328,9 @@ console.log('ADD', collection, object);
 			.on('add', add)
 			.on('remove', remove)
 			.on('destroy', destroy)
-			.forEach(update);
+			.forEach(function(object) {
+				add(collection, object);
+			});
 
 			subset.destroy = function() {
 				// Lots of unbinding
