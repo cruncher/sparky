@@ -325,6 +325,12 @@
 			};
 		})(),
 
+		switch: function(value) {
+			if (typeof value === 'string') { value = parseInt(value, 10); }
+			if (typeof value !== 'number' || Number.isNaN(value)) { return; }
+			return arguments[value + 1];
+		},
+
 		symbolise: function(value) {
 			// Takes infinity values and convert them to infinity symbol
 			var string = value + '';

@@ -181,7 +181,7 @@
 	mixin.collection = {
 		add: multiarg(function(item) {
 			add(this, item);
-			this.trigger('add', item);
+			//this.trigger('add', item);
 		}),
 
 		remove: multiarg(function(item) {
@@ -243,7 +243,7 @@
 			}
 			else {
 				this.add(obj);
-				this.trigger('add', obj);
+				//this.trigger('add', obj);
 			}
 
 			return this;

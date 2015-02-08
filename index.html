@@ -71,7 +71,8 @@
 
 	<div data-scope="object" class="hello" data-style="width: {{width}}%; height: 3rem;" id="style-test">Hello</div-->
 
-	<textarea class="text1" name="{{property1}}"></textarea>
+	<!--div data-scope="collection">id: {{id}}</div-->
+	<div data-scope="resource">id: {{id}}</div>
 </div>
 
 <script src="src/jquery-2.1.1.js"></script>
@@ -91,13 +92,12 @@
 <script src="src/sparky.ctrl.js"></script>
 <script src="src/sparky.ready.js"></script>
 
+<script src="../resource/js/resource.js"></script>
+
 <script>
 	Sparky.debug = 'verbose';
-
-	var text1 = document.body.querySelector('.text1');
-	var model = { property1: 'hello' };
-
-	Sparky(text1, model);
+	var collection = Sparky.data.collection = Sparky.Collection([{id:0}, {id:1}, {id:2}]);
+	var resource = Sparky.data.resource = Resource('/parp');
 </script>
 
 <!--div data-scope="dummy">

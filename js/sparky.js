@@ -401,14 +401,14 @@ if (!Number.isNaN) {
 			}
 			
 			if (desc.configurable === false) {
-				console.warn('Property \"' + prop + '\" is not observable: configurable === false. Ignoring.');
+				console.warn('Property \"' + prop + '\" is not observable (configurable: false) in object:', obj);
 				return;
 			}
 		}
 
 		replaceProperty(obj, prop, desc, observer, call);
 	}
-	
+
 	function observe(obj, prop, fn) {
 		var args, key;
 
@@ -645,7 +645,7 @@ if (!Number.isNaN) {
 	mixin.collection = {
 		add: multiarg(function(item) {
 			add(this, item);
-			this.trigger('add', item);
+			//this.trigger('add', item);
 		}),
 
 		remove: multiarg(function(item) {
@@ -707,7 +707,7 @@ if (!Number.isNaN) {
 			}
 			else {
 				this.add(obj);
-				this.trigger('add', obj);
+				//this.trigger('add', obj);
 			}
 
 			return this;
