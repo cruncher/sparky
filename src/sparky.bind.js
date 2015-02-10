@@ -164,6 +164,11 @@
 	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
+	    	},
+
+	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	}
 	    };
 
