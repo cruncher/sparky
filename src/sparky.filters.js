@@ -281,8 +281,10 @@
 
 		//safeseq
 
-		slice: function(value) {
-			return Array.prototype.slice.apply(value);
+		slice: function(value, i0, i1) {
+			return typeof value === 'string' ?
+				value.slice(i0, i1) :
+				Array.prototype.slice.call(value, i0, i1) ;
 		},
 
 		slugify: function(value) {
