@@ -385,6 +385,11 @@
 			return html;
 		},
 
+		uppercase: function(value) {
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toUpperCase.apply(value);
+		},
+
 		//urlencode
 		//urlize
 		//urlizetrunc

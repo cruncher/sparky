@@ -518,11 +518,11 @@
 
 		while (++n < l) {
 			ctrl = findByPath(Sparky.ctrl, paths[n]);
-			
+
 			if (!ctrl) {
 				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
 			}
-			
+
 			ctrls.push(ctrl);
 		}
 
@@ -541,6 +541,7 @@
 			ctrl = findByPath(Sparky.ctrl, paths[0]);
 
 			if (!ctrl) {
+				console.log(node);
 				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
 			}
 
