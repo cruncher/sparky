@@ -15,18 +15,18 @@
 		return isInTemplate(node.parentNode);
 	}
 
-	doc.ready(function(){
+	doc.ready(function docReady(){
 		var start;
-		
+
 		if (window.console) { start = Date.now(); }
-		
+
 		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;
 		var array = [];
 		var modelPath;
-		
+
 		// Remove child sparkies
 		while (++n < l) {
 			node = nodes[n];
@@ -39,16 +39,16 @@
 				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
 					//array.push(nodes[n]);
 				}
-			};
+			}
 			--n;
 		}
-		
+
 		// Normally <template>s are inert, but if they are not a supported
 		// feature their content is part of the DOM so we have to remove those,
-		// too. 
+		// too.
 		if (!Sparky.features.template) {
 			n = array.length;
-			
+
 			while (n--) {
 				if (isInTemplate(array[n])) {
 					array.splice(n, 1);
@@ -61,11 +61,11 @@
 		array.forEach(function(node) {
 			Sparky(node);
 		});
-		
+
 		window.requestAnimationFrame(function sparkyready() {
 			doc.trigger('sparkyready');
 		});
-		
+
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);

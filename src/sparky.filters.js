@@ -5,19 +5,19 @@
 	"use strict";
 
 	var settings = (Sparky.settings = Sparky.settings || {});
-	
+
 	// A reuseable array.
 	var array = [];
-	
+
 	settings.months      = ('January February March April May June July August September October November December').split(' ');
 	settings.days        = ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' ');
 	settings.ordinals    = (function(ordinals) {
 		var array = [], n = 0;
-		
+
 		while (n++ < 31) {
 			array[n] = ordinals[n] || 'th';
 		}
-		
+
 		return array;
 	})({
 		1: 'st',
@@ -100,9 +100,9 @@
 				//z: function(date) { return ; },
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
-			
+
 			var rletter = /([a-zA-Z])/g;
-			
+
 			return function formatDate(value, format) {
 				if (!isDefined(value)) { return; }
 
@@ -139,7 +139,7 @@
 			var text = document.createTextNode(this);
 
 			pre.appendChild(text);
-			
+
 			return function(value) {
 				text.textContent = value;
 				return pre.innerHTML;
@@ -190,7 +190,7 @@
 
 		linebreaksbr: (function() {
 			var rbreaks = /\n/;
-			
+
 			return function(value) {
 				return value.replace(rbreaks, '<br/>')
 			};
@@ -255,22 +255,22 @@
 			var m = parseInt(n, 10);
 
 			return m === l ? value :
-				m > l ? string + spaces(m-l) :
+				m > l ? string + spaces(m - l) :
 				string.substring(0, m) ;
 		},
 
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
-		
+
 		//raw
 		//removetags
-		
+
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
 		},
-		
+
 		//reverse
 
 		safe: function(string) {
@@ -297,28 +297,28 @@
 
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
-			
+
 			return function(value) {
 				return value.replace(rtag, '');
 			};
 		})(),
-		
+
 		striptagsexcept: (function() {
 			var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
 			    allowedTags, result;
-			
+
 			function strip($0, $1, $2) {
 				// Strip any attributes, letting the allowed tag name through.
 				return $2 && allowedTags.indexOf($2) !== -1 ?
 					'<' + ($1 || '') + $2 + '>' :
 					'' ;
 			}
-			
+
 			return function(value, tags) {
 				if (!tags) {
 					return value.replace(rtag, '');
 				}
-				
+
 				allowedTags = tags.split(' ');
 				result = value.replace(rtag, strip);
 				allowedTags = false;
@@ -337,7 +337,7 @@
 			// Takes infinity values and convert them to infinity symbol
 			var string = value + '';
 			var infinity = Infinity + '';
-			
+
 			if (string === infinity) {
 				return '∞';
 			}
@@ -350,7 +350,7 @@
 		},
 
 		time: function() {
-			
+
 		},
 
 		//timesince
@@ -370,20 +370,20 @@
 		//truncatewords
 		//truncatewords_html
 		//unique
-		
+
 		unordered_list: function(value) {
-			// TODO: Django supports nested lists. 
+			// TODO: Django supports nested lists.
 			var list = value,
 			    length = list.length,
 			    i = -1,
 			    html = '';
-			
+
 			while (++i < length) {
 				html += '<li>';
 				html += list[i];
 				html += '</li>';
 			}
-			
+
 			return html;
 		},
 
