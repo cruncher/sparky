@@ -8,7 +8,7 @@
 
 (function(ns) {
 	"use strict";
-	
+
 	function matches(node, selector) {
 		return node.matches ? node.matches(selector) :
 			node.matchesSelector ? node.matchesSelector(selector) :
@@ -20,12 +20,10 @@
 	}
 
 	function closest(node, selector, root) {
-		if (node.correspondingUseElement) {
-			// SVG <use> elements store their DOM reference in
-			// .correspondingUseElement.
-			node = node.correspondingUseElement;
-		}
-
+		if (!node) { return; }
+		// SVG <use> elements store their DOM reference in
+		// .correspondingUseElement.
+		if (node.correspondingUseElement) { node = node.correspondingUseElement; }
 		if (node === root || node === document) { return; }
 		if (matches(node, selector)) { return node; }
 
@@ -39,7 +37,6 @@
 			var node = closest(e.target, selector, e.currentTarget);
 
 			if (!node) { return; }
-
 			e.delegateTarget = node;
 			return fn(e);
 		};
