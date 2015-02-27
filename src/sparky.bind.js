@@ -164,6 +164,11 @@
 	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
+	    	},
+
+	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	}
 	    };
 
@@ -699,23 +704,23 @@
 	function valueAnyCtrl(node, model) {
 		// Coerce any defined value to string so that any values pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueStringCtrl(node, model) {
 		// Don't coerce so that only strings pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueNumberCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueIntegerCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueBooleanCtrl(node, model) {
@@ -723,7 +728,7 @@
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOn, stringOnToBoolean) :
 		    	Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean) ;
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueBooleanInvertCtrl(node, model) {
@@ -731,7 +736,7 @@
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOnInverted, stringOnToBooleanInverted) :
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueNumberInvertCtrl(node, model) {
@@ -745,7 +750,7 @@
 			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
 		});
 
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	};
 
 

@@ -474,16 +474,17 @@
 		}
 
 		Object.defineProperties(collection, {
-			// Define the name of the property that will be used to sort and
-			// index this collection.
-			index: { value: settings.index }
+			// Define the name of the property that will be used to index this
+			// collection, and the function used to keep it sorted.
+			index: { value: settings.index },
+			sort:  { value: Array.prototype.sort.bind(collection, settings.sort) }
 		});
 
 		// Populate the collection
 		array.forEach(setValue, collection);
 
 		// Sort the collection
-		collection.sort(byIndex);
+		collection.sort();
 
 		var length = collection.length = array.length;
 
