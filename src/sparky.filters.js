@@ -67,18 +67,14 @@
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
-				b: function(date, lang) {
-					return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3);
-				},
+				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
 				c: function(date) { return date.toISOString(); },
 				d: function(date) { return date.getDate(); },
-				D: function(date) { return settings.days[date.getDay()].slice(0,3); },
+				D: function(date, lang) { return settings[lang].days[date.getDay()].slice(0,3); },
 				//e: function(date) { return ; },
 				//E: function(date) { return ; },
 				//f: function(date) { return ; },
-				F: function(date, lang) {
-					return settings[lang].months[date.getMonth()];
-				},
+				F: function(date, lang) { return settings[lang].months[date.getMonth()]; },
 				g: function(date) { return date.getHours() % 12; },
 				G: function(date) { return date.getHours(); },
 				h: function(date) { return ('0' + date.getHours() % 12).slice(-2); },
@@ -86,12 +82,10 @@
 				i: function(date) { return ('0' + date.getMinutes()).slice(-2); },
 				//I: function(date) { return ; },
 				j: function(date) { return date.getDate(); },
-				l: function(date) { return settings.days[date.getDay()]; },
+				l: function(date, lang) { return settings[lang].days[date.getDay()]; },
 				//L: function(date) { return ; },
 				m: function(date) { return ('0' + date.getMonth()).slice(-2); },
-				M: function(date, lang) {
-					return settings[lang].months[date.getMonth()].slice(0,3);
-				},
+				M: function(date, lang) { return settings[lang].months[date.getMonth()].slice(0,3); },
 				n: function(date) { return date.getMonth(); },
 				//o: function(date) { return ; },
 				O: function(date) {
