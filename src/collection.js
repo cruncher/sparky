@@ -126,10 +126,14 @@
 		// Add an item, keeping the collection sorted by id.
 		var index = collection.index;
 
-		// If the object does not have an index key, push it
-		// to the end of the collection.
+		// If the object does not have an index key...
 		if (!isDefined(object[index])) {
-			collection.push(object);
+			// ...check that it is not already in the
+			// collection before pushing it in.
+			if (collection.indexOf(object) === -1) {
+				collection.push(object);
+			}
+
 			return;
 		}
 
@@ -188,7 +192,6 @@
 	mixin.collection = {
 		add: multiarg(function(item) {
 			add(this, item);
-			//this.trigger('add', item);
 		}),
 
 		remove: multiarg(function(item) {
@@ -490,10 +493,10 @@
 		// Populate the collection
 		array.forEach(setValue, collection);
 
-		// Sort the collection
-		collection.sort();
-
 		var length = collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
 
 		function observeLength(collection) {
 			var object;

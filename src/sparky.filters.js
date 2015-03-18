@@ -9,25 +9,30 @@
 	// A reuseable array.
 	var array = [];
 
-	settings.months      = ('January February March April May June July August September October November December').split(' ');
-	settings.days        = ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' ');
-	settings.ordinals    = (function(ordinals) {
+	function createList(ordinals) {
 		var array = [], n = 0;
 
 		while (n++ < 31) {
-			array[n] = ordinals[n] || 'th';
+			array[n] = ordinals[n] || ordinals.n;
 		}
 
 		return array;
-	})({
-		1: 'st',
-		2: 'nd',
-		3: 'rd',
-		21: 'st',
-		22: 'nd',
-		23: 'rd',
-		31: 'st'
-	});
+	}
+
+	// Language settings
+	settings.en = {
+		days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
+		months:   ('January February March April May June July August September October November December').split(' '),
+		ordinals: createList({ n: 'th', 1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st' })
+	};
+
+	settings.fr = {
+		days:     ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+		months:   ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+		ordinals: createList({ n: "ième", 1: "ière" })
+	};
+
+	settings.lang = 'en';
 
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
@@ -62,14 +67,18 @@
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
-				b: function(date) { return settings.months[date.getMonth()].toLowerCase().slice(0,3); },
+				b: function(date, lang) {
+					return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3);
+				},
 				c: function(date) { return date.toISOString(); },
 				d: function(date) { return date.getDate(); },
 				D: function(date) { return settings.days[date.getDay()].slice(0,3); },
 				//e: function(date) { return ; },
 				//E: function(date) { return ; },
 				//f: function(date) { return ; },
-				F: function(date) { return settings.months[date.getMonth()]; },
+				F: function(date, lang) {
+					return settings[lang].months[date.getMonth()];
+				},
 				g: function(date) { return date.getHours() % 12; },
 				G: function(date) { return date.getHours(); },
 				h: function(date) { return ('0' + date.getHours() % 12).slice(-2); },
@@ -80,7 +89,9 @@
 				l: function(date) { return settings.days[date.getDay()]; },
 				//L: function(date) { return ; },
 				m: function(date) { return ('0' + date.getMonth()).slice(-2); },
-				M: function(date) { return settings.months[date.getMonth()].slice(0,3); },
+				M: function(date, lang) {
+					return settings[lang].months[date.getMonth()].slice(0,3);
+				},
 				n: function(date) { return date.getMonth(); },
 				//o: function(date) { return ; },
 				O: function(date) {
@@ -103,13 +114,15 @@
 
 			var rletter = /([a-zA-Z])/g;
 
-			return function formatDate(value, format) {
+			return function formatDate(value, format, lang) {
 				if (!isDefined(value)) { return; }
 
 				var date = value instanceof Date ? value : new Date(value) ;
 
+				lang = lang || settings.lang;
+
 				return format.replace(rletter, function($0, $1) {
-					return formatters[$1](date);
+					return formatters[$1](date, lang);
 				});
 			};
 		})(settings),
