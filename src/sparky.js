@@ -535,7 +535,7 @@
 
 		if (!isDefined(ctrlPaths)) { return; }
 
-		var paths = ctrlPaths.split(/\s+/);
+		var paths = ctrlPaths.trim().split(/\s+/);
 
 		if (paths.length === 1) {
 			ctrl = findByPath(Sparky.ctrl, paths[0]);

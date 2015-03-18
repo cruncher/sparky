@@ -101,7 +101,7 @@
 			var type, item;
 
 			if (typeof types === 'string') {
-				types = types.split(/\s+/);
+				types = types.trim().split(/\s+/);
 				item = [fn, slice(arguments, 2)];
 			}
 			else {
@@ -154,7 +154,7 @@
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
-				types = types.split(/\s+/);
+				types = types.trim().split(/\s+/);
 			}
 			else {
 				// .off(fn)

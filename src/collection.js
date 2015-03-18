@@ -450,7 +450,7 @@
 	// Object constructor
 
 	var prototype = extend({}, mixin.events, mixin.set, mixin.array, mixin.collection);
-	
+
 	var properties = {
 		length: {
 			value: 0,
@@ -470,14 +470,21 @@
 		var collection = Object.create(prototype, properties);
 
 		function byIndex(a, b) {
+			// Sort collection by index.
 			return a[settings.index] > b[settings.index] ? 1 : -1 ;
+		}
+
+		function sort(fn) {
+			// Collections get sorted by index by default, or by a function
+			// passed into options, or passed into the .sort(fn) call.
+			return Array.prototype.sort.call(this, fn || settings.sort || byIndex);
 		}
 
 		Object.defineProperties(collection, {
 			// Define the name of the property that will be used to index this
-			// collection, and the function used to keep it sorted.
+			// collection, and the sort function.
 			index: { value: settings.index },
-			sort:  { value: Array.prototype.sort.bind(collection, settings.sort) }
+			sort:  { value: sort }
 		});
 
 		// Populate the collection
