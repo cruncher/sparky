@@ -27,8 +27,8 @@
 	};
 
 	settings.fr = {
-		days:     ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-		months:   ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
+		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
 		ordinals: createList({ n: "ième", 1: "ière" })
 	};
 
