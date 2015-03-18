@@ -114,6 +114,10 @@
 			this.on('destroy', function() {
 				node.removeEventListener('submit', preventDefault);
 			});
+		},
+
+		"delegate-scope": function delegateScopeCtrl(node, scope) {
+			jQuery.data(node, 'scope', scope);
 		}
 	});
 })();

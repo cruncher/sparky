@@ -480,6 +480,8 @@ if (!Number.isNaN) {
 	    	index: 'id'
 	    };
 
+	var modifierMethods = ['add', 'remove', 'push', 'pop', 'splice'];
+
 	function isDefined(val) {
 		return val !== undefined && val !== null;
 	}
@@ -558,6 +560,28 @@ if (!Number.isNaN) {
 		return findByIndex(collection, query[collection.index]);
 	}
 
+	function queryObject(object, query, keys) {
+		// Optionally pass in keys to avoid having to get them repeatedly.
+		keys = keys || Object.keys(query);
+
+		var k = keys.length;
+		var key;
+
+		while (k--) {
+			key = keys[k];
+
+			if (typeof query[key] === 'function') {
+				return query[key](object, key);
+			}
+
+			if (object[key] !== query[key]) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	function queryByObject(collection, query) {
 		var keys = Object.keys(query);
 
@@ -565,17 +589,7 @@ if (!Number.isNaN) {
 		return keys.length === 0 ?
 			collection.slice() :
 			collection.filter(function(object) {
-				var k = keys.length;
-				var key;
-
-				while (k--) {
-					key = keys[k];
-					if (object[key] !== query[key]) {
-						return false;
-					}
-				}
-
-				return true;
+				return queryObject(object, query, keys);
 			}) ;
 	}
 
@@ -731,6 +745,121 @@ if (!Number.isNaN) {
 				[] ;
 		},
 
+		sub: function sub(query, options) {
+			var collection = this;
+			var subset = Collection([], options);
+			var keys = Object.keys(query);
+
+			function update(object) {
+				var i = subset.indexOf(object);
+
+				if (queryObject(object, query, keys)) {
+					if (i === -1) {
+						subset
+						.off('add', subsetAdd)
+						.add(object)
+						.on('add', subsetAdd);
+					}
+				}
+				else {
+					if (i !== -1) {
+						subset
+						.off('remove', subsetRemove)
+						.remove(object)
+						.on('remove', subsetRemove);
+					}
+				}
+			}
+
+			function add(collection, object) {
+				var n = keys.length;
+				var key;
+
+				while (n--) {
+					key = keys[n];
+					observe(object, key, update);
+				}
+
+				update(object);
+			}
+
+			function remove(collection, object) {
+				var n = keys.length;
+				var key;
+
+				while (n--) {
+					key = keys[n];
+					unobserve(object, key, update);
+				}
+
+				if (subset.indexOf(object) !== -1) {
+					subset
+					.off('remove', subsetRemove)
+					.remove(object)
+					.on('remove', subsetRemove);
+				}
+			}
+
+			function destroy(collection) {
+				collection.forEach(function(object) {
+					remove(collection, object);
+				});
+
+				subset
+				.off('add', subsetAdd)
+				.off('remove', subsetRemove);
+			}
+
+			function subsetAdd(subset, object) {
+				collection.add(object);
+			}
+
+			function subsetRemove(subset, object) {
+				collection.remove(object);
+			}
+
+			// Observe the collection to update the subset
+			collection
+			.on('add', add)
+			.on('remove', remove)
+			.on('destroy', destroy);
+
+			// Initialise existing object in collection and echo subset
+			// add and remove operations to collection.
+			if (collection.length) {
+				collection.forEach(function(object) {
+					add(collection, object);
+				});
+			}
+			else {
+				subset
+				.on('add', subsetAdd)
+				.on('remove', subsetRemove);
+			}
+
+			subset.destroy = function() {
+				// Lots of unbinding
+				destroy(collection);
+
+				collection
+				.off('add', add)
+				.off('remove', remove)
+				.off('destroy', destroy);
+
+				subset.off();
+			};
+
+			// Enable us to force a sync from code that only has
+			// access to the subset
+			subset.synchronise = function() {
+				collection.forEach(function(object) {
+					update(object);
+				});
+			};
+
+			return subset;
+		},
+
 		contains: function contains(object) {
 			return this.indexOf(object) !== -1;
 		},
@@ -802,7 +931,12 @@ if (!Number.isNaN) {
 		}
 	};
 
-	function Collection(data, options) {
+	function Collection(array, options) {
+		if (!(array instanceof Array)) {
+			options = array;
+			array = [];
+		}
+
 		var settings = extend({}, defaults, options);
 		var collection = Object.create(prototype, properties);
 
@@ -816,21 +950,13 @@ if (!Number.isNaN) {
 			index: { value: settings.index }
 		});
 
-		if (data === undefined) {
-			data = [];
-		}
-		else if (!(data instanceof Array)) {
-			if (debug) console.log('Scribe: data not an array. Scribe cant do that yet.');
-			data = [];
-		}
-
 		// Populate the collection
-		data.forEach(setValue, collection);
+		array.forEach(setValue, collection);
 
 		// Sort the collection
 		collection.sort(byIndex);
 
-		var length = collection.length = data.length;
+		var length = collection.length = array.length;
 
 		function observeLength(collection) {
 			var object;
@@ -3166,6 +3292,12 @@ if (!Number.isNaN) {
 				return result;
 			};
 		})(),
+
+		switch: function(value) {
+			if (typeof value === 'string') { value = parseInt(value, 10); }
+			if (typeof value !== 'number' || Number.isNaN(value)) { return; }
+			return arguments[value + 1];
+		},
 
 		symbolise: function(value) {
 			// Takes infinity values and convert them to infinity symbol
