@@ -32,6 +32,18 @@
 		ordinals: createList({ n: "ième", 1: "ière" })
 	};
 
+	settings.de = {
+		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
+		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
+		ordinals: createList({ n: "ième", 1: "ière" })
+	};
+
+	settings.it = {
+		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
+		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
+		ordinals: createList({ n: "ième", 1: "ière" })
+	};
+
 	settings.lang = 'en';
 
 	var log10 = Math.log10 || (function log10(n) {
