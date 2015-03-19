@@ -44,6 +44,7 @@
 		ordinals: createList({ n: "o" })
 	};
 
+	// Document language
 	var lang = document.documentElement.lang;
 	settings.lang = lang && settings[lang] ? lang : 'en';
 
