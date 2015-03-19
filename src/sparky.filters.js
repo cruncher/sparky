@@ -1,7 +1,7 @@
 
 // Sparky.filters
 
-(function(Sparky, undefined) {
+(function(Sparky) {
 	"use strict";
 
 	var settings = (Sparky.settings = Sparky.settings || {});
@@ -48,13 +48,13 @@
 	var lang = document.documentElement.lang;
 	settings.lang = lang && settings[lang] ? lang : 'en';
 
-	var log10 = Math.log10 || (function log10(n) {
+	var log10 = Math.log10 || function log10(n) {
 	    	return Math.log(n) / Math.LN10;
-	    });
+	    };
 
 	function spaces(n) {
 		var s = '';
-		while (n--) { s += ' ' }
+		while (n--) { s += ' '; }
 		return s;
 	}
 
@@ -77,7 +77,7 @@
 			return value.replace(RegExp(string, 'g'), '');
 		},
 
-		date: (function(M, F, D, l, s) {
+		date: (function(settings) {
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
