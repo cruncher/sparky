@@ -29,22 +29,23 @@
 	settings.fr = {
 		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
 		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
-		ordinals: createList({ n: "ième", 1: "ière" })
+		ordinals: createList({ n: "ième", 1: "er" })
 	};
 
 	settings.de = {
-		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
-		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
-		ordinals: createList({ n: "ième", 1: "ière" })
+		days:     ('Sonntag Montag Dienstag Mittwoch Donnerstag Freitag Samstag').split(' '),
+		months:   ('Januar Februar März April Mai Juni Juli Oktober September Oktober November Dezember').split(' '),
+		ordinals: createList({ n: "er" })
 	};
 
 	settings.it = {
-		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
-		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
-		ordinals: createList({ n: "ième", 1: "ière" })
+		days:     ('domenica lunedì martedì mercoledì giovedì venerdì sabato').split(' '),
+		months:   ('gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre').split(' '),
+		ordinals: createList({ n: "o" })
 	};
 
-	settings.lang = 'en';
+	var lang = document.documentElement.lang;
+	settings.lang = lang && settings[lang] ? lang : 'en';
 
 	var log10 = Math.log10 || (function log10(n) {
 	    	return Math.log(n) / Math.LN10;
