@@ -74,7 +74,7 @@
 		},
 
 		cut: function(value, string) {
-			return value.replace(RegExp(string, 'g'), '');
+			return Sparky.filters.replace(value, string, '');
 		},
 
 		date: (function(settings) {
@@ -121,11 +121,40 @@
 			};
 
 			var rletter = /([a-zA-Z])/g;
+			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
+
+			// Test the Date constructor to see if it is parsing date strings
+			// without timezones as local dates, as per the ES6 spec.
+			//
+			// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
+
+			var local = new Date().getTimezoneOffset() === 0 || new Date('1970').toJSON() !== '1970-01-01T00:00:00.000Z';
+
+			function createLocalDate(value) {
+				var date = new Date(value);
+
+				// Offset the date by adding the date's offset in milliseconds.
+				// Careful, getTimezoneOffset returns the offset in minutes.
+				return new Date(+date + date.getTimezoneOffset() * 60000);
+			}
+
+			function createDate(value) {
+				return typeof value !== 'string' ? new Date(value) :
+
+					// If the Date constructor parses to local time...
+					local ? new Date(value) :
+
+					// ...or if the value contains a time zone...
+					(value.length > 16 && rtimezone.test(value)) ? new Date(value) :
+
+					// ...otherwise force the date to be a local date.
+					createLocalDate(value) ;
+			}
 
 			return function formatDate(value, format, lang) {
 				if (!isDefined(value)) { return; }
 
-				var date = value instanceof Date ? value : new Date(value) ;
+				var date = value instanceof Date ? value : createDate(value) ;
 
 				lang = lang || settings.lang;
 
