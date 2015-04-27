@@ -9,7 +9,7 @@
 	    	index: 'id'
 	    };
 
-	var modifierMethods = ['add', 'remove', 'push', 'pop', 'splice'];
+	var modifierMethods = ('add remove push pop splice').split(' ');
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
