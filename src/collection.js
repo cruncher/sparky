@@ -450,27 +450,36 @@
 		}
 	};
 
-	// Object constructor
 
-	var prototype = extend({}, mixin.events, mixin.set, mixin.array, mixin.collection);
+	// Collection constructor
 
-	var properties = {
-		length: {
+	var lengthProperty = {
 			value: 0,
 			enumerable: false,
 			writable: true,
 			configurable: true
-		}
-	};
+		};
+
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object);
+	}
 
 	function Collection(array, options) {
+		if (!(this && isCollection(this))) {
+			// If this is not an instance of Collection, it has been called
+			// without the new keyword. Do that now. Also allows this constructor
+			// to be called as a build function on objects that have
+			// Collection.prototype already somewhere in their chain.
+			return new Collection(array, options);
+		}
+
 		if (!(array instanceof Array)) {
 			options = array;
 			array = [];
 		}
 
+		var collection = this;
 		var settings = extend({}, defaults, options);
-		var collection = Object.create(prototype, properties);
 
 		function byIndex(a, b) {
 			// Sort collection by index.
@@ -480,10 +489,11 @@
 		function sort(fn) {
 			// Collections get sorted by index by default, or by a function
 			// passed into options, or passed into the .sort(fn) call.
-			return Array.prototype.sort.call(this, fn || settings.sort || byIndex);
+			return Array.prototype.sort.call(collection, fn || settings.sort || byIndex);
 		}
 
 		Object.defineProperties(collection, {
+			length: lengthProperty,
 			// Define the name of the property that will be used to index this
 			// collection, and the sort function.
 			index: { value: settings.index },
@@ -513,25 +523,13 @@
 		// Watch the length and delete indexes when the length becomes shorter
 		// like a nice array does.
 		observe(collection, 'length', observeLength);
-
-		// Delegate events
-		//collection
-		//.each(setListeners);
-
-		// Define caches
-		//Object.defineProperties(collection, {
-		//
-		//});
-
-		return collection;
 	};
 
-	Collection.prototype = prototype;
+	extend(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+
 	Collection.add = add;
 	Collection.remove = remove;
-	Collection.isCollection = function(object) {
-		return Collection.prototype.isPrototypeOf(object);
-	};
+	Collection.isCollection = isCollection;
 
 	ns.Collection = Collection;
 })(this, this.mixin);
