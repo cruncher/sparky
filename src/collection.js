@@ -465,11 +465,9 @@
 	}
 
 	function Collection(array, options) {
-		if (!(this && isCollection(this))) {
-			// If this is not an instance of Collection, it has been called
-			// without the new keyword. Do that now. Also allows this constructor
-			// to be called as a build function on objects that have
-			// Collection.prototype already somewhere in their chain.
+		if (this === undefined) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
 			return new Collection(array, options);
 		}
 
