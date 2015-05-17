@@ -641,7 +641,9 @@
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.Collection   = window.Collection;
+	Sparky.Collection   = function(array, options) {
+		return new Collection(array, options);
+	};
 	Sparky.templates    = templates;
 	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;

@@ -465,7 +465,7 @@
 	}
 
 	function Collection(array, options) {
-		if (this === undefined) {
+		if (this === undefined || this === window) {
 			// If this is undefined the constructor has been called without the
 			// new keyword, or without a context applied. Do that now.
 			return new Collection(array, options);
