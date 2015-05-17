@@ -48,10 +48,6 @@
 	var lang = document.documentElement.lang;
 	settings.lang = lang && settings[lang] ? lang : 'en';
 
-	var log10 = Math.log10 || function log10(n) {
-	    	return Math.log(n) / Math.LN10;
-	    };
-
 	function spaces(n) {
 		var s = '';
 		while (n--) { s += ' '; }
@@ -166,7 +162,7 @@
 
 		decibels: function(value) {
 			if (typeof value !== 'number') { return; }
-			return 20 * log10(value);
+			return 20 * Math.log10(value);
 		},
 
 		decimals: function(value, n) {

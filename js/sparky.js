@@ -2997,10 +2997,6 @@ if (!Number.isNaN) {
 		31: 'st'
 	});
 
-	var log10 = Math.log10 || (function log10(n) {
-	    	return Math.log(n) / Math.LN10;
-	    });
-
 	function spaces(n) {
 		var s = '';
 		while (n--) { s += ' ' }
@@ -3084,7 +3080,7 @@ if (!Number.isNaN) {
 
 		decibels: function(value) {
 			if (typeof value !== 'number') { return; }
-			return 20 * log10(value);
+			return 20 * Math.log10(value);
 		},
 
 		decimals: function(value, n) {

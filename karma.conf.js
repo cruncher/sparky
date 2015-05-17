@@ -16,6 +16,7 @@ module.exports = function(config) {
     files: [
       'src/jquery-2.1.1.js',
       'src/number.isnan.js',
+      'src/math.log10.js',
       'src/window.customevent.js',
       'src/window.requestanimationframe.js',
       'src/observe.js',
