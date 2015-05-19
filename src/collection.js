@@ -79,16 +79,6 @@
 		}
 	}
 
-	function findByObject(collection, query) {
-		var i = collection.indexOf(query);
-
-		// query IS the object in the collection. Fast out.
-		if (i > -1) { return query; }
-
-		// object has one property, index. Find by index.
-		return findByIndex(collection, query[collection.index]);
-	}
-
 	function queryObject(object, query, keys) {
 		// Optionally pass in keys to avoid having to get them repeatedly.
 		keys = keys || Object.keys(query);
@@ -196,7 +186,7 @@
 
 		remove: multiarg(function(item) {
 			var object = this.find(item);
-			if (!object) { return; }
+			if (!isDefined(object)) { return; }
 			remove(this, object);
 		}, function() {
 			// If item is undefined, remove all objects from the collection.
@@ -260,6 +250,12 @@
 		}),
 
 		find: function find(object) {
+			// Fast out. If object is an item in collection, return it.
+			if (this.indexOf(object) > -1) {
+				return object;
+			}
+
+			// Otherwise find by index
 			var index = this.index;
 
 			// find() returns the first object with matching key in the collection.
@@ -267,7 +263,7 @@
 					undefined :
 				typeof object === 'string' || typeof object === 'number' || object === undefined ?
 					findByIndex(this, object) :
-					findByObject(this, object) ;
+					findByIndex(this, object[index]) ;
 		},
 
 		query: function query(object) {
@@ -442,7 +438,7 @@
 					object[prop] = this[n];
 				}
 				else {
-					console.warn('Collection.toObject() ' + prop + ' cannot be used as a key.');
+					console.warn('collection.toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
 				}
 			}
 
