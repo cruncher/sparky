@@ -1,4 +1,28 @@
 
+// Number.isNaN(n) polyfill
+
+if (!Number.isNaN) {
+	(function(globalIsNaN) {
+		"use strict";
+	
+		Object.defineProperty(Number, 'isNaN', {
+			value: function isNaN(value) {
+				return typeof value === 'number' && globalIsNaN(value);
+			},
+			configurable: true,
+			enumerable: false,
+			writable: true
+		});
+	})(isNaN);
+}
+
+if (!Math.log10) {
+	Math.log10 = function log10(n) {
+		return Math.log(n) / Math.LN10;
+	};
+}
+
+
 // window.CustomEvent polyfill
 
 (function(window, undefined) {
@@ -43,24 +67,6 @@
 		};
 	}
 })(window);
-
-
-// Number.isNaN(n) polyfill
-
-if (!Number.isNaN) {
-	(function(globalIsNaN) {
-		"use strict";
-	
-		Object.defineProperty(Number, 'isNaN', {
-			value: function isNaN(value) {
-				return typeof value === 'number' && globalIsNaN(value);
-			},
-			configurable: true,
-			enumerable: false,
-			writable: true
-		});
-	})(isNaN);
-}
 
 
 // mixin.array
@@ -193,7 +199,7 @@ if (!Number.isNaN) {
 			var type, item;
 
 			if (typeof types === 'string') {
-				types = types.split(/\s+/);
+				types = types.trim().split(/\s+/);
 				item = [fn, slice(arguments, 2)];
 			}
 			else {
@@ -246,7 +252,7 @@ if (!Number.isNaN) {
 
 			if (typeof types === 'string') {
 				// .off(types, fn)
-				types = types.split(/\s+/);
+				types = types.trim().split(/\s+/);
 			}
 			else {
 				// .off(fn)
@@ -480,7 +486,7 @@ if (!Number.isNaN) {
 	    	index: 'id'
 	    };
 
-	var modifierMethods = ['add', 'remove', 'push', 'pop', 'splice'];
+	var modifierMethods = ('add remove push pop splice').split(' ');
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
@@ -550,16 +556,6 @@ if (!Number.isNaN) {
 		}
 	}
 
-	function findByObject(collection, query) {
-		var i = collection.indexOf(query);
-
-		// query IS the object in the collection. Fast out.
-		if (i > -1) { return query; }
-
-		// object has one property, index. Find by index.
-		return findByIndex(collection, query[collection.index]);
-	}
-
 	function queryObject(object, query, keys) {
 		// Optionally pass in keys to avoid having to get them repeatedly.
 		keys = keys || Object.keys(query);
@@ -597,10 +593,14 @@ if (!Number.isNaN) {
 		// Add an item, keeping the collection sorted by id.
 		var index = collection.index;
 
-		// If the object does not have an index key, push it
-		// to the end of the collection.
+		// If the object does not have an index key...
 		if (!isDefined(object[index])) {
-			collection.push(object);
+			// ...check that it is not already in the
+			// collection before pushing it in.
+			if (collection.indexOf(object) === -1) {
+				collection.push(object);
+			}
+
 			return;
 		}
 
@@ -659,12 +659,11 @@ if (!Number.isNaN) {
 	mixin.collection = {
 		add: multiarg(function(item) {
 			add(this, item);
-			//this.trigger('add', item);
 		}),
 
 		remove: multiarg(function(item) {
 			var object = this.find(item);
-			if (!object) { return; }
+			if (!isDefined(object)) { return; }
 			remove(this, object);
 		}, function() {
 			// If item is undefined, remove all objects from the collection.
@@ -728,6 +727,12 @@ if (!Number.isNaN) {
 		}),
 
 		find: function find(object) {
+			// Fast out. If object is an item in collection, return it.
+			if (this.indexOf(object) > -1) {
+				return object;
+			}
+
+			// Otherwise find by index
 			var index = this.index;
 
 			// find() returns the first object with matching key in the collection.
@@ -735,7 +740,7 @@ if (!Number.isNaN) {
 					undefined :
 				typeof object === 'string' || typeof object === 'number' || object === undefined ?
 					findByIndex(this, object) :
-					findByObject(this, object) ;
+					findByIndex(this, object[index]) ;
 		},
 
 		query: function query(object) {
@@ -910,7 +915,7 @@ if (!Number.isNaN) {
 					object[prop] = this[n];
 				}
 				else {
-					console.warn('Collection.toObject() ' + prop + ' cannot be used as a key.');
+					console.warn('collection.toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
 				}
 			}
 
@@ -918,45 +923,61 @@ if (!Number.isNaN) {
 		}
 	};
 
-	// Object constructor
 
-	var prototype = extend({}, mixin.events, mixin.set, mixin.array, mixin.collection);
-	
-	var properties = {
-		length: {
+	// Collection constructor
+
+	var lengthProperty = {
 			value: 0,
 			enumerable: false,
 			writable: true,
 			configurable: true
-		}
-	};
+		};
+
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object);
+	}
 
 	function Collection(array, options) {
+		if (this === undefined || this === window) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
+			return new Collection(array, options);
+		}
+
 		if (!(array instanceof Array)) {
 			options = array;
 			array = [];
 		}
 
+		var collection = this;
 		var settings = extend({}, defaults, options);
-		var collection = Object.create(prototype, properties);
 
 		function byIndex(a, b) {
+			// Sort collection by index.
 			return a[settings.index] > b[settings.index] ? 1 : -1 ;
 		}
 
+		function sort(fn) {
+			// Collections get sorted by index by default, or by a function
+			// passed into options, or passed into the .sort(fn) call.
+			return Array.prototype.sort.call(collection, fn || settings.sort || byIndex);
+		}
+
 		Object.defineProperties(collection, {
-			// Define the name of the property that will be used to sort and
-			// index this collection.
-			index: { value: settings.index }
+			length: lengthProperty,
+			// Define the name of the property that will be used to index this
+			// collection, and the sort function.
+			index: { value: settings.index },
+			sort:  { value: sort }
 		});
 
 		// Populate the collection
 		array.forEach(setValue, collection);
 
-		// Sort the collection
-		collection.sort(byIndex);
-
 		var length = collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
 
 		function observeLength(collection) {
 			var object;
@@ -973,25 +994,13 @@ if (!Number.isNaN) {
 		// Watch the length and delete indexes when the length becomes shorter
 		// like a nice array does.
 		observe(collection, 'length', observeLength);
-
-		// Delegate events
-		//collection
-		//.each(setListeners);
-
-		// Define caches
-		//Object.defineProperties(collection, {
-		//
-		//});
-
-		return collection;
 	};
 
-	Collection.prototype = prototype;
+	extend(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+
 	Collection.add = add;
 	Collection.remove = remove;
-	Collection.isCollection = function(object) {
-		return Collection.prototype.isPrototypeOf(object);
-	};
+	Collection.isCollection = isCollection;
 
 	ns.Collection = Collection;
 })(this, this.mixin);
@@ -1516,11 +1525,11 @@ if (!Number.isNaN) {
 
 		while (++n < l) {
 			ctrl = findByPath(Sparky.ctrl, paths[n]);
-			
+
 			if (!ctrl) {
 				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
 			}
-			
+
 			ctrls.push(ctrl);
 		}
 
@@ -1533,12 +1542,13 @@ if (!Number.isNaN) {
 
 		if (!isDefined(ctrlPaths)) { return; }
 
-		var paths = ctrlPaths.split(/\s+/);
+		var paths = ctrlPaths.trim().split(/\s+/);
 
 		if (paths.length === 1) {
 			ctrl = findByPath(Sparky.ctrl, paths[0]);
 
 			if (!ctrl) {
+				console.log(node);
 				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
 			}
 
@@ -1638,7 +1648,9 @@ if (!Number.isNaN) {
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.Collection   = window.Collection;
+	Sparky.Collection   = function(array, options) {
+		return new Collection(array, options);
+	};
 	Sparky.templates    = templates;
 	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;
@@ -1729,7 +1741,11 @@ if (!Number.isNaN) {
 	function call(fn) { fn(); }
 
 	function isDefined(n) {
-		return n || n !== undefined && n !== null && !Number.isNaN(n);
+		return !!n || n !== undefined && n !== null && !Number.isNaN(n);
+	}
+
+	function classOf(object) {
+		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
 
 	// TokenList constructor to emulate classList property. The get fn should
@@ -1817,6 +1833,11 @@ if (!Number.isNaN) {
 	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
+	    	},
+
+	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
 	    	}
 	    };
 
@@ -2068,7 +2089,9 @@ if (!Number.isNaN) {
 		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
-			return isDefined(value2) ? value2 : '' ;
+			return !isDefined(value2) ? '' :
+				typeof value2 === 'string' || typeof value2 === 'number' ? value2 :
+				classOf(value2) ;
 		}
 	}
 
@@ -2352,23 +2375,23 @@ if (!Number.isNaN) {
 	function valueAnyCtrl(node, model) {
 		// Coerce any defined value to string so that any values pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueStringCtrl(node, model) {
 		// Don't coerce so that only strings pass the type checker
 		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueNumberCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueIntegerCtrl(node, model) {
 		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueBooleanCtrl(node, model) {
@@ -2376,7 +2399,7 @@ if (!Number.isNaN) {
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOn, stringOnToBoolean) :
 		    	Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean) ;
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueBooleanInvertCtrl(node, model) {
@@ -2384,7 +2407,7 @@ if (!Number.isNaN) {
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOnInverted, stringOnToBooleanInverted) :
 		    	Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	}
 
 	function valueNumberInvertCtrl(node, model) {
@@ -2398,7 +2421,7 @@ if (!Number.isNaN) {
 			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
 		});
 
-		this.on('destroy', unbind);
+		if (unbind) { this.on('destroy', unbind); }
 	};
 
 
@@ -2933,6 +2956,10 @@ if (!Number.isNaN) {
 			this.on('destroy', function() {
 				node.removeEventListener('submit', preventDefault);
 			});
+		},
+
+		"delegate-scope": function delegateScopeCtrl(node, scope) {
+			jQuery.data(node, 'scope', scope);
 		}
 	});
 })();
@@ -2969,37 +2996,56 @@ if (!Number.isNaN) {
 
 // Sparky.filters
 
-(function(Sparky, undefined) {
+(function(Sparky) {
 	"use strict";
 
 	var settings = (Sparky.settings = Sparky.settings || {});
-	
+
 	// A reuseable array.
 	var array = [];
-	
-	settings.months      = ('January February March April May June July August September October November December').split(' ');
-	settings.days        = ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' ');
-	settings.ordinals    = (function(ordinals) {
+
+	function createList(ordinals) {
 		var array = [], n = 0;
-		
+
 		while (n++ < 31) {
-			array[n] = ordinals[n] || 'th';
+			array[n] = ordinals[n] || ordinals.n;
 		}
-		
+
 		return array;
-	})({
-		1: 'st',
-		2: 'nd',
-		3: 'rd',
-		21: 'st',
-		22: 'nd',
-		23: 'rd',
-		31: 'st'
-	});
+	}
+
+	// Language settings
+	settings.en = {
+		days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
+		months:   ('January February March April May June July August September October November December').split(' '),
+		ordinals: createList({ n: 'th', 1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st' })
+	};
+
+	settings.fr = {
+		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
+		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
+		ordinals: createList({ n: "ième", 1: "er" })
+	};
+
+	settings.de = {
+		days:     ('Sonntag Montag Dienstag Mittwoch Donnerstag Freitag Samstag').split(' '),
+		months:   ('Januar Februar März April Mai Juni Juli Oktober September Oktober November Dezember').split(' '),
+		ordinals: createList({ n: "er" })
+	};
+
+	settings.it = {
+		days:     ('domenica lunedì martedì mercoledì giovedì venerdì sabato').split(' '),
+		months:   ('gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre').split(' '),
+		ordinals: createList({ n: "o" })
+	};
+
+	// Document language
+	var lang = document.documentElement.lang;
+	settings.lang = lang && settings[lang] ? lang : 'en';
 
 	function spaces(n) {
 		var s = '';
-		while (n--) { s += ' ' }
+		while (n--) { s += ' '; }
 		return s;
 	}
 
@@ -3019,21 +3065,21 @@ if (!Number.isNaN) {
 		},
 
 		cut: function(value, string) {
-			return value.replace(RegExp(string, 'g'), '');
+			return Sparky.filters.replace(value, string, '');
 		},
 
-		date: (function(M, F, D, l, s) {
+		date: (function(settings) {
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
-				b: function(date) { return settings.months[date.getMonth()].toLowerCase().slice(0,3); },
+				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
 				c: function(date) { return date.toISOString(); },
 				d: function(date) { return date.getDate(); },
-				D: function(date) { return settings.days[date.getDay()].slice(0,3); },
+				D: function(date, lang) { return settings[lang].days[date.getDay()].slice(0,3); },
 				//e: function(date) { return ; },
 				//E: function(date) { return ; },
 				//f: function(date) { return ; },
-				F: function(date) { return settings.months[date.getMonth()]; },
+				F: function(date, lang) { return settings[lang].months[date.getMonth()]; },
 				g: function(date) { return date.getHours() % 12; },
 				G: function(date) { return date.getHours(); },
 				h: function(date) { return ('0' + date.getHours() % 12).slice(-2); },
@@ -3041,10 +3087,10 @@ if (!Number.isNaN) {
 				i: function(date) { return ('0' + date.getMinutes()).slice(-2); },
 				//I: function(date) { return ; },
 				j: function(date) { return date.getDate(); },
-				l: function(date) { return settings.days[date.getDay()]; },
+				l: function(date, lang) { return settings[lang].days[date.getDay()]; },
 				//L: function(date) { return ; },
 				m: function(date) { return ('0' + date.getMonth()).slice(-2); },
-				M: function(date) { return settings.months[date.getMonth()].slice(0,3); },
+				M: function(date, lang) { return settings[lang].months[date.getMonth()].slice(0,3); },
 				n: function(date) { return date.getMonth(); },
 				//o: function(date) { return ; },
 				O: function(date) {
@@ -3064,16 +3110,47 @@ if (!Number.isNaN) {
 				//z: function(date) { return ; },
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
-			
+
 			var rletter = /([a-zA-Z])/g;
-			
-			return function formatDate(value, format) {
+			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
+
+			// Test the Date constructor to see if it is parsing date strings
+			// without timezones as local dates, as per the ES6 spec.
+			//
+			// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
+
+			var local = new Date().getTimezoneOffset() === 0 || new Date('1970').toJSON() !== '1970-01-01T00:00:00.000Z';
+
+			function createLocalDate(value) {
+				var date = new Date(value);
+
+				// Offset the date by adding the date's offset in milliseconds.
+				// Careful, getTimezoneOffset returns the offset in minutes.
+				return new Date(+date + date.getTimezoneOffset() * 60000);
+			}
+
+			function createDate(value) {
+				return typeof value !== 'string' ? new Date(value) :
+
+					// If the Date constructor parses to local time...
+					local ? new Date(value) :
+
+					// ...or if the value contains a time zone...
+					(value.length > 16 && rtimezone.test(value)) ? new Date(value) :
+
+					// ...otherwise force the date to be a local date.
+					createLocalDate(value) ;
+			}
+
+			return function formatDate(value, format, lang) {
 				if (!isDefined(value)) { return; }
 
-				var date = value instanceof Date ? value : new Date(value) ;
+				var date = value instanceof Date ? value : createDate(value) ;
+
+				lang = lang || settings.lang;
 
 				return format.replace(rletter, function($0, $1) {
-					return formatters[$1](date);
+					return formatters[$1](date, lang);
 				});
 			};
 		})(settings),
@@ -3103,7 +3180,7 @@ if (!Number.isNaN) {
 			var text = document.createTextNode(this);
 
 			pre.appendChild(text);
-			
+
 			return function(value) {
 				text.textContent = value;
 				return pre.innerHTML;
@@ -3154,7 +3231,7 @@ if (!Number.isNaN) {
 
 		linebreaksbr: (function() {
 			var rbreaks = /\n/;
-			
+
 			return function(value) {
 				return value.replace(rbreaks, '<br/>')
 			};
@@ -3193,8 +3270,10 @@ if (!Number.isNaN) {
 			str1 = str1 || '';
 			str2 = str2 || 's';
 
+			// In French, numbers less than 2 are considered singular, where in
+			// English, Italian and elsewhere only 1 is singular.
 			return lang === 'fr' ?
-				value < 2 ? str1 : str2 :
+				(value < 2 && value >= 0) ? str1 : str2 :
 				value === 1 ? str1 : str2 ;
 		},
 
@@ -3219,22 +3298,22 @@ if (!Number.isNaN) {
 			var m = parseInt(n, 10);
 
 			return m === l ? value :
-				m > l ? string + spaces(m-l) :
+				m > l ? string + spaces(m - l) :
 				string.substring(0, m) ;
 		},
 
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
-		
+
 		//raw
 		//removetags
-		
+
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
 		},
-		
+
 		//reverse
 
 		safe: function(string) {
@@ -3245,8 +3324,10 @@ if (!Number.isNaN) {
 
 		//safeseq
 
-		slice: function(value) {
-			return Array.prototype.slice.apply(value);
+		slice: function(value, i0, i1) {
+			return typeof value === 'string' ?
+				value.slice(i0, i1) :
+				Array.prototype.slice.call(value, i0, i1) ;
 		},
 
 		slugify: function(value) {
@@ -3259,28 +3340,28 @@ if (!Number.isNaN) {
 
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
-			
+
 			return function(value) {
 				return value.replace(rtag, '');
 			};
 		})(),
-		
+
 		striptagsexcept: (function() {
 			var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
 			    allowedTags, result;
-			
+
 			function strip($0, $1, $2) {
 				// Strip any attributes, letting the allowed tag name through.
 				return $2 && allowedTags.indexOf($2) !== -1 ?
 					'<' + ($1 || '') + $2 + '>' :
 					'' ;
 			}
-			
+
 			return function(value, tags) {
 				if (!tags) {
 					return value.replace(rtag, '');
 				}
-				
+
 				allowedTags = tags.split(' ');
 				result = value.replace(rtag, strip);
 				allowedTags = false;
@@ -3299,7 +3380,7 @@ if (!Number.isNaN) {
 			// Takes infinity values and convert them to infinity symbol
 			var string = value + '';
 			var infinity = Infinity + '';
-			
+
 			if (string === infinity) {
 				return '∞';
 			}
@@ -3312,7 +3393,7 @@ if (!Number.isNaN) {
 		},
 
 		time: function() {
-			
+
 		},
 
 		//timesince
@@ -3332,21 +3413,26 @@ if (!Number.isNaN) {
 		//truncatewords
 		//truncatewords_html
 		//unique
-		
+
 		unordered_list: function(value) {
-			// TODO: Django supports nested lists. 
+			// TODO: Django supports nested lists.
 			var list = value,
 			    length = list.length,
 			    i = -1,
 			    html = '';
-			
+
 			while (++i < length) {
 				html += '<li>';
 				html += list[i];
 				html += '</li>';
 			}
-			
+
 			return html;
+		},
+
+		uppercase: function(value) {
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toUpperCase.apply(value);
 		},
 
 		//urlencode
@@ -3378,18 +3464,18 @@ if (!Number.isNaN) {
 		return isInTemplate(node.parentNode);
 	}
 
-	doc.ready(function(){
+	doc.ready(function docReady(){
 		var start;
-		
+
 		if (window.console) { start = Date.now(); }
-		
+
 		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;
 		var array = [];
 		var modelPath;
-		
+
 		// Remove child sparkies
 		while (++n < l) {
 			node = nodes[n];
@@ -3402,16 +3488,16 @@ if (!Number.isNaN) {
 				if (modelPath !== undefined && !/\{\{/.test(modelPath)) {
 					//array.push(nodes[n]);
 				}
-			};
+			}
 			--n;
 		}
-		
+
 		// Normally <template>s are inert, but if they are not a supported
 		// feature their content is part of the DOM so we have to remove those,
-		// too. 
+		// too.
 		if (!Sparky.features.template) {
 			n = array.length;
-			
+
 			while (n--) {
 				if (isInTemplate(array[n])) {
 					array.splice(n, 1);
@@ -3424,11 +3510,11 @@ if (!Number.isNaN) {
 		array.forEach(function(node) {
 			Sparky(node);
 		});
-		
+
 		window.requestAnimationFrame(function sparkyready() {
 			doc.trigger('sparkyready');
 		});
-		
+
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);

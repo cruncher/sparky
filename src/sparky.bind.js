@@ -76,7 +76,11 @@
 	function call(fn) { fn(); }
 
 	function isDefined(n) {
-		return n || n !== undefined && n !== null && !Number.isNaN(n);
+		return !!n || n !== undefined && n !== null && !Number.isNaN(n);
+	}
+
+	function classOf(object) {
+		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
 
 	// TokenList constructor to emulate classList property. The get fn should
@@ -416,19 +420,13 @@
 		});
 	}
 
-	function classOf(object) {
-		return Object.prototype.toString.apply(object)
-		.replace('[object ', '')
-		.replace(']', '');
-	}
-
 	function makeReplaceText(get) {
 		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
 			return !isDefined(value2) ? '' :
-				typeof value2 === 'object' : classOf(value2)
-				value2 ;
+				typeof value2 === 'string' || typeof value2 === 'number' ? value2 :
+				classOf(value2) ;
 		}
 	}
 
