@@ -416,11 +416,19 @@
 		});
 	}
 
+	function classOf(object) {
+		return Object.prototype.toString.apply(object)
+		.replace('[object ', '')
+		.replace(']', '');
+	}
+
 	function makeReplaceText(get) {
 		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
-			return isDefined(value2) ? value2 : '' ;
+			return !isDefined(value2) ? '' :
+				typeof value2 === 'object' : classOf(value2)
+				value2 ;
 		}
 	}
 
