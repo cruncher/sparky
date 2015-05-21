@@ -425,7 +425,10 @@
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
 			return !isDefined(value2) ? '' :
-				typeof value2 === 'string' || typeof value2 === 'number' ? value2 :
+				typeof value2 === 'string' ? value2 :
+				typeof value2 === 'number' ? value2 :
+				typeof value2 === 'boolean' ? value2 :
+				typeof value2 === 'function' ? value2.name + '()' :
 				classOf(value2) ;
 		}
 	}
