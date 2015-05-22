@@ -1718,6 +1718,9 @@ if (!Math.log10) {
 	// Matches anything that contains a non-space character
 	var rtext = /\S/;
 
+	// Matches the arguments list in the result of a fn.toString()
+	var rarguments = /function(?:\s+\w+)?\s*(\([\w\,\s]*\))/;
+
 	var filterCache = {};
 
 	var binders = {
@@ -2093,7 +2096,9 @@ if (!Math.log10) {
 				typeof value2 === 'string' ? value2 :
 				typeof value2 === 'number' ? value2 :
 				typeof value2 === 'boolean' ? value2 :
-				typeof value2 === 'function' ? value2.name + '()' :
+				// Beautify the .toString() result of functions
+				typeof value2 === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
+				// Use just the Class string in '[object Class]'
 				classOf(value2) ;
 		}
 	}
