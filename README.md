@@ -428,12 +428,15 @@ Returns an array-like object with a number of methods for managing a collection.
 ##### collection.remove()
 
 <code>.remove()</code> Removes all objects from the collection.
+
 <code>.remove(id)</code> Removes object found via <code>collection.find(id)</code> from the collection.
+
 <code>.remove(object)</code> Removes object found via <code>collection.find(object)</code> from the collection.
 
 ##### collection.find()
 
 <code>.find(id)</code> returns the object in the collection with that id, or <code>undefined</code>.
+
 <code>.find(object)</code> returns <code>object</code> if it is already in the collection. Otherwise if <code>object</code> has an <code>id</code>, that is used to <code>.find(id)</code> an object.
 
 ##### collection.query(queryObject)
@@ -443,6 +446,7 @@ Filters the collection by the properties of <code>queryObject</code>
 ##### collection.sort()
 
 <code>.sort()</code> sorts the collection by <code>object.id</code>.
+
 <code>.sort(fn)</code> sorts the collection by the return value of <code>fn</code>, like <code>array.sort(fn)</code>.
 
 ##### collection.sub(queryObject)
