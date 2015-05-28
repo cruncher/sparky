@@ -445,7 +445,7 @@ Filters the collection by the properties of <code>queryObject</code>
 
 ##### collection.sort()
 
-<code>.sort()</code> sorts the collection by <code>object.id</code>.
+<code>.sort()</code> sorts the collection by <code>object.id</code> by default. Override the default by defining <code>options.sort</code> as a function.
 
 <code>.sort(fn)</code> sorts the collection by the return value of <code>fn</code>, like <code>array.sort(fn)</code>.
 
