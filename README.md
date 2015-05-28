@@ -424,9 +424,28 @@ Returns an array-like object with a number of methods for managing a collection.
     var collection = Sparky.Collection();
 
 ##### collection.add()
+##### collection.update()
 ##### collection.remove()
 ##### collection.find()
-##### collection.update()
+##### collection.query()
+##### collection.sort()
+##### collection.sub()
+##### collection.get()
+##### collection.set()
+##### collection.push()
+##### collection.pop()
+##### collection.splice()
+
+Also, a Collection inherits the Array methods
+- map
+- reduce
+- concat
+- slice
+- some
+- indexOf
+- '''forEach'''
+
+
 
 #### Sparky.Throttle(fn)
 
