@@ -423,28 +423,65 @@ Returns an array-like object with a number of methods for managing a collection.
 
     var collection = Sparky.Collection();
 
-##### collection.add()
-##### collection.update()
+##### collection.add(object)
+##### collection.update(object)
 ##### collection.remove()
-##### collection.find()
-##### collection.query()
+
+Removes all objects from the collection.
+
+###### collection.remove(id)
+
+Removes object found via <code>collection.find(id)</code> from the collection.
+
+###### collection.remove(object)
+
+Removes object found via <code>collection.find(object)</code> from the collection.
+
+##### collection.find(id)
+
+If <code>id</code> is a number or string, returns the object in the collection with that id, or <code>undefined</code>.
+
+###### collection.find(object)
+
+If <code>object</code> is already in the collection, it is returned. If <code>object</code> has an id, that is used to <code>.find(id)</code> an object. 
+
+##### collection.query(queryObject)
+
+Filters the collection by the properties of <code>queryObject</code>
+
 ##### collection.sort()
-##### collection.sub()
-##### collection.get()
-##### collection.set()
+
+Sorts the collection by <code>object.id</code>.
+
+###### collection.sort(fn)
+
+Sorts the collection by the return value of <code>fn</code>. Like <code>array.sort(fn)</code>.
+
+##### collection.sub(queryObject)
+
+Creates a new collection that is bound to the current one, but filtered by <code>queryObject</code>.
+
+##### collection.get(name)
+
+If they all have the same value, returns value of property <code>name</code> of the objects in the collection. Otherwise returns <code>undefined</code>.
+
+##### collection.set(name, value)
+
+Sets property <code>name</code> of all objects in the collection to <code>value</code>.
+
 ##### collection.push()
 ##### collection.pop()
 ##### collection.splice()
 
-Also, a Collection inherits the Array methods
-- map
-- reduce
-- concat
-- slice
-- some
-- indexOf
-- '''forEach'''
+Also, a Collection inherits the Array methods:
 
+- <code>.map()</code>
+- <code>.reduce()</code>
+- <code>.concat()</code>
+- <code>.slice()</code>
+- <code>.some()</code>
+- <code>.indexOf()</code>
+- <code>.forEach()</code>
 
 
 #### Sparky.Throttle(fn)
@@ -452,7 +489,7 @@ Also, a Collection inherits the Array methods
 Takes one function and returns a function that throttles calls to the browser
 frame rate.
 
-    var throttle = Sparky.throttle(fn);
+    var throttle = Sparky.Throttle(fn);
 
 Calling <code>throttle()</code> causes <code>fn</code> to be called on the next
 browser frame. Multiple calls to <code>throttle()</code> result in just one call
