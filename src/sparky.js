@@ -21,7 +21,24 @@
 	var empty = [];
 	var templates   = {};
 	var features    = {
-	    	template: 'content' in document.createElement('template')
+	    	template: 'content' in document.createElement('template'),
+
+	    	// Firefox wont dispatch events on disabled inputs
+	    	eventDispatchOnDisabled: (function() {
+	    		var input = document.createElement('input');
+	    		var event = new CustomEvent('featuretest', { bubbles: true });
+	    		var result = false;
+
+	    		append(document.body, input);
+
+	    		input.addEventListener('featuretest', function(e) {
+	    			result = true;
+	    		});
+
+	    		input.dispatchEvent(event);
+
+	    		return result;
+	    	})()
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,

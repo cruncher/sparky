@@ -522,10 +522,11 @@
 	// 2-way binding between a node and an object.
 
 	function dispatchInputChangeEvent(node) {
-		// FireFox won't dispatch any events on disabled inputs. So we need to
-		// do a little dance, enabling it quickly, sending the event and
-		// disabling it again.
-		if (!Sparky.features.eventDispatchOnDisabledInput && node.disabled) {
+		// FireFox won't dispatch any events on disabled inputs:
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+		// So we need to do a little dance, enabling it quickly, sending
+		// the event and disabling it again.
+		if (!Sparky.features.eventDispatchOnDisabled && node.disabled) {
 			node.disabled = false;
 
 			// We have to wait, though. It's not clear why.
