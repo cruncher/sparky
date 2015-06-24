@@ -649,7 +649,13 @@
 	Sparky.templates    = templates;
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
-	Sparky.extend       = extend;
+
+	Sparky.extend       = function() {
+		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
+		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
+		return extend.apply(this, arguments);
+	};
+
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
 	Sparky.prototype    = prototype;
