@@ -1,3 +1,72 @@
+// Object.assign polyfill
+// http://github.com/cruncher/object.assign
+//
+// Object.assign(target, source1, source2, ...)
+//
+// All own enumerable properties are copied from the source
+// objects to the target object.
+
+Object.assign || (function(Object) {
+	"use strict";
+
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
+	function ownPropertyKeys(object) {
+		var keys = Object.keys(object);
+		var symbols, n, descriptor;
+
+		if (Object.getOwnPropertySymbols) {
+			symbols = Object.getOwnPropertySymbols(object);
+			n = symbols.length;
+
+			while (n--) {
+				descriptor = Object.getOwnPropertyDescriptor(object, symbols[n]);
+
+				if (descriptor.enumerable) {
+					keys.push(symbol);
+				}
+			}
+		}
+
+		return keys;
+	}
+
+	Object.defineProperty(Object, 'assign', {
+		value: function (target) {
+			if (!isDefined(target)) {
+				throw new TypeError('Object.assign: First argument ' + target + ' cannot be converted to object.');
+			}
+
+			var object = Object(target);
+			var n, source, keys, key, k;
+
+			for (n = 1; n < arguments.length; n++) {
+				source = arguments[n];
+
+				// Ignore any undefined sources
+				if (!isDefined(source)) { continue; }
+
+				// Get own enumerable keys and symbols
+				keys = ownPropertyKeys(Object(source));
+				k = keys.length;
+
+				// Copy key/values to target object
+				while (k--) {
+					key = keys[k];
+					object[key] = source[key];
+				}
+			}
+
+			return object;
+		},
+
+		configurable: true,
+		writable: true
+	});
+})(Object);
+
 
 // Number.isNaN(n) polyfill
 
@@ -522,26 +591,6 @@ if (!Math.log10) {
 		return a.id > b.id ? 1 : -1 ;
 	}
 
-	// Object functions
-
-	function extend(obj) {
-		var i = 0,
-		    length = arguments.length,
-		    obj2, key;
-
-		while (++i < length) {
-			obj2 = arguments[i];
-
-			for (key in obj2) {
-				if (obj2.hasOwnProperty(key)) {
-					obj[key] = obj2[key];
-				}
-			}
-		}
-
-		return obj;
-	}
-
 	// Collection functions
 
 	function findByIndex(collection, id) {
@@ -715,7 +764,7 @@ if (!Math.log10) {
 			var item = this.find(obj);
 
 			if (item) {
-				extend(item, obj);
+				Object.assign(item, obj);
 				this.trigger('update', item);
 			}
 			else {
@@ -950,7 +999,7 @@ if (!Math.log10) {
 		}
 
 		var collection = this;
-		var settings = extend({}, defaults, options);
+		var settings = Object.assign({}, defaults, options);
 
 		function byIndex(a, b) {
 			// Sort collection by index.
@@ -996,7 +1045,7 @@ if (!Math.log10) {
 		observe(collection, 'length', observeLength);
 	};
 
-	extend(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+	Object.assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
 
 	Collection.add = add;
 	Collection.remove = remove;
@@ -1033,7 +1082,7 @@ if (!Math.log10) {
 	    // Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
 
-	var prototype = extend({
+	var prototype = Object.assign({
 		create: function() {},
 
 		reset: function() {},
@@ -1078,24 +1127,6 @@ if (!Math.log10) {
 
 	function copy(array1, array2) {
 		Array.prototype.push.apply(array2, array1);
-	}
-
-	function extend(obj) {
-		var i = 0,
-		    length = arguments.length,
-		    obj2, key;
-
-		while (++i < length) {
-			obj2 = arguments[i];
-
-			for (key in obj2) {
-				if (obj2.hasOwnProperty(key)) {
-					obj[key] = obj2[key];
-				}
-			}
-		}
-
-		return obj;
 	}
 
 
@@ -1656,7 +1687,13 @@ if (!Math.log10) {
 	Sparky.templates    = templates;
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
-	Sparky.extend       = extend;
+
+	Sparky.extend = function() {
+		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
+		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
+		return Object.assign.apply(this, arguments);
+	};
+
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
 	Sparky.prototype    = prototype;
@@ -2489,7 +2526,7 @@ if (!Math.log10) {
 	};
 
 
-	Sparky.extend(Sparky.ctrl, {
+	Object.assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
@@ -3007,7 +3044,7 @@ if (!Math.log10) {
 		e.preventDefault();
 	}
 
-	Sparky.extend(Sparky.ctrl, {
+	Object.assign(Sparky.ctrl, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {
