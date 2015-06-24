@@ -1027,27 +1027,6 @@ if (!Math.log10) {
 
 	var empty = [];
 	var templates   = {};
-	var features    = {
-	    	template: 'content' in document.createElement('template'),
-
-	    	// Firefox wont dispatch events on disabled inputs
-	    	eventDispatchOnDisabled: (function() {
-	    		var input = document.createElement('input');
-	    		var event = new CustomEvent('featuretest', { bubbles: true });
-	    		var result = false;
-
-	    		append(document.body, input);
-
-	    		input.addEventListener('featuretest', function(e) {
-	    			result = true;
-	    		});
-
-	    		input.dispatchEvent(event);
-
-	    		return result;
-	    	})()
-	    };
-
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
 	    // Check whether a path begins with '.' or '['
 	    rrelativepath = /^\.|^\[/;
@@ -1199,6 +1178,36 @@ if (!Math.log10) {
 
 	function insertAfter(node, target) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
+	}
+
+	// Feature tests
+
+	var features    = {
+	    	template: testTemplate(),
+	    	eventDispatchOnDisabled: testEventDispatchOnDisabled()
+	    };
+
+	function testTemplate() {
+		// Older browsers don't know about the content property of templates.
+		return 'content' in document.createElement('template');
+	}
+
+	function testEventDispatchOnDisabled() {
+		// FireFox won't dispatch any events on disabled inputs:
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+		var input = document.createElement('input');
+		var event = new CustomEvent('featuretest', { bubbles: true });
+		var result = false;
+
+		append(document.body, input);
+
+		input.disabled = true;
+		input.addEventListener('featuretest', function(e) { result = true; });
+		input.dispatchEvent(event);
+
+		remove(input);
+
+		return result;
 	}
 
 	// Getting and setting
@@ -2204,14 +2213,14 @@ if (!Math.log10) {
 	// 2-way binding between a node and an object.
 
 	function dispatchInputChangeEvent(node) {
-		// FireFox won't dispatch any events on disabled inputs:
-		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
-		// So we need to do a little dance, enabling it quickly, sending
-		// the event and disabling it again.
+		// FireFox won't dispatch any events on disabled inputs so we need to do
+		// a little dance, enabling it quickly, sending the event and disabling
+		// it again.
 		if (!Sparky.features.eventDispatchOnDisabled && node.disabled) {
 			node.disabled = false;
 
-			// We have to wait, though. It's not clear why.
+			// We have to wait, though. It's not clear why. This makes it async,
+			// but let's not worry too much about that.
 			setTimeout(function() {
 				node.dispatchEvent(changeEvent);
 				node.disabled = true;
