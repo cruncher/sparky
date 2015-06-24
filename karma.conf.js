@@ -24,7 +24,7 @@ module.exports = function(config) {
       'src/mixin.storage.js',
       'src/collection.js',
       'src/sparky.js',
-      'src/sparky.fetaures.js',
+      'src/sparky.features.js',
       'src/sparky.observe.js',
       'src/sparky.throttle.js',
       'src/sparky.bind.js',

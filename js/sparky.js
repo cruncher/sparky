@@ -1027,9 +1027,11 @@ if (!Math.log10) {
 
 	var empty = [];
 	var templates   = {};
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
+
+	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
+
 	    // Check whether a path begins with '.' or '['
-	    rrelativepath = /^\.|^\[/;
+	var rrelativepath = /^\.|^\[/;
 
 	var prototype = extend({
 		create: function() {},
@@ -1178,36 +1180,6 @@ if (!Math.log10) {
 
 	function insertAfter(node, target) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
-	}
-
-	// Feature tests
-
-	var features    = {
-	    	template: testTemplate(),
-	    	eventDispatchOnDisabled: testEventDispatchOnDisabled()
-	    };
-
-	function testTemplate() {
-		// Older browsers don't know about the content property of templates.
-		return 'content' in document.createElement('template');
-	}
-
-	function testEventDispatchOnDisabled() {
-		// FireFox won't dispatch any events on disabled inputs:
-		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
-		var input = document.createElement('input');
-		var event = new CustomEvent('featuretest', { bubbles: true });
-		var result = false;
-
-		append(document.body, input);
-
-		input.disabled = true;
-		input.addEventListener('featuretest', function(e) { result = true; });
-		input.dispatchEvent(event);
-
-		remove(input);
-
-		return result;
 	}
 
 	// Getting and setting
@@ -1674,11 +1646,14 @@ if (!Math.log10) {
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.Collection   = function(array, options) {
+	Sparky.Collection = function(array, options) {
 		return new Collection(array, options);
 	};
+	Sparky.dom = {
+		append: append,
+		remove: remove
+	};
 	Sparky.templates    = templates;
-	Sparky.features     = features;
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
 	Sparky.extend       = extend;
@@ -1688,6 +1663,42 @@ if (!Math.log10) {
  
 	ns.Sparky = Sparky;
 })(window);
+
+
+// Sparky.features
+// Feature tests for Sparky.
+
+(function(window, Sparky){
+	"use strict";
+
+	var dom = Sparky.dom;
+	var testEvent = new CustomEvent('featuretest', { bubbles: true });
+
+	// Older browsers don't know about the content property of templates.
+	function testTemplate() {
+		return 'content' in document.createElement('template');
+	}
+
+	// FireFox won't dispatch any events on disabled inputs:
+	// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+	function testEventDispatchOnDisabled() {
+		var input = document.createElement('input');
+		var result = false;
+
+		dom.append(document.body, input);
+		input.disabled = true;
+		input.addEventListener('featuretest', function(e) { result = true; });
+		input.dispatchEvent(testEvent);
+		dom.remove(input);
+
+		return result;
+	}
+
+	Sparky.features = {
+		template: testTemplate(),
+		eventDispatchOnDisabled: testEventDispatchOnDisabled()
+	};
+})(window, window.Sparky);
 
 
 // Sparky.bind

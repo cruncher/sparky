@@ -21,7 +21,7 @@
 	var empty = [];
 	var templates   = {};
 
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
+	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
 	    // Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
@@ -639,8 +639,12 @@
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-	Sparky.Collection   = function(array, options) {
+	Sparky.Collection = function(array, options) {
 		return new Collection(array, options);
+	};
+	Sparky.dom = {
+		append: append,
+		remove: remove
 	};
 	Sparky.templates    = templates;
 	Sparky.template     = fetchTemplate;

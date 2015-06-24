@@ -5,6 +5,7 @@
 (function(window, Sparky){
 	"use strict";
 
+	var dom = Sparky.dom;
 	var testEvent = new CustomEvent('featuretest', { bubbles: true });
 
 	// Older browsers don't know about the content property of templates.
@@ -18,16 +19,16 @@
 		var input = document.createElement('input');
 		var result = false;
 
-		append(document.body, input);
+		dom.append(document.body, input);
 		input.disabled = true;
 		input.addEventListener('featuretest', function(e) { result = true; });
 		input.dispatchEvent(testEvent);
-		remove(input);
+		dom.remove(input);
 
 		return result;
 	}
 
-	Sparky.features = = {
+	Sparky.features = {
 		template: testTemplate(),
 		eventDispatchOnDisabled: testEventDispatchOnDisabled()
 	};
