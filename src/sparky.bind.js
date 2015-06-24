@@ -521,6 +521,24 @@
 	// where a value attribute is not given. This set of functions handles
 	// 2-way binding between a node and an object.
 
+	function dispatchInputChangeEvent(node) {
+		// FireFox won't dispatch any events on disabled inputs. So we need to
+		// do a little dance, enabling it quickly, sending the event and
+		// disabling it again.
+		if (!Sparky.features.eventDispatchOnDisabledInput && node.disabled) {
+			node.disabled = false;
+
+			// We have to wait, though. It's not clear why.
+			setTimeout(function() {
+				node.dispatchEvent(changeEvent);
+				node.disabled = true;
+			}, 0);
+		}
+		else {
+			node.dispatchEvent(changeEvent);
+		}
+	}
+
 	function makeUpdateInput(node, model, path, fn) {
 		var type = node.type;
 
@@ -535,20 +553,7 @@
 
 				node.checked = checked;
 
-				// FireFox won't dispatch any events on disabled inputs. We need
-				// to enable it quickly, send the event and disable it again.
-				if (!Sparky.features.eventDispatchOnDisabledInput && node.disabled) {
-					node.disabled = false;
-
-					// We have to wait, though, for some reason.
-					setTimeout(function() {
-						node.dispatchEvent(changeEvent);
-						node.disabled = false;
-					}, 0);
-				}
-				else {
-					node.dispatchEvent(changeEvent);
-				}
+				dispatchInputChangeEvent(node);
 			} :
 			function updateValue() {
 				var value = fn(Sparky.get(model, path));
@@ -565,8 +570,7 @@
 					node.value = '';
 				}
 
-				// Send change event.
-				node.dispatchEvent(changeEvent);
+				dispatchInputChangeEvent(node);
 			} ;
 	}
 
