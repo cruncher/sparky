@@ -30,6 +30,6 @@
 
 	Sparky.features = {
 		template: testTemplate(),
-		eventDispatchOnDisabled: testEventDispatchOnDisabled()
+		inputEventsOnDisabled: testEventDispatchOnDisabled()
 	};
 })(window, window.Sparky);

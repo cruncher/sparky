@@ -525,7 +525,7 @@
 		// FireFox won't dispatch any events on disabled inputs so we need to do
 		// a little dance, enabling it quickly, sending the event and disabling
 		// it again.
-		if (!Sparky.features.eventDispatchOnDisabled && node.disabled) {
+		if (!Sparky.features.inputEventsOnDisabled && node.disabled) {
 			node.disabled = false;
 
 			// We have to wait, though. It's not clear why. This makes it async,
