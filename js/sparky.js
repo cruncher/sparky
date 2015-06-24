@@ -1028,7 +1028,24 @@ if (!Math.log10) {
 	var empty = [];
 	var templates   = {};
 	var features    = {
-	    	template: 'content' in document.createElement('template')
+	    	template: 'content' in document.createElement('template'),
+
+	    	// Firefox wont dispatch events on disabled inputs
+	    	eventDispatchOnDisabled: (function() {
+	    		var input = document.createElement('input');
+	    		var event = new CustomEvent('featuretest', { bubbles: true });
+	    		var result = false;
+
+	    		append(document.body, input);
+
+	    		input.addEventListener('featuretest', function(e) {
+	    			result = true;
+	    		});
+
+	    		input.dispatchEvent(event);
+
+	    		return result;
+	    	})()
 	    };
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g,
@@ -2187,10 +2204,11 @@ if (!Math.log10) {
 	// 2-way binding between a node and an object.
 
 	function dispatchInputChangeEvent(node) {
-		// FireFox won't dispatch any events on disabled inputs. So we need to
-		// do a little dance, enabling it quickly, sending the event and
-		// disabling it again.
-		if (!Sparky.features.eventDispatchOnDisabledInput && node.disabled) {
+		// FireFox won't dispatch any events on disabled inputs:
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+		// So we need to do a little dance, enabling it quickly, sending
+		// the event and disabling it again.
+		if (!Sparky.features.eventDispatchOnDisabled && node.disabled) {
 			node.disabled = false;
 
 			// We have to wait, though. It's not clear why.
