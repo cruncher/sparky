@@ -101,7 +101,7 @@
 		e.preventDefault();
 	}
 
-	Sparky.extend(Sparky.ctrl, {
+	Object.assign(Sparky.ctrl, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {

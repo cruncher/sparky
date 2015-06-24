@@ -787,7 +787,7 @@
 	};
 
 
-	Sparky.extend(Sparky.ctrl, {
+	Object.assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,

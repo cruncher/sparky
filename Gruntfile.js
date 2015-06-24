@@ -2,6 +2,7 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		concat: {
 			'js/sparky.js': [
+				'src/object.assign.js',
 				'src/number.isnan.js',
 				'src/math.log10.js',
 				'src/window.customevent.js',

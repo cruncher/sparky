@@ -14,6 +14,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'src/jquery-2.1.1.js',
+      'src/object.assign.js',
       'src/number.isnan.js',
       'src/math.log10.js',
       'src/window.customevent.js',

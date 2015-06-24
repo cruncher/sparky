@@ -26,7 +26,7 @@
 	    // Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
 
-	var prototype = extend({
+	var prototype = Object.assign({
 		create: function() {},
 
 		reset: function() {},
@@ -71,24 +71,6 @@
 
 	function copy(array1, array2) {
 		Array.prototype.push.apply(array2, array1);
-	}
-
-	function extend(obj) {
-		var i = 0,
-		    length = arguments.length,
-		    obj2, key;
-
-		while (++i < length) {
-			obj2 = arguments[i];
-
-			for (key in obj2) {
-				if (obj2.hasOwnProperty(key)) {
-					obj[key] = obj2[key];
-				}
-			}
-		}
-
-		return obj;
 	}
 
 
@@ -650,10 +632,10 @@
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
 
-	Sparky.extend       = function() {
+	Sparky.extend = function() {
 		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
 		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
-		return extend.apply(this, arguments);
+		return Object.assign.apply(this, arguments);
 	};
 
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";

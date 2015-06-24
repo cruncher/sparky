@@ -45,26 +45,6 @@
 		return a.id > b.id ? 1 : -1 ;
 	}
 
-	// Object functions
-
-	function extend(obj) {
-		var i = 0,
-		    length = arguments.length,
-		    obj2, key;
-
-		while (++i < length) {
-			obj2 = arguments[i];
-
-			for (key in obj2) {
-				if (obj2.hasOwnProperty(key)) {
-					obj[key] = obj2[key];
-				}
-			}
-		}
-
-		return obj;
-	}
-
 	// Collection functions
 
 	function findByIndex(collection, id) {
@@ -238,7 +218,7 @@
 			var item = this.find(obj);
 
 			if (item) {
-				extend(item, obj);
+				Object.assign(item, obj);
 				this.trigger('update', item);
 			}
 			else {
@@ -473,7 +453,7 @@
 		}
 
 		var collection = this;
-		var settings = extend({}, defaults, options);
+		var settings = Object.assign({}, defaults, options);
 
 		function byIndex(a, b) {
 			// Sort collection by index.
@@ -519,7 +499,7 @@
 		observe(collection, 'length', observeLength);
 	};
 
-	extend(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+	Object.assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
 
 	Collection.add = add;
 	Collection.remove = remove;
