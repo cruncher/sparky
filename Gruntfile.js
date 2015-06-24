@@ -11,6 +11,7 @@ module.exports = function(grunt) {
 				'src/observe.js',
 				'src/collection.js',
 				'src/sparky.js',
+				'src/sparky.features.js',
 				'src/sparky.bind.js',
 				'src/sparky.observe.js',
 				'src/sparky.throttle.js',
