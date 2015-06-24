@@ -534,7 +534,21 @@
 				if (node.checked === checked) { return; }
 
 				node.checked = checked;
-				node.dispatchEvent(changeEvent);
+
+				// FireFox won't dispatch any events on disabled inputs. We need
+				// to enable it quickly, send the event and disable it again.
+				if (!Sparky.features.eventDispatchOnDisabledInput && node.disabled) {
+					node.disabled = false;
+
+					// We have to wait, though, for some reason.
+					setTimeout(function() {
+						node.dispatchEvent(changeEvent);
+						node.disabled = false;
+					}, 0);
+				}
+				else {
+					node.dispatchEvent(changeEvent);
+				}
 			} :
 			function updateValue() {
 				var value = fn(Sparky.get(model, path));
