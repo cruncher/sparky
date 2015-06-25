@@ -621,13 +621,16 @@
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
+
 	Sparky.Collection = function(array, options) {
 		return new Collection(array, options);
 	};
+
 	Sparky.dom = {
 		append: append,
 		remove: remove
 	};
+
 	Sparky.templates    = templates;
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
