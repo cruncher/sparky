@@ -1099,7 +1099,7 @@ if (!Math.log10) {
 
 		remove: function() {
 			while (this.length-- > 0) {
-				remove(this[this.length]);
+				Sparky.dom.remove(this[this.length]);
 			}
 
 			return this;
@@ -1135,7 +1135,7 @@ if (!Math.log10) {
 	function nodeToText(node) {
 		return [
 			'<',
-			node.tagName.toLowerCase(),
+			Sparky.dom.tag(node),
 			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
@@ -1147,11 +1147,6 @@ if (!Math.log10) {
 
 
 	// DOM helpers
-
-	function append(parent, node) {
-		parent.appendChild(node);
-		return parent;
-	}
 	
 	function fill(parent, child) {
 		// Remove all children.
@@ -1182,7 +1177,7 @@ if (!Math.log10) {
 		// In browsers where templates are not inert, ids used inside them 
 		// conflict with ids in any rendered result. To go some way to tackling
 		// this, remove the template once we have its content.
-		remove(node);
+		Sparky.dom.remove(node);
 		return content;
 	}
 
@@ -1195,22 +1190,6 @@ if (!Math.log10) {
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		return template && template.cloneNode(true);
-	}
-
-	function tagName(node) {
-		return node.tagName.toLowerCase();
-	}
-
-	function remove(node) {
-		node.parentNode && node.parentNode.removeChild(node);
-	}
-
-	function insertBefore(node, target) {
-		target.parentNode && target.parentNode.insertBefore(node, target);
-	}
-
-	function insertAfter(node, target) {
-		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
 
 	// Getting and setting
@@ -1263,7 +1242,7 @@ if (!Math.log10) {
 				i = model.indexOf(obj);
 
 				if (i === -1) {
-					remove(nodes[l]);
+					Sparky.dom.remove(nodes[l]);
 					sparkies[l].destroy();
 					sparky.off(sparkies[l]);
 				}
@@ -1291,7 +1270,7 @@ if (!Math.log10) {
 					sparky.on(sparkies[n]);
 				}
 
-				insertBefore(nodes[n], endNode);
+				Sparky.dom.before(endNode, nodes[n]);
 
 				if (document.body.contains(sparkies[n][0])) {
 					sparkies[n].trigger('insert');
@@ -1304,10 +1283,10 @@ if (!Math.log10) {
 		}
 
 		// Put the marker node in place
-		insertBefore(endNode, node);
+		Sparky.dom.before(node, endNode);
 
 		// Remove the node
-		remove(node);
+		Sparky.dom.remove(node);
 
 		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
@@ -1379,14 +1358,14 @@ if (!Math.log10) {
 				}
 
 				childSparky = Sparky(node, data);
-				insertAfter(node, comment);
-				remove(comment);
+				Sparky.dom.after(comment, node);
+				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
 			};
 
 			var teardown = function() {
-				insertBefore(comment, node);
-				remove(node);
+				Sparky.dom.before(node, comment);
+				Sparky.dom.remove(node);
 
 				if (childSparky) {
 					childSparky.destroy();
@@ -1677,13 +1656,11 @@ if (!Math.log10) {
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
+
 	Sparky.Collection = function(array, options) {
 		return new Collection(array, options);
 	};
-	Sparky.dom = {
-		append: append,
-		remove: remove
-	};
+
 	Sparky.templates    = templates;
 	Sparky.template     = fetchTemplate;
 	Sparky.content      = getTemplateContent;
@@ -1701,6 +1678,221 @@ if (!Math.log10) {
 	ns.Sparky = Sparky;
 })(window);
 
+(function(Sparky) {
+	"use strict";
+
+	// Matches anything with a space
+	var rspaces = /\s+/;
+
+
+	// Pure functions
+
+	var slice  = Function.prototype.call.bind(Array.prototype.slice);
+	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+
+
+	// TokenList constructor to emulate classList property. The get fn should
+	// take the arguments (node), and return a string of tokens. The set fn
+	// should take the arguments (node, string).
+
+	function TokenList(node, get, set) {
+		this.node = node;
+		this.get = get;
+		this.set = set;
+	}
+
+	TokenList.prototype = {
+		add: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+
+			while (n--) {
+				if (array.indexOf(arguments[n]) === -1) {
+					array.push(arguments[n]);
+				}
+			}
+
+			this.set(this.node, array.join(' '));
+		},
+
+		remove: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var i;
+
+			while (n--) {
+				i = array.indexOf(arguments[n]);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			this.set(this.node, array.join(' '));
+		}
+	};
+
+
+	function getClass(node) {
+		// node.className is an object in SVG. getAttribute
+		// is more consistent, if a tad slower.
+		return node.getAttribute('class');
+	}
+
+	function setClass(node, classes) {
+		if (node instanceof SVGElement) {
+			node.setAttribute('class', classes);
+		}
+		else {
+			node.className = classes;
+		}
+	}
+
+	function getClassList(node) {
+		return node.classList || new TokenList(node, getClass, setClass);
+	}
+
+
+	// DOM methods made easy
+
+	function matches(node, selector) {
+		return node.matches ? node.matches(selector) :
+			node.matchesSelector ? node.matchesSelector(selector) :
+			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
+			node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
+			node.msMatchesSelector ? node.msMatchesSelector(selector) :
+			node.oMatchesSelector ? node.oMatchesSelector(selector) :
+			node.tagName.toLowerCase() === selector ;
+	}
+
+	function closest(node, selector, root) {
+		if (!node || node === root || node === document || node.nodeType === 11) { return; }
+
+		if (node.correspondingUseElement) {
+			// SVG <use> elements store their DOM reference in
+			// .correspondingUseElement.
+			node = node.correspondingUseElement;
+		}
+
+		return matches(node, selector) ?
+			 node :
+			 closest(node.parentNode, selector, root) ;
+	}
+
+	function tagName(node) {
+		return node.tagName.toLowerCase();
+	}
+
+	function remove(node) {
+		node.parentNode && node.parentNode.removeChild(node);
+	}
+	
+	function insertBefore(target, node) {
+		target.parentNode && target.parentNode.insertBefore(node, target);
+	}
+	
+	function insertAfter(target, node) {
+		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
+	}
+
+
+	// Templates
+
+	var templates = {};
+
+	function fragmentFromChildren(template) {
+		var children = slice(template.childNodes);
+		var fragment = document.createDocumentFragment();
+		return reduce(children, append, fragment);
+	}
+
+	function getTemplateContent(node) {
+		// A template tag has a content property that gives us a document
+		// fragment. If that doesn't exist we must make a document fragment.
+		return node.content || fragmentFromChildren(node);
+	}
+
+	function getTemplate(id) {
+		var node = document.getElementById(id);
+		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
+		return node && getTemplateContent(node);
+	}
+
+	function fetchTemplate(id) {
+		var template = templates[id] || (templates[id] = getTemplate(id));
+		return template && template.cloneNode(true);
+	}
+
+
+	function append(parent, node) {
+		parent.appendChild(node);
+		return parent;
+	}
+
+	function replace(parent, child) {
+		// Remove all children.
+		while (parent.lastChild) {
+			parent.removeChild(parent.lastChild);
+		}
+
+		// Append the template fragment.
+		parent.appendChild(child);
+		return parent;
+	}
+
+
+	// Events
+
+	function delegate(selector, fn) {
+		// Create an event handler that looks up the ancestor tree
+		// to find selector.
+		return function handler(e) {
+			var node = closest(e.target, selector, e.currentTarget);
+
+			if (!node) { return; }
+
+			e.delegateTarget = node;
+			return fn(e);
+		};
+	}
+
+
+	// Traversal
+
+	// query(selector)
+	// query(node, selector)
+
+	function query(node, selector) {
+		if (arguments.length === 1 && typeof node === 'string') {
+			selector = node;
+			node = document;
+		}
+
+		return Array.prototype.slice.apply(node.querySelectorAll(selector));
+	}
+
+
+	// Export
+
+	Sparky.dom = {
+		tag: tagName,
+		append: append,
+		after: insertAfter,
+		before: insertBefore,
+		remove: remove,
+		query: query,
+		closest: closest,
+		matches: matches,  
+		classes: getClassList,
+		getClass: getClass,
+		setClass: setClass,
+		delegate: delegate,
+		cloneTemplate: fetchTemplate,
+		fragmentFromChildren: fragmentFromChildren
+	};
+})(window.Sparky);
 
 // Sparky.features
 // Feature tests for Sparky.
@@ -1768,6 +1960,8 @@ if (!Math.log10) {
 (function(Sparky) {
 	"use strict";
 
+	var dom = Sparky.dom;
+
 	var attributes = [
 		'href',
 		'title',
@@ -1824,46 +2018,6 @@ if (!Math.log10) {
 	function classOf(object) {
 		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
-
-	// TokenList constructor to emulate classList property. The get fn should
-	// take the arguments (node), and return a string of tokens. The set fn
-	// should take the arguments (node, string).
-
-	function TokenList(node, get, set) {
-		this.node = node;
-		this.get = get;
-		this.set = set;
-	}
-
-	TokenList.prototype = {
-		add: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-
-			while (n--) {
-				if (array.indexOf(arguments[n]) === -1) {
-					array.push(arguments[n]);
-				}
-			}
-
-			this.set(this.node, array.join(' '));
-		},
-
-		remove: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-			var i;
-
-			while (n--) {
-				i = array.indexOf(arguments[n]);
-				if (i !== -1) { array.splice(i, 1); }
-			}
-
-			this.set(this.node, array.join(' '));
-		}
-	};
 
 	// Nodes that require special bindings
 	var tags = {
@@ -2004,25 +2158,6 @@ if (!Math.log10) {
 		node.setAttribute(attribute, value);
 	}
 
-	function getClass(node) {
-		// node.className is an object in SVG. getAttribute
-		// is more consistent, if a tad slower.
-		return node.getAttribute('class');
-	}
-
-	function getClassList(node) {
-		return node.classList || new TokenList(node, getClass, setClass);
-	}
-
-	function setClass(node, classes) {
-		if (node instanceof SVGElement) {
-			node.setAttribute('class', classes);
-		}
-		else {
-			node.className = classes;
-		}
-	}
-
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
 		classList.add.apply(classList, classes);
@@ -2034,7 +2169,7 @@ if (!Math.log10) {
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
-		var classes = getClass(node);
+		var classes = dom.getClass(node);
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
@@ -2051,10 +2186,10 @@ if (!Math.log10) {
 		if (!tags.length) { return; }
 
 		// Now that we extracted the tags, overwrite the class with remaining text
-		setClass(node, text);
+		dom.setClass(node, text);
 
 		// Create an update function for keeping sparky's classes up-to-date
-		var classList = getClassList(node);
+		var classList = dom.classes(node);
 		var update = function update(newText, oldText) {
 		    	if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
 		    	if (newText && rtext.test(newText)) { addClasses(classList, newText); }
@@ -2093,10 +2228,6 @@ if (!Math.log10) {
 		    	setAttributeHTML.bind(this, node, attribute) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
-	}
-
-	function getAttribute() {
-		
 	}
 
 	function toFilter(filter) {
@@ -2536,7 +2667,6 @@ if (!Math.log10) {
 		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 
-	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
 
