@@ -302,13 +302,42 @@
 	function toFilter(filter) {
 		var parts = rfilter.exec(filter);
 
+		// 1. Start or comma and space
+		// 2. Any JSON parsable primitive
+		// 3. String with single quotes
+		// 4. Path that starts with a word char
+		// 5. Space and comma or end
+
+		//            1            2                              3       4                     5
+		var rvalue = /(?:^|,)\s*(?:(".*?"|true|false|-?\d*\.?\d+)|'(.*?)'|([\w][^"',]+[^"',\s]))\s*(?:,|$)/g;
+		var string = parts[2];
+		var args = [''];
+		var results;
+
+
+function parseValue(match, json, string, path) {
+	return json ? JSON.parse(json) :
+		string ? string :
+		'' ;
+}
+
+//		parts[2]
+//		.match(/(".*?"|'.*?'|[^"',\s][^"',]+[^"',\s])/g)
+//		.map(JSON.parse);
+
+		while (results = rvalue.exec(string)) {
+			args.push(parseValue.apply(undefined, results));
+		}
+
 		return {
 			name: parts[1],
 			fn: Sparky.filters[parts[1]],
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
+			args: args
+
+			//args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
 		};
 	}
 
