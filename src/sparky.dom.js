@@ -193,9 +193,10 @@
 	// Events
 
 	var events = {};
+	var eventOptions = { bubbles: true };
 
 	function createEvent(type) {
-		return new CustomEvent(type, { bubbles: true });
+		return new CustomEvent(type, eventOptions);
 	}
 
 	function delegate(selector, fn) {
