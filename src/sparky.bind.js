@@ -299,10 +299,6 @@
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 
-	function getAttribute() {
-		
-	}
-
 	function toFilter(filter) {
 		var parts = rfilter.exec(filter);
 
