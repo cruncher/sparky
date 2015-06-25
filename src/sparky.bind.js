@@ -315,11 +315,11 @@
 		var results;
 
 
-function parseValue(match, json, string, path) {
-	return json ? JSON.parse(json) :
-		string ? string :
-		'' ;
-}
+		function parseValue(match, json, string, path) {
+			return json ? JSON.parse(json) :
+				string ? string :
+				'' ;
+		}
 
 //		parts[2]
 //		.match(/(".*?"|'.*?'|[^"',\s][^"',]+[^"',\s])/g)
