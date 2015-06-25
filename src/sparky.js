@@ -43,7 +43,7 @@
 
 		remove: function() {
 			while (this.length-- > 0) {
-				remove(this[this.length]);
+				Sparky.dom.remove(this[this.length]);
 			}
 
 			return this;
@@ -79,7 +79,7 @@
 	function nodeToText(node) {
 		return [
 			'<',
-			node.tagName.toLowerCase(),
+			Sparky.dom.tag(node),
 			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
@@ -91,11 +91,6 @@
 
 
 	// DOM helpers
-
-	function append(parent, node) {
-		parent.appendChild(node);
-		return parent;
-	}
 	
 	function fill(parent, child) {
 		// Remove all children.
@@ -126,7 +121,7 @@
 		// In browsers where templates are not inert, ids used inside them 
 		// conflict with ids in any rendered result. To go some way to tackling
 		// this, remove the template once we have its content.
-		remove(node);
+		Sparky.dom.remove(node);
 		return content;
 	}
 
@@ -139,22 +134,6 @@
 	function fetchTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		return template && template.cloneNode(true);
-	}
-
-	function tagName(node) {
-		return node.tagName.toLowerCase();
-	}
-
-	function remove(node) {
-		node.parentNode && node.parentNode.removeChild(node);
-	}
-
-	function insertBefore(node, target) {
-		target.parentNode && target.parentNode.insertBefore(node, target);
-	}
-
-	function insertAfter(node, target) {
-		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
 
 	// Getting and setting
@@ -207,7 +186,7 @@
 				i = model.indexOf(obj);
 
 				if (i === -1) {
-					remove(nodes[l]);
+					Sparky.dom.remove(nodes[l]);
 					sparkies[l].destroy();
 					sparky.off(sparkies[l]);
 				}
@@ -235,7 +214,7 @@
 					sparky.on(sparkies[n]);
 				}
 
-				insertBefore(nodes[n], endNode);
+				Sparky.dom.before(endNode, nodes[n]);
 
 				if (document.body.contains(sparkies[n][0])) {
 					sparkies[n].trigger('insert');
@@ -248,10 +227,10 @@
 		}
 
 		// Put the marker node in place
-		insertBefore(endNode, node);
+		Sparky.dom.before(node, endNode);
 
 		// Remove the node
-		remove(node);
+		Sparky.dom.remove(node);
 
 		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
@@ -323,14 +302,14 @@
 				}
 
 				childSparky = Sparky(node, data);
-				insertAfter(node, comment);
-				remove(comment);
+				Sparky.dom.after(comment, node);
+				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
 			};
 
 			var teardown = function() {
-				insertBefore(comment, node);
-				remove(node);
+				Sparky.dom.before(node, comment);
+				Sparky.dom.remove(node);
 
 				if (childSparky) {
 					childSparky.destroy();
@@ -624,11 +603,6 @@
 
 	Sparky.Collection = function(array, options) {
 		return new Collection(array, options);
-	};
-
-	Sparky.dom = {
-		append: append,
-		remove: remove
 	};
 
 	Sparky.templates    = templates;

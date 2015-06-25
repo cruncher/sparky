@@ -29,6 +29,8 @@
 (function(Sparky) {
 	"use strict";
 
+	var dom = Sparky.dom;
+
 	var attributes = [
 		'href',
 		'title',
@@ -85,46 +87,6 @@
 	function classOf(object) {
 		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
-
-	// TokenList constructor to emulate classList property. The get fn should
-	// take the arguments (node), and return a string of tokens. The set fn
-	// should take the arguments (node, string).
-
-	function TokenList(node, get, set) {
-		this.node = node;
-		this.get = get;
-		this.set = set;
-	}
-
-	TokenList.prototype = {
-		add: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-
-			while (n--) {
-				if (array.indexOf(arguments[n]) === -1) {
-					array.push(arguments[n]);
-				}
-			}
-
-			this.set(this.node, array.join(' '));
-		},
-
-		remove: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-			var i;
-
-			while (n--) {
-				i = array.indexOf(arguments[n]);
-				if (i !== -1) { array.splice(i, 1); }
-			}
-
-			this.set(this.node, array.join(' '));
-		}
-	};
 
 	// Nodes that require special bindings
 	var tags = {
@@ -265,25 +227,6 @@
 		node.setAttribute(attribute, value);
 	}
 
-	function getClass(node) {
-		// node.className is an object in SVG. getAttribute
-		// is more consistent, if a tad slower.
-		return node.getAttribute('class');
-	}
-
-	function getClassList(node) {
-		return node.classList || new TokenList(node, getClass, setClass);
-	}
-
-	function setClass(node, classes) {
-		if (node instanceof SVGElement) {
-			node.setAttribute('class', classes);
-		}
-		else {
-			node.className = classes;
-		}
-	}
-
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
 		classList.add.apply(classList, classes);
@@ -295,7 +238,7 @@
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
-		var classes = getClass(node);
+		var classes = dom.getClass(node);
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
@@ -312,10 +255,10 @@
 		if (!tags.length) { return; }
 
 		// Now that we extracted the tags, overwrite the class with remaining text
-		setClass(node, text);
+		dom.setClass(node, text);
 
 		// Create an update function for keeping sparky's classes up-to-date
-		var classList = getClassList(node);
+		var classList = dom.classes(node);
 		var update = function update(newText, oldText) {
 		    	if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
 		    	if (newText && rtext.test(newText)) { addClasses(classList, newText); }
@@ -797,6 +740,5 @@
 		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 
-	Sparky.getClassList = getClassList;
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
