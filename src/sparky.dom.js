@@ -57,7 +57,6 @@
 		}
 	};
 
-
 	function getClass(node) {
 		// node.className is an object in SVG. getAttribute
 		// is more consistent, if a tad slower.
@@ -152,6 +151,7 @@
 		getClass: getClass,
 		setClass: setClass
 	});
+
 
 
 
