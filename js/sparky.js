@@ -1681,11 +1681,10 @@ if (!Math.log10) {
 (function(Sparky) {
 	"use strict";
 
+	var dom = {};
+
 	// Matches anything with a space
 	var rspaces = /\s+/;
-
-
-	// Pure functions
 
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
@@ -1693,6 +1692,10 @@ if (!Math.log10) {
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
 
+
+
+
+	// Selection, traversal and mutation
 
 	// TokenList constructor to emulate classList property. The get fn should
 	// take the arguments (node), and return a string of tokens. The set fn
@@ -1754,9 +1757,6 @@ if (!Math.log10) {
 		return node.classList || new TokenList(node, getClass, setClass);
 	}
 
-
-	// DOM methods made easy
-
 	function matches(node, selector) {
 		return node.matches ? node.matches(selector) :
 			node.matchesSelector ? node.matchesSelector(selector) :
@@ -1785,6 +1785,18 @@ if (!Math.log10) {
 		return node.tagName.toLowerCase();
 	}
 
+	function append(parent, node) {
+		parent.appendChild(node);
+		return parent;
+	}
+
+	function empty(node) {
+		// Remove all children.
+		while (node.lastChild) {
+			node.removeChild(parent.lastChild);
+		}
+	}
+
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
@@ -1796,6 +1808,31 @@ if (!Math.log10) {
 	function insertAfter(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
+
+	function query(node, selector) {
+		if (arguments.length === 1 && typeof node === 'string') {
+			selector = node;
+			node = document;
+		}
+
+		return slice(node.querySelectorAll(selector));
+	}
+
+	Object.assign(dom, {
+		query:    query,
+		tag:      tagName,
+		append:   append,
+		after:    insertAfter,
+		before:   insertBefore,
+		empty:    empty,
+		remove:   remove,
+		closest:  closest,
+		matches:  matches,  
+		classes:  getClassList,
+		getClass: getClass,
+		setClass: setClass
+	});
+
 
 
 	// Templates
@@ -1825,25 +1862,21 @@ if (!Math.log10) {
 		return template && template.cloneNode(true);
 	}
 
+	Object.assign(dom, {
+		cloneTemplate:        fetchTemplate,
+		fragmentFromChildren: fragmentFromChildren
+	});
 
-	function append(parent, node) {
-		parent.appendChild(node);
-		return parent;
-	}
 
-	function replace(parent, child) {
-		// Remove all children.
-		while (parent.lastChild) {
-			parent.removeChild(parent.lastChild);
-		}
-
-		// Append the template fragment.
-		parent.appendChild(child);
-		return parent;
-	}
 
 
 	// Events
+
+	var events = {};
+
+	function createEvent(type) {
+		return new CustomEvent(type, { bubbles: true });
+	}
 
 	function delegate(selector, fn) {
 		// Create an event handler that looks up the ancestor tree
@@ -1858,40 +1891,32 @@ if (!Math.log10) {
 		};
 	}
 
-
-	// Traversal
-
-	// query(selector)
-	// query(node, selector)
-
-	function query(node, selector) {
-		if (arguments.length === 1 && typeof node === 'string') {
-			selector = node;
-			node = document;
-		}
-
-		return Array.prototype.slice.apply(node.querySelectorAll(selector));
+	function trigger(node, type) {
+		var event = events[type] || (events[type] = createEvent(type));
+		node.dispatchEvent(event);
 	}
+
+	function on(node, type, fn) {
+		node.addEventListener(type, fn);
+	}
+
+	function off(node, type, fn) {
+		node.removeEventListener(type, fn);
+	}
+
+	Object.assign(dom, {
+		on:       on,
+		off:      off,
+		trigger:  trigger,
+		delegate: delegate
+	});
+
+
 
 
 	// Export
+	Sparky.dom = dom;
 
-	Sparky.dom = {
-		tag: tagName,
-		append: append,
-		after: insertAfter,
-		before: insertBefore,
-		remove: remove,
-		query: query,
-		closest: closest,
-		matches: matches,  
-		classes: getClassList,
-		getClass: getClass,
-		setClass: setClass,
-		delegate: delegate,
-		cloneTemplate: fetchTemplate,
-		fragmentFromChildren: fragmentFromChildren
-	};
 })(window.Sparky);
 
 // Sparky.features
