@@ -215,8 +215,8 @@
 		//get_digit
 		//iriencode
 
-		join: function(value) {
-			return Array.prototype.join.apply(value);
+		join: function(value, string) {
+			return Array.prototype.join.call(value, string);
 		},
 
 		json: function(value) {

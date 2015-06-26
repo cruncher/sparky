@@ -66,7 +66,7 @@
 			}
 			
 			if (desc.configurable === false) {
-				console.warn('Property \"' + prop + '\" is not observable (configurable: false) in object:', obj);
+				console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
 				return;
 			}
 		}
