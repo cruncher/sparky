@@ -572,7 +572,7 @@
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
-		if (loop && model && model.length !== undefined && typeof model !== 'function') {
+		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
 			return setupCollection(node, model, ctrl);
 		}
 
@@ -612,6 +612,7 @@
 	Sparky.extend = function() {
 		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
 		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
+		console.trace();
 		return Object.assign.apply(this, arguments);
 	};
 
