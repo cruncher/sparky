@@ -212,6 +212,12 @@
 		};
 	}
 
+	function isPrimaryButton(e) {
+		// Ignore mousedowns on any button other than the left (or primary)
+		// mouse button, or when a modifier key is pressed.
+		return (e.which === 1 && !e.ctrlKey && !e.altKey);
+	}
+
 	function trigger(node, type) {
 		var event = events[type] || (events[type] = createEvent(type));
 		node.dispatchEvent(event);
@@ -229,7 +235,8 @@
 		on:       on,
 		off:      off,
 		trigger:  trigger,
-		delegate: delegate
+		delegate: delegate,
+		isPrimaryButton: isPrimaryButton
 	});
 
 
