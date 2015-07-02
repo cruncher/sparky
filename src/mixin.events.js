@@ -81,6 +81,19 @@
 		delegates.splice(i, 1);
 	}
 
+	function triggerListeners(object, listeners, args) {
+		var i = -1;
+		var l = listeners.length;
+		var params, result;
+
+		while (++i < l && result !== false) {
+			params = args.concat(listeners[i][1]);
+			result = listeners[i][0].apply(object, params);
+		}
+
+		return result;
+	}
+
 
 	mixin.events = {
 		// .on(type, fn)
@@ -188,7 +201,7 @@
 		trigger: function(e) {
 			var events = getListeners(this);
 			var args = slice(arguments);
-			var type, target, listeners, i, l, params;
+			var type, target, i, l, params, result;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -199,25 +212,21 @@
 				target = e.target;
 			}
 
-			// Copy delegates if they exist. We may be about to
-			// mutate the delegates list.
-			var delegates = this.delegates && this.delegates.slice();
-
 			if (events[type]) {
-				// Use a copy of the event list in case it gets mutated while
-				// we're triggering the callbacks.
-				listeners = events[type].slice();
-				i = -1;
-				l = listeners.length;
 				args[0] = target;
 
-				while (++i < l) {
-					params = args.concat(listeners[i][1]);
-					listeners[i][0].apply(this, params);
+				// Use a copy of the event list in case it gets mutated
+				// while we're triggering the callbacks. If a handler
+				// returns false stop the madness.
+				if (triggerListeners(this, events[type].slice(), args) === false) {
+					return this;
 				}
 			}
 
-			if (!delegates) { return this; }
+			if (!this.delegates) { return this; }
+
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = this.delegates.slice();
 
 			i = -1;
 			l = delegates.length;
