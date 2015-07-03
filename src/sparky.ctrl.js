@@ -121,7 +121,7 @@
 		}
 	});
 
-	Sparky.getScope = function(node) {
+	Sparky.scope = function(node) {
 		return jQuery.data(node, 'scope');
 	};
 })();
