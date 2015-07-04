@@ -6,7 +6,9 @@
 // properties of the observable object with setters that
 // fire a callback function whenever the property changes.
 
-(function(ns){
+(function(window){
+	var debug = false;
+
 	var slice = Array.prototype.slice,
 	    toString = Object.prototype.toString;
 
@@ -66,7 +68,7 @@
 			}
 			
 			if (desc.configurable === false) {
-				console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
+				debug && console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
 				return;
 			}
 		}
@@ -130,6 +132,6 @@
 		}
 	}
 
-	ns.observe = observe;
-	ns.unobserve = unobserve;
+	window.observe = observe;
+	window.unobserve = unobserve;
 })(window);
