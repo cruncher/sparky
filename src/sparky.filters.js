@@ -148,7 +148,7 @@
 			}
 
 			return function formatDate(value, format, lang) {
-				if (!isDefined(value)) { return; }
+				if (!value) { return; }
 
 				var date = value instanceof Date ? value : createDate(value) ;
 
