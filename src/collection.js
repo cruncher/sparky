@@ -62,10 +62,11 @@
 			key = keys[k];
 
 			if (typeof query[key] === 'function') {
-				return query[key](object, key);
+				if (!query[key](object, key)) {
+					return false;
+				}
 			}
-
-			if (object[key] !== query[key]) {
+			else if (object[key] !== query[key]) {
 				return false;
 			}
 		}
