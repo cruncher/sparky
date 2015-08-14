@@ -573,7 +573,10 @@
 	function bindNamedValueToObject(node, model, to, from) {
 		var name = node.name;
 
-		if (!node.name) { return; }
+		if (!node.name) {
+			console.warn('Sparky: Cannot bind value of node with empty name.', node);
+			return;
+		}
 
 		rtags.lastIndex = 0;
 		var tag = (rtags.exec(name) || empty);

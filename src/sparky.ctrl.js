@@ -81,6 +81,7 @@
 		}
 
 		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+
 		this.on('destroy', unbind);
 	};
 
