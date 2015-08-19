@@ -212,6 +212,10 @@
 			return value[name];
 		},
 
+		'greater-than': function(value1, value2, str1, str2) {
+			return value1 > value2 ? str1 : str2 ;
+		},
+
 		//get_digit
 		//iriencode
 
@@ -229,6 +233,10 @@
 
 		length: function(value) {
 			return value.length;
+		},
+
+		'less-than': function(value1, value2, str1, str2) {
+			return value1 < value2 ? str1 : str2 ;
 		},
 
 		//length_is
