@@ -155,3 +155,21 @@
 		});
 	};
 })();
+
+(function() {
+	"use strict";
+	
+	Sparky.ctrl['inner-html'] = function(node, scope) {
+		var property = node.getAttribute('data-property');
+
+		function update() {
+			node.innerHTML = scope[property];
+		}
+
+		observe(scope, property, update);
+
+		this.destroy = function() {
+			unobserve(scope, property, update);
+		};
+	};
+})();
