@@ -319,6 +319,11 @@
 			return value.replace(RegExp(str1, 'g'), str2);
 		},
 
+		round: function(value) {
+			if (typeof value !== 'number') { return; }
+			return Math.round(value);
+		},
+
 		//reverse
 
 		safe: function(string) {
