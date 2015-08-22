@@ -61,11 +61,17 @@
 		while (k--) {
 			key = keys[k];
 
-			if (typeof query[key] === 'function') {
-				if (!query[key](object, key)) {
-					return false;
-				}
+			// Test function
+			if (query[key].call) {
+				if (!query[key](object, key)) { return false; }
 			}
+
+			// Test regex
+			else if (query[key].test) {
+				if (!query[key].test(object[key])) { return false; }
+			}
+
+			// Test equality
 			else if (object[key] !== query[key]) {
 				return false;
 			}
