@@ -159,7 +159,7 @@
 (function() {
 	"use strict";
 	
-	Sparky.ctrl['inner-html'] = function(node, scope) {
+	Sparky.ctrl['html'] = function(node, scope) {
 		var property = node.getAttribute('data-property');
 
 		function update() {
@@ -170,6 +170,30 @@
 
 		this.destroy = function() {
 			unobserve(scope, property, update);
+		};
+	};
+
+	Sparky.ctrl['inner-html'] = function() {
+		console.warn('Sparky: deprecated data-ctrl="inner-html". Use data-ctrl="html"');
+		Sparky.ctrl['html'].apply(this, arguments);
+	};
+})();
+
+(function() {
+	"use strict";
+	
+	Sparky.ctrl['click-to-call'] = function(node, scope) {
+		var name = node.getAttribute('data-fn');
+
+		function update(e) {
+			scope[name]();
+			e.preventDefault();
+		}
+
+		node.addEventListener('click', update);
+
+		this.destroy = function() {
+			node.removeEventListener('click', update);
 		};
 	};
 })();
