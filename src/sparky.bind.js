@@ -138,6 +138,10 @@
 	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
 	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	path: function(node, bind, unbind, get, set, create, unobservers) {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['d']);
 	    	}
 	    };
 
@@ -220,7 +224,12 @@
 	}
 
 	function setAttributeSVG(node, attribute, value) {
-		node.setAttributeNS(Sparky.xlink, attribute, value);
+		if (attribute = 'd') {
+			node.setAttribute(attribute, value);
+		}
+		else {
+			node.setAttributeNS(Sparky.xlink, attribute, value);
+		}
 	}
 
 	function setAttributeHTML(node, attribute, value) {
