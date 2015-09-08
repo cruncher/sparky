@@ -102,6 +102,19 @@
 		e.preventDefault();
 	}
 
+	Sparky.scope = function(node) {
+		console.warn('Sparky: Sparky.scope() deprecated in favour of Sparky.getScope()')
+		return Sparky.getScope(node);
+	};
+
+	Sparky.setScope = function(node, scope) {
+		jQuery.data(node, 'scope', scope);
+	};
+
+	Sparky.getScope = function(node) {
+		return jQuery.data(node, 'scope');
+	};
+
 	Object.assign(Sparky.ctrl, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
@@ -117,14 +130,8 @@
 			});
 		},
 
-		"delegate-scope": function delegateScopeCtrl(node, scope) {
-			jQuery.data(node, 'scope', scope);
-		}
+		"delegate-scope": Sparky.setScope
 	});
-
-	Sparky.scope = function(node) {
-		return jQuery.data(node, 'scope');
-	};
 })();
 
 

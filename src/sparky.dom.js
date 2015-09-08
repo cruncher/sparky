@@ -76,6 +76,14 @@
 		return node.classList || new TokenList(node, getClass, setClass);
 	}
 
+	function getStyle(node, name) {
+		return window.getComputedStyle ?
+			window
+			.getComputedStyle(node, null)
+			.getPropertyValue(name) :
+			0 ;
+	}
+
 	function matches(node, selector) {
 		return node.matches ? node.matches(selector) :
 			node.matchesSelector ? node.matchesSelector(selector) :
@@ -148,6 +156,7 @@
 		closest:  closest,
 		matches:  matches,  
 		classes:  getClassList,
+		style:    getStyle,
 		getClass: getClass,
 		setClass: setClass
 	});
