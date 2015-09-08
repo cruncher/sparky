@@ -5,6 +5,9 @@
 	"use strict";
 
 	var debug = false;
+
+	var assign = Object.assign;
+
 	var defaults = {
 	    	index: 'id'
 	    };
@@ -248,20 +251,48 @@
 				[] ;
 		},
 
-		sub: function sub(query, options) {
+		sub: function sub(query, settings) {
 			var collection = this;
+			var options = assign({ sort: sort }, settings);
 			var subset = Collection([], options);
 			var keys = Object.keys(query);
 
-			function update(object) {
+			function sort(o1, o2) {
+				// Keep the subset ordered as the collection
+				var i1 = collection.indexOf(o1);
+				var i2 = collection.indexOf(o2);
+				return i1 > i2 ? 1 : -1 ;
+			}
+
+			function update(subset, object) {
 				var i = subset.indexOf(object);
 
 				if (queryObject(object, query, keys)) {
 					if (i === -1) {
-						subset
-						.off('add', subsetAdd)
-						.add(object)
-						.on('add', subsetAdd);
+						// Keep subset is sorted with default sort fn,
+						// splice object into position
+						if (options.sort === sort) {
+							var i1 = collection.indexOf(object) ;
+							var n = i1;
+							var o2, i2;
+
+							while (n--) {
+								o2 = collection[n];
+								i2 = subset.indexOf(o2);
+								if (i2 > -1 && i2 < i1) { break; }
+							}
+
+							subset
+							.off('add', subsetAdd)
+							.splice(i2 + 1, 0, object);
+						}
+						else {
+							subset
+							.off('add', subsetAdd)
+							.add(object);
+						}
+
+						subset.on('add', subsetAdd);
 					}
 				}
 				else {
@@ -278,12 +309,14 @@
 				var n = keys.length;
 				var key;
 
+				// Observe keys of this object that might affect
+				// it's right to remain in the subset
 				while (n--) {
 					key = keys[n];
 					observe(object, key, update);
 				}
 
-				update(object);
+				update(subset, object);
 			}
 
 			function remove(collection, object) {
@@ -355,8 +388,10 @@
 			// Enable us to force a sync from code that only has
 			// access to the subset
 			subset.synchronise = function() {
+				var subset = this;
+
 				collection.forEach(function(object) {
-					update(object);
+					update(subset, object);
 				});
 			};
 
