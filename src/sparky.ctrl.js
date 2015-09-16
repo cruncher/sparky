@@ -140,12 +140,12 @@
 
 	var n = 0;
 
-	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('DEBUG', n++);
-		debugger;
+	Sparky.ctrl['log'] = function(node, scope) {
+		console.log('node: ', node);
+		console.log('scope:', scope);
 	};
 
-	Sparky.ctrl['debug-events'] = function(node, model) {
+	Sparky.ctrl['log-events'] = function(node, model) {
 		var ready = 0;
 		var insert = 0;
 		var destroy = 0;
