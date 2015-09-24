@@ -248,6 +248,19 @@ if (!Math.log10) {
 		delegates.splice(i, 1);
 	}
 
+	function triggerListeners(object, listeners, args) {
+		var i = -1;
+		var l = listeners.length;
+		var params, result;
+
+		while (++i < l && result !== false) {
+			params = args.concat(listeners[i][1]);
+			result = listeners[i][0].apply(object, params);
+		}
+
+		return result;
+	}
+
 
 	mixin.events = {
 		// .on(type, fn)
@@ -355,7 +368,7 @@ if (!Math.log10) {
 		trigger: function(e) {
 			var events = getListeners(this);
 			var args = slice(arguments);
-			var type, target, listeners, i, l, params;
+			var type, target, i, l, params, result;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -366,25 +379,21 @@ if (!Math.log10) {
 				target = e.target;
 			}
 
-			// Copy delegates if they exist. We may be about to
-			// mutate the delegates list.
-			var delegates = this.delegates && this.delegates.slice();
-
 			if (events[type]) {
-				// Use a copy of the event list in case it gets mutated while
-				// we're triggering the callbacks.
-				listeners = events[type].slice();
-				i = -1;
-				l = listeners.length;
 				args[0] = target;
 
-				while (++i < l) {
-					params = args.concat(listeners[i][1]);
-					listeners[i][0].apply(this, params);
+				// Use a copy of the event list in case it gets mutated
+				// while we're triggering the callbacks. If a handler
+				// returns false stop the madness.
+				if (triggerListeners(this, events[type].slice(), args) === false) {
+					return this;
 				}
 			}
 
-			if (!delegates) { return this; }
+			if (!this.delegates) { return this; }
+
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = this.delegates.slice();
 
 			i = -1;
 			l = delegates.length;
@@ -416,7 +425,9 @@ if (!Math.log10) {
 // properties of the observable object with setters that
 // fire a callback function whenever the property changes.
 
-(function(ns){
+(function(window){
+	var debug = false;
+
 	var slice = Array.prototype.slice,
 	    toString = Object.prototype.toString;
 
@@ -476,7 +487,7 @@ if (!Math.log10) {
 			}
 			
 			if (desc.configurable === false) {
-				console.warn('Property \"' + prop + '\" is not observable (configurable: false) in object:', obj);
+				debug && console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
 				return;
 			}
 		}
@@ -540,8 +551,8 @@ if (!Math.log10) {
 		}
 	}
 
-	ns.observe = observe;
-	ns.unobserve = unobserve;
+	window.observe = observe;
+	window.unobserve = unobserve;
 })(window);
 
 
@@ -551,6 +562,9 @@ if (!Math.log10) {
 	"use strict";
 
 	var debug = false;
+
+	var assign = Object.assign;
+
 	var defaults = {
 	    	index: 'id'
 	    };
@@ -571,14 +585,6 @@ if (!Math.log10) {
 
 	function setValue(value, i) {
 		this[i] = value;
-	}
-
-	function setListeners(data, i) {
-		if (!sub.on) { return; }
-
-		//sub
-		//.on('change', this.trigger)
-		//.on('destroy', this.remove);
 	}
 
 	// Sort functions
@@ -615,11 +621,18 @@ if (!Math.log10) {
 		while (k--) {
 			key = keys[k];
 
-			if (typeof query[key] === 'function') {
-				return query[key](object, key);
+			// Test function
+			if (query[key].call) {
+				if (!query[key](object, key)) { return false; }
 			}
 
-			if (object[key] !== query[key]) {
+			// Test regex
+			else if (query[key].test) {
+				if (!query[key].test(object[key])) { return false; }
+			}
+
+			// Test equality
+			else if (object[key] !== query[key]) {
 				return false;
 			}
 		}
@@ -638,6 +651,30 @@ if (!Math.log10) {
 			}) ;
 	}
 
+	function push(collection, object) {
+		Array.prototype.push.call(collection, object);
+		collection.trigger('add', object);
+		return collection;
+	}
+
+	function splice(collection, i, n) {
+		var removed = Array.prototype.splice.call.apply(Array.prototype.splice, arguments);
+		var r = removed.length;
+		var added = Array.prototype.slice.call(arguments, 3);
+		var l = added.length;
+		var a = -1;
+
+		while (r--) {
+			collection.trigger('remove', removed[r], i + r);
+		}
+
+		while (++a < l) {
+			collection.trigger('add', added[a], a);
+		}
+
+		return removed;
+	}
+
 	function add(collection, object) {
 		// Add an item, keeping the collection sorted by id.
 		var index = collection.index;
@@ -647,7 +684,7 @@ if (!Math.log10) {
 			// ...check that it is not already in the
 			// collection before pushing it in.
 			if (collection.indexOf(object) === -1) {
-				collection.push(object);
+				push(collection, object);
 			}
 
 			return;
@@ -656,7 +693,7 @@ if (!Math.log10) {
 		var l = collection.length;
 
 		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
-		collection.splice(l + 1, 0, object);
+		splice(collection, l + 1, 0, object);
 	}
 
 	function remove(collection, obj, i) {
@@ -666,7 +703,7 @@ if (!Math.log10) {
 
 		while (++i < collection.length) {
 			if (obj === collection[i]) {
-				collection.splice(i, 1);
+				splice(collection, i, 1);
 				--i;
 				found = true;
 			}
@@ -690,14 +727,14 @@ if (!Math.log10) {
 			var l = arguments.length;
 
 			if (l === 0) {
-				if (fn2) { fn2.apply(this); }
+				if (fn2) { fn2.call(this, this); }
 				return this;
 			}
 
 			var n = -1;
 
 			while (++n < l) {
-				fn1.call(this, arguments[n]);
+				fn1.call(this, this, arguments[n]);
 			}
 
 			return this;
@@ -706,15 +743,9 @@ if (!Math.log10) {
 
 
 	mixin.collection = {
-		add: multiarg(function(item) {
-			add(this, item);
-		}),
+		add: multiarg(add),
 
-		remove: multiarg(function(item) {
-			var object = this.find(item);
-			if (!isDefined(object)) { return; }
-			remove(this, object);
-		}, function() {
+		remove: multiarg(remove, function() {
 			// If item is undefined, remove all objects from the collection.
 			var n = this.length;
 			var object;
@@ -722,17 +753,7 @@ if (!Math.log10) {
 			while (n--) { this.pop(); }
 		}),
 
-		push: function push() {
-			var l = arguments.length;
-			var n = -1;
-
-			Array.prototype.push.apply(this, arguments);
-			while (++n < l) {
-				this.trigger('add', arguments[n]);
-			}
-
-			return this;
-		},
+		push: multiarg(push),
 
 		pop: function pop() {
 			var i = this.length - 1;
@@ -742,25 +763,13 @@ if (!Math.log10) {
 			return object;
 		},
 
-		splice: function splice(i, n) {
-			var removed = Array.prototype.splice.apply(this, arguments);
-			var r = removed.length;
-			var added = Array.prototype.slice.call(arguments, 2);
-			var l = added.length;
-			var a = -1;
-
-			while (r--) {
-				this.trigger('remove', removed[r], i + r);
-			}
-
-			while (++a < l) {
-				this.trigger('add', added[a], a);
-			}
-
-			return removed;
+		splice: function() {
+			var args = Array.prototype.slice.apply(arguments);
+			args.unshift(this);
+			return splice.apply(this, args);
 		},
 
-		update: multiarg(function(obj) {
+		update: multiarg(function(collection, obj) {
 			var item = this.find(obj);
 
 			if (item) {
@@ -799,20 +808,48 @@ if (!Math.log10) {
 				[] ;
 		},
 
-		sub: function sub(query, options) {
+		sub: function sub(query, settings) {
 			var collection = this;
+			var options = assign({ sort: sort }, settings);
 			var subset = Collection([], options);
 			var keys = Object.keys(query);
+
+			function sort(o1, o2) {
+				// Keep the subset ordered as the collection
+				var i1 = collection.indexOf(o1);
+				var i2 = collection.indexOf(o2);
+				return i1 > i2 ? 1 : -1 ;
+			}
 
 			function update(object) {
 				var i = subset.indexOf(object);
 
 				if (queryObject(object, query, keys)) {
 					if (i === -1) {
-						subset
-						.off('add', subsetAdd)
-						.add(object)
-						.on('add', subsetAdd);
+						// Keep subset is sorted with default sort fn,
+						// splice object into position
+						if (options.sort === sort) {
+							var i1 = collection.indexOf(object) ;
+							var n = i1;
+							var o2, i2;
+
+							while (n--) {
+								o2 = collection[n];
+								i2 = subset.indexOf(o2);
+								if (i2 > -1 && i2 < i1) { break; }
+							}
+
+							subset
+							.off('add', subsetAdd)
+							.splice(i2 + 1, 0, object);
+						}
+						else {
+							subset
+							.off('add', subsetAdd)
+							.add(object);
+						}
+
+						subset.on('add', subsetAdd);
 					}
 				}
 				else {
@@ -829,6 +866,8 @@ if (!Math.log10) {
 				var n = keys.length;
 				var key;
 
+				// Observe keys of this object that might affect
+				// it's right to remain in the subset
 				while (n--) {
 					key = keys[n];
 					observe(object, key, update);
@@ -906,6 +945,8 @@ if (!Math.log10) {
 			// Enable us to force a sync from code that only has
 			// access to the subset
 			subset.synchronise = function() {
+				var subset = this;
+
 				collection.forEach(function(object) {
 					update(object);
 				});
@@ -1021,7 +1062,7 @@ if (!Math.log10) {
 		});
 
 		// Populate the collection
-		array.forEach(setValue, collection);
+		Object.assign(collection, array);
 
 		var length = collection.length = array.length;
 
@@ -1054,6 +1095,14 @@ if (!Math.log10) {
 	ns.Collection = Collection;
 })(this, this.mixin);
 
+(function(window) {
+	if (!window.console || !window.console.log) { return; }
+
+	console.log('Sparky');
+	console.log('http://github.com/cruncher/sparky');
+	console.log('Live data binding templates for the DOM');
+	console.log('————––––—————————————–––———————————————');
+})(this);
 
 // Sparky
 // 
@@ -1628,7 +1677,7 @@ if (!Math.log10) {
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
-		if (loop && model && model.length !== undefined && typeof model !== 'function') {
+		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
 			return setupCollection(node, model, ctrl);
 		}
 
@@ -1668,6 +1717,7 @@ if (!Math.log10) {
 	Sparky.extend = function() {
 		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
 		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
+		console.trace();
 		return Object.assign.apply(this, arguments);
 	};
 
@@ -1737,7 +1787,6 @@ if (!Math.log10) {
 		}
 	};
 
-
 	function getClass(node) {
 		// node.className is an object in SVG. getAttribute
 		// is more consistent, if a tad slower.
@@ -1755,6 +1804,14 @@ if (!Math.log10) {
 
 	function getClassList(node) {
 		return node.classList || new TokenList(node, getClass, setClass);
+	}
+
+	function getStyle(node, name) {
+		return window.getComputedStyle ?
+			window
+			.getComputedStyle(node, null)
+			.getPropertyValue(name) :
+			0 ;
 	}
 
 	function matches(node, selector) {
@@ -1829,9 +1886,11 @@ if (!Math.log10) {
 		closest:  closest,
 		matches:  matches,  
 		classes:  getClassList,
+		style:    getStyle,
 		getClass: getClass,
 		setClass: setClass
 	});
+
 
 
 
@@ -1873,9 +1932,10 @@ if (!Math.log10) {
 	// Events
 
 	var events = {};
+	var eventOptions = { bubbles: true };
 
 	function createEvent(type) {
-		return new CustomEvent(type, { bubbles: true });
+		return new CustomEvent(type, eventOptions);
 	}
 
 	function delegate(selector, fn) {
@@ -1889,6 +1949,12 @@ if (!Math.log10) {
 			e.delegateTarget = node;
 			return fn(e);
 		};
+	}
+
+	function isPrimaryButton(e) {
+		// Ignore mousedowns on any button other than the left (or primary)
+		// mouse button, or when a modifier key is pressed.
+		return (e.which === 1 && !e.ctrlKey && !e.altKey);
 	}
 
 	function trigger(node, type) {
@@ -1908,7 +1974,8 @@ if (!Math.log10) {
 		on:       on,
 		off:      off,
 		trigger:  trigger,
-		delegate: delegate
+		delegate: delegate,
+		isPrimaryButton: isPrimaryButton
 	});
 
 
@@ -2094,6 +2161,10 @@ if (!Math.log10) {
 	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
 	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
+	    	},
+
+	    	path: function(node, bind, unbind, get, set, create, unobservers) {
+	    		bindAttributes(node, bind, unbind, get, unobservers, ['d']);
 	    	}
 	    };
 
@@ -2176,7 +2247,12 @@ if (!Math.log10) {
 	}
 
 	function setAttributeSVG(node, attribute, value) {
-		node.setAttributeNS(Sparky.xlink, attribute, value);
+		if (attribute = 'd') {
+			node.setAttribute(attribute, value);
+		}
+		else {
+			node.setAttributeNS(Sparky.xlink, attribute, value);
+		}
 	}
 
 	function setAttributeHTML(node, attribute, value) {
@@ -2529,7 +2605,10 @@ if (!Math.log10) {
 	function bindNamedValueToObject(node, model, to, from) {
 		var name = node.name;
 
-		if (!node.name) { return; }
+		if (!node.name) {
+			console.warn('Sparky: Cannot bind value of node with empty name.', node);
+			return;
+		}
 
 		rtags.lastIndex = 0;
 		var tag = (rtags.exec(name) || empty);
@@ -3179,6 +3258,7 @@ if (!Math.log10) {
 		}
 
 		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+
 		this.on('destroy', unbind);
 	};
 
@@ -3199,6 +3279,19 @@ if (!Math.log10) {
 		e.preventDefault();
 	}
 
+	Sparky.scope = function(node) {
+		console.warn('Sparky: Sparky.scope() deprecated in favour of Sparky.getScope()')
+		return Sparky.getScope(node);
+	};
+
+	Sparky.setScope = function(node, scope) {
+		jQuery.data(node, 'scope', scope);
+	};
+
+	Sparky.getScope = function(node) {
+		return jQuery.data(node, 'scope');
+	};
+
 	Object.assign(Sparky.ctrl, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
@@ -3214,14 +3307,8 @@ if (!Math.log10) {
 			});
 		},
 
-		"delegate-scope": function delegateScopeCtrl(node, scope) {
-			jQuery.data(node, 'scope', scope);
-		}
+		"delegate-scope": Sparky.setScope
 	});
-
-	Sparky.getScope = function(node) {
-		return jQuery.data(node, 'scope');
-	};
 })();
 
 
@@ -3230,12 +3317,12 @@ if (!Math.log10) {
 
 	var n = 0;
 
-	Sparky.ctrl['debug'] = function(node, model) {
-		console.log('DEBUG', n++);
-		debugger;
+	Sparky.ctrl['log'] = function(node, scope) {
+		console.log('node: ', node);
+		console.log('scope:', scope);
 	};
 
-	Sparky.ctrl['debug-events'] = function(node, model) {
+	Sparky.ctrl['log-events'] = function(node, model) {
 		var ready = 0;
 		var insert = 0;
 		var destroy = 0;
@@ -3250,6 +3337,48 @@ if (!Math.log10) {
 		.on('destroy', function() {
 			console.log('DESTROY', destroy++, node);
 		});
+	};
+})();
+
+(function() {
+	"use strict";
+	
+	Sparky.ctrl['html'] = function(node, scope) {
+		var property = node.getAttribute('data-property');
+
+		function update() {
+			node.innerHTML = scope[property];
+		}
+
+		observe(scope, property, update);
+
+		this.destroy = function() {
+			unobserve(scope, property, update);
+		};
+	};
+
+	Sparky.ctrl['inner-html'] = function() {
+		console.warn('Sparky: deprecated data-ctrl="inner-html". Use data-ctrl="html"');
+		Sparky.ctrl['html'].apply(this, arguments);
+	};
+})();
+
+(function() {
+	"use strict";
+	
+	Sparky.ctrl['click-to-call'] = function(node, scope) {
+		var name = node.getAttribute('data-fn');
+
+		function update(e) {
+			scope[name]();
+			e.preventDefault();
+		}
+
+		node.addEventListener('click', update);
+
+		this.destroy = function() {
+			node.removeEventListener('click', update);
+		};
 	};
 })();
 
@@ -3403,7 +3532,7 @@ if (!Math.log10) {
 			}
 
 			return function formatDate(value, format, lang) {
-				if (!isDefined(value)) { return; }
+				if (!value) { return; }
 
 				var date = value instanceof Date ? value : createDate(value) ;
 
@@ -3467,11 +3596,15 @@ if (!Math.log10) {
 			return value[name];
 		},
 
+		'greater-than': function(value1, value2, str1, str2) {
+			return value1 > value2 ? str1 : str2 ;
+		},
+
 		//get_digit
 		//iriencode
 
-		join: function(value) {
-			return Array.prototype.join.apply(value);
+		join: function(value, string) {
+			return Array.prototype.join.call(value, string);
 		},
 
 		json: function(value) {
@@ -3484,6 +3617,10 @@ if (!Math.log10) {
 
 		length: function(value) {
 			return value.length;
+		},
+
+		'less-than': function(value1, value2, str1, str2) {
+			return value1 < value2 ? str1 : str2 ;
 		},
 
 		//length_is
@@ -3572,6 +3709,11 @@ if (!Math.log10) {
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
+		},
+
+		round: function(value) {
+			if (typeof value !== 'number') { return; }
+			return Math.round(value);
 		},
 
 		//reverse
