@@ -1,18 +1,18 @@
 (function(Sparky) {
 	"use strict";
 
-	var dom = {};
-
-	// Matches anything with a space
-	var rspaces = /\s+/;
-
+	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
 
+
+	var dom = {};
+
+
+	// Utility functions
+
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
-
-
 
 
 	// Selection, traversal and mutation
@@ -31,7 +31,7 @@
 		add: function() {
 			var n = arguments.length;
 			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
 
 			while (n--) {
 				if (array.indexOf(arguments[n]) === -1) {
@@ -45,7 +45,7 @@
 		remove: function() {
 			var n = arguments.length;
 			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
 			var i;
 
 			while (n--) {
@@ -118,10 +118,7 @@
 	}
 
 	function empty(node) {
-		// Remove all children.
-		while (node.lastChild) {
-			node.removeChild(parent.lastChild);
-		}
+		while (node.lastChild) { node.removeChild(parent.lastChild); }
 	}
 
 	function remove(node) {
@@ -145,7 +142,7 @@
 		return slice(node.querySelectorAll(selector));
 	}
 
-	Object.assign(dom, {
+	assign(dom, {
 		query:    query,
 		tag:      tagName,
 		append:   append,
@@ -162,19 +159,17 @@
 	});
 
 
-
-
 	// Templates
 
 	var templates = {};
 
-	function fragmentFromChildren(template) {
-		var children = slice(template.childNodes);
+	function fragmentFromChildren(node) {
+		var children = slice(node.childNodes);
 		var fragment = document.createDocumentFragment();
 		return reduce(children, append, fragment);
 	}
 
-	function getTemplateContent(node) {
+	function fragmentFromContent(node) {
 		// A template tag has a content property that gives us a document
 		// fragment. If that doesn't exist we must make a document fragment.
 		return node.content || fragmentFromChildren(node);
@@ -182,21 +177,29 @@
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
-		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return node && getTemplateContent(node);
+		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
+
+		if (node.content) {
+			return fragmentFromContent(node);
+		}
+		else {
+			// In browsers where templates are not inert, ids used inside them 
+			// conflict with ids in any rendered result. To go some way to
+			// tackling this, remove the node from the DOM.
+			remove(node);
+			return fragmentFromContent(node);
+		}
 	}
 
-	function fetchTemplate(id) {
+	function cloneTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		return template && template.cloneNode(true);
 	}
 
-	Object.assign(dom, {
-		cloneTemplate:        fetchTemplate,
-		fragmentFromChildren: fragmentFromChildren
+	assign(dom, {
+		fragmentFromTemplate: cloneTemplate,
+		fragmentFromContent: fragmentFromContent
 	});
-
-
 
 
 	// Events
@@ -240,7 +243,7 @@
 		node.removeEventListener(type, fn);
 	}
 
-	Object.assign(dom, {
+	assign(dom, {
 		on:       on,
 		off:      off,
 		trigger:  trigger,
@@ -249,9 +252,38 @@
 	});
 
 
+	// Feature tests
+
+	var testEvent = new CustomEvent('featuretest', { bubbles: true });
+
+	function testTemplate() {
+		// Older browsers don't know about the content property of templates.
+
+		return 'content' in document.createElement('template');
+	}
+
+	function testEventDispatchOnDisabled() {
+		// FireFox won't dispatch any events on disabled inputs:
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+
+		var input = document.createElement('input');
+		var result = false;
+
+		append(document.body, input);
+		input.disabled = true;
+		input.addEventListener('featuretest', function(e) { result = true; });
+		input.dispatchEvent(testEvent);
+		dom.remove(input);
+
+		return result;
+	}
+
+	dom.features = {
+		template: testTemplate(),
+		inputEventsOnDisabled: testEventDispatchOnDisabled()
+	};
 
 
 	// Export
 	Sparky.dom = dom;
-
 })(window.Sparky);

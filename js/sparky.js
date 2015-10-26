@@ -1124,7 +1124,6 @@ if (!Math.log10) {
 	"use strict";
 
 	var empty = [];
-	var templates   = {};
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
@@ -1194,52 +1193,6 @@ if (!Math.log10) {
 		].join('');
 	}
 
-
-	// DOM helpers
-	
-	function fill(parent, child) {
-		// Remove all children.
-		while (parent.lastChild) {
-			parent.removeChild(parent.lastChild);
-		}
-		
-		// Append the template fragment.
-		parent.appendChild(child);
-		return parent;
-	}
-
-	function fragmentFromChildren(template) {
-		var children = slice(template.childNodes);
-		var fragment = document.createDocumentFragment();
-		return reduce(children, append, fragment);
-	}
-
-	function getTemplateContent(node) {
-		// A template tag has a content property that is a document fragment.
-		if (node.content) {
-			return node.content;
-		}
-
-		// If that doesn't exist we must make a document fragment.
-		var content = fragmentFromChildren(node);
-
-		// In browsers where templates are not inert, ids used inside them 
-		// conflict with ids in any rendered result. To go some way to tackling
-		// this, remove the template once we have its content.
-		Sparky.dom.remove(node);
-		return content;
-	}
-
-	function getTemplate(id) {
-		var node = document.getElementById(id);
-		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return getTemplateContent(node);
-	}
-
-	function fetchTemplate(id) {
-		var template = templates[id] || (templates[id] = getTemplate(id));
-		return template && template.cloneNode(true);
-	}
 
 	// Getting and setting
 
@@ -1450,7 +1403,8 @@ if (!Math.log10) {
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				fill(node, templateFragment);
+				dom.empty(node);
+				dom.append(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
@@ -1710,9 +1664,9 @@ if (!Math.log10) {
 		return new Collection(array, options);
 	};
 
-	Sparky.templates    = templates;
-	Sparky.template     = fetchTemplate;
-	Sparky.content      = getTemplateContent;
+	Sparky.template = function() {
+		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
+	};
 
 	Sparky.extend = function() {
 		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
@@ -1731,18 +1685,18 @@ if (!Math.log10) {
 (function(Sparky) {
 	"use strict";
 
-	var dom = {};
-
-	// Matches anything with a space
-	var rspaces = /\s+/;
-
+	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
 
+
+	var dom = {};
+
+
+	// Utility functions
+
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
-
-
 
 
 	// Selection, traversal and mutation
@@ -1761,7 +1715,7 @@ if (!Math.log10) {
 		add: function() {
 			var n = arguments.length;
 			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
 
 			while (n--) {
 				if (array.indexOf(arguments[n]) === -1) {
@@ -1775,7 +1729,7 @@ if (!Math.log10) {
 		remove: function() {
 			var n = arguments.length;
 			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
 			var i;
 
 			while (n--) {
@@ -1848,10 +1802,7 @@ if (!Math.log10) {
 	}
 
 	function empty(node) {
-		// Remove all children.
-		while (node.lastChild) {
-			node.removeChild(parent.lastChild);
-		}
+		while (node.lastChild) { node.removeChild(parent.lastChild); }
 	}
 
 	function remove(node) {
@@ -1875,7 +1826,7 @@ if (!Math.log10) {
 		return slice(node.querySelectorAll(selector));
 	}
 
-	Object.assign(dom, {
+	assign(dom, {
 		query:    query,
 		tag:      tagName,
 		append:   append,
@@ -1892,19 +1843,17 @@ if (!Math.log10) {
 	});
 
 
-
-
 	// Templates
 
 	var templates = {};
 
-	function fragmentFromChildren(template) {
-		var children = slice(template.childNodes);
+	function fragmentFromChildren(node) {
+		var children = slice(node.childNodes);
 		var fragment = document.createDocumentFragment();
 		return reduce(children, append, fragment);
 	}
 
-	function getTemplateContent(node) {
+	function fragmentFromContent(node) {
 		// A template tag has a content property that gives us a document
 		// fragment. If that doesn't exist we must make a document fragment.
 		return node.content || fragmentFromChildren(node);
@@ -1912,21 +1861,29 @@ if (!Math.log10) {
 
 	function getTemplate(id) {
 		var node = document.getElementById(id);
-		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return node && getTemplateContent(node);
+		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
+
+		if (node.content) {
+			return fragmentFromContent(node);
+		}
+		else {
+			// In browsers where templates are not inert, ids used inside them 
+			// conflict with ids in any rendered result. To go some way to
+			// tackling this, remove the node from the DOM.
+			remove(node);
+			return fragmentFromContent(node);
+		}
 	}
 
-	function fetchTemplate(id) {
+	function cloneTemplate(id) {
 		var template = templates[id] || (templates[id] = getTemplate(id));
 		return template && template.cloneNode(true);
 	}
 
-	Object.assign(dom, {
-		cloneTemplate:        fetchTemplate,
-		fragmentFromChildren: fragmentFromChildren
+	assign(dom, {
+		fragmentFromTemplate: cloneTemplate,
+		fragmentFromContent: fragmentFromContent
 	});
-
-
 
 
 	// Events
@@ -1970,7 +1927,7 @@ if (!Math.log10) {
 		node.removeEventListener(type, fn);
 	}
 
-	Object.assign(dom, {
+	assign(dom, {
 		on:       on,
 		off:      off,
 		trigger:  trigger,
@@ -1979,34 +1936,24 @@ if (!Math.log10) {
 	});
 
 
+	// Feature tests
 
-
-	// Export
-	Sparky.dom = dom;
-
-})(window.Sparky);
-
-// Sparky.features
-// Feature tests for Sparky.
-
-(function(window, Sparky){
-	"use strict";
-
-	var dom = Sparky.dom;
 	var testEvent = new CustomEvent('featuretest', { bubbles: true });
 
-	// Older browsers don't know about the content property of templates.
 	function testTemplate() {
+		// Older browsers don't know about the content property of templates.
+
 		return 'content' in document.createElement('template');
 	}
 
-	// FireFox won't dispatch any events on disabled inputs:
-	// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
 	function testEventDispatchOnDisabled() {
+		// FireFox won't dispatch any events on disabled inputs:
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+
 		var input = document.createElement('input');
 		var result = false;
 
-		dom.append(document.body, input);
+		append(document.body, input);
 		input.disabled = true;
 		input.addEventListener('featuretest', function(e) { result = true; });
 		input.dispatchEvent(testEvent);
@@ -2015,12 +1962,15 @@ if (!Math.log10) {
 		return result;
 	}
 
-	Sparky.features = {
+	dom.features = {
 		template: testTemplate(),
 		inputEventsOnDisabled: testEventDispatchOnDisabled()
 	};
-})(window, window.Sparky);
 
+
+	// Export
+	Sparky.dom = dom;
+})(window.Sparky);
 
 // Sparky.bind
 //
@@ -2051,6 +2001,8 @@ if (!Math.log10) {
 
 (function(Sparky) {
 	"use strict";
+
+	var assign = Object.assign;
 
 	var dom = Sparky.dom;
 
@@ -2370,8 +2322,8 @@ if (!Math.log10) {
 	}
 
 	function extractProperties(str, live, dead) {
-		rtags.lastIndex = 0;
-		str.replace(rtags, function($0, $1, $2){
+		Sparky.rtags.lastIndex = 0;
+		str.replace(Sparky.rtags, function($0, $1, $2){
 			// Sort the live properties from the dead properties.
 			var i;
 
@@ -2414,8 +2366,8 @@ if (!Math.log10) {
 		var oldText;
 
 		return function updateText() {
-			rtags.lastIndex = 0;
-			var newText = text.replace(rtags, replaceText);
+			Sparky.rtags.lastIndex = 0;
+			var newText = text.replace(Sparky.rtags, replaceText);
 			fn(newText, oldText);
 			oldText = newText;
 		}
@@ -2479,9 +2431,16 @@ if (!Math.log10) {
 		return this;
 	}
 
-	Sparky.attributes = attributes;
-	Sparky.prototype.bind = bind;
-	Sparky.prototype.unbind = returnThis;
+	assign(Sparky, {
+		attributes: attributes,
+		rtags: rtags,
+		rspaces: rspaces
+	});
+
+	assign(Sparky.prototype, {
+		bind: bind,
+		unbind: returnThis
+	});
 
 
 	// -------------------------------------------------------------------
@@ -2496,7 +2455,7 @@ if (!Math.log10) {
 		// FireFox won't dispatch any events on disabled inputs so we need to do
 		// a little dance, enabling it quickly, sending the event and disabling
 		// it again.
-		if (!Sparky.features.inputEventsOnDisabled && node.disabled) {
+		if (!dom.features.inputEventsOnDisabled && node.disabled) {
 			node.disabled = false;
 
 			// We have to wait, though. It's not clear why. This makes it async,
@@ -2610,8 +2569,8 @@ if (!Math.log10) {
 			return;
 		}
 
-		rtags.lastIndex = 0;
-		var tag = (rtags.exec(name) || empty);
+		Sparky.rtags.lastIndex = 0;
+		var tag = (Sparky.rtags.exec(name) || empty);
 		var path = tag[2];
 
 		if (!path) { return; }
@@ -2623,7 +2582,7 @@ if (!Math.log10) {
 
 		// Take the tag parentheses away from the name, preventing this node
 		// from being name-value bound by any other controllers.
-		node.name = name.replace(rtags, path);
+		node.name = name.replace(Sparky.rtags, path);
 
 		return bindPathToValue(node, model, path, to, from);
 	}
@@ -2761,7 +2720,7 @@ if (!Math.log10) {
 	};
 
 
-	Object.assign(Sparky.ctrl, {
+	assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
@@ -3382,6 +3341,40 @@ if (!Math.log10) {
 	};
 })();
 
+(function() {
+	"use strict";
+
+	var dom = Sparky.dom;
+
+	Sparky.ctrl['replace'] = function(node, scope) {
+		// Replaces node with contents of one or more
+		// templates given by data-replace attribute
+
+		var sparky = this;
+		var string = node.getAttribute('data-replace');
+
+		if (!string) {
+			console.error(node);
+			throw new Error('Sparky: ctrl "replace" requires attribute data-replace.');
+		}
+
+		string
+		.split(Sparky.rspaces)
+		.forEach(function(name) {
+			var child = Sparky(name, scope);
+			var n = child.length;
+
+			while (n--) {
+				dom.after(node, child[n]);
+			}
+
+			sparky.on(child);
+		});
+
+		dom.remove(node);
+	};
+})();
+
 
 // Sparky.filters
 
@@ -3858,6 +3851,7 @@ if (!Math.log10) {
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
 
+	var dom = Sparky.dom;
 	var doc = jQuery(document);
 
 	function isInTemplate(node) {
@@ -3897,7 +3891,7 @@ if (!Math.log10) {
 		// Normally <template>s are inert, but if they are not a supported
 		// feature their content is part of the DOM so we have to remove those,
 		// too.
-		if (!Sparky.features.template) {
+		if (!dom.features.template) {
 			n = array.length;
 
 			while (n--) {

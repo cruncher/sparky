@@ -7,6 +7,7 @@
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
 
+	var dom = Sparky.dom;
 	var doc = jQuery(document);
 
 	function isInTemplate(node) {
@@ -46,7 +47,7 @@
 		// Normally <template>s are inert, but if they are not a supported
 		// feature their content is part of the DOM so we have to remove those,
 		// too.
-		if (!Sparky.features.template) {
+		if (!dom.features.template) {
 			n = array.length;
 
 			while (n--) {

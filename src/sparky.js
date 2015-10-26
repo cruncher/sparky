@@ -27,7 +27,6 @@
 	"use strict";
 
 	var empty = [];
-	var templates   = {};
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
@@ -97,52 +96,6 @@
 		].join('');
 	}
 
-
-	// DOM helpers
-	
-	function fill(parent, child) {
-		// Remove all children.
-		while (parent.lastChild) {
-			parent.removeChild(parent.lastChild);
-		}
-		
-		// Append the template fragment.
-		parent.appendChild(child);
-		return parent;
-	}
-
-	function fragmentFromChildren(template) {
-		var children = slice(template.childNodes);
-		var fragment = document.createDocumentFragment();
-		return reduce(children, append, fragment);
-	}
-
-	function getTemplateContent(node) {
-		// A template tag has a content property that is a document fragment.
-		if (node.content) {
-			return node.content;
-		}
-
-		// If that doesn't exist we must make a document fragment.
-		var content = fragmentFromChildren(node);
-
-		// In browsers where templates are not inert, ids used inside them 
-		// conflict with ids in any rendered result. To go some way to tackling
-		// this, remove the template once we have its content.
-		Sparky.dom.remove(node);
-		return content;
-	}
-
-	function getTemplate(id) {
-		var node = document.getElementById(id);
-		if (!node) { throw new Error('Sparky: requested template id="' + id + '". That is not in the DOM.') }
-		return getTemplateContent(node);
-	}
-
-	function fetchTemplate(id) {
-		var template = templates[id] || (templates[id] = getTemplate(id));
-		return template && template.cloneNode(true);
-	}
 
 	// Getting and setting
 
@@ -353,7 +306,8 @@
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				fill(node, templateFragment);
+				dom.empty(node);
+				dom.append(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
@@ -613,9 +567,9 @@
 		return new Collection(array, options);
 	};
 
-	Sparky.templates    = templates;
-	Sparky.template     = fetchTemplate;
-	Sparky.content      = getTemplateContent;
+	Sparky.template = function() {
+		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
+	};
 
 	Sparky.extend = function() {
 		console.warn('Sparky.extend() is deprecated. Use Object.assign().');

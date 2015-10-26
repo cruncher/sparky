@@ -26,7 +26,6 @@ module.exports = function(config) {
       'src/collection.js',
       'src/sparky.js',
       'src/sparky.dom.js',
-      'src/sparky.features.js',
       'src/sparky.observe.js',
       'src/sparky.throttle.js',
       'src/sparky.bind.js',
