@@ -264,7 +264,7 @@
 				return i1 > i2 ? 1 : -1 ;
 			}
 
-			function update(subset, object) {
+			function update(object) {
 				var i = subset.indexOf(object);
 
 				if (queryObject(object, query, keys)) {
@@ -316,7 +316,7 @@
 					observe(object, key, update);
 				}
 
-				update(subset, object);
+				update(object);
 			}
 
 			function remove(collection, object) {
@@ -391,7 +391,7 @@
 				var subset = this;
 
 				collection.forEach(function(object) {
-					update(subset, object);
+					update(object);
 				});
 			};
 
