@@ -204,3 +204,37 @@
 		};
 	};
 })();
+
+(function() {
+	"use strict";
+
+	var dom = Sparky.dom;
+
+	Sparky.ctrl['replace'] = function(node, scope) {
+		// Replaces node with contents of one or more
+		// templates given by data-replace attribute
+
+		var sparky = this;
+		var string = node.getAttribute('data-replace');
+
+		if (!string) {
+			console.error(node);
+			throw new Error('Sparky: ctrl "replace" requires attribute data-replace.');
+		}
+
+		string
+		.split(Sparky.rspaces)
+		.forEach(function(name) {
+			var child = Sparky(name, scope);
+			var n = child.length;
+
+			while (n--) {
+				dom.after(node, child[n]);
+			}
+
+			sparky.on(child);
+		});
+
+		dom.remove(node);
+	};
+})();

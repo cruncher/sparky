@@ -29,6 +29,8 @@
 (function(Sparky) {
 	"use strict";
 
+	var assign = Object.assign;
+
 	var dom = Sparky.dom;
 
 	var attributes = [
@@ -347,8 +349,8 @@
 	}
 
 	function extractProperties(str, live, dead) {
-		rtags.lastIndex = 0;
-		str.replace(rtags, function($0, $1, $2){
+		Sparky.rtags.lastIndex = 0;
+		str.replace(Sparky.rtags, function($0, $1, $2){
 			// Sort the live properties from the dead properties.
 			var i;
 
@@ -391,8 +393,8 @@
 		var oldText;
 
 		return function updateText() {
-			rtags.lastIndex = 0;
-			var newText = text.replace(rtags, replaceText);
+			Sparky.rtags.lastIndex = 0;
+			var newText = text.replace(Sparky.rtags, replaceText);
 			fn(newText, oldText);
 			oldText = newText;
 		}
@@ -456,9 +458,16 @@
 		return this;
 	}
 
-	Sparky.attributes = attributes;
-	Sparky.prototype.bind = bind;
-	Sparky.prototype.unbind = returnThis;
+	assign(Sparky, {
+		attributes: attributes,
+		rtags: rtags,
+		rspaces: rspaces
+	});
+
+	assign(Sparky.prototype, {
+		bind: bind,
+		unbind: returnThis
+	});
 
 
 	// -------------------------------------------------------------------
@@ -587,8 +596,8 @@
 			return;
 		}
 
-		rtags.lastIndex = 0;
-		var tag = (rtags.exec(name) || empty);
+		Sparky.rtags.lastIndex = 0;
+		var tag = (Sparky.rtags.exec(name) || empty);
 		var path = tag[2];
 
 		if (!path) { return; }
@@ -600,7 +609,7 @@
 
 		// Take the tag parentheses away from the name, preventing this node
 		// from being name-value bound by any other controllers.
-		node.name = name.replace(rtags, path);
+		node.name = name.replace(Sparky.rtags, path);
 
 		return bindPathToValue(node, model, path, to, from);
 	}
@@ -738,7 +747,7 @@
 	};
 
 
-	Object.assign(Sparky.ctrl, {
+	assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
