@@ -219,6 +219,10 @@
 		//get_digit
 		//iriencode
 
+		invert: function(value) {
+			return 1 / value;
+		},
+
 		join: function(value, string) {
 			return Array.prototype.join.call(value, string);
 		},
@@ -242,13 +246,13 @@
 		//length_is
 		//linebreaks
 
-		linebreaksbr: (function() {
-			var rbreaks = /\n/;
-
-			return function(value) {
-				return value.replace(rbreaks, '<br/>')
-			};
-		})(),
+		//linebreaksbr: (function() {
+		//	var rbreaks = /\n/;
+		//
+		//	return function(value) {
+		//		return value.replace(rbreaks, '<br/>')
+		//	};
+		//})(),
 
 		//linenumbers
 
