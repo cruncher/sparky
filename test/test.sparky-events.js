@@ -79,7 +79,7 @@ module('Event propogation ready event', function(fixture) {
 
 			this.on('ready', function() {
 				ok(sparky === this, 'sparky is target');
-				ok(n++ === 2, 'This event called third');
+				ok(++n === 3, 'This event should be called 3rd. Actually: ' + n);
 			});
 
 			return {};
@@ -90,7 +90,7 @@ module('Event propogation ready event', function(fixture) {
 
 			this.on('ready', function() {
 				ok(sparky1 === this, 'sparky1 is target');
-				ok(n++ === 0, 'This event called first');
+				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
 			});
 
 			return {};
@@ -101,7 +101,7 @@ module('Event propogation ready event', function(fixture) {
 
 			this.on('ready', function() {
 				ok(sparky2 === this, 'sparky2 is target');
-				ok(n++ === 1, 'This event called second');
+				ok(++n === 2, 'This event should be called 2nd. Actually: ' + n);
 			});
 
 			return {};
