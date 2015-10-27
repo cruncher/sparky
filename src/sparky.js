@@ -108,12 +108,11 @@
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
-		// When sparky is ready, delegate the new sparky to
-		// the old.
 		sparky1
 		.on('destroy', function destroy() {
 			sparky2.destroy();
 		})
+		// When sparky is ready, delegate the new sparky to the old.
 		.on('ready', function ready() {
 			sparky1.on(sparky2);
 		});
@@ -394,10 +393,6 @@
 			timer = window.requestAnimationFrame(poll);
 		}
 
-		// The bind function returns an unbind function.
-		// TODO: Where templateFragment exists, we still want to bind the
-		// node - but not it's contents. Becuase we still want, say, the class
-		// attribute on the node itself to work.
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 

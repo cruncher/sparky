@@ -1120,14 +1120,14 @@ if (!Math.log10) {
 // in Sparky.data.
 
 
-(function(ns){
+(function(window){
 	"use strict";
 
 	var empty = [];
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
-	    // Check whether a path begins with '.' or '['
+	// Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
 
 	var prototype = Object.assign({
@@ -1154,13 +1154,10 @@ if (!Math.log10) {
 		},
 
 		appendTo: function(node) {
-			var n = -1;
-			while (++n < this.length) {
-				node.appendChild(this[n]);
-			}
+			Sparky.dom.appendAll(node, this);
 			return this;
 		}
-	}, ns.mixin.events, ns.mixin.array);
+	}, window.mixin.events, window.mixin.array);
 
 
 	// Pure functions
@@ -1170,6 +1167,7 @@ if (!Math.log10) {
 
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
+
 
 	// Object helpers
 
@@ -1207,12 +1205,11 @@ if (!Math.log10) {
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
-		// When sparky is ready, delegate the new sparky to
-		// the old.
 		sparky1
 		.on('destroy', function destroy() {
 			sparky2.destroy();
 		})
+		// When sparky is ready, delegate the new sparky to the old.
 		.on('ready', function ready() {
 			sparky1.on(sparky2);
 		});
@@ -1394,7 +1391,6 @@ if (!Math.log10) {
 		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 	}
 
-
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -1494,10 +1490,6 @@ if (!Math.log10) {
 			timer = window.requestAnimationFrame(poll);
 		}
 
-		// The bind function returns an unbind function.
-		// TODO: Where templateFragment exists, we still want to bind the
-		// node - but not it's contents. Becuase we still want, say, the class
-		// attribute on the node itself to work.
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 		sparky.trigger('ready');
 
@@ -1508,24 +1500,25 @@ if (!Math.log10) {
 	function offInsert() { this.off('insert'); }
 
 	function makeDistributeCtrl(ctrls) {
-		return ctrls.length === 1 ?
-			ctrls[0] :
-			function distributeCtrl(node, model) {
-				// Distributor controller
-				var l = ctrls.length;
-				var n = -1;
-				var scope = model;
-				var temp;
+		return function distributeCtrl(node, model) {
+			// Distributor controller
+			var l = ctrls.length;
+			var n = -1;
+			var scope = model;
+			var result;
 
-				// Call the list of ctrls. Scope is the return value of
-				// the last ctrl in the list that does not return undefined
-				while (++n < l) {
-					temp = ctrls[n].call(this, node, scope);
-					if (temp) { scope = temp; }
-				}
+			this.ctrls = ctrls;
 
-				return scope;
-			} ;
+			// Call the list of ctrls. Scope is the return value of
+			// the last ctrl in the list that does not return undefined
+			while (++n < l) {
+				result = ctrls[n].call(this, node, scope);
+				if (result === false) { return; }
+				if (result !== undefined) { scope = result; }
+			}
+
+			return scope;
+		};
 	}
 
 	function makeDistributeCtrlFromPaths(paths) {
@@ -1544,28 +1537,12 @@ if (!Math.log10) {
 			ctrls.push(ctrl);
 		}
 
-		return makeDistributeCtrl(ctrls);
+		return makeDistributeCtrl(ctrls, paths);
 	}
 
-	function makeCtrl(node) {
-		var ctrlPaths = node.getAttribute('data-ctrl');
-		var ctrl;
-
-		if (!isDefined(ctrlPaths)) { return; }
-
-		var paths = ctrlPaths.trim().split(/\s+/);
-
-		if (paths.length === 1) {
-			ctrl = findByPath(Sparky.ctrl, paths[0]);
-
-			if (!ctrl) {
-				console.log(node);
-				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
-			}
-
-			return ctrl;
-		}
-
+	function makeCtrl(string) {
+		if (!isDefined(string)) { return; }
+		var paths = string.trim().split(Sparky.rspaces);
 		return makeDistributeCtrlFromPaths(paths);
 	}
 
@@ -1616,17 +1593,16 @@ if (!Math.log10) {
 			}
 		}
 
-		// If ctrl is a string, assume it is the name of a controller
-		if (typeof ctrl === 'string') {
-			ctrl = Sparky.ctrl[ctrl];
-		}
-
-		// Where ctrl is not defined look for the data-ctrl
-		// attribute. Document fragments do not have a getAttribute
-		// method.
-		if (!ctrl && node.getAttribute) {
-			ctrl = makeCtrl(node);
-		}
+		// The ctrl list can be...
+		ctrl =
+			// a space-separated string of ctrl paths
+			typeof ctrl === 'string' ? makeCtrl(ctrl) :
+			// a function
+			typeof ctrl === 'function' ? makeDistributeCtrl([ctrl]) :
+			// an array of functions
+			typeof ctrl === 'object' ? makeDistributeCtrl(ctrl) :
+			// defined in the data-ctrl attribute
+			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl')) ;
 
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
@@ -1679,7 +1655,7 @@ if (!Math.log10) {
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
 	Sparky.prototype    = prototype;
  
-	ns.Sparky = Sparky;
+	window.Sparky = Sparky;
 })(window);
 
 (function(Sparky) {
@@ -1696,8 +1672,17 @@ if (!Math.log10) {
 	// Utility functions
 
 	function noop() {}
+
 	function isDefined(val) { return val !== undefined && val !== null; }
 
+	function all(fn) {
+		return function(node, collection) {
+			var n = -1;
+			var length = collection.length;
+			while (++n < length) { fn(node, collection[n]); }
+			return node;
+		};
+	}
 
 	// Selection, traversal and mutation
 
@@ -1802,7 +1787,7 @@ if (!Math.log10) {
 	}
 
 	function empty(node) {
-		while (node.lastChild) { node.removeChild(parent.lastChild); }
+		while (node.lastChild) { node.removeChild(node.lastChild); }
 	}
 
 	function remove(node) {
@@ -1827,19 +1812,20 @@ if (!Math.log10) {
 	}
 
 	assign(dom, {
-		query:    query,
-		tag:      tagName,
-		append:   append,
-		after:    insertAfter,
-		before:   insertBefore,
-		empty:    empty,
-		remove:   remove,
-		closest:  closest,
-		matches:  matches,  
-		classes:  getClassList,
-		style:    getStyle,
-		getClass: getClass,
-		setClass: setClass
+		query:     query,
+		tag:       tagName,
+		append:    append,
+		appendAll: all(append),
+		after:     insertAfter,
+		before:    insertBefore,
+		empty:     empty,
+		remove:    remove,
+		closest:   closest,
+		matches:   matches,  
+		classes:   getClassList,
+		style:     getStyle,
+		getClass:  getClass,
+		setClass:  setClass
 	});
 
 
