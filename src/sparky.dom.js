@@ -12,8 +12,17 @@
 	// Utility functions
 
 	function noop() {}
+
 	function isDefined(val) { return val !== undefined && val !== null; }
 
+	function all(fn) {
+		return function(node, collection) {
+			var n = -1;
+			var length = collection.length;
+			while (++n < length) { fn(node, collection[n]); }
+			return node;
+		};
+	}
 
 	// Selection, traversal and mutation
 
@@ -118,7 +127,7 @@
 	}
 
 	function empty(node) {
-		while (node.lastChild) { node.removeChild(parent.lastChild); }
+		while (node.lastChild) { node.removeChild(node.lastChild); }
 	}
 
 	function remove(node) {
@@ -143,19 +152,20 @@
 	}
 
 	assign(dom, {
-		query:    query,
-		tag:      tagName,
-		append:   append,
-		after:    insertAfter,
-		before:   insertBefore,
-		empty:    empty,
-		remove:   remove,
-		closest:  closest,
-		matches:  matches,  
-		classes:  getClassList,
-		style:    getStyle,
-		getClass: getClass,
-		setClass: setClass
+		query:     query,
+		tag:       tagName,
+		append:    append,
+		appendAll: all(append),
+		after:     insertAfter,
+		before:    insertBefore,
+		empty:     empty,
+		remove:    remove,
+		closest:   closest,
+		matches:   matches,  
+		classes:   getClassList,
+		style:     getStyle,
+		getClass:  getClass,
+		setClass:  setClass
 	});
 
 

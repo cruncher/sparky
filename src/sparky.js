@@ -23,14 +23,14 @@
 // in Sparky.data.
 
 
-(function(ns){
+(function(window){
 	"use strict";
 
 	var empty = [];
 
 	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
-	    // Check whether a path begins with '.' or '['
+	// Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
 
 	var prototype = Object.assign({
@@ -57,13 +57,10 @@
 		},
 
 		appendTo: function(node) {
-			var n = -1;
-			while (++n < this.length) {
-				node.appendChild(this[n]);
-			}
+			Sparky.dom.appendAll(node, this);
 			return this;
 		}
-	}, ns.mixin.events, ns.mixin.array);
+	}, window.mixin.events, window.mixin.array);
 
 
 	// Pure functions
@@ -73,6 +70,7 @@
 
 	function noop() {}
 	function isDefined(val) { return val !== undefined && val !== null; }
+
 
 	// Object helpers
 
@@ -297,7 +295,6 @@
 		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
 	}
 
-
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
 		var templateFragment = templateId && fetchTemplate(templateId);
@@ -411,24 +408,25 @@
 	function offInsert() { this.off('insert'); }
 
 	function makeDistributeCtrl(ctrls) {
-		return ctrls.length === 1 ?
-			ctrls[0] :
-			function distributeCtrl(node, model) {
-				// Distributor controller
-				var l = ctrls.length;
-				var n = -1;
-				var scope = model;
-				var temp;
+		return function distributeCtrl(node, model) {
+			// Distributor controller
+			var l = ctrls.length;
+			var n = -1;
+			var scope = model;
+			var result;
 
-				// Call the list of ctrls. Scope is the return value of
-				// the last ctrl in the list that does not return undefined
-				while (++n < l) {
-					temp = ctrls[n].call(this, node, scope);
-					if (temp) { scope = temp; }
-				}
+			this.ctrls = ctrls;
 
-				return scope;
-			} ;
+			// Call the list of ctrls. Scope is the return value of
+			// the last ctrl in the list that does not return undefined
+			while (++n < l) {
+				result = ctrls[n].call(this, node, scope);
+				if (result === false) { return; }
+				if (result !== undefined) { scope = result; }
+			}
+
+			return scope;
+		};
 	}
 
 	function makeDistributeCtrlFromPaths(paths) {
@@ -447,28 +445,12 @@
 			ctrls.push(ctrl);
 		}
 
-		return makeDistributeCtrl(ctrls);
+		return makeDistributeCtrl(ctrls, paths);
 	}
 
-	function makeCtrl(node) {
-		var ctrlPaths = node.getAttribute('data-ctrl');
-		var ctrl;
-
-		if (!isDefined(ctrlPaths)) { return; }
-
-		var paths = ctrlPaths.trim().split(/\s+/);
-
-		if (paths.length === 1) {
-			ctrl = findByPath(Sparky.ctrl, paths[0]);
-
-			if (!ctrl) {
-				console.log(node);
-				throw new Error('Sparky: data-ctrl "' + paths[0] + '" not found in Sparky.ctrl');
-			}
-
-			return ctrl;
-		}
-
+	function makeCtrl(string) {
+		if (!isDefined(string)) { return; }
+		var paths = string.trim().split(Sparky.rspaces);
 		return makeDistributeCtrlFromPaths(paths);
 	}
 
@@ -519,17 +501,16 @@
 			}
 		}
 
-		// If ctrl is a string, assume it is the name of a controller
-		if (typeof ctrl === 'string') {
-			ctrl = Sparky.ctrl[ctrl];
-		}
-
-		// Where ctrl is not defined look for the data-ctrl
-		// attribute. Document fragments do not have a getAttribute
-		// method.
-		if (!ctrl && node.getAttribute) {
-			ctrl = makeCtrl(node);
-		}
+		// The ctrl list can be...
+		ctrl =
+			// a space-separated string of ctrl paths
+			typeof ctrl === 'string' ? makeCtrl(ctrl) :
+			// a function
+			typeof ctrl === 'function' ? makeDistributeCtrl([ctrl]) :
+			// an array of functions
+			typeof ctrl === 'object' ? makeDistributeCtrl(ctrl) :
+			// defined in the data-ctrl attribute
+			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl')) ;
 
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
@@ -582,5 +563,5 @@
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
 	Sparky.prototype    = prototype;
  
-	ns.Sparky = Sparky;
+	window.Sparky = Sparky;
 })(window);
