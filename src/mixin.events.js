@@ -230,12 +230,12 @@
 
 			i = -1;
 			l = delegates.length;
+			args[0] = eventObject;
 
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
 				// as trigger calls are synchronous, and the object is internal,
 				// so it does not get exposed.
-				args[0] = eventObject;
 				eventObject.type = type;
 				eventObject.target = target;
 			}
