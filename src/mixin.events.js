@@ -200,6 +200,8 @@
 
 		trigger: function(e) {
 			var events = getListeners(this);
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = getDelegates(this).slice();
 			var args = slice(arguments);
 			var type, target, i, l, params, result;
 
@@ -223,10 +225,7 @@
 				}
 			}
 
-			if (!this.delegates) { return this; }
-
-			// Copy delegates. We may be about to mutate the delegates list.
-			var delegates = this.delegates.slice();
+			if (!delegates.length) { return this; }
 
 			i = -1;
 			l = delegates.length;
