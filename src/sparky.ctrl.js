@@ -238,3 +238,56 @@
 		dom.remove(node);
 	};
 })();
+
+(function() {
+	"use strict";
+
+	var dom = Sparky.dom;
+
+	Sparky.ctrl['x-scroll-slave'] = function(node, scope) {
+		var name = node.getAttribute('data-x-scroll-master');
+		var master;
+
+		function update() {
+			node.scrollLeft = master.scrollLeft;
+		}
+
+		this
+		.on('insert', function() {
+			master = document.getElementById(name);
+
+			if (!master) {
+				console.error(node);
+				throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
+			}
+
+			master.addEventListener('scroll', update);
+			update();
+		})
+		.on('destroy', function() {
+			if (!master) { return; }
+			master.removeEventListener('scroll', update);
+		});
+	};
+
+	Sparky.ctrl['y-scroll-slave'] = function(node, scope) {
+		var name = node.getAttribute('data-y-scroll-master');
+		var master = document.getElementById(name);
+
+		if (!master) {
+			console.error(node);
+			throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
+		}
+
+		function update() {
+			node.scrollTop = master.scrollTop;
+		}
+
+		master.addEventListener('scroll', update);
+		update();
+
+		this.on('destroy', function() {
+			master.removeEventListener('scroll', update);
+		});
+	};
+})();
