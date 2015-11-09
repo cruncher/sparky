@@ -3,7 +3,7 @@
 
 	console.log('Sparky');
 	console.log('http://github.com/cruncher/sparky');
-	console.log('Live data binding templates for the DOM');
+	//console.log('Live data binding templates for the DOM');
 	console.log('————––––—————————————–––———————————————');
 })(this);
 

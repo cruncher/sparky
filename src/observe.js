@@ -1,6 +1,6 @@
 
-// observe(obj, [prop], fn)
-// unobserve(obj, [prop], [fn])
+// observe(object, [prop], fn)
+// unobserve(object, [prop], [fn])
 // 
 // Observes object properties for changes by redefining
 // properties of the observable object with setters that
@@ -9,11 +9,13 @@
 (function(window){
 	var debug = false;
 
-	var slice = Array.prototype.slice,
-	    toString = Object.prototype.toString;
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+	var toString = Function.prototype.call.bind(Object.prototype.toString);
 
-	function isFunction(obj) {
-		toString.call(obj) === '[object Function]';
+	var objects = new WeakMap();
+
+	function isFunction(object) {
+		toString(object) === '[object Function]';
 	}
 
 	function call(array) {
@@ -21,100 +23,201 @@
 		array[0].apply(null, array[1]);
 	}
 
-	function replaceProperty(obj, prop, desc, observer, call) {
-		var v = obj[prop],
-		    observers = [observer],
-		    descriptor = {
-		    	enumerable: desc ? desc.enumerable : true,
-		    	configurable: false,
-
-		    	get: desc && desc.get ? desc.get : function() {
-		    		return v;
-		    	},
-
-		    	set: desc && desc.set ? function(u) {
-		    		desc.set.call(this, u);
-		    		// Copy the array in case an onbserver modifies it.
-		    		observers.slice().forEach(call);
-		    	} : function(u) {
-		    		if (u === v) { return; }
-		    		v = u;
-		    		// Copy the array in case an onbserver modifies it.
-		    		observers.slice().forEach(call);
-		    	}
-		    };
-
-		// Store the observers so that future observers can be added.
-		descriptor.set.observers = observers;
-
-		Object.defineProperty(obj, prop, descriptor);
+	function getDescriptor(object, property) {
+		return object && (
+			Object.getOwnPropertyDescriptor(object, property) ||
+			getDescriptor(Object.getPrototypeOf(object), property)
+		);
 	}
 
-	function observeProperty(obj, prop, fn) {
-		var desc = Object.getOwnPropertyDescriptor(obj, prop),
-		    args = slice.call(arguments, 0),
-		    observer = [fn, args];
-		
-		// Cut both prop and fn out of the args list
-		args.splice(1,2);
-		
-		// If an observers list is already defined, this property is
-		// already being observed, and all we have to do is add our
-		// fn to the queue.
-		if (desc) {
-			if (desc.set && desc.set.observers) {
-				desc.set.observers.push(observer);
-				return;
-			}
-			
-			if (desc.configurable === false) {
-				debug && console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
-				return;
+	function notifyObservers(object, observers) {
+		// Copy observers in case it is modified.
+		observers = observers.slice();
+
+		var n = -1;
+		var params, scope;
+
+		// Notify this object, and any objects that have
+		// this object in their prototype chain.
+		while (observers[++n]) {
+			params = observers[n];
+			scope = params[1][0];
+
+			if (object === scope || object.isPrototypeOf(scope)) {
+				call(params);
 			}
 		}
-
-		replaceProperty(obj, prop, desc, observer, call);
 	}
 
-	function observe(obj, prop, fn) {
+	function notify(object, property) {
+		var prototype = object;
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		notifyObservers(object, observers);
+	}
+
+	function createProperty(object, property, observers, descriptor) {
+		var value = object[property];
+
+		delete descriptor.writable;
+		delete descriptor.value;
+
+		descriptor.configurable = false;
+		descriptor.get = function() { return value; };
+		descriptor.set = function(v) {
+			if (v === value) { return; }
+			value = v;
+			// Copy the array in case an observer modifies it.
+			observers.slice().forEach(call);
+		};
+
+		// Store the observers on the getter. TODO: We may
+		// want to think about putting them in a weak map.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function replaceGetSetProperty(object, property, observers, descriptor) {
+		var set = descriptor.set;
+
+		if (set) {
+			descriptor.set = function(v) {
+				set.call(this, v);
+				notifyObservers(this, observers);
+			};
+		}
+
+		// Prevent anything losing these observers.
+		descriptor.configurable = false;
+
+		// Store the observers so that future observers can be added.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function observeProperty(object, property, fn) {
+		var args = slice(arguments, 0);
+
+		// Cut both prop and fn out of the args list
+		args.splice(1, 2);
+
+		var observer = [fn, args];
+		var prototype = object;
+		var descriptor;
+
+		// Find the nearest descriptor in the prototype chain.
+		while (
+			!(descriptor = Object.getOwnPropertyDescriptor(prototype, property)) &&
+			(prototype = Object.getPrototypeOf(prototype))
+		);
+
+		// If an observers list is already defined all we
+		// have to do is add our fn to the queue.
+		if (descriptor && descriptor.get && descriptor.get.observers) {
+			descriptor.get.observers.push(observer);
+			return;
+		}
+
+		var observers = [observer];
+
+		// If there is no descriptor, create a new property.
+		if (!descriptor) {
+			createProperty(object, property, observers, { enumerable: true });
+			return;
+		}
+
+		// If the property is not configurable we cannot
+		// overwrite the set function, so we're stuffed.
+		if (descriptor.configurable === false) {
+			// Although we can get away with observing
+			// get-only properties, as they don't replace
+			// the setter and they require an explicit call
+			// to notify(). 
+			if (descriptor.get && !descriptor.set) {
+				descriptor.get.observers = observers;
+			}
+			else {
+				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+			}
+
+			return;
+		}
+
+		// If the property is writable, we're ok to overwrite
+		// it with a getter/setter. This has a side effect:
+		// normally a writable property in a prototype chain
+		// will be superseded by a property set on the object
+		// at the time of the set, but we're going to
+		// supersede it now. There is not a great deal that
+		// can be done to mitigate this.
+		if (descriptor.writable === true) {
+			createProperty(object, property, observers, descriptor);
+			return;
+		}
+
+		// If the property is not writable, we don't want to
+		// be replacing it with a getter/setter.
+		if (descriptor.writable === false) {
+			debug && console.warn('observe: Property .' + property + ' has { writable: false }. Shall not observe.', object);
+			return;
+		}
+
+		// If the property has no getter, what is the point
+		// even trying to observe it?
+		if (!descriptor.get) {
+			debug && console.warn('observe: Property .' + property + ' has a setter but no getter. Will not observe.', object);
+			return;
+		}
+
+		// Replace the getter/setter
+		replaceGetSetProperty(prototype, property, observers, descriptor);
+	}
+
+	function observe(object, property, fn) {
 		var args, key;
 
 		// Overload observe to handle observing all properties with
-		// the function signature observe(obj, fn).
-		if (toString.call(prop) === '[object Function]') {
+		// the function signature observe(object, fn).
+		if (toString(property) === '[object Function]') {
 			fn = prop;
-			args = slice.call(arguments, 0);
+			args = slice(arguments, 0);
 			args.splice(1, 0, null);
 			
-			for (prop in obj) {
-				args[1] = prop;
+			for (property in object) {
+				args[1] = property;
 				observeProperty.apply(null, args);
 			};
-			
+
 			return;
 		}
 
 		observeProperty.apply(null, arguments);
 	}
 	
-	function unobserve(obj, prop, fn) {
-		var desc, observers, index;
+	function unobserve(object, property, fn) {
+		var index;
 
-		if (obj[prop] === undefined) { return; }
+		if (property instanceof Function) {
+			fn = property;
 
-		if (prop instanceof Function) {
-			fn = prop;
-
-			for (prop in obj) {
+			for (property in object) {
 				unobserve(data, key, fn);
 			};
 
 			return;
 		}
 
-		desc = Object.getOwnPropertyDescriptor(obj, prop);
-		observers = desc.set && desc.set.observers;
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
 
+		var observers = descriptor.get && descriptor.get.observers;
 		if (!observers) { return; }
 
 		var n;
@@ -128,10 +231,11 @@
 			}
 		}
 		else {
-			desc.set.observers.length = 0;
+			observers.length = 0;
 		}
 	}
 
 	window.observe = observe;
 	window.unobserve = unobserve;
+	window.notify = notify;
 })(window);
