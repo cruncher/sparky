@@ -18,11 +18,13 @@
 		return val !== undefined && val !== null;
 	}
 
+
 	// Map functions
 
 	function returnArg(arg) {
 		return arg;
 	}
+
 
 	// Each functions
 
@@ -64,20 +66,23 @@
 		while (k--) {
 			key = keys[k];
 
+			// Test equality first, allowing the querying of
+			// collections of functions or regexes.
+			if (object[key] === query[key]) {
+				continue;
+			}
+
 			// Test function
-			if (query[key].call) {
-				if (!query[key](object, key)) { return false; }
+			if (typeof query[key] === 'function' && query[key](object, key)) {
+				continue;
 			}
 
 			// Test regex
-			else if (query[key].test) {
-				if (!query[key].test(object[key])) { return false; }
+			if (query[key] instanceof RegExp && query[key].test(object[key])) {
+				continue;
 			}
 
-			// Test equality
-			else if (object[key] !== query[key]) {
-				return false;
-			}
+			return false;
 		}
 
 		return true;
