@@ -1,13 +1,15 @@
 
 // Collection()
 
-(function(ns, mixin, undefined) {
+(function(window) {
 	"use strict";
 
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
+	var mixin     = window.mixin;
+	var assign    = Object.assign;
+
 	var debug = false;
-
-	var assign = Object.assign;
-
 	var defaults = {
 	    	index: 'id'
 	    };
@@ -150,7 +152,7 @@
 		if (i === undefined) { i = -1; }
 
 		while (++i < collection.length) {
-			if (obj === collection[i]) {
+			if (obj === collection[i] || obj === collection[i][collection.index]) {
 				splice(collection, i, 1);
 				--i;
 				found = true;
@@ -221,7 +223,7 @@
 			var item = this.find(obj);
 
 			if (item) {
-				Object.assign(item, obj);
+				assign(item, obj);
 				this.trigger('update', item);
 			}
 			else {
@@ -393,8 +395,6 @@
 			// Enable us to force a sync from code that only has
 			// access to the subset
 			subset.synchronise = function() {
-				var subset = this;
-
 				collection.forEach(function(object) {
 					update(object);
 				});
@@ -488,7 +488,7 @@
 		}
 
 		var collection = this;
-		var settings = Object.assign({}, defaults, options);
+		var settings = assign({}, defaults, options);
 
 		function byIndex(a, b) {
 			// Sort collection by index.
@@ -510,7 +510,7 @@
 		});
 
 		// Populate the collection
-		Object.assign(collection, array);
+		assign(collection, array);
 
 		var length = collection.length = array.length;
 
@@ -534,11 +534,11 @@
 		observe(collection, 'length', observeLength);
 	};
 
-	Object.assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+	assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
 
 	Collection.add = add;
 	Collection.remove = remove;
 	Collection.isCollection = isCollection;
 
-	ns.Collection = Collection;
-})(this, this.mixin);
+	window.Collection = Collection;
+})(this);

@@ -132,7 +132,7 @@
 					// characters from it's JSONified version...
 					json.slice(0, value.length) === value &&
 
-					// ...and if any remaining numbers are 0.
+					// ...and if all remaining numbers are 0.
 					!json.slice(value.length).match(rnonzeronumbers) ;
 
 				return typeof value !== 'string' ? new Date(value) :
