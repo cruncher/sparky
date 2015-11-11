@@ -1,8 +1,8 @@
 module('Sparky:collections', function(fixture) {
-	console.log('Test Sparky.Collection()...');
+	console.log('Test Collection()...');
 
 	test('Sparky should bind to an empty collection by inserting no nodes.', function() {
-		var collection = Sparky.Collection([]);
+		var collection = Collection([]);
 
 		Sparky.ctrl['test-ctrl'] = function(node, model) {
 			return {
@@ -18,7 +18,7 @@ module('Sparky:collections', function(fixture) {
 	});
 
 	test('Initial length', function() {
-		var collection = Sparky.Collection([{
+		var collection = Collection([{
 		    	property: 1
 		    }, {
 		    	property: 2
@@ -42,7 +42,7 @@ module('Sparky:collections', function(fixture) {
 	});
 
 	asyncTest("Two or three", function(assert) {
-		var collection = Sparky.Collection([{
+		var collection = Collection([{
 		    	property: 1
 		    }, {
 		    	property: 2
@@ -74,7 +74,7 @@ module('Sparky:collections', function(fixture) {
 	});
 
 	asyncTest("Zero to hero", function(assert) {
-		var collection = Sparky.Collection();
+		var collection = Collection();
 
 		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
 			return {
@@ -103,7 +103,7 @@ module('Sparky:collections', function(fixture) {
 	asyncTest("Detach collection items", function(assert) {
 		expect(5);
 
-		var collection = Sparky.Collection([{
+		var collection = Collection([{
 		    	property: 1
 		    }, {
 		    	property: 2

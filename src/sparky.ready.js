@@ -70,3 +70,8 @@
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);
+
+(function(window) {
+	if (!window.console || !window.console.log) { return; }
+	console.log('_________________________________');
+})(this);

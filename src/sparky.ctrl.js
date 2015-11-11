@@ -225,14 +225,12 @@
 		string
 		.split(Sparky.rspaces)
 		.forEach(function(name) {
-			var child = Sparky(name, scope);
+			var child = sparky.slave(name, scope);
 			var n = child.length;
 
 			while (n--) {
 				dom.after(node, child[n]);
 			}
-
-			sparky.on(child);
 		});
 
 		dom.remove(node);

@@ -4,7 +4,6 @@
 	console.log('Sparky');
 	console.log('http://github.com/cruncher/sparky');
 	//console.log('Live data binding templates for the DOM');
-	console.log('————––––—————————————–––———————————————');
 })(this);
 
 // Sparky
@@ -59,6 +58,10 @@
 		appendTo: function(node) {
 			Sparky.dom.appendAll(node, this);
 			return this;
+		},
+
+		slave: function(node, scope, ctrl) {
+			return Sparky(node, scope, ctrl, undefined, this.data);
 		}
 	}, window.mixin.events, window.mixin.array);
 
@@ -108,19 +111,22 @@
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
-		sparky1
-		.on('destroy', function destroy() {
-			sparky2.destroy();
-		})
-		// When sparky is ready, delegate the new sparky to the old.
-		.on('ready', function ready() {
+		function destroy() { sparky2.destroy(); }
+
+		function ready() {
+			sparky1.off('destroy', destroy);
 			sparky1.on(sparky2);
-		});
+		}
+
+		// Delegate the new sparky to the old.
+		sparky1
+		.on('destroy', destroy)
+		.on('ready', ready);
 
 		return sparky2;
 	}
 
-	function setupCollection(node, model, ctrl) {
+	function setupCollection(node, model, ctrl, data) {
 		var modelName = node.getAttribute('data-scope');
 		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
 		var nodes = [];
@@ -168,7 +174,7 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, data);
 					sparky.on(sparkies[n]);
 				}
 
@@ -216,13 +222,13 @@
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky.data));
 			return;
 		}
 
 		// data-scope="."
 		if (path === '.') {
-			slaveSparky(sparky, Sparky(node, model));
+			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky.data));
 			return;
 		}
 
@@ -234,7 +240,7 @@
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			slaveSparky(sparky, Sparky(node, data));
+			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky.data));
 			return;
 		}
 
@@ -259,7 +265,7 @@
 					node = master.cloneNode(true);
 				}
 
-				childSparky = Sparky(node, data);
+				childSparky = Sparky(node, data, undefined, undefined, sparky.data);
 				Sparky.dom.after(comment, node);
 				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
@@ -291,7 +297,7 @@
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky.data));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -449,7 +455,7 @@
 		return makeDistributeCtrlFromPaths(paths);
 	}
 
-	function Sparky(node, model, ctrl, loop) {
+	function Sparky(node, model, ctrl) {
 		if (Sparky.debug === 'verbose') {
 			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 				(model && '{}'), ',',
@@ -457,9 +463,16 @@
 			);
 		}
 
+		// Loop adn data are 'hidden' parameter, used internally.
+		// Everything needs a clean-up. You should consider using
+		// prototypal inheritance to make child sparkies children
+		// of ther parents, instead of doing that for the separate
+		// data object. But to do that, they can no longer be
+		// collections. So the DOM collection bit of it would
+		// need to be a property of sparky.
+		var loop = arguments[3] !== false;
+		var data = arguments[4];
 		var modelPath, ctrlPath, tag, id;
-
-		if (loop !== false) { loop = true; }
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
@@ -511,10 +524,14 @@
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
 		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
-			return setupCollection(node, model, ctrl);
+			return setupCollection(node, model, ctrl, data);
 		}
 
 		var sparky = Object.create(prototype);
+
+		Object.defineProperty(sparky, 'data', {
+			value: Object.create(data || null)
+		});
 
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
@@ -538,10 +555,6 @@
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-
-	Sparky.Collection = function(array, options) {
-		return new Collection(array, options);
-	};
 
 	Sparky.template = function() {
 		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);

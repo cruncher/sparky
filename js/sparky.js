@@ -367,6 +367,8 @@ if (!Math.log10) {
 
 		trigger: function(e) {
 			var events = getListeners(this);
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = getDelegates(this).slice();
 			var args = slice(arguments);
 			var type, target, i, l, params, result;
 
@@ -390,19 +392,16 @@ if (!Math.log10) {
 				}
 			}
 
-			if (!this.delegates) { return this; }
-
-			// Copy delegates. We may be about to mutate the delegates list.
-			var delegates = this.delegates.slice();
+			if (!delegates.length) { return this; }
 
 			i = -1;
 			l = delegates.length;
+			args[0] = eventObject;
 
 			if (typeof e === 'string') {
 				// Prepare the event object. It's ok to reuse a single object,
 				// as trigger calls are synchronous, and the object is internal,
 				// so it does not get exposed.
-				args[0] = eventObject;
 				eventObject.type = type;
 				eventObject.target = target;
 			}
@@ -418,8 +417,8 @@ if (!Math.log10) {
 })(this);
 
 
-// observe(obj, [prop], fn)
-// unobserve(obj, [prop], [fn])
+// observe(object, [prop], fn)
+// unobserve(object, [prop], [fn])
 // 
 // Observes object properties for changes by redefining
 // properties of the observable object with setters that
@@ -428,11 +427,13 @@ if (!Math.log10) {
 (function(window){
 	var debug = false;
 
-	var slice = Array.prototype.slice,
-	    toString = Object.prototype.toString;
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+	var toString = Function.prototype.call.bind(Object.prototype.toString);
 
-	function isFunction(obj) {
-		toString.call(obj) === '[object Function]';
+	var objects = new WeakMap();
+
+	function isFunction(object) {
+		toString(object) === '[object Function]';
 	}
 
 	function call(array) {
@@ -440,100 +441,201 @@ if (!Math.log10) {
 		array[0].apply(null, array[1]);
 	}
 
-	function replaceProperty(obj, prop, desc, observer, call) {
-		var v = obj[prop],
-		    observers = [observer],
-		    descriptor = {
-		    	enumerable: desc ? desc.enumerable : true,
-		    	configurable: false,
-
-		    	get: desc && desc.get ? desc.get : function() {
-		    		return v;
-		    	},
-
-		    	set: desc && desc.set ? function(u) {
-		    		desc.set.call(this, u);
-		    		// Copy the array in case an onbserver modifies it.
-		    		observers.slice().forEach(call);
-		    	} : function(u) {
-		    		if (u === v) { return; }
-		    		v = u;
-		    		// Copy the array in case an onbserver modifies it.
-		    		observers.slice().forEach(call);
-		    	}
-		    };
-
-		// Store the observers so that future observers can be added.
-		descriptor.set.observers = observers;
-
-		Object.defineProperty(obj, prop, descriptor);
+	function getDescriptor(object, property) {
+		return object && (
+			Object.getOwnPropertyDescriptor(object, property) ||
+			getDescriptor(Object.getPrototypeOf(object), property)
+		);
 	}
 
-	function observeProperty(obj, prop, fn) {
-		var desc = Object.getOwnPropertyDescriptor(obj, prop),
-		    args = slice.call(arguments, 0),
-		    observer = [fn, args];
-		
-		// Cut both prop and fn out of the args list
-		args.splice(1,2);
-		
-		// If an observers list is already defined, this property is
-		// already being observed, and all we have to do is add our
-		// fn to the queue.
-		if (desc) {
-			if (desc.set && desc.set.observers) {
-				desc.set.observers.push(observer);
-				return;
-			}
-			
-			if (desc.configurable === false) {
-				debug && console.warn('Property \"' + prop + '\" has {configurable: false}. Cannot observe.', obj);
-				return;
+	function notifyObservers(object, observers) {
+		// Copy observers in case it is modified.
+		observers = observers.slice();
+
+		var n = -1;
+		var params, scope;
+
+		// Notify this object, and any objects that have
+		// this object in their prototype chain.
+		while (observers[++n]) {
+			params = observers[n];
+			scope = params[1][0];
+
+			if (object === scope || object.isPrototypeOf(scope)) {
+				call(params);
 			}
 		}
-
-		replaceProperty(obj, prop, desc, observer, call);
 	}
 
-	function observe(obj, prop, fn) {
+	function notify(object, property) {
+		var prototype = object;
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		notifyObservers(object, observers);
+	}
+
+	function createProperty(object, property, observers, descriptor) {
+		var value = object[property];
+
+		delete descriptor.writable;
+		delete descriptor.value;
+
+		descriptor.configurable = false;
+		descriptor.get = function() { return value; };
+		descriptor.set = function(v) {
+			if (v === value) { return; }
+			value = v;
+			// Copy the array in case an observer modifies it.
+			observers.slice().forEach(call);
+		};
+
+		// Store the observers on the getter. TODO: We may
+		// want to think about putting them in a weak map.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function replaceGetSetProperty(object, property, observers, descriptor) {
+		var set = descriptor.set;
+
+		if (set) {
+			descriptor.set = function(v) {
+				set.call(this, v);
+				notifyObservers(this, observers);
+			};
+		}
+
+		// Prevent anything losing these observers.
+		descriptor.configurable = false;
+
+		// Store the observers so that future observers can be added.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function observeProperty(object, property, fn) {
+		var args = slice(arguments, 0);
+
+		// Cut both prop and fn out of the args list
+		args.splice(1, 2);
+
+		var observer = [fn, args];
+		var prototype = object;
+		var descriptor;
+
+		// Find the nearest descriptor in the prototype chain.
+		while (
+			!(descriptor = Object.getOwnPropertyDescriptor(prototype, property)) &&
+			(prototype = Object.getPrototypeOf(prototype))
+		);
+
+		// If an observers list is already defined all we
+		// have to do is add our fn to the queue.
+		if (descriptor && descriptor.get && descriptor.get.observers) {
+			descriptor.get.observers.push(observer);
+			return;
+		}
+
+		var observers = [observer];
+
+		// If there is no descriptor, create a new property.
+		if (!descriptor) {
+			createProperty(object, property, observers, { enumerable: true });
+			return;
+		}
+
+		// If the property is not configurable we cannot
+		// overwrite the set function, so we're stuffed.
+		if (descriptor.configurable === false) {
+			// Although we can get away with observing
+			// get-only properties, as they don't replace
+			// the setter and they require an explicit call
+			// to notify(). 
+			if (descriptor.get && !descriptor.set) {
+				descriptor.get.observers = observers;
+			}
+			else {
+				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+			}
+
+			return;
+		}
+
+		// If the property is writable, we're ok to overwrite
+		// it with a getter/setter. This has a side effect:
+		// normally a writable property in a prototype chain
+		// will be superseded by a property set on the object
+		// at the time of the set, but we're going to
+		// supersede it now. There is not a great deal that
+		// can be done to mitigate this.
+		if (descriptor.writable === true) {
+			createProperty(object, property, observers, descriptor);
+			return;
+		}
+
+		// If the property is not writable, we don't want to
+		// be replacing it with a getter/setter.
+		if (descriptor.writable === false) {
+			debug && console.warn('observe: Property .' + property + ' has { writable: false }. Shall not observe.', object);
+			return;
+		}
+
+		// If the property has no getter, what is the point
+		// even trying to observe it?
+		if (!descriptor.get) {
+			debug && console.warn('observe: Property .' + property + ' has a setter but no getter. Will not observe.', object);
+			return;
+		}
+
+		// Replace the getter/setter
+		replaceGetSetProperty(prototype, property, observers, descriptor);
+	}
+
+	function observe(object, property, fn) {
 		var args, key;
 
 		// Overload observe to handle observing all properties with
-		// the function signature observe(obj, fn).
-		if (toString.call(prop) === '[object Function]') {
+		// the function signature observe(object, fn).
+		if (toString(property) === '[object Function]') {
 			fn = prop;
-			args = slice.call(arguments, 0);
+			args = slice(arguments, 0);
 			args.splice(1, 0, null);
 			
-			for (prop in obj) {
-				args[1] = prop;
+			for (property in object) {
+				args[1] = property;
 				observeProperty.apply(null, args);
 			};
-			
+
 			return;
 		}
 
 		observeProperty.apply(null, arguments);
 	}
 	
-	function unobserve(obj, prop, fn) {
-		var desc, observers, index;
+	function unobserve(object, property, fn) {
+		var index;
 
-		if (obj[prop] === undefined) { return; }
+		if (property instanceof Function) {
+			fn = property;
 
-		if (prop instanceof Function) {
-			fn = prop;
-
-			for (prop in obj) {
+			for (property in object) {
 				unobserve(data, key, fn);
 			};
 
 			return;
 		}
 
-		desc = Object.getOwnPropertyDescriptor(obj, prop);
-		observers = desc.set && desc.set.observers;
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
 
+		var observers = descriptor.get && descriptor.get.observers;
 		if (!observers) { return; }
 
 		var n;
@@ -547,38 +649,41 @@ if (!Math.log10) {
 			}
 		}
 		else {
-			desc.set.observers.length = 0;
+			observers.length = 0;
 		}
 	}
 
 	window.observe = observe;
 	window.unobserve = unobserve;
+	window.notify = notify;
 })(window);
 
 
 // Collection()
 
-(function(ns, mixin, undefined) {
+(function(window) {
 	"use strict";
+
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
+	var mixin     = window.mixin;
+	var assign    = Object.assign;
 
 	var debug = false;
 
-	var assign = Object.assign;
+	var defaults = { index: 'id' };
 
-	var defaults = {
-	    	index: 'id'
-	    };
 
-	var modifierMethods = ('add remove push pop splice').split(' ');
+	// Utils
+
+	function returnUndefined() { return; }
+
+	function returnThis() { return this; }
+
+	function returnArgument(arg) { return arg; }
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
-	}
-
-	// Map functions
-
-	function returnArg(arg) {
-		return arg;
 	}
 
 	// Each functions
@@ -591,10 +696,6 @@ if (!Math.log10) {
 
 	function byGreater(a, b) {
 		return a > b ? 1 : -1 ;
-	}
-
-	function byId(a, b) {
-		return a.id > b.id ? 1 : -1 ;
 	}
 
 	// Collection functions
@@ -621,20 +722,23 @@ if (!Math.log10) {
 		while (k--) {
 			key = keys[k];
 
+			// Test equality first, allowing the querying of
+			// collections of functions or regexes.
+			if (object[key] === query[key]) {
+				continue;
+			}
+
 			// Test function
-			if (query[key].call) {
-				if (!query[key](object, key)) { return false; }
+			if (typeof query[key] === 'function' && query[key](object, key)) {
+				continue;
 			}
 
 			// Test regex
-			else if (query[key].test) {
-				if (!query[key].test(object[key])) { return false; }
+			if (query[key] instanceof RegExp && query[key].test(object[key])) {
+				continue;
 			}
 
-			// Test equality
-			else if (object[key] !== query[key]) {
-				return false;
-			}
+			return false;
 		}
 
 		return true;
@@ -654,7 +758,6 @@ if (!Math.log10) {
 	function push(collection, object) {
 		Array.prototype.push.call(collection, object);
 		collection.trigger('add', object);
-		return collection;
 	}
 
 	function splice(collection, i, n) {
@@ -690,280 +793,207 @@ if (!Math.log10) {
 			return;
 		}
 
+		// Insert the object in the correct index. TODO: we
+		// should use the sort function for this!
 		var l = collection.length;
-
 		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
 		splice(collection, l + 1, 0, object);
 	}
 
 	function remove(collection, obj, i) {
-		var found;
-
 		if (i === undefined) { i = -1; }
 
 		while (++i < collection.length) {
-			if (obj === collection[i]) {
+			if (obj === collection[i] || obj === collection[i][collection.index]) {
 				splice(collection, i, 1);
 				--i;
-				found = true;
 			}
 		}
-
-		return found;
 	}
 
-	function invalidateCaches(collection) {
+	function update(collection, obj) {
+		var item = collection.find(obj);
 
+		if (item) {
+			assign(item, obj);
+			collection.trigger('update', item);
+		}
+		else {
+			add(collection, obj);
+		}
 	}
 
-	function toJSON(collection) {
-		return collection.map(toArray);
+	function callEach(fn, collection, objects) {
+		var l = objects.length;
+		var n = -1;
+
+		while (++n < l) {
+			fn.call(null, collection, objects[n]);
+		}
 	}
 
-	function multiarg(fn1, fn2) {
-		return function distributeArgs(object) {
-			invalidateCaches(this);
+	function overloadByLength(map) {
+		return function distribute() {
+			var length = arguments.length;
+			var fn = map[length] || map.default;
 
-			var l = arguments.length;
-
-			if (l === 0) {
-				if (fn2) { fn2.call(this, this); }
-				return this;
+			if (fn) {
+				return fn.apply(this, arguments);
 			}
 
-			var n = -1;
-
-			while (++n < l) {
-				fn1.call(this, this, arguments[n]);
-			}
-
+			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
 			return this;
 		}
 	}
 
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object) ||
+			SubCollection.prototype.isPrototypeOf(object);
+	}
 
-	mixin.collection = {
-		add: multiarg(add),
+	function createLengthObserver(collection) {
+		var length = collection.length;
 
-		remove: multiarg(remove, function() {
-			// If item is undefined, remove all objects from the collection.
-			var n = this.length;
+		return function lengthObserver() {
 			var object;
 
-			while (n--) { this.pop(); }
+			while (length-- > collection.length) {
+				object = collection[length];
+
+				// The length may have changed due to a splice or remove, in
+				// which case there will be no object at this index, but if
+				// there was, let's trigger it's demise.
+				if (object !== undefined) {
+					delete collection[length];
+					collection.trigger('remove', object, length);
+				}
+			}
+
+			length = collection.length;
+		};
+	}
+
+	function Collection(array, settings) {
+		if (this === undefined || this === window) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
+			return new Collection(array, settings);
+		}
+
+		// Handle the call signature Collection(settings)
+		if (!(array instanceof Array)) {
+			settings = array;
+			array = [];
+		}
+
+		var collection = this;
+		var options = assign({}, defaults, settings);
+
+		function byIndex(a, b) {
+			// Sort collection by index.
+			return a[collection.index] > b[collection.index] ? 1 : -1 ;
+		}
+
+		Object.defineProperties(collection, {
+			length: { value: 0, writable: true, configurable: true },
+			index: { value: options.index },
+			sort:  {
+				value: function sort(fn) {
+					// Collections get sorted by index by default, or by a function
+					// passed into options, or passed into the .sort(fn) call.
+					return Array.prototype.sort.call(this, fn || options.sort || byIndex);
+				}
+			}
+		});
+
+		// Populate the collection
+		assign(collection, array);
+		collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
+
+		// Watch the length and delete indexes when the
+		// length becomes shorter like a nice array does.
+		observe(collection, 'length', createLengthObserver(collection));
+	};
+
+	assign(Collection.prototype, mixin.events, mixin.array, {
+		add: overloadByLength({
+			0: returnThis,
+
+			"default": function addArgs() {
+				callEach(add, this, arguments);
+				return this;
+			}
 		}),
 
-		push: multiarg(push),
+		remove: overloadByLength({
+			0: function removeAll() {
+				while (this.length) { this.pop(); }
+				return this;
+			},
 
-		pop: function pop() {
-			var i = this.length - 1;
-			var object = this[i];
-			this.length = i;
-			this.trigger('remove', object, i);
+			"default": function removeArgs() {
+				callEach(remove, this, arguments);
+				return this;
+			}
+		}),
+
+		push: function() {
+			callEach(push, this, arguments);
+			return this;
+		},
+
+		pop: function() {
+			var object = this[this.length - 1];
+			--this.length;
 			return object;
 		},
 
 		splice: function() {
-			var args = Array.prototype.slice.apply(arguments);
-			args.unshift(this);
-			return splice.apply(this, args);
+			Array.prototype.unshift.call(arguments, this);
+			return splice.apply(this, arguments);
 		},
 
-		update: multiarg(function(collection, obj) {
-			var item = this.find(obj);
-
-			if (item) {
-				Object.assign(item, obj);
-				this.trigger('update', item);
-			}
-			else {
-				this.add(obj);
-				//this.trigger('add', obj);
-			}
-
+		update: function() {
+			callEach(update, this, arguments);
 			return this;
-		}),
+		},
 
-		find: function find(object) {
-			// Fast out. If object is an item in collection, return it.
-			if (this.indexOf(object) > -1) {
-				return object;
-			}
+		find: overloadByLength({
+			0: returnUndefined,
 
-			// Otherwise find by index
-			var index = this.index;
+			1: function findObject(object) {
+				// Fast out. If object in collection, return it.
+				if (this.indexOf(object) > -1) { return object; }
 
-			// find() returns the first object with matching key in the collection.
-			return arguments.length === 0 ?
-					undefined :
-				typeof object === 'string' || typeof object === 'number' || object === undefined ?
+				// Otherwise find by index.
+				var index = this.index;
+
+				// Return the first object with matching key.
+				return typeof object === 'string' || typeof object === 'number' || object === undefined ?
 					findByIndex(this, object) :
 					findByIndex(this, object[index]) ;
-		},
+			}
+		}),
 
-		query: function query(object) {
+		query: function(object) {
 			// query() is gauranteed to return an array.
 			return object ?
 				queryByObject(this, object) :
 				[] ;
 		},
 
-		sub: function sub(query, settings) {
-			var collection = this;
-			var options = assign({ sort: sort }, settings);
-			var subset = Collection([], options);
-			var keys = Object.keys(query);
-
-			function sort(o1, o2) {
-				// Keep the subset ordered as the collection
-				var i1 = collection.indexOf(o1);
-				var i2 = collection.indexOf(o2);
-				return i1 > i2 ? 1 : -1 ;
-			}
-
-			function update(object) {
-				var i = subset.indexOf(object);
-
-				if (queryObject(object, query, keys)) {
-					if (i === -1) {
-						// Keep subset is sorted with default sort fn,
-						// splice object into position
-						if (options.sort === sort) {
-							var i1 = collection.indexOf(object) ;
-							var n = i1;
-							var o2, i2;
-
-							while (n--) {
-								o2 = collection[n];
-								i2 = subset.indexOf(o2);
-								if (i2 > -1 && i2 < i1) { break; }
-							}
-
-							subset
-							.off('add', subsetAdd)
-							.splice(i2 + 1, 0, object);
-						}
-						else {
-							subset
-							.off('add', subsetAdd)
-							.add(object);
-						}
-
-						subset.on('add', subsetAdd);
-					}
-				}
-				else {
-					if (i !== -1) {
-						subset
-						.off('remove', subsetRemove)
-						.remove(object)
-						.on('remove', subsetRemove);
-					}
-				}
-			}
-
-			function add(collection, object) {
-				var n = keys.length;
-				var key;
-
-				// Observe keys of this object that might affect
-				// it's right to remain in the subset
-				while (n--) {
-					key = keys[n];
-					observe(object, key, update);
-				}
-
-				update(object);
-			}
-
-			function remove(collection, object) {
-				var n = keys.length;
-				var key;
-
-				while (n--) {
-					key = keys[n];
-					unobserve(object, key, update);
-				}
-
-				if (subset.indexOf(object) !== -1) {
-					subset
-					.off('remove', subsetRemove)
-					.remove(object)
-					.on('remove', subsetRemove);
-				}
-			}
-
-			function destroy(collection) {
-				collection.forEach(function(object) {
-					remove(collection, object);
-				});
-
-				subset
-				.off('add', subsetAdd)
-				.off('remove', subsetRemove);
-			}
-
-			function subsetAdd(subset, object) {
-				collection.add(object);
-			}
-
-			function subsetRemove(subset, object) {
-				collection.remove(object);
-			}
-
-			// Observe the collection to update the subset
-			collection
-			.on('add', add)
-			.on('remove', remove)
-			.on('destroy', destroy);
-
-			// Initialise existing object in collection and echo subset
-			// add and remove operations to collection.
-			if (collection.length) {
-				collection.forEach(function(object) {
-					add(collection, object);
-				});
-			}
-			else {
-				subset
-				.on('add', subsetAdd)
-				.on('remove', subsetRemove);
-			}
-
-			subset.destroy = function() {
-				// Lots of unbinding
-				destroy(collection);
-
-				collection
-				.off('add', add)
-				.off('remove', remove)
-				.off('destroy', destroy);
-
-				subset.off();
-			};
-
-			// Enable us to force a sync from code that only has
-			// access to the subset
-			subset.synchronise = function() {
-				var subset = this;
-
-				collection.forEach(function(object) {
-					update(object);
-				});
-			};
-
-			return subset;
-		},
-
-		contains: function contains(object) {
+		contains: function(object) {
 			return this.indexOf(object) !== -1;
 		},
 
-		// Get the value of a property of all the objects in
-		// the collection if they all have the same value.
-		// Otherwise return undefined.
+		get: function(property) {
+			// Get the value of a property of all the objects in
+			// the collection if they all have the same value.
+			// Otherwise return undefined.
 
-		get: function get(property) {
 			var n = this.length;
 
 			if (n === 0) { return; }
@@ -975,9 +1005,9 @@ if (!Math.log10) {
 			return this[n][property];
 		},
 
-		// Set a property on every object in the collection.
+		set: function(property, value) {
+			// Set a property on every object in the collection.
 
-		set: function set(property, value) {
 			if (arguments.length !== 2) {
 				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
@@ -987,15 +1017,18 @@ if (!Math.log10) {
 			return this;
 		},
 
-		toJSON: function toJSON() {
-			return this.map(returnArg);
+		toJSON: function() {
+			// Convert to array.
+			return Array.prototype.slice.apply(this);
 		},
 
-		toObject: function toObject(key) {
+		toObject: function(key) {
+			// Convert to object, using a keyed value on
+			// each object as map keys.
+			key = key || this.index;
+
 			var object = {};
 			var prop, type;
-
-			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];
@@ -1005,103 +1038,179 @@ if (!Math.log10) {
 					object[prop] = this[n];
 				}
 				else {
-					console.warn('collection.toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
+					console.warn('Collection: toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
 				}
 			}
 
 			return object;
+		},
+
+		sub: function(query, settings) {
+			return new SubCollection(this, query, settings);
 		}
-	};
+	});
 
+	function SubCollection(collection, query, settings) {
+		// TODO: Clean up SubCollection
 
-	// Collection constructor
+		var options = assign({ sort: sort }, settings);
+		var keys = Object.keys(query);
+		var echo = true;
+		var subset = this;
 
-	var lengthProperty = {
-			value: 0,
-			enumerable: false,
-			writable: true,
-			configurable: true
-		};
-
-	function isCollection(object) {
-		return Collection.prototype.isPrototypeOf(object);
-	}
-
-	function Collection(array, options) {
-		if (this === undefined || this === window) {
-			// If this is undefined the constructor has been called without the
-			// new keyword, or without a context applied. Do that now.
-			return new Collection(array, options);
+		function sort(o1, o2) {
+			// Keep the subset ordered as the collection
+			var i1 = collection.indexOf(o1);
+			var i2 = collection.indexOf(o2);
+			return i1 > i2 ? 1 : -1 ;
 		}
 
-		if (!(array instanceof Array)) {
-			options = array;
-			array = [];
-		}
+		function update(object) {
+			var i = subset.indexOf(object);
 
-		var collection = this;
-		var settings = Object.assign({}, defaults, options);
+			echo = false;
 
-		function byIndex(a, b) {
-			// Sort collection by index.
-			return a[settings.index] > b[settings.index] ? 1 : -1 ;
-		}
+			if (queryObject(object, query, keys)) {
+				if (i === -1) {
+					// Keep subset is sorted with default sort fn,
+					// splice object into position
+					if (options.sort === sort) {
+						var i1 = collection.indexOf(object) ;
+						var n = i1;
+						var o2, i2;
 
-		function sort(fn) {
-			// Collections get sorted by index by default, or by a function
-			// passed into options, or passed into the .sort(fn) call.
-			return Array.prototype.sort.call(collection, fn || settings.sort || byIndex);
-		}
+						while (n--) {
+							o2 = collection[n];
+							i2 = subset.indexOf(o2);
+							if (i2 > -1 && i2 < i1) { break; }
+						}
 
-		Object.defineProperties(collection, {
-			length: lengthProperty,
-			// Define the name of the property that will be used to index this
-			// collection, and the sort function.
-			index: { value: settings.index },
-			sort:  { value: sort }
-		});
+						subset.splice(i2 + 1, 0, object);
+					}
+					else {
+						subset.add(object);
+					}
 
-		// Populate the collection
-		Object.assign(collection, array);
-
-		var length = collection.length = array.length;
-
-		// Sort the collection
-		//collection.sort();
-
-		function observeLength(collection) {
-			var object;
-
-			while (length-- > collection.length) {
-				// According to V8 optimisations, setting undefined is quicker
-				// than delete.
-				collection[length] = undefined;
+					subset.on('add', subsetAdd);
+				}
+			}
+			else {
+				if (i !== -1) {
+					subset.remove(object);
+				}
 			}
 
-			length = collection.length;
+			echo = true;
 		}
 
-		// Watch the length and delete indexes when the length becomes shorter
-		// like a nice array does.
-		observe(collection, 'length', observeLength);
-	};
+		function add(collection, object) {
+			var n = keys.length;
+			var key;
 
-	Object.assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+			// Observe keys of this object that might affect
+			// it's right to remain in the subset
+			while (n--) {
+				key = keys[n];
+				observe(object, key, update);
+			}
+
+			update(object);
+		}
+
+		function remove(collection, object) {
+			var n = keys.length;
+			var key;
+
+			while (n--) {
+				key = keys[n];
+				unobserve(object, key, update);
+			}
+
+			var i = subset.indexOf(object);
+
+			if (i > -1) {
+				echo = false;
+				subset.splice(i, 1);
+				echo = true;
+			}
+		}
+
+		function destroy(collection) {
+			collection.forEach(function(object) {
+				remove(collection, object);
+			});
+
+			subset
+			.off('add', subsetAdd)
+			.off('remove', subsetRemove);
+		}
+
+		function subsetAdd(subset, object) {
+			if (!echo) { return; }
+			collection.add(object);
+		}
+
+		function subsetRemove(subset, object) {
+			if (!echo) { return; }
+			collection.remove(object);
+		}
+
+		// Initialise as collection.
+		Collection.call(this, options);
+
+		// Observe the collection to update the subset
+		collection
+		.on('add', add)
+		.on('remove', remove)
+		.on('destroy', destroy);
+
+		// Initialise existing object in collection and echo
+		// subset add and remove operations to collection.
+		if (collection.length) {
+			collection.forEach(function(object) {
+				add(collection, object);
+			});
+		}
+		else {
+			subset
+			.on('add', subsetAdd)
+			.on('remove', subsetRemove);
+		}
+
+		subset.destroy = function() {
+			// Lots of unbinding
+			destroy(collection);
+
+			collection
+			.off('add', add)
+			.off('remove', remove)
+			.off('destroy', destroy);
+
+			subset.off();
+		};
+
+		this.synchronise = function() {
+			// Force a sync from code that only has access
+			// to the subset.
+			this.forEach(update);
+		};
+	}
+
+	assign(SubCollection.prototype, Collection.prototype);
 
 	Collection.add = add;
 	Collection.remove = remove;
 	Collection.isCollection = isCollection;
 
-	ns.Collection = Collection;
-})(this, this.mixin);
+	window.Collection = Collection;
+})(this);
 
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
 
 	console.log('Sparky');
 	console.log('http://github.com/cruncher/sparky');
-	console.log('Live data binding templates for the DOM');
-	console.log('————––––—————————————–––———————————————');
+	//console.log('Live data binding templates for the DOM');
 })(this);
 
 // Sparky
@@ -1156,6 +1265,10 @@ if (!Math.log10) {
 		appendTo: function(node) {
 			Sparky.dom.appendAll(node, this);
 			return this;
+		},
+
+		slave: function(node, scope, ctrl) {
+			return Sparky(node, scope, ctrl, undefined, this.data);
 		}
 	}, window.mixin.events, window.mixin.array);
 
@@ -1205,19 +1318,22 @@ if (!Math.log10) {
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
-		sparky1
-		.on('destroy', function destroy() {
-			sparky2.destroy();
-		})
-		// When sparky is ready, delegate the new sparky to the old.
-		.on('ready', function ready() {
+		function destroy() { sparky2.destroy(); }
+
+		function ready() {
+			sparky1.off('destroy', destroy);
 			sparky1.on(sparky2);
-		});
+		}
+
+		// Delegate the new sparky to the old.
+		sparky1
+		.on('destroy', destroy)
+		.on('ready', ready);
 
 		return sparky2;
 	}
 
-	function setupCollection(node, model, ctrl) {
+	function setupCollection(node, model, ctrl, data) {
 		var modelName = node.getAttribute('data-scope');
 		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
 		var nodes = [];
@@ -1265,7 +1381,7 @@ if (!Math.log10) {
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, data);
 					sparky.on(sparkies[n]);
 				}
 
@@ -1313,13 +1429,13 @@ if (!Math.log10) {
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			slaveSparky(sparky, Sparky(node, scope, undefined, false));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky.data));
 			return;
 		}
 
 		// data-scope="."
 		if (path === '.') {
-			slaveSparky(sparky, Sparky(node, model));
+			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky.data));
 			return;
 		}
 
@@ -1331,7 +1447,7 @@ if (!Math.log10) {
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			slaveSparky(sparky, Sparky(node, data));
+			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky.data));
 			return;
 		}
 
@@ -1356,7 +1472,7 @@ if (!Math.log10) {
 					node = master.cloneNode(true);
 				}
 
-				childSparky = Sparky(node, data);
+				childSparky = Sparky(node, data, undefined, undefined, sparky.data);
 				Sparky.dom.after(comment, node);
 				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
@@ -1388,7 +1504,7 @@ if (!Math.log10) {
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path)));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky.data));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -1546,7 +1662,7 @@ if (!Math.log10) {
 		return makeDistributeCtrlFromPaths(paths);
 	}
 
-	function Sparky(node, model, ctrl, loop) {
+	function Sparky(node, model, ctrl) {
 		if (Sparky.debug === 'verbose') {
 			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 				(model && '{}'), ',',
@@ -1554,9 +1670,16 @@ if (!Math.log10) {
 			);
 		}
 
+		// Loop adn data are 'hidden' parameter, used internally.
+		// Everything needs a clean-up. You should consider using
+		// prototypal inheritance to make child sparkies children
+		// of ther parents, instead of doing that for the separate
+		// data object. But to do that, they can no longer be
+		// collections. So the DOM collection bit of it would
+		// need to be a property of sparky.
+		var loop = arguments[3] !== false;
+		var data = arguments[4];
 		var modelPath, ctrlPath, tag, id;
-
-		if (loop !== false) { loop = true; }
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
@@ -1608,10 +1731,14 @@ if (!Math.log10) {
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
 		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
-			return setupCollection(node, model, ctrl);
+			return setupCollection(node, model, ctrl, data);
 		}
 
 		var sparky = Object.create(prototype);
+
+		Object.defineProperty(sparky, 'data', {
+			value: Object.create(data || null)
+		});
 
 		// Check if there should be a model, but it isn't available yet. If so,
 		// observe the path to the model until it appears.
@@ -1635,10 +1762,6 @@ if (!Math.log10) {
 	Sparky.settings     = {};
 	Sparky.data         = {};
 	Sparky.ctrl         = {};
-
-	Sparky.Collection = function(array, options) {
-		return new Collection(array, options);
-	};
 
 	Sparky.template = function() {
 		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
@@ -3040,7 +3163,7 @@ if (!Math.log10) {
 				var descriptor = Object.getOwnPropertyDescriptor(object, property);
 
 				if (!descriptor.get && !descriptor.configurable) {
-					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Sparky.Collection() to avoid this.', object, object instanceof Array);
+					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
 					console.trace && console.trace();
 					return poll(object, property, fn);
 				}
@@ -3347,17 +3470,68 @@ if (!Math.log10) {
 		string
 		.split(Sparky.rspaces)
 		.forEach(function(name) {
-			var child = Sparky(name, scope);
+			var child = sparky.slave(name, scope);
 			var n = child.length;
 
 			while (n--) {
 				dom.after(node, child[n]);
 			}
-
-			sparky.on(child);
 		});
 
 		dom.remove(node);
+	};
+})();
+
+(function() {
+	"use strict";
+
+	var dom = Sparky.dom;
+
+	Sparky.ctrl['x-scroll-slave'] = function(node, scope) {
+		var name = node.getAttribute('data-x-scroll-master');
+		var master;
+
+		function update() {
+			node.scrollLeft = master.scrollLeft;
+		}
+
+		this
+		.on('insert', function() {
+			master = document.getElementById(name);
+
+			if (!master) {
+				console.error(node);
+				throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
+			}
+
+			master.addEventListener('scroll', update);
+			update();
+		})
+		.on('destroy', function() {
+			if (!master) { return; }
+			master.removeEventListener('scroll', update);
+		});
+	};
+
+	Sparky.ctrl['y-scroll-slave'] = function(node, scope) {
+		var name = node.getAttribute('data-y-scroll-master');
+		var master = document.getElementById(name);
+
+		if (!master) {
+			console.error(node);
+			throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
+		}
+
+		function update() {
+			node.scrollTop = master.scrollTop;
+		}
+
+		master.addEventListener('scroll', update);
+		update();
+
+		this.on('destroy', function() {
+			master.removeEventListener('scroll', update);
+		});
 	};
 })();
 
@@ -3481,33 +3655,31 @@ if (!Math.log10) {
 
 			var rletter = /([a-zA-Z])/g;
 			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-
-			// Test the Date constructor to see if it is parsing date strings
-			// without timezones as local dates, as per the ES6 spec.
-			//
-			// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
-
-			var local = new Date().getTimezoneOffset() === 0 || new Date('1970').toJSON() !== '1970-01-01T00:00:00.000Z';
-
-			function createLocalDate(value) {
-				var date = new Date(value);
-
-				// Offset the date by adding the date's offset in milliseconds.
-				// Careful, getTimezoneOffset returns the offset in minutes.
-				return new Date(+date + date.getTimezoneOffset() * 60000);
-			}
+			var rnonzeronumbers = /[1-9]/;
 
 			function createDate(value) {
+				// Test the Date constructor to see if it is parsing date
+				// strings as local dates, as per the ES6 spec, or as GMT, as
+				// per pre ES6 engines.
+				// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
+				var date = new Date(value);
+				var json = date.toJSON();
+				var gmt =
+					// It's GMT if the string matches the same length of
+					// characters from it's JSONified version...
+					json.slice(0, value.length) === value &&
+
+					// ...and if all remaining numbers are 0.
+					!json.slice(value.length).match(rnonzeronumbers) ;
+
 				return typeof value !== 'string' ? new Date(value) :
+					// If the Date constructor parses to gmt offset the date by
+					// adding the date's offset in milliseconds to get a local
+					// date. getTimezoneOffset returns the offset in minutes.
+					gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
 
-					// If the Date constructor parses to local time...
-					local ? new Date(value) :
-
-					// ...or if the value contains a time zone...
-					(value.length > 16 && rtimezone.test(value)) ? new Date(value) :
-
-					// ...otherwise force the date to be a local date.
-					createLocalDate(value) ;
+					// Otherwise use the local date.
+					date ;
 			}
 
 			return function formatDate(value, format, lang) {
@@ -3582,6 +3754,10 @@ if (!Math.log10) {
 		//get_digit
 		//iriencode
 
+		invert: function(value) {
+			return 1 / value;
+		},
+
 		join: function(value, string) {
 			return Array.prototype.join.call(value, string);
 		},
@@ -3605,13 +3781,13 @@ if (!Math.log10) {
 		//length_is
 		//linebreaks
 
-		linebreaksbr: (function() {
-			var rbreaks = /\n/;
-
-			return function(value) {
-				return value.replace(rbreaks, '<br/>')
-			};
-		})(),
+		//linebreaksbr: (function() {
+		//	var rbreaks = /\n/;
+		//
+		//	return function(value) {
+		//		return value.replace(rbreaks, '<br/>')
+		//	};
+		//})(),
 
 		//linenumbers
 
@@ -3900,6 +4076,11 @@ if (!Math.log10) {
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);
+
+(function(window) {
+	if (!window.console || !window.console.log) { return; }
+	console.log('_________________________________');
+})(this);
 
 
 // Make the minifier remove debug code paths

@@ -1,7 +1,7 @@
 (function(Sparky, MIDI) {
 	"use strict";
 
-	var collection = Sparky.data['midi-nodes'] = Sparky.Collection();
+	var collection = Sparky.data['midi-nodes'] = Collection();
 
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);

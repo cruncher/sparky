@@ -10,23 +10,21 @@
 	var assign    = Object.assign;
 
 	var debug = false;
-	var defaults = {
-	    	index: 'id'
-	    };
 
-	var modifierMethods = ('add remove push pop splice').split(' ');
+	var defaults = { index: 'id' };
+
+
+	// Utils
+
+	function returnUndefined() { return; }
+
+	function returnThis() { return this; }
+
+	function returnArgument(arg) { return arg; }
 
 	function isDefined(val) {
 		return val !== undefined && val !== null;
 	}
-
-
-	// Map functions
-
-	function returnArg(arg) {
-		return arg;
-	}
-
 
 	// Each functions
 
@@ -38,10 +36,6 @@
 
 	function byGreater(a, b) {
 		return a > b ? 1 : -1 ;
-	}
-
-	function byId(a, b) {
-		return a.id > b.id ? 1 : -1 ;
 	}
 
 	// Collection functions
@@ -104,7 +98,6 @@
 	function push(collection, object) {
 		Array.prototype.push.call(collection, object);
 		collection.trigger('add', object);
-		return collection;
 	}
 
 	function splice(collection, i, n) {
@@ -140,278 +133,207 @@
 			return;
 		}
 
+		// Insert the object in the correct index. TODO: we
+		// should use the sort function for this!
 		var l = collection.length;
-
 		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
 		splice(collection, l + 1, 0, object);
 	}
 
 	function remove(collection, obj, i) {
-		var found;
-
 		if (i === undefined) { i = -1; }
 
 		while (++i < collection.length) {
 			if (obj === collection[i] || obj === collection[i][collection.index]) {
 				splice(collection, i, 1);
 				--i;
-				found = true;
 			}
 		}
-
-		return found;
 	}
 
-	function invalidateCaches(collection) {
+	function update(collection, obj) {
+		var item = collection.find(obj);
 
+		if (item) {
+			assign(item, obj);
+			collection.trigger('update', item);
+		}
+		else {
+			add(collection, obj);
+		}
 	}
 
-	function toJSON(collection) {
-		return collection.map(toArray);
+	function callEach(fn, collection, objects) {
+		var l = objects.length;
+		var n = -1;
+
+		while (++n < l) {
+			fn.call(null, collection, objects[n]);
+		}
 	}
 
-	function multiarg(fn1, fn2) {
-		return function distributeArgs(object) {
-			invalidateCaches(this);
+	function overloadByLength(map) {
+		return function distribute() {
+			var length = arguments.length;
+			var fn = map[length] || map.default;
 
-			var l = arguments.length;
-
-			if (l === 0) {
-				if (fn2) { fn2.call(this, this); }
-				return this;
+			if (fn) {
+				return fn.apply(this, arguments);
 			}
 
-			var n = -1;
-
-			while (++n < l) {
-				fn1.call(this, this, arguments[n]);
-			}
-
+			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
 			return this;
 		}
 	}
 
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object) ||
+			SubCollection.prototype.isPrototypeOf(object);
+	}
 
-	mixin.collection = {
-		add: multiarg(add),
+	function createLengthObserver(collection) {
+		var length = collection.length;
 
-		remove: multiarg(remove, function() {
-			// If item is undefined, remove all objects from the collection.
-			var n = this.length;
+		return function lengthObserver() {
 			var object;
 
-			while (n--) { this.pop(); }
+			while (length-- > collection.length) {
+				object = collection[length];
+
+				// The length may have changed due to a splice or remove, in
+				// which case there will be no object at this index, but if
+				// there was, let's trigger it's demise.
+				if (object !== undefined) {
+					delete collection[length];
+					collection.trigger('remove', object, length);
+				}
+			}
+
+			length = collection.length;
+		};
+	}
+
+	function Collection(array, settings) {
+		if (this === undefined || this === window) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
+			return new Collection(array, settings);
+		}
+
+		// Handle the call signature Collection(settings)
+		if (!(array instanceof Array)) {
+			settings = array;
+			array = [];
+		}
+
+		var collection = this;
+		var options = assign({}, defaults, settings);
+
+		function byIndex(a, b) {
+			// Sort collection by index.
+			return a[collection.index] > b[collection.index] ? 1 : -1 ;
+		}
+
+		Object.defineProperties(collection, {
+			length: { value: 0, writable: true, configurable: true },
+			index: { value: options.index },
+			sort:  {
+				value: function sort(fn) {
+					// Collections get sorted by index by default, or by a function
+					// passed into options, or passed into the .sort(fn) call.
+					return Array.prototype.sort.call(this, fn || options.sort || byIndex);
+				}
+			}
+		});
+
+		// Populate the collection
+		assign(collection, array);
+		collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
+
+		// Watch the length and delete indexes when the
+		// length becomes shorter like a nice array does.
+		observe(collection, 'length', createLengthObserver(collection));
+	};
+
+	assign(Collection.prototype, mixin.events, mixin.array, {
+		add: overloadByLength({
+			0: returnThis,
+
+			"default": function addArgs() {
+				callEach(add, this, arguments);
+				return this;
+			}
 		}),
 
-		push: multiarg(push),
+		remove: overloadByLength({
+			0: function removeAll() {
+				while (this.length) { this.pop(); }
+				return this;
+			},
 
-		pop: function pop() {
-			var i = this.length - 1;
-			var object = this[i];
-			this.length = i;
-			this.trigger('remove', object, i);
+			"default": function removeArgs() {
+				callEach(remove, this, arguments);
+				return this;
+			}
+		}),
+
+		push: function() {
+			callEach(push, this, arguments);
+			return this;
+		},
+
+		pop: function() {
+			var object = this[this.length - 1];
+			--this.length;
 			return object;
 		},
 
 		splice: function() {
-			var args = Array.prototype.slice.apply(arguments);
-			args.unshift(this);
-			return splice.apply(this, args);
+			Array.prototype.unshift.call(arguments, this);
+			return splice.apply(this, arguments);
 		},
 
-		update: multiarg(function(collection, obj) {
-			var item = this.find(obj);
-
-			if (item) {
-				assign(item, obj);
-				this.trigger('update', item);
-			}
-			else {
-				this.add(obj);
-				//this.trigger('add', obj);
-			}
-
+		update: function() {
+			callEach(update, this, arguments);
 			return this;
-		}),
+		},
 
-		find: function find(object) {
-			// Fast out. If object is an item in collection, return it.
-			if (this.indexOf(object) > -1) {
-				return object;
-			}
+		find: overloadByLength({
+			0: returnUndefined,
 
-			// Otherwise find by index
-			var index = this.index;
+			1: function findObject(object) {
+				// Fast out. If object in collection, return it.
+				if (this.indexOf(object) > -1) { return object; }
 
-			// find() returns the first object with matching key in the collection.
-			return arguments.length === 0 ?
-					undefined :
-				typeof object === 'string' || typeof object === 'number' || object === undefined ?
+				// Otherwise find by index.
+				var index = this.index;
+
+				// Return the first object with matching key.
+				return typeof object === 'string' || typeof object === 'number' || object === undefined ?
 					findByIndex(this, object) :
 					findByIndex(this, object[index]) ;
-		},
+			}
+		}),
 
-		query: function query(object) {
+		query: function(object) {
 			// query() is gauranteed to return an array.
 			return object ?
 				queryByObject(this, object) :
 				[] ;
 		},
 
-		sub: function sub(query, settings) {
-			var collection = this;
-			var options = assign({ sort: sort }, settings);
-			var subset = Collection([], options);
-			var keys = Object.keys(query);
-
-			function sort(o1, o2) {
-				// Keep the subset ordered as the collection
-				var i1 = collection.indexOf(o1);
-				var i2 = collection.indexOf(o2);
-				return i1 > i2 ? 1 : -1 ;
-			}
-
-			function update(object) {
-				var i = subset.indexOf(object);
-
-				if (queryObject(object, query, keys)) {
-					if (i === -1) {
-						// Keep subset is sorted with default sort fn,
-						// splice object into position
-						if (options.sort === sort) {
-							var i1 = collection.indexOf(object) ;
-							var n = i1;
-							var o2, i2;
-
-							while (n--) {
-								o2 = collection[n];
-								i2 = subset.indexOf(o2);
-								if (i2 > -1 && i2 < i1) { break; }
-							}
-
-							subset
-							.off('add', subsetAdd)
-							.splice(i2 + 1, 0, object);
-						}
-						else {
-							subset
-							.off('add', subsetAdd)
-							.add(object);
-						}
-
-						subset.on('add', subsetAdd);
-					}
-				}
-				else {
-					if (i !== -1) {
-						subset
-						.off('remove', subsetRemove)
-						.remove(object)
-						.on('remove', subsetRemove);
-					}
-				}
-			}
-
-			function add(collection, object) {
-				var n = keys.length;
-				var key;
-
-				// Observe keys of this object that might affect
-				// it's right to remain in the subset
-				while (n--) {
-					key = keys[n];
-					observe(object, key, update);
-				}
-
-				update(object);
-			}
-
-			function remove(collection, object) {
-				var n = keys.length;
-				var key;
-
-				while (n--) {
-					key = keys[n];
-					unobserve(object, key, update);
-				}
-
-				if (subset.indexOf(object) !== -1) {
-					subset
-					.off('remove', subsetRemove)
-					.remove(object)
-					.on('remove', subsetRemove);
-				}
-			}
-
-			function destroy(collection) {
-				collection.forEach(function(object) {
-					remove(collection, object);
-				});
-
-				subset
-				.off('add', subsetAdd)
-				.off('remove', subsetRemove);
-			}
-
-			function subsetAdd(subset, object) {
-				collection.add(object);
-			}
-
-			function subsetRemove(subset, object) {
-				collection.remove(object);
-			}
-
-			// Observe the collection to update the subset
-			collection
-			.on('add', add)
-			.on('remove', remove)
-			.on('destroy', destroy);
-
-			// Initialise existing object in collection and echo subset
-			// add and remove operations to collection.
-			if (collection.length) {
-				collection.forEach(function(object) {
-					add(collection, object);
-				});
-			}
-			else {
-				subset
-				.on('add', subsetAdd)
-				.on('remove', subsetRemove);
-			}
-
-			subset.destroy = function() {
-				// Lots of unbinding
-				destroy(collection);
-
-				collection
-				.off('add', add)
-				.off('remove', remove)
-				.off('destroy', destroy);
-
-				subset.off();
-			};
-
-			// Enable us to force a sync from code that only has
-			// access to the subset
-			subset.synchronise = function() {
-				collection.forEach(function(object) {
-					update(object);
-				});
-			};
-
-			return subset;
-		},
-
-		contains: function contains(object) {
+		contains: function(object) {
 			return this.indexOf(object) !== -1;
 		},
 
-		// Get the value of a property of all the objects in
-		// the collection if they all have the same value.
-		// Otherwise return undefined.
+		get: function(property) {
+			// Get the value of a property of all the objects in
+			// the collection if they all have the same value.
+			// Otherwise return undefined.
 
-		get: function get(property) {
 			var n = this.length;
 
 			if (n === 0) { return; }
@@ -423,9 +345,9 @@
 			return this[n][property];
 		},
 
-		// Set a property on every object in the collection.
+		set: function(property, value) {
+			// Set a property on every object in the collection.
 
-		set: function set(property, value) {
 			if (arguments.length !== 2) {
 				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
 			}
@@ -435,15 +357,18 @@
 			return this;
 		},
 
-		toJSON: function toJSON() {
-			return this.map(returnArg);
+		toJSON: function() {
+			// Convert to array.
+			return Array.prototype.slice.apply(this);
 		},
 
-		toObject: function toObject(key) {
+		toObject: function(key) {
+			// Convert to object, using a keyed value on
+			// each object as map keys.
+			key = key || this.index;
+
 			var object = {};
 			var prop, type;
-
-			if (!key) { key = this.index; }
 
 			while (n--) {
 				prop = this[n][key];
@@ -453,88 +378,165 @@
 					object[prop] = this[n];
 				}
 				else {
-					console.warn('collection.toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
+					console.warn('Collection: toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
 				}
 			}
 
 			return object;
+		},
+
+		sub: function(query, settings) {
+			return new SubCollection(this, query, settings);
 		}
-	};
+	});
 
+	function SubCollection(collection, query, settings) {
+		// TODO: Clean up SubCollection
 
-	// Collection constructor
+		var options = assign({ sort: sort }, settings);
+		var keys = Object.keys(query);
+		var echo = true;
+		var subset = this;
 
-	var lengthProperty = {
-			value: 0,
-			enumerable: false,
-			writable: true,
-			configurable: true
-		};
-
-	function isCollection(object) {
-		return Collection.prototype.isPrototypeOf(object);
-	}
-
-	function Collection(array, options) {
-		if (this === undefined || this === window) {
-			// If this is undefined the constructor has been called without the
-			// new keyword, or without a context applied. Do that now.
-			return new Collection(array, options);
+		function sort(o1, o2) {
+			// Keep the subset ordered as the collection
+			var i1 = collection.indexOf(o1);
+			var i2 = collection.indexOf(o2);
+			return i1 > i2 ? 1 : -1 ;
 		}
 
-		if (!(array instanceof Array)) {
-			options = array;
-			array = [];
-		}
+		function update(object) {
+			var i = subset.indexOf(object);
 
-		var collection = this;
-		var settings = assign({}, defaults, options);
+			echo = false;
 
-		function byIndex(a, b) {
-			// Sort collection by index.
-			return a[settings.index] > b[settings.index] ? 1 : -1 ;
-		}
+			if (queryObject(object, query, keys)) {
+				if (i === -1) {
+					// Keep subset is sorted with default sort fn,
+					// splice object into position
+					if (options.sort === sort) {
+						var i1 = collection.indexOf(object) ;
+						var n = i1;
+						var o2, i2;
 
-		function sort(fn) {
-			// Collections get sorted by index by default, or by a function
-			// passed into options, or passed into the .sort(fn) call.
-			return Array.prototype.sort.call(collection, fn || settings.sort || byIndex);
-		}
+						while (n--) {
+							o2 = collection[n];
+							i2 = subset.indexOf(o2);
+							if (i2 > -1 && i2 < i1) { break; }
+						}
 
-		Object.defineProperties(collection, {
-			length: lengthProperty,
-			// Define the name of the property that will be used to index this
-			// collection, and the sort function.
-			index: { value: settings.index },
-			sort:  { value: sort }
-		});
+						subset.splice(i2 + 1, 0, object);
+					}
+					else {
+						subset.add(object);
+					}
 
-		// Populate the collection
-		assign(collection, array);
-
-		var length = collection.length = array.length;
-
-		// Sort the collection
-		//collection.sort();
-
-		function observeLength(collection) {
-			var object;
-
-			while (length-- > collection.length) {
-				// According to V8 optimisations, setting undefined is quicker
-				// than delete.
-				collection[length] = undefined;
+					subset.on('add', subsetAdd);
+				}
+			}
+			else {
+				if (i !== -1) {
+					subset.remove(object);
+				}
 			}
 
-			length = collection.length;
+			echo = true;
 		}
 
-		// Watch the length and delete indexes when the length becomes shorter
-		// like a nice array does.
-		observe(collection, 'length', observeLength);
-	};
+		function add(collection, object) {
+			var n = keys.length;
+			var key;
 
-	assign(Collection.prototype, mixin.events, mixin.array, mixin.collection);
+			// Observe keys of this object that might affect
+			// it's right to remain in the subset
+			while (n--) {
+				key = keys[n];
+				observe(object, key, update);
+			}
+
+			update(object);
+		}
+
+		function remove(collection, object) {
+			var n = keys.length;
+			var key;
+
+			while (n--) {
+				key = keys[n];
+				unobserve(object, key, update);
+			}
+
+			var i = subset.indexOf(object);
+
+			if (i > -1) {
+				echo = false;
+				subset.splice(i, 1);
+				echo = true;
+			}
+		}
+
+		function destroy(collection) {
+			collection.forEach(function(object) {
+				remove(collection, object);
+			});
+
+			subset
+			.off('add', subsetAdd)
+			.off('remove', subsetRemove);
+		}
+
+		function subsetAdd(subset, object) {
+			if (!echo) { return; }
+			collection.add(object);
+		}
+
+		function subsetRemove(subset, object) {
+			if (!echo) { return; }
+			collection.remove(object);
+		}
+
+		// Initialise as collection.
+		Collection.call(this, options);
+
+		// Observe the collection to update the subset
+		collection
+		.on('add', add)
+		.on('remove', remove)
+		.on('destroy', destroy);
+
+		// Initialise existing object in collection and echo
+		// subset add and remove operations to collection.
+		if (collection.length) {
+			collection.forEach(function(object) {
+				add(collection, object);
+			});
+		}
+		else {
+			subset
+			.on('add', subsetAdd)
+			.on('remove', subsetRemove);
+		}
+
+		subset.destroy = function() {
+			// Lots of unbinding
+			destroy(collection);
+
+			collection
+			.off('add', add)
+			.off('remove', remove)
+			.off('destroy', destroy);
+
+			subset.off();
+		};
+
+		this.synchronise = function() {
+			// Force a sync from code that only has access
+			// to the subset.
+			this.forEach(update);
+		};
+	}
+
+	assign(SubCollection.prototype, Collection.prototype);
 
 	Collection.add = add;
 	Collection.remove = remove;

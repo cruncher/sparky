@@ -297,7 +297,7 @@ module('Event propogation insert event', function(fixture) {
 	asyncTest("Tests insert event", function(assert) {
 		expect(9);
 
-		Sparky.data.collection = Sparky.Collection([{ property: 1 }, { property: 2 }]);
+		Sparky.data.collection = Collection([{ property: 1 }, { property: 2 }]);
 
 		Sparky.ctrl['test-ctrl-1'] = function(node, model) {};
 		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
