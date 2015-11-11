@@ -61,7 +61,7 @@
 		},
 
 		slave: function(node, scope, ctrl) {
-			return Sparky(node, scope, ctrl, undefined, this.data);
+			return Sparky(node, scope, ctrl, undefined, this);
 		}
 	}, window.mixin.events, window.mixin.array);
 
@@ -126,7 +126,7 @@
 		return sparky2;
 	}
 
-	function setupCollection(node, model, ctrl, data) {
+	function setupCollection(node, model, ctrl, parent) {
 		var modelName = node.getAttribute('data-scope');
 		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
 		var nodes = [];
@@ -174,7 +174,7 @@
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, data);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, parent);
 					sparky.on(sparkies[n]);
 				}
 
@@ -222,13 +222,13 @@
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky.data));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky));
 			return;
 		}
 
 		// data-scope="."
 		if (path === '.') {
-			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky.data));
+			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky));
 			return;
 		}
 
@@ -240,7 +240,7 @@
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky.data));
+			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky));
 			return;
 		}
 
@@ -265,7 +265,7 @@
 					node = master.cloneNode(true);
 				}
 
-				childSparky = Sparky(node, data, undefined, undefined, sparky.data);
+				childSparky = Sparky(node, data, undefined, undefined, sparky);
 				Sparky.dom.after(comment, node);
 				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
@@ -297,7 +297,7 @@
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky.data));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -408,21 +408,28 @@
 
 	function offInsert() { this.off('insert'); }
 
-	function makeDistributeCtrl(ctrls) {
+	function makeDistributeCtrl(list) {
 		return function distributeCtrl(node, model) {
 			// Distributor controller
-			var l = ctrls.length;
+			var l = list.length;
 			var n = -1;
 			var scope = model;
 			var result;
 
-			this.ctrls = ctrls;
+			// TODO: This is exposes solely so that ctrl
+			// 'observe-selected' can function in sound.io.
+			// Really naff. Find a better way.
+			this.ctrls = list;
 
-			// Call the list of ctrls. Scope is the return value of
-			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				result = ctrls[n].call(this, node, scope);
+				// Call the list of ctrls, in order.
+				result = list[n].call(this, node, scope);
+
+				// Returning false interrupts the ctrl calls.
 				if (result === false) { return; }
+
+				// Returning an object sets that object to
+				// be used as scope.
 				if (result !== undefined) { scope = result; }
 			}
 
@@ -430,29 +437,29 @@
 		};
 	}
 
-	function makeDistributeCtrlFromPaths(paths) {
-		var ctrls = [];
+	function makeDistributeCtrlFromPaths(paths, ctrls) {
+		var list = [];
 		var l = paths.length;
 		var n = -1;
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = findByPath(Sparky.ctrl, paths[n]);
+			ctrl = findByPath(ctrls, paths[n]);
 
 			if (!ctrl) {
 				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
 			}
 
-			ctrls.push(ctrl);
+			list.push(ctrl);
 		}
 
-		return makeDistributeCtrl(ctrls, paths);
+		return makeDistributeCtrl(list);
 	}
 
-	function makeCtrl(string) {
+	function makeCtrl(string, ctrls) {
 		if (!isDefined(string)) { return; }
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeCtrlFromPaths(paths);
+		return makeDistributeCtrlFromPaths(paths, ctrls);
 	}
 
 	function Sparky(node, model, ctrl) {
@@ -471,7 +478,7 @@
 		// collections. So the DOM collection bit of it would
 		// need to be a property of sparky.
 		var loop = arguments[3] !== false;
-		var data = arguments[4];
+		var parent = arguments[4];
 		var modelPath, ctrlPath, tag, id;
 
 		// If node is a string, assume it is the id of a template,
@@ -512,25 +519,26 @@
 		// The ctrl list can be...
 		ctrl =
 			// a space-separated string of ctrl paths
-			typeof ctrl === 'string' ? makeCtrl(ctrl) :
+			typeof ctrl === 'string' ? makeCtrl(ctrl, parent.ctrl) :
 			// a function
 			typeof ctrl === 'function' ? makeDistributeCtrl([ctrl]) :
 			// an array of functions
 			typeof ctrl === 'object' ? makeDistributeCtrl(ctrl) :
 			// defined in the data-ctrl attribute
-			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl')) ;
+			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl'), parent ? parent.ctrl : Sparky.ctrl) ;
 
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
 		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
-			return setupCollection(node, model, ctrl, data);
+			return setupCollection(node, model, ctrl, parent);
 		}
 
 		var sparky = Object.create(prototype);
 
-		Object.defineProperty(sparky, 'data', {
-			value: Object.create(data || null)
+		Object.defineProperties(sparky, {
+			data: { value: Object.create(parent ? parent.data : Sparky.data) },
+			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
 		});
 
 		// Check if there should be a model, but it isn't available yet. If so,
@@ -550,11 +558,11 @@
 
 	// Expose
 
-	Sparky.debug        = false;
-	Sparky.config       = {};
-	Sparky.settings     = {};
-	Sparky.data         = {};
-	Sparky.ctrl         = {};
+	Sparky.debug    = false;
+	Sparky.config   = {};
+	Sparky.settings = {};
+	Sparky.data     = {};
+	Sparky.ctrl     = {};
 
 	Sparky.template = function() {
 		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
@@ -568,7 +576,7 @@
 	};
 
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
-	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
+	Sparky.xlink        = "http://www.w3.org/1999/xlink";
 	Sparky.prototype    = prototype;
  
 	window.Sparky = Sparky;
