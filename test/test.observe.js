@@ -135,4 +135,63 @@ module('Sparky.observe', function(fixture) {
 		//	QUnit.start();
 		//}, 0);
 	});
+
+	test("observe() on inheritance chain", function() {
+		expect(5);
+
+		var a = 1;
+		var s = {};
+		Object.defineProperties(s, { d: { get: function(){return a;}, set: function(n){ a = n; }, configurable: true } });
+		s.name = "super";
+
+		var b = 2;
+		var p = Object.create(s);
+		Object.defineProperties(p, { d: { get: function(){return b;}, set: function(n){ b = n; }, configurable: true } });
+		p.name = "prototype";
+
+		var o = Object.create(p);
+		o.name = "object";
+
+		observe(s, 'd', function(object){ ok(object.d === a); });
+		observe(p, 'd', function(object){ ok(object.d === b); });
+		observe(o, 'd', function(object){ ok(object.d === b); });
+
+		// This should launch 5 calls in total -
+		// One on s
+		s.d = 10;
+		// One on each of p and o
+		p.d = 11;
+		// One on each of p and o
+		o.d = 12;
+	});
+
+
+// This will fail because we're not clever enough for that yet.
+//
+//	test("observe() on inheritance chain that changes", function() {
+//		expect(1);
+//
+//		var a = 1;
+//		var s = {};
+//		Object.defineProperties(s, { d: { get: function(){return a;}, set: function(n){ a = n; }, configurable: true } });
+//		s.name = "super";
+//
+//		var b = 2;
+//		var p = Object.create(s);
+//		p.name = "prototype";
+//
+//		var o = Object.create(p);
+//		o.name = "object";
+//
+//		observe(s, 'd', function(object){ ok(object.d === a); });
+//		observe(p, 'd', function(object){ ok(object.d === b); });
+//
+//		Object.defineProperties(p, { d: { get: function(){return b;}, set: function(n){ b = n; }, configurable: true } });
+//
+//		observe(o, 'd', function(object){ ok(object.d === b); });
+//
+//		s.d = 10;
+//		p.d = 11;
+//		o.d = 12;
+//	});
 });

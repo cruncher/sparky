@@ -447,7 +447,7 @@
 			ctrl = findByPath(ctrls, paths[n]);
 
 			if (!ctrl) {
-				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
 			}
 
 			list.push(ctrl);
@@ -511,7 +511,7 @@
 				model = findByPath(Sparky.data, modelPath);
 
 				if (Sparky.debug && !model) {
-					console.log('Sparky: data-scope="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
+					console.log('Sparky: data-scope="' + modelPath + '" model not found in sparky.data. Path will be observed.' );
 				}
 			}
 		}

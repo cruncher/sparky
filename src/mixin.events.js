@@ -139,7 +139,7 @@
 		// with that function. If `callback` is null, removes all callbacks for the
 		// event. If `events` is null, removes all bound callbacks for all events.
 		off: function(types, fn) {
-			var type, calls, list, i, listeners;
+			var type, calls, list, listeners, n;
 
 			// If no arguments passed in, unbind everything.
 			if (arguments.length === 0) {
@@ -178,9 +178,7 @@
 			while (type = types.shift()) {
 				listeners = this.listeners[type];
 
-				if (!listeners) {
-					continue;
-				}
+				if (!listeners) { continue; }
 
 				if (!fn) {
 					this.listeners[type].length = 0;
@@ -188,11 +186,15 @@
 					continue;
 				}
 
-				listeners.forEach(function(v, i) {
-					if (v[0] === fn) {
-						listeners.splice(i, i+1);
+				n = listeners.length;
+
+				// Go through listeners in reverse order to avoid
+				// mucking up the splice indexes.
+				while (n--) {
+					if (listeners[n][0] === fn) {
+						listeners.splice(n, 1);
 					}
-				});
+				}
 			}
 
 			return this;

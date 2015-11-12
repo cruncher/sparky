@@ -22,7 +22,6 @@ module.exports = function(config) {
       'src/observe.js',
       'src/mixin.array.js',
       'src/mixin.events.js',
-      'src/mixin.storage.js',
       'src/collection.js',
       'src/sparky.js',
       'src/sparky.dom.js',

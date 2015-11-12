@@ -7,12 +7,10 @@
 // fire a callback function whenever the property changes.
 
 (function(window){
-	var debug = false;
+	var debug = true;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 	var toString = Function.prototype.call.bind(Object.prototype.toString);
-
-	var objects = new WeakMap();
 
 	function isFunction(object) {
 		toString(object) === '[object Function]';
@@ -43,9 +41,10 @@
 			params = observers[n];
 			scope = params[1][0];
 
-			if (object === scope || object.isPrototypeOf(scope)) {
+// Why did I do this? Why? Pre-emptive 'watch out, mates'?
+//			if (scope === object || scope.isPrototypeOf(object)) {
 				call(params);
-			}
+//			}
 		}
 	}
 
