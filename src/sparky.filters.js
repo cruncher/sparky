@@ -174,9 +174,10 @@
 		//	return (this === '' || this === undefined || this === null) ? value : this ;
 		//},
 
-		//dictsort
-		//dictsortreversed
-		//divisibleby
+		divide: function(value, n) {
+			if (typeof value !== 'number') { return; }
+			return value / n;
+		},
 
 		escape: (function() {
 			var pre = document.createElement('pre');
@@ -194,8 +195,6 @@
 			return (value === val ? string1 : string2) || '';
 		},
 
-		//filesizeformat
-
 		first: function(value) {
 			return value[0];
 		},
@@ -205,17 +204,18 @@
 				!isDefined(value) ? '' :
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		},
+		
+		floor: function(value) {
+			return Math.floor(value);
+		},
 
 		get: function(value, name) {
 			return value[name];
 		},
 
-		'greater-than': function(value1, value2, str1, str2) {
+		"greater-than": function(value1, value2, str1, str2) {
 			return value1 > value2 ? str1 : str2 ;
 		},
-
-		//get_digit
-		//iriencode
 
 		invert: function(value) {
 			return 1 / value;
@@ -237,7 +237,7 @@
 			return value.length;
 		},
 
-		'less-than': function(value1, value2, str1, str2) {
+		"less-than": function(value1, value2, str1, str2) {
 			return value1 < value2 ? str1 : str2 ;
 		},
 
@@ -252,8 +252,6 @@
 		//	};
 		//})(),
 
-		//linenumbers
-
 		lower: function(value) {
 			String.prototype.toLowerCase.apply(value);
 		},
@@ -263,7 +261,10 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		//make_list 
+		mod: function(value, n) {
+			if (typeof value !== 'number') { return; }
+			return value % n;
+		},
 
 		multiply: function(value, n) {
 			return value * n;
@@ -276,8 +277,6 @@
 		percent: function(value) {
 			return value * 100;
 		},
-
-		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
 			if (typeof value !== 'number') { return; }
@@ -433,22 +432,6 @@
 		//truncatewords
 		//truncatewords_html
 		//unique
-
-		unordered_list: function(value) {
-			// TODO: Django supports nested lists.
-			var list = value,
-			    length = list.length,
-			    i = -1,
-			    html = '';
-
-			while (++i < length) {
-				html += '<li>';
-				html += list[i];
-				html += '</li>';
-			}
-
-			return html;
-		},
 
 		uppercase: function(value) {
 			if (typeof value !== 'string') { return; }

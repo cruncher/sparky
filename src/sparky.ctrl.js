@@ -307,3 +307,59 @@
 		});
 	};
 })();
+
+
+(function() {
+	"use strict";
+
+	var assign = Object.assign;
+
+	function stringToNumber(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			n ;
+	}
+
+	function numberRound0ToString(value) {
+		return typeof value === 'number' ? value.toFixed(0) + '' :
+			undefined ;
+	}
+
+	function numberRound1ToString(value) {
+		return typeof value === 'number' ? value.toFixed(1) + '' :
+			undefined ;
+	}
+
+	function numberRound2ToString(value) {
+		return typeof value === 'number' ? value.toFixed(2) + '' :
+			undefined ;
+	}
+
+	function numberRound3ToString(value) {
+		return typeof value === 'number' ? value.toFixed(3) + '' :
+			undefined ;
+	}
+
+	assign(Sparky.ctrl, {
+		"value-number-decimals-0": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound0ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-1": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound1ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-2": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound2ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-3": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound3ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		}
+	}); 
+})();
