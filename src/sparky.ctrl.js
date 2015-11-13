@@ -288,4 +288,22 @@
 			master.removeEventListener('scroll', update);
 		});
 	};
+
+	Sparky.ctrl["x-scroll-center"] = function(node) {
+		// Center the scroll position horizontally
+		this.on('insert', function() {
+			var w = node.clientWidth;
+			var s = node.scrollWidth;
+			node.scrollLeft = (s - w) / 2;
+		});
+	};
+
+	Sparky.ctrl["y-scroll-center"] = function(node) {
+		// Center the scroll position vertically
+		this.on('insert', function() {
+			var h = node.clientHeight;
+			var s = node.scrollHeight;
+			node.scrollTop = (s - h) / 2;
+		});
+	};
 })();
