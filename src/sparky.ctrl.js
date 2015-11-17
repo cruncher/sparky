@@ -363,3 +363,20 @@
 		}
 	}); 
 })();
+
+
+(function(window) {
+	"use strict";
+
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+	var dom = Sparky.dom;
+
+	assign(Sparky.ctrl, {
+		"on-ready-unhide": function onReadyUnhide(node, model) {
+			this.on('ready', function() {
+				dom.classes(this[0]).remove('hidden');
+			});
+		}
+	}); 
+})(this);

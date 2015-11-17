@@ -7,7 +7,7 @@
 // fire a callback function whenever the property changes.
 
 (function(window){
-	var debug = true;
+	var debug = false;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 	var toString = Function.prototype.call.bind(Object.prototype.toString);
@@ -144,6 +144,7 @@
 			}
 			else {
 				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+				debug && console.trace();
 			}
 
 			return;
