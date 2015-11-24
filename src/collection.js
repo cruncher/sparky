@@ -220,8 +220,11 @@
 			return new Collection(array, settings);
 		}
 
-		// Handle the call signature Collection(settings)
-		if (!(array instanceof Array)) {
+		// Handle the call signatures Collection() and Collection(settings).
+		if (array === undefined) {
+			array = [];
+		}
+		else if (!isDefined(array.length)) {
 			settings = array;
 			array = [];
 		}
