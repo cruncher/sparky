@@ -169,7 +169,7 @@
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
-		// values to be filtered. 
+		// values to be filtered.
 		//'default': function(value) {
 		//	return (this === '' || this === undefined || this === null) ? value : this ;
 		//},
@@ -204,7 +204,7 @@
 				!isDefined(value) ? '' :
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		},
-		
+
 		floor: function(value) {
 			return Math.floor(value);
 		},
@@ -219,6 +219,10 @@
 
 		invert: function(value) {
 			return 1 / value;
+		},
+
+		is: function(value, val, string1, string2) {
+			return (value === val ? string1 : string2) || '';
 		},
 
 		join: function(value, string) {
