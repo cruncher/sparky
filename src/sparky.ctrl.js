@@ -85,6 +85,39 @@
 		this.on('destroy', unbind);
 	};
 
+	Sparky.ctrl['value-int-log'] = function(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
+		var ratio = max / min;
+
+		if (min <= 0) {
+			console.warn('Sparky: ctrl "value-int-log" cannot accept a min attribute of 0 or lower.', node);
+			return;
+		}
+
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			var n = denormalise(Math.log(Math.round(value) / min) / Math.log(ratio), min, max);
+			return n + '';
+		}
+
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			return Math.round(min * Math.pow(ratio, normalise(n, min, max)));
+		}
+
+		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+
+		this.on('destroy', unbind);
+	};
+
+
+
+
+
+
+
 	Sparky.ctrl['value-pow-2'] = function() {
 		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
 	};
@@ -165,7 +198,7 @@
 
 (function() {
 	"use strict";
-	
+
 	Sparky.ctrl['html'] = function(node, scope) {
 		var property = node.getAttribute('data-property');
 
@@ -188,7 +221,7 @@
 
 (function() {
 	"use strict";
-	
+
 	Sparky.ctrl['click-to-call'] = function(node, scope) {
 		var name = node.getAttribute('data-fn');
 
@@ -361,7 +394,7 @@
 			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound3ToString, stringToNumber);
 			if (unbind) { this.on('destroy', unbind); }
 		}
-	}); 
+	});
 })();
 
 
@@ -378,5 +411,5 @@
 				dom.classes(this[0]).remove('hidden');
 			});
 		}
-	}); 
+	});
 })(this);

@@ -7,16 +7,16 @@
 })(this);
 
 // Sparky
-// 
+//
 // Reads data attributes in the DOM to bind dynamic data to
 // controllers.
-// 
+//
 // Views
-// 
+//
 // <div data-ctrl="name" data-scope="path.to.data">
 //     <h1>Hello world</h1>
 // </div>
-// 
+//
 // Where 'name' is the key of a view function in
 // Sparky.ctrl and path.to.data points to an object
 // in Sparky.data.
@@ -27,7 +27,7 @@
 
 	var empty = [];
 
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
+	//var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
 	// Check whether a path begins with '.' or '['
 	var rrelativepath = /^\.|^\[/;
@@ -102,7 +102,7 @@
 
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path)) { return; }
-		
+
 		return path === '.' ?
 			obj :
 			Sparky.get(obj, path) ;
@@ -245,10 +245,10 @@
 		}
 
 		// data-scope="{{path.to.data}}"
-		rtag.lastIndex = 0;
-		if (rtag.test(path)) {
-			rtag.lastIndex = 0;
-			var path1 = rtag.exec(path)[1];
+		Sparky.rtags.lastIndex = 0;
+		if (Sparky.rtags.test(path)) {
+			Sparky.rtags.lastIndex = 0;
+			var path1 = Sparky.rtags.exec(path)[2];
 
 			data = findByPath(scope, path1);
 
@@ -483,7 +483,7 @@
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
-		// node in the DOM. 
+		// node in the DOM.
 		if (typeof node === 'string') {
 			id = node;
 			node = Sparky.template(id);
@@ -506,7 +506,7 @@
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-scope');
-			
+
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
@@ -578,6 +578,6 @@
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = "http://www.w3.org/1999/xlink";
 	Sparky.prototype    = prototype;
- 
+
 	window.Sparky = Sparky;
 })(window);

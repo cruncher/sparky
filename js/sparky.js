@@ -73,7 +73,7 @@ Object.assign || (function(Object) {
 if (!Number.isNaN) {
 	(function(globalIsNaN) {
 		"use strict";
-	
+
 		Object.defineProperty(Number, 'isNaN', {
 			value: function isNaN(value) {
 				return typeof value === 'number' && globalIsNaN(value);
@@ -99,13 +99,13 @@ if (!Math.log10) {
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
-		
+
 		var e = document.createEvent('CustomEvent');
 		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-		
+
 		return e;
 	};
-	
+
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
 
@@ -264,7 +264,7 @@ if (!Math.log10) {
 
 	mixin.events = {
 		// .on(type, fn)
-		// 
+		//
 		// Callback fn is called with this set to the current object
 		// and the arguments (target, triggerArgs..., onArgs...).
 		on: function(types, fn) {
@@ -321,7 +321,7 @@ if (!Math.log10) {
 
 				return this;
 			}
-			
+
 			// If types is an object with a trigger method, stop propagating
 			// events to it.
 			if (arguments.length === 1 && types.trigger) {
@@ -419,7 +419,7 @@ if (!Math.log10) {
 
 // observe(object, [prop], fn)
 // unobserve(object, [prop], [fn])
-// 
+//
 // Observes object properties for changes by redefining
 // properties of the observable object with setters that
 // fire a callback function whenever the property changes.
@@ -557,7 +557,7 @@ if (!Math.log10) {
 			// Although we can get away with observing
 			// get-only properties, as they don't replace
 			// the setter and they require an explicit call
-			// to notify(). 
+			// to notify().
 			if (descriptor.get && !descriptor.set) {
 				descriptor.get.observers = observers;
 			}
@@ -607,7 +607,7 @@ if (!Math.log10) {
 			fn = prop;
 			args = slice(arguments, 0);
 			args.splice(1, 0, null);
-			
+
 			for (property in object) {
 				args[1] = property;
 				observeProperty.apply(null, args);
@@ -618,7 +618,7 @@ if (!Math.log10) {
 
 		observeProperty.apply(null, arguments);
 	}
-	
+
 	function unobserve(object, property, fn) {
 		var index;
 
@@ -1214,16 +1214,16 @@ if (!Math.log10) {
 })(this);
 
 // Sparky
-// 
+//
 // Reads data attributes in the DOM to bind dynamic data to
 // controllers.
-// 
+//
 // Views
-// 
+//
 // <div data-ctrl="name" data-scope="path.to.data">
 //     <h1>Hello world</h1>
 // </div>
-// 
+//
 // Where 'name' is the key of a view function in
 // Sparky.ctrl and path.to.data points to an object
 // in Sparky.data.
@@ -1309,7 +1309,7 @@ if (!Math.log10) {
 
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path)) { return; }
-		
+
 		return path === '.' ?
 			obj :
 			Sparky.get(obj, path) ;
@@ -1683,7 +1683,7 @@ if (!Math.log10) {
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
-		// node in the DOM. 
+		// node in the DOM.
 		if (typeof node === 'string') {
 			id = node;
 			node = Sparky.template(id);
@@ -1706,7 +1706,7 @@ if (!Math.log10) {
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-scope');
-			
+
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
@@ -1777,7 +1777,7 @@ if (!Math.log10) {
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
 	Sparky.prototype    = prototype;
- 
+
 	window.Sparky = Sparky;
 })(window);
 
@@ -1916,11 +1916,11 @@ if (!Math.log10) {
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-	
+
 	function insertBefore(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target);
 	}
-	
+
 	function insertAfter(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
@@ -1944,7 +1944,7 @@ if (!Math.log10) {
 		empty:     empty,
 		remove:    remove,
 		closest:   closest,
-		matches:   matches,  
+		matches:   matches,
 		classes:   getClassList,
 		style:     getStyle,
 		getClass:  getClass,
@@ -1976,7 +1976,7 @@ if (!Math.log10) {
 			return fragmentFromContent(node);
 		}
 		else {
-			// In browsers where templates are not inert, ids used inside them 
+			// In browsers where templates are not inert, ids used inside them
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
@@ -2446,7 +2446,7 @@ if (!Math.log10) {
 				i = dead.indexOf($2);
 				if (i !== -1) { dead.splice(i, 1); }
 			}
-			
+
 			// It's a dead tag, check if it's in dead and if not stick
 			// it in there.
 			else if (dead.indexOf($2) === -1) {
@@ -2793,11 +2793,6 @@ if (!Math.log10) {
 		if (unbind) { this.on('destroy', unbind); }
 	}
 
-	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
 	function valueBooleanCtrl(node, model) {
 		var type = node.type;
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
@@ -2833,7 +2828,12 @@ if (!Math.log10) {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-number':         valueNumberCtrl,
-		'value-number-integer': valueIntegerCtrl,
+
+		"value-integer": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl
@@ -2876,7 +2876,7 @@ if (!Math.log10) {
 
 	function objTo(root, array, obj) {
 		var key = array[0];
-		
+
 		return array.length > 1 ?
 			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
 			(root[key] = obj) ;
@@ -3004,7 +3004,7 @@ if (!Math.log10) {
 
 	function getPath(obj, path) {
 		var array = splitPath(path);
-		
+
 		return array.length === 1 ?
 			obj[path] :
 			objFrom(obj, array) ;
@@ -3042,7 +3042,7 @@ if (!Math.log10) {
 				fn();
 			}
 
-			if (!active) { return; } 
+			if (!active) { return; }
 
 			window.requestAnimationFrame(frame);
 		};
@@ -3062,7 +3062,7 @@ if (!Math.log10) {
 		unpollers.push([object, property, fn, Poll(object, property, fn)]);
 		return object;
 	}
-	
+
 	function unpoll(object, property, fn) {
 		var n = unpollers.length;
 		var unpoller;
@@ -3183,7 +3183,7 @@ if (!Math.log10) {
 					return unpoll(object, property, fn);
 				}
 			}
-	
+
 			return unobserve(object, property, fn);
 		};
 	})(Sparky)
@@ -3410,7 +3410,7 @@ if (!Math.log10) {
 
 (function() {
 	"use strict";
-	
+
 	Sparky.ctrl['html'] = function(node, scope) {
 		var property = node.getAttribute('data-property');
 
@@ -3433,7 +3433,7 @@ if (!Math.log10) {
 
 (function() {
 	"use strict";
-	
+
 	Sparky.ctrl['click-to-call'] = function(node, scope) {
 		var name = node.getAttribute('data-fn');
 
@@ -3706,7 +3706,7 @@ if (!Math.log10) {
 		},
 
 		// .default() can't work, because Sparky does not send undefined or null
-		// values to be filtered. 
+		// values to be filtered.
 		//'default': function(value) {
 		//	return (this === '' || this === undefined || this === null) ? value : this ;
 		//},
@@ -3800,7 +3800,7 @@ if (!Math.log10) {
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		//make_list 
+		//make_list
 
 		multiply: function(value, n) {
 			return value * n;
