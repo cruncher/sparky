@@ -755,8 +755,19 @@
 	assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
-		'value-number':         valueNumberCtrl,
-		'value-number-integer': valueIntegerCtrl,
+
+		'value-number':         function(argument) {
+			console.warn('Sparky: value-number controller is renamed to value-float (or value-int).');
+			return valueNumberCtrl.apply(this, arguments);
+		},
+
+		'value-number-invert':         function(argument) {
+			console.warn('Sparky: value-number-invert controller is renamed to value-float-invert (or value-int-invert).');
+			return valueNumberInvertCtrl.apply(this, arguments);
+		},
+
+		'value-float':          valueNumberCtrl,
+		'value-int':            valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl
