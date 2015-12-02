@@ -29,8 +29,10 @@
 
 	//var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
-	// Check whether a path begins with '.' or '['
-	var rrelativepath = /^\.|^\[/;
+	// Check whether a path begins with '.' or '[', but not '..' or '[[', now
+	// that we are able to redefine tag delimiters. Todo: when you sort out tag
+	// delimiters clean this crap up.
+	var rrelativepath = /^\.[^\.]|^\[[^\[]/;
 
 	var prototype = Object.assign({
 		create: function() {},

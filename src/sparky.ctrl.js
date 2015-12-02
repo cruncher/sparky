@@ -171,11 +171,11 @@
 (function() {
 	"use strict";
 
-	var n = 0;
-
 	Sparky.ctrl['log'] = function(node, scope) {
+		console.group('Sparky.ctrl.log:');
 		console.log('node: ', node);
 		console.log('scope:', scope);
+		console.groupEnd();
 	};
 
 	Sparky.ctrl['log-events'] = function(node, model) {
@@ -185,13 +185,13 @@
 
 		this
 		.on('ready', function() {
-			console.log('READY', ready++, node);
+			console.log('Sparky.ctrl.log-events: READY  ', ready++, node);
 		})
 		.on('insert', function() {
-			console.log('INSERT', insert++, node);
+			console.log('Sparky.ctrl.log-events: INSERT ', insert++, node);
 		})
 		.on('destroy', function() {
-			console.log('DESTROY', destroy++, node);
+			console.log('Sparky.ctrl.log-events: DESTROY', destroy++, node);
 		});
 	};
 })();
