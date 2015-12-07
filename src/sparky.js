@@ -234,7 +234,7 @@
 			return;
 		}
 
-		// data-scope="path.to.data"
+		// data-scope=".path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -299,7 +299,7 @@
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky));
+		slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -539,7 +539,7 @@
 		var sparky = Object.create(prototype);
 
 		Object.defineProperties(sparky, {
-			data: { value: Object.create(parent ? parent.data : Sparky.data) },
+			data: { value: Object.create(parent ? parent.data : Sparky.data), writable: true },
 			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
 		});
 
@@ -561,7 +561,6 @@
 	// Expose
 
 	Sparky.debug    = false;
-	Sparky.config   = {};
 	Sparky.settings = {};
 	Sparky.data     = {};
 	Sparky.ctrl     = {};

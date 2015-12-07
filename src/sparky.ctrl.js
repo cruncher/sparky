@@ -173,8 +173,11 @@
 
 	Sparky.ctrl['log'] = function(node, scope) {
 		console.group('Sparky.ctrl.log:');
-		console.log('node: ', node);
-		console.log('scope:', scope);
+		console.log('node:  ', node);
+		console.log('scope: ', scope);
+		console.log('data:  ', this.data);
+		console.log('ctrl:  ', this.ctrl);
+		console.log('sparky:', this);
 		console.groupEnd();
 	};
 
