@@ -304,7 +304,7 @@
 
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
-		var templateFragment = templateId && fetchTemplate(templateId);
+		var templateFragment = templateId && Sparky.template(templateId);
 		var scope, timer;
 
 		function insertTemplate(sparky, node, templateFragment) {
