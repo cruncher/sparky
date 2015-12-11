@@ -310,8 +310,8 @@
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				dom.empty(node);
-				dom.append(node, templateFragment);
+				Sparky.dom.empty(node);
+				Sparky.dom.append(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
