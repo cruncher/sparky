@@ -306,7 +306,7 @@ if (!Math.log10) {
 		// with that function. If `callback` is null, removes all callbacks for the
 		// event. If `events` is null, removes all bound callbacks for all events.
 		off: function(types, fn) {
-			var type, calls, list, i, listeners;
+			var type, calls, list, listeners, n;
 
 			// If no arguments passed in, unbind everything.
 			if (arguments.length === 0) {
@@ -345,9 +345,7 @@ if (!Math.log10) {
 			while (type = types.shift()) {
 				listeners = this.listeners[type];
 
-				if (!listeners) {
-					continue;
-				}
+				if (!listeners) { continue; }
 
 				if (!fn) {
 					this.listeners[type].length = 0;
@@ -355,11 +353,15 @@ if (!Math.log10) {
 					continue;
 				}
 
-				listeners.forEach(function(v, i) {
-					if (v[0] === fn) {
-						listeners.splice(i, i+1);
+				n = listeners.length;
+
+				// Go through listeners in reverse order to avoid
+				// mucking up the splice indexes.
+				while (n--) {
+					if (listeners[n][0] === fn) {
+						listeners.splice(n, 1);
 					}
-				});
+				}
 			}
 
 			return this;
@@ -430,8 +432,6 @@ if (!Math.log10) {
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 	var toString = Function.prototype.call.bind(Object.prototype.toString);
 
-	var objects = new WeakMap();
-
 	function isFunction(object) {
 		toString(object) === '[object Function]';
 	}
@@ -461,9 +461,10 @@ if (!Math.log10) {
 			params = observers[n];
 			scope = params[1][0];
 
-			if (object === scope || object.isPrototypeOf(scope)) {
+// Why did I do this? Why? Pre-emptive 'watch out, mates'?
+//			if (scope === object || scope.isPrototypeOf(object)) {
 				call(params);
-			}
+//			}
 		}
 	}
 
@@ -563,6 +564,7 @@ if (!Math.log10) {
 			}
 			else {
 				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+				debug && console.trace();
 			}
 
 			return;
@@ -1268,7 +1270,7 @@ if (!Math.log10) {
 		},
 
 		slave: function(node, scope, ctrl) {
-			return Sparky(node, scope, ctrl, undefined, this.data);
+			return Sparky(node, scope, ctrl, undefined, this);
 		}
 	}, window.mixin.events, window.mixin.array);
 
@@ -1333,7 +1335,7 @@ if (!Math.log10) {
 		return sparky2;
 	}
 
-	function setupCollection(node, model, ctrl, data) {
+	function setupCollection(node, model, ctrl, parent) {
 		var modelName = node.getAttribute('data-scope');
 		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
 		var nodes = [];
@@ -1381,7 +1383,7 @@ if (!Math.log10) {
 				}
 				else {
 					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, data);
+					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, parent);
 					sparky.on(sparkies[n]);
 				}
 
@@ -1429,13 +1431,13 @@ if (!Math.log10) {
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky.data));
+			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky));
 			return;
 		}
 
 		// data-scope="."
 		if (path === '.') {
-			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky.data));
+			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky));
 			return;
 		}
 
@@ -1447,7 +1449,7 @@ if (!Math.log10) {
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky.data));
+			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky));
 			return;
 		}
 
@@ -1472,7 +1474,7 @@ if (!Math.log10) {
 					node = master.cloneNode(true);
 				}
 
-				childSparky = Sparky(node, data, undefined, undefined, sparky.data);
+				childSparky = Sparky(node, data, undefined, undefined, sparky);
 				Sparky.dom.after(comment, node);
 				Sparky.dom.remove(comment);
 				slaveSparky(sparky, childSparky);
@@ -1504,7 +1506,7 @@ if (!Math.log10) {
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky.data));
+		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -1615,21 +1617,28 @@ if (!Math.log10) {
 
 	function offInsert() { this.off('insert'); }
 
-	function makeDistributeCtrl(ctrls) {
+	function makeDistributeCtrl(list) {
 		return function distributeCtrl(node, model) {
 			// Distributor controller
-			var l = ctrls.length;
+			var l = list.length;
 			var n = -1;
 			var scope = model;
 			var result;
 
-			this.ctrls = ctrls;
+			// TODO: This is exposes solely so that ctrl
+			// 'observe-selected' can function in sound.io.
+			// Really naff. Find a better way.
+			this.ctrls = list;
 
-			// Call the list of ctrls. Scope is the return value of
-			// the last ctrl in the list that does not return undefined
 			while (++n < l) {
-				result = ctrls[n].call(this, node, scope);
+				// Call the list of ctrls, in order.
+				result = list[n].call(this, node, scope);
+
+				// Returning false interrupts the ctrl calls.
 				if (result === false) { return; }
+
+				// Returning an object sets that object to
+				// be used as scope.
 				if (result !== undefined) { scope = result; }
 			}
 
@@ -1637,29 +1646,29 @@ if (!Math.log10) {
 		};
 	}
 
-	function makeDistributeCtrlFromPaths(paths) {
-		var ctrls = [];
+	function makeDistributeCtrlFromPaths(paths, ctrls) {
+		var list = [];
 		var l = paths.length;
 		var n = -1;
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = findByPath(Sparky.ctrl, paths[n]);
+			ctrl = findByPath(ctrls, paths[n]);
 
 			if (!ctrl) {
-				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in Sparky.ctrl');
+				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
 			}
 
-			ctrls.push(ctrl);
+			list.push(ctrl);
 		}
 
-		return makeDistributeCtrl(ctrls, paths);
+		return makeDistributeCtrl(list);
 	}
 
-	function makeCtrl(string) {
+	function makeCtrl(string, ctrls) {
 		if (!isDefined(string)) { return; }
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeCtrlFromPaths(paths);
+		return makeDistributeCtrlFromPaths(paths, ctrls);
 	}
 
 	function Sparky(node, model, ctrl) {
@@ -1678,7 +1687,7 @@ if (!Math.log10) {
 		// collections. So the DOM collection bit of it would
 		// need to be a property of sparky.
 		var loop = arguments[3] !== false;
-		var data = arguments[4];
+		var parent = arguments[4];
 		var modelPath, ctrlPath, tag, id;
 
 		// If node is a string, assume it is the id of a template,
@@ -1711,7 +1720,7 @@ if (!Math.log10) {
 				model = findByPath(Sparky.data, modelPath);
 
 				if (Sparky.debug && !model) {
-					console.log('Sparky: data-scope="' + modelPath + '" model not found in Sparky.data. Path will be observed.' );
+					console.log('Sparky: data-scope="' + modelPath + '" model not found in sparky.data. Path will be observed.' );
 				}
 			}
 		}
@@ -1719,25 +1728,26 @@ if (!Math.log10) {
 		// The ctrl list can be...
 		ctrl =
 			// a space-separated string of ctrl paths
-			typeof ctrl === 'string' ? makeCtrl(ctrl) :
+			typeof ctrl === 'string' ? makeCtrl(ctrl, parent.ctrl) :
 			// a function
 			typeof ctrl === 'function' ? makeDistributeCtrl([ctrl]) :
 			// an array of functions
 			typeof ctrl === 'object' ? makeDistributeCtrl(ctrl) :
 			// defined in the data-ctrl attribute
-			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl')) ;
+			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl'), parent ? parent.ctrl : Sparky.ctrl) ;
 
 		// Where model is an array or array-like object with a length property,
 		// but not a function, set up Sparky to clone node for every object in
 		// the array.
 		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
-			return setupCollection(node, model, ctrl, data);
+			return setupCollection(node, model, ctrl, parent);
 		}
 
 		var sparky = Object.create(prototype);
 
-		Object.defineProperty(sparky, 'data', {
-			value: Object.create(data || null)
+		Object.defineProperties(sparky, {
+			data: { value: Object.create(parent ? parent.data : Sparky.data) },
+			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
 		});
 
 		// Check if there should be a model, but it isn't available yet. If so,
@@ -1757,11 +1767,11 @@ if (!Math.log10) {
 
 	// Expose
 
-	Sparky.debug        = false;
-	Sparky.config       = {};
-	Sparky.settings     = {};
-	Sparky.data         = {};
-	Sparky.ctrl         = {};
+	Sparky.debug    = false;
+	Sparky.config   = {};
+	Sparky.settings = {};
+	Sparky.data     = {};
+	Sparky.ctrl     = {};
 
 	Sparky.template = function() {
 		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
@@ -1775,7 +1785,7 @@ if (!Math.log10) {
 	};
 
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
-	Sparky.xlink        = 'http://www.w3.org/1999/xlink';
+	Sparky.xlink        = "http://www.w3.org/1999/xlink";
 	Sparky.prototype    = prototype;
  
 	window.Sparky = Sparky;
@@ -3533,7 +3543,98 @@ if (!Math.log10) {
 			master.removeEventListener('scroll', update);
 		});
 	};
+
+	Sparky.ctrl["x-scroll-center"] = function(node) {
+		// Center the scroll position horizontally
+		this.on('insert', function() {
+			var w = node.clientWidth;
+			var s = node.scrollWidth;
+			node.scrollLeft = (s - w) / 2;
+		});
+	};
+
+	Sparky.ctrl["y-scroll-center"] = function(node) {
+		// Center the scroll position vertically
+		this.on('insert', function() {
+			var h = node.clientHeight;
+			var s = node.scrollHeight;
+			node.scrollTop = (s - h) / 2;
+		});
+	};
 })();
+
+
+(function() {
+	"use strict";
+
+	var assign = Object.assign;
+
+	function stringToNumber(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			n ;
+	}
+
+	function numberRound0ToString(value) {
+		return typeof value === 'number' ? value.toFixed(0) + '' :
+			undefined ;
+	}
+
+	function numberRound1ToString(value) {
+		return typeof value === 'number' ? value.toFixed(1) + '' :
+			undefined ;
+	}
+
+	function numberRound2ToString(value) {
+		return typeof value === 'number' ? value.toFixed(2) + '' :
+			undefined ;
+	}
+
+	function numberRound3ToString(value) {
+		return typeof value === 'number' ? value.toFixed(3) + '' :
+			undefined ;
+	}
+
+	assign(Sparky.ctrl, {
+		"value-number-decimals-0": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound0ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-1": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound1ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-2": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound2ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		},
+
+		"value-number-decimals-3": function(node, model) {
+			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound3ToString, stringToNumber);
+			if (unbind) { this.on('destroy', unbind); }
+		}
+	}); 
+})();
+
+
+(function(window) {
+	"use strict";
+
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+	var dom = Sparky.dom;
+
+	assign(Sparky.ctrl, {
+		"on-ready-unhide": function onReadyUnhide(node, model) {
+			this.on('ready', function() {
+				dom.classes(this[0]).remove('hidden');
+			});
+		}
+	}); 
+})(this);
 
 
 // Sparky.filters
@@ -3711,9 +3812,10 @@ if (!Math.log10) {
 		//	return (this === '' || this === undefined || this === null) ? value : this ;
 		//},
 
-		//dictsort
-		//dictsortreversed
-		//divisibleby
+		divide: function(value, n) {
+			if (typeof value !== 'number') { return; }
+			return value / n;
+		},
 
 		escape: (function() {
 			var pre = document.createElement('pre');
@@ -3731,8 +3833,6 @@ if (!Math.log10) {
 			return (value === val ? string1 : string2) || '';
 		},
 
-		//filesizeformat
-
 		first: function(value) {
 			return value[0];
 		},
@@ -3742,17 +3842,18 @@ if (!Math.log10) {
 				!isDefined(value) ? '' :
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		},
+		
+		floor: function(value) {
+			return Math.floor(value);
+		},
 
 		get: function(value, name) {
 			return value[name];
 		},
 
-		'greater-than': function(value1, value2, str1, str2) {
+		"greater-than": function(value1, value2, str1, str2) {
 			return value1 > value2 ? str1 : str2 ;
 		},
-
-		//get_digit
-		//iriencode
 
 		invert: function(value) {
 			return 1 / value;
@@ -3774,7 +3875,7 @@ if (!Math.log10) {
 			return value.length;
 		},
 
-		'less-than': function(value1, value2, str1, str2) {
+		"less-than": function(value1, value2, str1, str2) {
 			return value1 < value2 ? str1 : str2 ;
 		},
 
@@ -3789,8 +3890,6 @@ if (!Math.log10) {
 		//	};
 		//})(),
 
-		//linenumbers
-
 		lower: function(value) {
 			String.prototype.toLowerCase.apply(value);
 		},
@@ -3800,7 +3899,10 @@ if (!Math.log10) {
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		//make_list 
+		mod: function(value, n) {
+			if (typeof value !== 'number') { return; }
+			return value % n;
+		},
 
 		multiply: function(value, n) {
 			return value * n;
@@ -3813,8 +3915,6 @@ if (!Math.log10) {
 		percent: function(value) {
 			return value * 100;
 		},
-
-		//phone2numeric
 
 		pluralize: function(value, str1, str2, lang) {
 			if (typeof value !== 'number') { return; }
@@ -3970,22 +4070,6 @@ if (!Math.log10) {
 		//truncatewords
 		//truncatewords_html
 		//unique
-
-		unordered_list: function(value) {
-			// TODO: Django supports nested lists.
-			var list = value,
-			    length = list.length,
-			    i = -1,
-			    html = '';
-
-			while (++i < length) {
-				html += '<li>';
-				html += list[i];
-				html += '</li>';
-			}
-
-			return html;
-		},
 
 		uppercase: function(value) {
 			if (typeof value !== 'string') { return; }
