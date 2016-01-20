@@ -1,3 +1,71 @@
+// Object.assign polyfill
+//
+// Object.assign(target, source1, source2, ...)
+//
+// All own enumerable properties are copied from the source
+// objects to the target object.
+
+(Object.assign || (function(Object) {
+	"use strict";
+
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
+	function ownPropertyKeys(object) {
+		var keys = Object.keys(object);
+		var symbols, n, descriptor;
+
+		if (Object.getOwnPropertySymbols) {
+			symbols = Object.getOwnPropertySymbols(object);
+			n = symbols.length;
+
+			while (n--) {
+				descriptor = Object.getOwnPropertyDescriptor(object, symbols[n]);
+
+				if (descriptor.enumerable) {
+					keys.push(symbol);
+				}
+			}
+		}
+
+		return keys;
+	}
+
+	Object.defineProperty(Object, 'assign', {
+		value: function (target) {
+			if (!isDefined(target)) {
+				throw new TypeError('Object.assign: First argument ' + target + ' cannot be converted to object.');
+			}
+
+			var object = Object(target);
+			var n, source, keys, key, k;
+
+			for (n = 1; n < arguments.length; n++) {
+				source = arguments[n];
+
+				// Ignore any undefined sources
+				if (!isDefined(source)) { continue; }
+
+				// Get own enumerable keys and symbols
+				keys = ownPropertyKeys(Object(source));
+				k = keys.length;
+
+				// Copy key/values to target object
+				while (k--) {
+					key = keys[k];
+					object[key] = source[key];
+				}
+			}
+
+			return object;
+		},
+
+		configurable: true,
+		writable: true
+	});
+})(Object));
+
 
 // Number.isNaN(n) polyfill
 
@@ -562,6 +630,571 @@ if (!Math.log10) {
 	window.unobserve = unobserve;
 	window.notify = notify;
 })(window);
+
+
+// Collection()
+
+(function(window) {
+	"use strict";
+
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
+	var mixin     = window.mixin;
+	var assign    = Object.assign;
+
+	var debug = false;
+
+	var defaults = { index: 'id' };
+
+
+	// Utils
+
+	function returnUndefined() { return; }
+
+	function returnThis() { return this; }
+
+	function returnArgument(arg) { return arg; }
+
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
+	// Each functions
+
+	function setValue(value, i) {
+		this[i] = value;
+	}
+
+	// Sort functions
+
+	function byGreater(a, b) {
+		return a > b ? 1 : -1 ;
+	}
+
+	// Collection functions
+
+	function findByIndex(collection, id) {
+		var index = collection.index;
+		var n = -1;
+		var l = collection.length;
+
+		while (++n < l) {
+			if (collection[n][index] === id) {
+				return collection[n];
+			}
+		}
+	}
+
+	function queryObject(object, query, keys) {
+		// Optionally pass in keys to avoid having to get them repeatedly.
+		keys = keys || Object.keys(query);
+
+		var k = keys.length;
+		var key;
+
+		while (k--) {
+			key = keys[k];
+
+			// Test equality first, allowing the querying of
+			// collections of functions or regexes.
+			if (object[key] === query[key]) {
+				continue;
+			}
+
+			// Test function
+			if (typeof query[key] === 'function' && query[key](object, key)) {
+				continue;
+			}
+
+			// Test regex
+			if (query[key] instanceof RegExp && query[key].test(object[key])) {
+				continue;
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
+	function queryByObject(collection, query) {
+		var keys = Object.keys(query);
+
+		// Match properties of query against objects in the collection.
+		return keys.length === 0 ?
+			collection.slice() :
+			collection.filter(function(object) {
+				return queryObject(object, query, keys);
+			}) ;
+	}
+
+	function push(collection, object) {
+		Array.prototype.push.call(collection, object);
+		collection.trigger('add', object);
+	}
+
+	function splice(collection, i, n) {
+		var removed = Array.prototype.splice.call.apply(Array.prototype.splice, arguments);
+		var r = removed.length;
+		var added = Array.prototype.slice.call(arguments, 3);
+		var l = added.length;
+		var a = -1;
+
+		while (r--) {
+			collection.trigger('remove', removed[r], i + r);
+		}
+
+		while (++a < l) {
+			collection.trigger('add', added[a], a);
+		}
+
+		return removed;
+	}
+
+	function add(collection, object) {
+		// Add an item, keeping the collection sorted by id.
+		var index = collection.index;
+
+		// If the object does not have an index key...
+		if (!isDefined(object[index])) {
+			// ...check that it is not already in the
+			// collection before pushing it in.
+			if (collection.indexOf(object) === -1) {
+				push(collection, object);
+			}
+
+			return;
+		}
+
+		// Insert the object in the correct index. TODO: we
+		// should use the sort function for this!
+		var l = collection.length;
+		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
+		splice(collection, l + 1, 0, object);
+	}
+
+	function remove(collection, obj, i) {
+		if (i === undefined) { i = -1; }
+
+		while (++i < collection.length) {
+			if (obj === collection[i] || obj === collection[i][collection.index]) {
+				splice(collection, i, 1);
+				--i;
+			}
+		}
+	}
+
+	function update(collection, obj) {
+		var item = collection.find(obj);
+
+		if (item) {
+			assign(item, obj);
+			collection.trigger('update', item);
+		}
+		else {
+			add(collection, obj);
+		}
+	}
+
+	function callEach(fn, collection, objects) {
+		var l = objects.length;
+		var n = -1;
+
+		while (++n < l) {
+			fn.call(null, collection, objects[n]);
+		}
+	}
+
+	function overloadByLength(map) {
+		return function distribute() {
+			var length = arguments.length;
+			var fn = map[length] || map.default;
+
+			if (fn) {
+				return fn.apply(this, arguments);
+			}
+
+			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
+			return this;
+		}
+	}
+
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object) ||
+			SubCollection.prototype.isPrototypeOf(object);
+	}
+
+	function createLengthObserver(collection) {
+		var length = collection.length;
+
+		return function lengthObserver() {
+			var object;
+
+			while (length-- > collection.length) {
+				object = collection[length];
+
+				// The length may have changed due to a splice or remove, in
+				// which case there will be no object at this index, but if
+				// there was, let's trigger it's demise.
+				if (object !== undefined) {
+					delete collection[length];
+					collection.trigger('remove', object, length);
+				}
+			}
+
+			length = collection.length;
+		};
+	}
+
+	function Collection(array, settings) {
+		if (this === undefined || this === window) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
+			return new Collection(array, settings);
+		}
+
+		// Handle the call signatures Collection() and Collection(settings).
+		if (array === undefined) {
+			array = [];
+		}
+		else if (!isDefined(array.length)) {
+			settings = array;
+			array = [];
+		}
+
+		var collection = this;
+		var options = assign({}, defaults, settings);
+
+		function byIndex(a, b) {
+			// Sort collection by index.
+			return a[collection.index] > b[collection.index] ? 1 : -1 ;
+		}
+
+		Object.defineProperties(collection, {
+			length: { value: 0, writable: true, configurable: true },
+			index: { value: options.index },
+			sort:  {
+				value: function sort(fn) {
+					// Collections get sorted by index by default, or by a function
+					// passed into options, or passed into the .sort(fn) call.
+					return Array.prototype.sort.call(this, fn || options.sort || byIndex);
+				}
+			}
+		});
+
+		// Populate the collection
+		assign(collection, array);
+		collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
+
+		// Watch the length and delete indexes when the
+		// length becomes shorter like a nice array does.
+		observe(collection, 'length', createLengthObserver(collection));
+	};
+
+	assign(Collection.prototype, mixin.events, {
+		filter:  Array.prototype.filter,
+		map:     Array.prototype.map,
+		reduce:  Array.prototype.reduce,
+		concat:  Array.prototype.concat,
+		sort:    Array.prototype.sort,
+		slice:   Array.prototype.slice,
+		some:    Array.prototype.some,
+		indexOf: Array.prototype.indexOf,
+		forEach: Array.prototype.forEach,
+
+		each: function each() {
+			Array.prototype.forEach.apply(this, arguments);
+			return this;
+		},
+
+		add: overloadByLength({
+			0: returnThis,
+
+			"default": function addArgs() {
+				callEach(add, this, arguments);
+				return this;
+			}
+		}),
+
+		remove: overloadByLength({
+			0: function removeAll() {
+				while (this.length) { this.pop(); }
+				return this;
+			},
+
+			"default": function removeArgs() {
+				callEach(remove, this, arguments);
+				return this;
+			}
+		}),
+
+		push: function() {
+			callEach(push, this, arguments);
+			return this;
+		},
+
+		pop: function() {
+			var object = this[this.length - 1];
+			--this.length;
+			return object;
+		},
+
+		splice: function() {
+			Array.prototype.unshift.call(arguments, this);
+			return splice.apply(this, arguments);
+		},
+
+		update: function() {
+			callEach(update, this, arguments);
+			return this;
+		},
+
+		find: overloadByLength({
+			0: returnUndefined,
+
+			1: function findObject(object) {
+				// Fast out. If object in collection, return it.
+				if (this.indexOf(object) > -1) { return object; }
+
+				// Otherwise find by index.
+				var index = this.index;
+
+				// Return the first object with matching key.
+				return typeof object === 'string' || typeof object === 'number' || object === undefined ?
+					findByIndex(this, object) :
+					findByIndex(this, object[index]) ;
+			}
+		}),
+
+		query: function(object) {
+			// query() is gauranteed to return an array.
+			return object ?
+				queryByObject(this, object) :
+				[] ;
+		},
+
+		contains: function(object) {
+			return this.indexOf(object) !== -1;
+		},
+
+		get: function(property) {
+			// Get the value of a property of all the objects in
+			// the collection if they all have the same value.
+			// Otherwise return undefined.
+
+			var n = this.length;
+
+			if (n === 0) { return; }
+
+			while (--n) {
+				if (this[n][property] !== this[n - 1][property]) { return; }
+			}
+
+			return this[n][property];
+		},
+
+		set: function(property, value) {
+			// Set a property on every object in the collection.
+
+			if (arguments.length !== 2) {
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
+			}
+
+			var n = this.length;
+			while (n--) { this[n][property] = value; }
+			return this;
+		},
+
+		toJSON: function() {
+			// Convert to array.
+			return Array.prototype.slice.apply(this);
+		},
+
+		toObject: function(key) {
+			// Convert to object, using a keyed value on
+			// each object as map keys.
+			key = key || this.index;
+
+			var object = {};
+			var prop, type;
+
+			while (n--) {
+				prop = this[n][key];
+				type = typeof prop;
+
+				if (type === 'string' || type === 'number' && prop > -Infinity && prop < Infinity) {
+					object[prop] = this[n];
+				}
+				else {
+					console.warn('Collection: toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
+				}
+			}
+
+			return object;
+		},
+
+		sub: function(query, settings) {
+			return new SubCollection(this, query, settings);
+		}
+	});
+
+	function SubCollection(collection, query, settings) {
+		// TODO: Clean up SubCollection
+
+		var options = assign({ sort: sort }, settings);
+		var keys = Object.keys(query);
+		var echo = true;
+		var subset = this;
+
+		function sort(o1, o2) {
+			// Keep the subset ordered as the collection
+			var i1 = collection.indexOf(o1);
+			var i2 = collection.indexOf(o2);
+			return i1 > i2 ? 1 : -1 ;
+		}
+
+		function update(object) {
+			var i = subset.indexOf(object);
+
+			echo = false;
+
+			if (queryObject(object, query, keys)) {
+				if (i === -1) {
+					// Keep subset is sorted with default sort fn,
+					// splice object into position
+					if (options.sort === sort) {
+						var i1 = collection.indexOf(object) ;
+						var n = i1;
+						var o2, i2;
+
+						while (n--) {
+							o2 = collection[n];
+							i2 = subset.indexOf(o2);
+							if (i2 > -1 && i2 < i1) { break; }
+						}
+
+						subset.splice(i2 + 1, 0, object);
+					}
+					else {
+						subset.add(object);
+					}
+
+					subset.on('add', subsetAdd);
+				}
+			}
+			else {
+				if (i !== -1) {
+					subset.remove(object);
+				}
+			}
+
+			echo = true;
+		}
+
+		function add(collection, object) {
+			var n = keys.length;
+			var key;
+
+			// Observe keys of this object that might affect
+			// it's right to remain in the subset
+			while (n--) {
+				key = keys[n];
+				observe(object, key, update);
+			}
+
+			update(object);
+		}
+
+		function remove(collection, object) {
+			var n = keys.length;
+			var key;
+
+			while (n--) {
+				key = keys[n];
+				unobserve(object, key, update);
+			}
+
+			var i = subset.indexOf(object);
+
+			if (i > -1) {
+				echo = false;
+				subset.splice(i, 1);
+				echo = true;
+			}
+		}
+
+		function destroy(collection) {
+			collection.forEach(function(object) {
+				remove(collection, object);
+			});
+
+			subset
+			.off('add', subsetAdd)
+			.off('remove', subsetRemove);
+		}
+
+		function subsetAdd(subset, object) {
+			if (!echo) { return; }
+			collection.add(object);
+		}
+
+		function subsetRemove(subset, object) {
+			if (!echo) { return; }
+			collection.remove(object);
+		}
+
+		// Initialise as collection.
+		Collection.call(this, options);
+
+		// Observe the collection to update the subset
+		collection
+		.on('add', add)
+		.on('remove', remove)
+		.on('destroy', destroy);
+
+		// Initialise existing object in collection and echo
+		// subset add and remove operations to collection.
+		if (collection.length) {
+			collection.forEach(function(object) {
+				add(collection, object);
+			});
+		}
+		else {
+			subset
+			.on('add', subsetAdd)
+			.on('remove', subsetRemove);
+		}
+
+		subset.destroy = function() {
+			// Lots of unbinding
+			destroy(collection);
+
+			collection
+			.off('add', add)
+			.off('remove', remove)
+			.off('destroy', destroy);
+
+			subset.off();
+		};
+
+		this.synchronise = function() {
+			// Force a sync from code that only has access
+			// to the subset.
+			this.forEach(update);
+		};
+	}
+
+	assign(SubCollection.prototype, Collection.prototype);
+
+	Collection.add = add;
+	Collection.remove = remove;
+	Collection.isCollection = isCollection;
+
+	window.Collection = Collection;
+})(this);
 
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
@@ -1448,6 +2081,407 @@ if (!Math.log10) {
 	Sparky.dom = dom;
 })(window.Sparky);
 
+// Sparky.observe()
+// Sparky.unobserve()
+
+(function(Sparky) {
+	"use strict";
+
+	// Handle paths
+
+	var rpathtrimmer = /^\[|]$/g;
+	var rpathsplitter = /\]?\.|\[/g;
+	var map = [];
+
+	function noop() {}
+	function isDefined(val) { return val !== undefined && val !== null; }
+	function isObject(obj) { return obj instanceof Object; }
+
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
+	function objFrom(obj, array) {
+		var key = array.shift();
+		var val = obj[key];
+
+		return array.length === 0 ? val :
+			isDefined(val) ? objFrom(val, array) :
+			val ;
+	}
+
+	function objTo(root, array, obj) {
+		var key = array[0];
+		
+		return array.length > 1 ?
+			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
+			(root[key] = obj) ;
+	}
+
+	function observePath3(root, prop, array, fn, notify) {
+		function update() {
+			if (Sparky.debug === 'verbose') {
+				console.log('Sparky: path resolved. Value:', root[prop]);
+			}
+
+			fn(root[prop]);
+		}
+
+		if (notify) { update(); }
+
+		Sparky.observe(root, prop, update);
+
+		return function unobserve() {
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath2(root, prop, array, fn, notify) {
+		var destroy = noop;
+
+		function update() {
+			var object = root[prop];
+
+			destroy();
+
+			if (typeof object !== 'object' && typeof object !== 'function') {
+				destroy = noop;
+				if (notify) { fn(); }
+			}
+			else {
+				destroy = observePath1(object, array.slice(), fn, notify) ;
+			}
+		};
+
+		Sparky.observe(root, prop, update);
+		update();
+		notify = true;
+
+		return function unobserve() {
+			destroy();
+			Sparky.unobserve(root, prop, update);
+		};
+	}
+
+	function observePath1(root, array, fn, notify) {
+		if (array.length === 0) { return noop; }
+
+		var prop = array.shift();
+
+		return array.length === 0 ?
+			observePath3(root, prop, array, fn, notify) :
+			observePath2(root, prop, array, fn, notify) ;
+	}
+
+	function observePath(root, path, fn) {
+		var array = splitPath(path);
+
+		// Observe path without logs.
+		var destroy = observePath1(root, array, fn, false) ;
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function observePathOnce(root, path, fn) {
+		var array = splitPath(path);
+		var value = objFrom(root, array.slice());
+
+		if (isDefined(value)) {
+			fn(value);
+			return;
+		}
+
+		var destroy = observePath1(root, array, update, false);
+
+		// Hack around the fact that the first call to destroy()
+		// is not ready yet, becuase at the point update has been
+		// called by the observe recursers, the destroy fn has
+		// not been returned yet. TODO: we should make direct returns
+		// async to get around this - they would be async if they were
+		// using Object.observe after all...
+		var hasRun = false;
+
+		function update(value) {
+			if (hasRun) { return; }
+			if (isDefined(value)) {
+				hasRun = true;
+				fn(value);
+				setTimeout(function() {
+					unobservePath(root, path, fn);
+				}, 0);
+			}
+		}
+
+		// Register this binding in a map
+		map.push([root, path, fn, destroy]);
+	}
+
+	function unobservePath(root, path, fn) {
+		var n = map.length;
+		var record;
+
+		// Allow for the call signatures (root) and (root, fn)
+		if (typeof path !== 'string') {
+			fn = path;
+			path = undefined;
+		}
+
+		while (n--) {
+			record = map[n];
+			if ((root === record[0]) &&
+				(!path || path === record[1]) &&
+				(!fn || fn === record[2])) {
+				record[3]();
+				map.splice(n, 1);
+			}
+		}
+	}
+
+	function getPath(obj, path) {
+		var array = splitPath(path);
+		
+		return array.length === 1 ?
+			obj[path] :
+			objFrom(obj, array) ;
+	}
+
+	function setPath(root, path, obj) {
+		var array = splitPath(path);
+
+		return array.length === 1 ?
+			(root[path] = obj) :
+			objTo(root, array, obj);
+	}
+
+	Sparky.get = getPath;
+	Sparky.set = setPath;
+	Sparky.observePath = observePath;
+	Sparky.unobservePath = unobservePath;
+	Sparky.observePathOnce = observePathOnce;
+
+	// Binding
+
+	function isAudioParam(object) {
+		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
+	}
+
+	function Poll(object, property, fn) {
+		var v1 = object[property];
+		var active = true;
+
+		function frame() {
+			var v2 = object[property];
+
+			if (v1 !== v2) {
+				v1 = v2;
+				fn();
+			}
+
+			if (!active) { return; } 
+
+			window.requestAnimationFrame(frame);
+		};
+
+		function cancel() {
+			active = false;
+		}
+
+		window.requestAnimationFrame(frame);
+
+		return cancel;
+	}
+
+	var unpollers = [];
+
+	function poll(object, property, fn) {
+		unpollers.push([object, property, fn, Poll(object, property, fn)]);
+		return object;
+	}
+	
+	function unpoll(object, property, fn) {
+		var n = unpollers.length;
+		var unpoller;
+
+		while (n--) {
+			unpoller = unpollers[n];
+
+			if (object === unpoller[0] && property === unpoller[1] && fn === unpoller[2]) {
+				unpoller[3]();
+				unpollers.splice(n, 1);
+				return object;
+			}
+		}
+
+		return object;
+	}
+
+	(false && Object.observe && window.WeakMap ? function(Sparky) {
+		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
+
+		var map = new WeakMap();
+		var names = [];
+		var types = ["add", "update", "delete"];
+
+		function call(fn) {
+			fn(this);
+		}
+
+		function trigger(change) {
+			var properties = this;
+			var name = change.name;
+			var object = change.object;
+
+			// If this property is in the properties being watched, and we
+			// have not already called changes on it, do that now.
+			if (properties[name] && names.indexOf(name) === -1) {
+				names.push(name);
+				fns = properties[name];
+				fns.forEach(call, object);
+			}
+		}
+
+		function triggerAll(changes) {
+			names.length = 0;
+			changes.forEach(trigger, map[object]);
+		}
+
+		function setup(object) {
+			var properties = map[object] = {};
+			Object.observe(object, triggerAll, types);
+			return properties;
+		}
+
+		function teardown(object) {
+			Object.unobserve(object, triggerAll);
+		}
+
+		Sparky.observe = function(object, property, fn) {
+			var properties = map[object] || setup(object);
+			var fns = properties[property] || (properties[property] = []);
+			fns.push(fn);
+		};
+
+		Sparky.unobserve = function(object, property, fn) {
+			if (!map[object]) { return; }
+
+			var properties = map[object];
+			var fns = properties[property];
+
+			if (!fns) { return; }
+
+			var n = fns.length;
+
+			while (n--) { fns.splice(n, 1); }
+
+			if (fns.length === 0) {
+				delete properties[property];
+
+				if (Object.keys[properties].length === 0) {
+					teardown(object);
+				}
+			}
+		};
+	} : function(Sparky) {
+		Sparky.observe = function(object, property, fn) {
+			// AudioParams objects must be polled, as they cannot be reconfigured
+			// to getters/setters, nor can they be Object.observed. And they fail
+			// to do both of those completely silently. So we test the scope to see
+			// if it is an AudioParam and set the observe and unobserve functions
+			// to poll.
+			if (isAudioParam(object)) {
+				return poll(object, property, fn);
+			}
+
+			if (property === 'length') {
+				// Observe length and update the DOM on next
+				// animation frame if it changes.
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+
+				if (!descriptor.get && !descriptor.configurable) {
+					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
+					console.trace && console.trace();
+					return poll(object, property, fn);
+				}
+			}
+
+			return observe(object, property, fn);
+		};
+
+		Sparky.unobserve = function(object, property, fn) {
+			if (isAudioParam(object)) {
+				return unpoll(object, property, fn);
+			}
+
+			if (property === 'length') {
+				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+				if (!descriptor.get && !descriptor.configurable) {
+					return unpoll(object, property, fn);
+				}
+			}
+	
+			return unobserve(object, property, fn);
+		};
+	})(Sparky)
+})(Sparky);
+
+
+// Sparky.Throttle(fn)
+
+(function() {
+	"use strict";
+
+	function noop() {}
+
+	function Throttle(fn) {
+		var queued, context, args;
+
+		function update() {
+			queued = false;
+			fn.apply(context, args);
+		}
+
+		function cancel() {
+			// Don't permit further changes to be queued
+			queue = noop;
+
+			// If there is an update queued apply it now
+			if (queued) { update(); }
+
+			// Make the queued update do nothing
+			fn = noop;
+		}
+
+		function queue() {
+			// Don't queue update if it's already queued
+			if (queued) { return; }
+
+			// Queue update
+			window.requestAnimationFrame(update);
+			queued = true;
+		}
+
+		function throttle() {
+			// Store the latest context and arguments
+			context = this;
+			args = arguments;
+
+			// Queue the update
+			queue();
+		}
+
+		throttle.cancel = cancel;
+		update();
+
+		return throttle;
+	}
+
+	Sparky.Throttle = Throttle;
+})(Sparky);
+
+
 // Sparky.bind
 //
 // Binds data to the DOM. Changes in data are then immediately rendered
@@ -2223,407 +3257,6 @@ if (!Math.log10) {
 	});
 
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
-})(Sparky);
-
-
-// Sparky.observe()
-// Sparky.unobserve()
-
-(function(Sparky) {
-	"use strict";
-
-	// Handle paths
-
-	var rpathtrimmer = /^\[|]$/g;
-	var rpathsplitter = /\]?\.|\[/g;
-	var map = [];
-
-	function noop() {}
-	function isDefined(val) { return val !== undefined && val !== null; }
-	function isObject(obj) { return obj instanceof Object; }
-
-	function splitPath(path) {
-		return path
-			.replace(rpathtrimmer, '')
-			.split(rpathsplitter);
-	}
-
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
-
-		return array.length === 0 ? val :
-			isDefined(val) ? objFrom(val, array) :
-			val ;
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-		
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
-	}
-
-	function observePath3(root, prop, array, fn, notify) {
-		function update() {
-			if (Sparky.debug === 'verbose') {
-				console.log('Sparky: path resolved. Value:', root[prop]);
-			}
-
-			fn(root[prop]);
-		}
-
-		if (notify) { update(); }
-
-		Sparky.observe(root, prop, update);
-
-		return function unobserve() {
-			Sparky.unobserve(root, prop, update);
-		};
-	}
-
-	function observePath2(root, prop, array, fn, notify) {
-		var destroy = noop;
-
-		function update() {
-			var object = root[prop];
-
-			destroy();
-
-			if (typeof object !== 'object' && typeof object !== 'function') {
-				destroy = noop;
-				if (notify) { fn(); }
-			}
-			else {
-				destroy = observePath1(object, array.slice(), fn, notify) ;
-			}
-		};
-
-		Sparky.observe(root, prop, update);
-		update();
-		notify = true;
-
-		return function unobserve() {
-			destroy();
-			Sparky.unobserve(root, prop, update);
-		};
-	}
-
-	function observePath1(root, array, fn, notify) {
-		if (array.length === 0) { return noop; }
-
-		var prop = array.shift();
-
-		return array.length === 0 ?
-			observePath3(root, prop, array, fn, notify) :
-			observePath2(root, prop, array, fn, notify) ;
-	}
-
-	function observePath(root, path, fn) {
-		var array = splitPath(path);
-
-		// Observe path without logs.
-		var destroy = observePath1(root, array, fn, false) ;
-
-		// Register this binding in a map
-		map.push([root, path, fn, destroy]);
-	}
-
-	function observePathOnce(root, path, fn) {
-		var array = splitPath(path);
-		var value = objFrom(root, array.slice());
-
-		if (isDefined(value)) {
-			fn(value);
-			return;
-		}
-
-		var destroy = observePath1(root, array, update, false);
-
-		// Hack around the fact that the first call to destroy()
-		// is not ready yet, becuase at the point update has been
-		// called by the observe recursers, the destroy fn has
-		// not been returned yet. TODO: we should make direct returns
-		// async to get around this - they would be async if they were
-		// using Object.observe after all...
-		var hasRun = false;
-
-		function update(value) {
-			if (hasRun) { return; }
-			if (isDefined(value)) {
-				hasRun = true;
-				fn(value);
-				setTimeout(function() {
-					unobservePath(root, path, fn);
-				}, 0);
-			}
-		}
-
-		// Register this binding in a map
-		map.push([root, path, fn, destroy]);
-	}
-
-	function unobservePath(root, path, fn) {
-		var n = map.length;
-		var record;
-
-		// Allow for the call signatures (root) and (root, fn)
-		if (typeof path !== 'string') {
-			fn = path;
-			path = undefined;
-		}
-
-		while (n--) {
-			record = map[n];
-			if ((root === record[0]) &&
-				(!path || path === record[1]) &&
-				(!fn || fn === record[2])) {
-				record[3]();
-				map.splice(n, 1);
-			}
-		}
-	}
-
-	function getPath(obj, path) {
-		var array = splitPath(path);
-		
-		return array.length === 1 ?
-			obj[path] :
-			objFrom(obj, array) ;
-	}
-
-	function setPath(root, path, obj) {
-		var array = splitPath(path);
-
-		return array.length === 1 ?
-			(root[path] = obj) :
-			objTo(root, array, obj);
-	}
-
-	Sparky.get = getPath;
-	Sparky.set = setPath;
-	Sparky.observePath = observePath;
-	Sparky.unobservePath = unobservePath;
-	Sparky.observePathOnce = observePathOnce;
-
-	// Binding
-
-	function isAudioParam(object) {
-		return window.AudioParam && window.AudioParam.prototype.isPrototypeOf(object);
-	}
-
-	function Poll(object, property, fn) {
-		var v1 = object[property];
-		var active = true;
-
-		function frame() {
-			var v2 = object[property];
-
-			if (v1 !== v2) {
-				v1 = v2;
-				fn();
-			}
-
-			if (!active) { return; } 
-
-			window.requestAnimationFrame(frame);
-		};
-
-		function cancel() {
-			active = false;
-		}
-
-		window.requestAnimationFrame(frame);
-
-		return cancel;
-	}
-
-	var unpollers = [];
-
-	function poll(object, property, fn) {
-		unpollers.push([object, property, fn, Poll(object, property, fn)]);
-		return object;
-	}
-	
-	function unpoll(object, property, fn) {
-		var n = unpollers.length;
-		var unpoller;
-
-		while (n--) {
-			unpoller = unpollers[n];
-
-			if (object === unpoller[0] && property === unpoller[1] && fn === unpoller[2]) {
-				unpoller[3]();
-				unpollers.splice(n, 1);
-				return object;
-			}
-		}
-
-		return object;
-	}
-
-	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
-
-		var map = new WeakMap();
-		var names = [];
-		var types = ["add", "update", "delete"];
-
-		function call(fn) {
-			fn(this);
-		}
-
-		function trigger(change) {
-			var properties = this;
-			var name = change.name;
-			var object = change.object;
-
-			// If this property is in the properties being watched, and we
-			// have not already called changes on it, do that now.
-			if (properties[name] && names.indexOf(name) === -1) {
-				names.push(name);
-				fns = properties[name];
-				fns.forEach(call, object);
-			}
-		}
-
-		function triggerAll(changes) {
-			names.length = 0;
-			changes.forEach(trigger, map[object]);
-		}
-
-		function setup(object) {
-			var properties = map[object] = {};
-			Object.observe(object, triggerAll, types);
-			return properties;
-		}
-
-		function teardown(object) {
-			Object.unobserve(object, triggerAll);
-		}
-
-		Sparky.observe = function(object, property, fn) {
-			var properties = map[object] || setup(object);
-			var fns = properties[property] || (properties[property] = []);
-			fns.push(fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (!map[object]) { return; }
-
-			var properties = map[object];
-			var fns = properties[property];
-
-			if (!fns) { return; }
-
-			var n = fns.length;
-
-			while (n--) { fns.splice(n, 1); }
-
-			if (fns.length === 0) {
-				delete properties[property];
-
-				if (Object.keys[properties].length === 0) {
-					teardown(object);
-				}
-			}
-		};
-	} : function(Sparky) {
-		Sparky.observe = function(object, property, fn) {
-			// AudioParams objects must be polled, as they cannot be reconfigured
-			// to getters/setters, nor can they be Object.observed. And they fail
-			// to do both of those completely silently. So we test the scope to see
-			// if it is an AudioParam and set the observe and unobserve functions
-			// to poll.
-			if (isAudioParam(object)) {
-				return poll(object, property, fn);
-			}
-
-			if (property === 'length') {
-				// Observe length and update the DOM on next
-				// animation frame if it changes.
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-
-				if (!descriptor.get && !descriptor.configurable) {
-					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
-					console.trace && console.trace();
-					return poll(object, property, fn);
-				}
-			}
-
-			return observe(object, property, fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (isAudioParam(object)) {
-				return unpoll(object, property, fn);
-			}
-
-			if (property === 'length') {
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-				if (!descriptor.get && !descriptor.configurable) {
-					return unpoll(object, property, fn);
-				}
-			}
-	
-			return unobserve(object, property, fn);
-		};
-	})(Sparky)
-})(Sparky);
-
-
-// Sparky.Throttle(fn)
-
-(function() {
-	"use strict";
-
-	function noop() {}
-
-	function Throttle(fn) {
-		var queued, context, args;
-
-		function update() {
-			queued = false;
-			fn.apply(context, args);
-		}
-
-		function cancel() {
-			// Don't permit further changes to be queued
-			queue = noop;
-
-			// If there is an update queued apply it now
-			if (queued) { update(); }
-
-			// Make the queued update do nothing
-			fn = noop;
-		}
-
-		function queue() {
-			// Don't queue update if it's already queued
-			if (queued) { return; }
-
-			// Queue update
-			window.requestAnimationFrame(update);
-			queued = true;
-		}
-
-		function throttle() {
-			// Store the latest context and arguments
-			context = this;
-			args = arguments;
-
-			// Queue the update
-			queue();
-		}
-
-		throttle.cancel = cancel;
-		update();
-
-		return throttle;
-	}
-
-	Sparky.Throttle = Throttle;
 })(Sparky);
 
 
