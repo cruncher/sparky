@@ -14,15 +14,14 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'src/jquery-2.1.1.js',
-      'src/object.assign.js',
+      'modules/object.assing/object.assign.js',
       'src/number.isnan.js',
       'src/math.log10.js',
       'src/window.customevent.js',
       'src/window.requestanimationframe.js',
       'src/observe.js',
-      'src/mixin.array.js',
       'src/mixin.events.js',
-      'src/collection.js',
+      'modules/collection/js/collection.js',
       'src/sparky.js',
       'src/sparky.dom.js',
       'src/sparky.observe.js',
@@ -40,7 +39,7 @@ module.exports = function(config) {
 
     // list of files to exclude
     exclude: [
-      
+
     ],
 
     // preprocess matching files before serving them to the browser

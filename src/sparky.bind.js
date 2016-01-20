@@ -255,9 +255,9 @@
 		if (!classes) { return; }
 
 		// Remove tags and store them
-		rclasstags.lastIndex = 0;
+		Sparky.rclasstags.lastIndex = 0;
 		var tags = [];
-		var text = classes.replace(rclasstags, function($0) {
+		var text = classes.replace(Sparky.rclasstags, function($0) {
 			tags.push($0);
 			return '';
 		});
@@ -364,7 +364,7 @@
 				i = dead.indexOf($2);
 				if (i !== -1) { dead.splice(i, 1); }
 			}
-			
+
 			// It's a dead tag, check if it's in dead and if not stick
 			// it in there.
 			else if (dead.indexOf($2) === -1) {
@@ -460,8 +460,13 @@
 
 	assign(Sparky, {
 		attributes: attributes,
+
+		// Todo: We expose these regexes so we can change tag delimiters. Find
+		// a better way to declare just the tag delimiters without exposing
+		// these regexes.
 		rtags: rtags,
-		rspaces: rspaces
+		rspaces: rspaces,
+		rclasstags: rclasstags
 	});
 
 	assign(Sparky.prototype, {
@@ -750,8 +755,19 @@
 	assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
-		'value-number':         valueNumberCtrl,
-		'value-number-integer': valueIntegerCtrl,
+
+		'value-number':         function(argument) {
+			console.warn('Sparky: value-number controller is renamed to value-float (or value-int).');
+			return valueNumberCtrl.apply(this, arguments);
+		},
+
+		'value-number-invert':         function(argument) {
+			console.warn('Sparky: value-number-invert controller is renamed to value-float-invert (or value-int-invert).');
+			return valueNumberInvertCtrl.apply(this, arguments);
+		},
+
+		'value-float':          valueNumberCtrl,
+		'value-int':            valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl

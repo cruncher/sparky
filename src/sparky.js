@@ -7,16 +7,16 @@
 })(this);
 
 // Sparky
-// 
+//
 // Reads data attributes in the DOM to bind dynamic data to
 // controllers.
-// 
+//
 // Views
-// 
+//
 // <div data-ctrl="name" data-scope="path.to.data">
 //     <h1>Hello world</h1>
 // </div>
-// 
+//
 // Where 'name' is the key of a view function in
 // Sparky.ctrl and path.to.data points to an object
 // in Sparky.data.
@@ -27,10 +27,12 @@
 
 	var empty = [];
 
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
+	//var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
-	// Check whether a path begins with '.' or '['
-	var rrelativepath = /^\.|^\[/;
+	// Check whether a path begins with '.' or '[', but not '..' or '[[', now
+	// that we are able to redefine tag delimiters. Todo: when you sort out tag
+	// delimiters clean this crap up.
+	var rrelativepath = /^\.[^\.]|^\[[^\[]/;
 
 	var prototype = Object.assign({
 		create: function() {},
@@ -102,7 +104,7 @@
 
 	function findByPath(obj, path) {
 		if (!isDefined(obj) || !isDefined(path)) { return; }
-		
+
 		return path === '.' ?
 			obj :
 			Sparky.get(obj, path) ;
@@ -232,7 +234,7 @@
 			return;
 		}
 
-		// data-scope="path.to.data"
+		// data-scope=".path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -245,10 +247,10 @@
 		}
 
 		// data-scope="{{path.to.data}}"
-		rtag.lastIndex = 0;
-		if (rtag.test(path)) {
-			rtag.lastIndex = 0;
-			var path1 = rtag.exec(path)[1];
+		Sparky.rtags.lastIndex = 0;
+		if (Sparky.rtags.test(path)) {
+			Sparky.rtags.lastIndex = 0;
+			var path1 = Sparky.rtags.exec(path)[2];
 
 			data = findByPath(scope, path1);
 
@@ -297,19 +299,19 @@
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky));
+		slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
-		var templateFragment = templateId && fetchTemplate(templateId);
+		var templateFragment = templateId && Sparky.template(templateId);
 		var scope, timer;
 
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				dom.empty(node);
-				dom.append(node, templateFragment);
+				Sparky.dom.empty(node);
+				Sparky.dom.append(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
@@ -483,7 +485,7 @@
 
 		// If node is a string, assume it is the id of a template,
 		// and if it is not a template, assume it is the id of a
-		// node in the DOM. 
+		// node in the DOM.
 		if (typeof node === 'string') {
 			id = node;
 			node = Sparky.template(id);
@@ -506,7 +508,7 @@
 		// method.
 		if (!isDefined(model) && node.getAttribute) {
 			modelPath = node.getAttribute('data-scope');
-			
+
 			if (isDefined(modelPath)) {
 				model = findByPath(Sparky.data, modelPath);
 
@@ -537,7 +539,7 @@
 		var sparky = Object.create(prototype);
 
 		Object.defineProperties(sparky, {
-			data: { value: Object.create(parent ? parent.data : Sparky.data) },
+			data: { value: Object.create(parent ? parent.data : Sparky.data), writable: true },
 			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
 		});
 
@@ -559,7 +561,6 @@
 	// Expose
 
 	Sparky.debug    = false;
-	Sparky.config   = {};
 	Sparky.settings = {};
 	Sparky.data     = {};
 	Sparky.ctrl     = {};
@@ -578,6 +579,6 @@
 	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
 	Sparky.xlink        = "http://www.w3.org/1999/xlink";
 	Sparky.prototype    = prototype;
- 
+
 	window.Sparky = Sparky;
 })(window);
