@@ -1,79 +1,10 @@
-// Object.assign polyfill
-// http://github.com/cruncher/object.assign
-//
-// Object.assign(target, source1, source2, ...)
-//
-// All own enumerable properties are copied from the source
-// objects to the target object.
-
-Object.assign || (function(Object) {
-	"use strict";
-
-	function isDefined(val) {
-		return val !== undefined && val !== null;
-	}
-
-	function ownPropertyKeys(object) {
-		var keys = Object.keys(object);
-		var symbols, n, descriptor;
-
-		if (Object.getOwnPropertySymbols) {
-			symbols = Object.getOwnPropertySymbols(object);
-			n = symbols.length;
-
-			while (n--) {
-				descriptor = Object.getOwnPropertyDescriptor(object, symbols[n]);
-
-				if (descriptor.enumerable) {
-					keys.push(symbol);
-				}
-			}
-		}
-
-		return keys;
-	}
-
-	Object.defineProperty(Object, 'assign', {
-		value: function (target) {
-			if (!isDefined(target)) {
-				throw new TypeError('Object.assign: First argument ' + target + ' cannot be converted to object.');
-			}
-
-			var object = Object(target);
-			var n, source, keys, key, k;
-
-			for (n = 1; n < arguments.length; n++) {
-				source = arguments[n];
-
-				// Ignore any undefined sources
-				if (!isDefined(source)) { continue; }
-
-				// Get own enumerable keys and symbols
-				keys = ownPropertyKeys(Object(source));
-				k = keys.length;
-
-				// Copy key/values to target object
-				while (k--) {
-					key = keys[k];
-					object[key] = source[key];
-				}
-			}
-
-			return object;
-		},
-
-		configurable: true,
-		writable: true
-	});
-})(Object);
-
 
 // Number.isNaN(n) polyfill
 
 if (!Number.isNaN) {
 	(function(globalIsNaN) {
 		"use strict";
-
+	
 		Object.defineProperty(Number, 'isNaN', {
 			value: function isNaN(value) {
 				return typeof value === 'number' && globalIsNaN(value);
@@ -99,13 +30,13 @@ if (!Math.log10) {
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
-
+		
 		var e = document.createEvent('CustomEvent');
 		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-
+		
 		return e;
 	};
-
+	
 	window.CustomEvent.prototype = window.Event.prototype;
 })(window);
 
@@ -136,34 +67,6 @@ if (!Math.log10) {
 		};
 	}
 })(window);
-
-
-// mixin.array
-
-(function(ns, undefined) {
-	"use strict";
-
-	var mixin = ns.mixin || (ns.mixin = {});
-
-	mixin.array = {
-		filter:  Array.prototype.filter,
-		map:     Array.prototype.map,
-		reduce:  Array.prototype.reduce,
-		pop:     Array.prototype.pop,
-		push:    Array.prototype.push,
-		concat:  Array.prototype.concat,
-		sort:    Array.prototype.sort,
-		slice:   Array.prototype.slice,
-		splice:  Array.prototype.splice,
-		some:    Array.prototype.some,
-		indexOf: Array.prototype.indexOf,
-		forEach: Array.prototype.forEach,
-		each: function each() {
-			Array.prototype.forEach.apply(this, arguments);
-			return this;
-		}
-	};
-})(this);
 
 
 // mixin.listeners
@@ -264,7 +167,7 @@ if (!Math.log10) {
 
 	mixin.events = {
 		// .on(type, fn)
-		//
+		// 
 		// Callback fn is called with this set to the current object
 		// and the arguments (target, triggerArgs..., onArgs...).
 		on: function(types, fn) {
@@ -321,7 +224,7 @@ if (!Math.log10) {
 
 				return this;
 			}
-
+			
 			// If types is an object with a trigger method, stop propagating
 			// events to it.
 			if (arguments.length === 1 && types.trigger) {
@@ -421,7 +324,7 @@ if (!Math.log10) {
 
 // observe(object, [prop], fn)
 // unobserve(object, [prop], [fn])
-//
+// 
 // Observes object properties for changes by redefining
 // properties of the observable object with setters that
 // fire a callback function whenever the property changes.
@@ -558,7 +461,7 @@ if (!Math.log10) {
 			// Although we can get away with observing
 			// get-only properties, as they don't replace
 			// the setter and they require an explicit call
-			// to notify().
+			// to notify(). 
 			if (descriptor.get && !descriptor.set) {
 				descriptor.get.observers = observers;
 			}
@@ -609,7 +512,7 @@ if (!Math.log10) {
 			fn = prop;
 			args = slice(arguments, 0);
 			args.splice(1, 0, null);
-
+			
 			for (property in object) {
 				args[1] = property;
 				observeProperty.apply(null, args);
@@ -620,7 +523,7 @@ if (!Math.log10) {
 
 		observeProperty.apply(null, arguments);
 	}
-
+	
 	function unobserve(object, property, fn) {
 		var index;
 
@@ -660,553 +563,6 @@ if (!Math.log10) {
 	window.notify = notify;
 })(window);
 
-
-// Collection()
-
-(function(window) {
-	"use strict";
-
-	var observe   = window.observe;
-	var unobserve = window.unobserve;
-	var mixin     = window.mixin;
-	var assign    = Object.assign;
-
-	var debug = false;
-
-	var defaults = { index: 'id' };
-
-
-	// Utils
-
-	function returnUndefined() { return; }
-
-	function returnThis() { return this; }
-
-	function returnArgument(arg) { return arg; }
-
-	function isDefined(val) {
-		return val !== undefined && val !== null;
-	}
-
-	// Each functions
-
-	function setValue(value, i) {
-		this[i] = value;
-	}
-
-	// Sort functions
-
-	function byGreater(a, b) {
-		return a > b ? 1 : -1 ;
-	}
-
-	// Collection functions
-
-	function findByIndex(collection, id) {
-		var index = collection.index;
-		var n = -1;
-		var l = collection.length;
-
-		while (++n < l) {
-			if (collection[n][index] === id) {
-				return collection[n];
-			}
-		}
-	}
-
-	function queryObject(object, query, keys) {
-		// Optionally pass in keys to avoid having to get them repeatedly.
-		keys = keys || Object.keys(query);
-
-		var k = keys.length;
-		var key;
-
-		while (k--) {
-			key = keys[k];
-
-			// Test equality first, allowing the querying of
-			// collections of functions or regexes.
-			if (object[key] === query[key]) {
-				continue;
-			}
-
-			// Test function
-			if (typeof query[key] === 'function' && query[key](object, key)) {
-				continue;
-			}
-
-			// Test regex
-			if (query[key] instanceof RegExp && query[key].test(object[key])) {
-				continue;
-			}
-
-			return false;
-		}
-
-		return true;
-	}
-
-	function queryByObject(collection, query) {
-		var keys = Object.keys(query);
-
-		// Match properties of query against objects in the collection.
-		return keys.length === 0 ?
-			collection.slice() :
-			collection.filter(function(object) {
-				return queryObject(object, query, keys);
-			}) ;
-	}
-
-	function push(collection, object) {
-		Array.prototype.push.call(collection, object);
-		collection.trigger('add', object);
-	}
-
-	function splice(collection, i, n) {
-		var removed = Array.prototype.splice.call.apply(Array.prototype.splice, arguments);
-		var r = removed.length;
-		var added = Array.prototype.slice.call(arguments, 3);
-		var l = added.length;
-		var a = -1;
-
-		while (r--) {
-			collection.trigger('remove', removed[r], i + r);
-		}
-
-		while (++a < l) {
-			collection.trigger('add', added[a], a);
-		}
-
-		return removed;
-	}
-
-	function add(collection, object) {
-		// Add an item, keeping the collection sorted by id.
-		var index = collection.index;
-
-		// If the object does not have an index key...
-		if (!isDefined(object[index])) {
-			// ...check that it is not already in the
-			// collection before pushing it in.
-			if (collection.indexOf(object) === -1) {
-				push(collection, object);
-			}
-
-			return;
-		}
-
-		// Insert the object in the correct index. TODO: we
-		// should use the sort function for this!
-		var l = collection.length;
-		while (collection[--l] && (collection[l][index] > object[index] || !isDefined(collection[l][index])));
-		splice(collection, l + 1, 0, object);
-	}
-
-	function remove(collection, obj, i) {
-		if (i === undefined) { i = -1; }
-
-		while (++i < collection.length) {
-			if (obj === collection[i] || obj === collection[i][collection.index]) {
-				splice(collection, i, 1);
-				--i;
-			}
-		}
-	}
-
-	function update(collection, obj) {
-		var item = collection.find(obj);
-
-		if (item) {
-			assign(item, obj);
-			collection.trigger('update', item);
-		}
-		else {
-			add(collection, obj);
-		}
-	}
-
-	function callEach(fn, collection, objects) {
-		var l = objects.length;
-		var n = -1;
-
-		while (++n < l) {
-			fn.call(null, collection, objects[n]);
-		}
-	}
-
-	function overloadByLength(map) {
-		return function distribute() {
-			var length = arguments.length;
-			var fn = map[length] || map.default;
-
-			if (fn) {
-				return fn.apply(this, arguments);
-			}
-
-			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
-			return this;
-		}
-	}
-
-	function isCollection(object) {
-		return Collection.prototype.isPrototypeOf(object) ||
-			SubCollection.prototype.isPrototypeOf(object);
-	}
-
-	function createLengthObserver(collection) {
-		var length = collection.length;
-
-		return function lengthObserver() {
-			var object;
-
-			while (length-- > collection.length) {
-				object = collection[length];
-
-				// The length may have changed due to a splice or remove, in
-				// which case there will be no object at this index, but if
-				// there was, let's trigger it's demise.
-				if (object !== undefined) {
-					delete collection[length];
-					collection.trigger('remove', object, length);
-				}
-			}
-
-			length = collection.length;
-		};
-	}
-
-	function Collection(array, settings) {
-		if (this === undefined || this === window) {
-			// If this is undefined the constructor has been called without the
-			// new keyword, or without a context applied. Do that now.
-			return new Collection(array, settings);
-		}
-
-		// Handle the call signature Collection(settings)
-		if (!(array instanceof Array)) {
-			settings = array;
-			array = [];
-		}
-
-		var collection = this;
-		var options = assign({}, defaults, settings);
-
-		function byIndex(a, b) {
-			// Sort collection by index.
-			return a[collection.index] > b[collection.index] ? 1 : -1 ;
-		}
-
-		Object.defineProperties(collection, {
-			length: { value: 0, writable: true, configurable: true },
-			index: { value: options.index },
-			sort:  {
-				value: function sort(fn) {
-					// Collections get sorted by index by default, or by a function
-					// passed into options, or passed into the .sort(fn) call.
-					return Array.prototype.sort.call(this, fn || options.sort || byIndex);
-				}
-			}
-		});
-
-		// Populate the collection
-		assign(collection, array);
-		collection.length = array.length;
-
-		// Sort the collection
-		//collection.sort();
-
-		// Watch the length and delete indexes when the
-		// length becomes shorter like a nice array does.
-		observe(collection, 'length', createLengthObserver(collection));
-	};
-
-	assign(Collection.prototype, mixin.events, mixin.array, {
-		add: overloadByLength({
-			0: returnThis,
-
-			"default": function addArgs() {
-				callEach(add, this, arguments);
-				return this;
-			}
-		}),
-
-		remove: overloadByLength({
-			0: function removeAll() {
-				while (this.length) { this.pop(); }
-				return this;
-			},
-
-			"default": function removeArgs() {
-				callEach(remove, this, arguments);
-				return this;
-			}
-		}),
-
-		push: function() {
-			callEach(push, this, arguments);
-			return this;
-		},
-
-		pop: function() {
-			var object = this[this.length - 1];
-			--this.length;
-			return object;
-		},
-
-		splice: function() {
-			Array.prototype.unshift.call(arguments, this);
-			return splice.apply(this, arguments);
-		},
-
-		update: function() {
-			callEach(update, this, arguments);
-			return this;
-		},
-
-		find: overloadByLength({
-			0: returnUndefined,
-
-			1: function findObject(object) {
-				// Fast out. If object in collection, return it.
-				if (this.indexOf(object) > -1) { return object; }
-
-				// Otherwise find by index.
-				var index = this.index;
-
-				// Return the first object with matching key.
-				return typeof object === 'string' || typeof object === 'number' || object === undefined ?
-					findByIndex(this, object) :
-					findByIndex(this, object[index]) ;
-			}
-		}),
-
-		query: function(object) {
-			// query() is gauranteed to return an array.
-			return object ?
-				queryByObject(this, object) :
-				[] ;
-		},
-
-		contains: function(object) {
-			return this.indexOf(object) !== -1;
-		},
-
-		get: function(property) {
-			// Get the value of a property of all the objects in
-			// the collection if they all have the same value.
-			// Otherwise return undefined.
-
-			var n = this.length;
-
-			if (n === 0) { return; }
-
-			while (--n) {
-				if (this[n][property] !== this[n - 1][property]) { return; }
-			}
-
-			return this[n][property];
-		},
-
-		set: function(property, value) {
-			// Set a property on every object in the collection.
-
-			if (arguments.length !== 2) {
-				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
-			}
-
-			var n = this.length;
-			while (n--) { this[n][property] = value; }
-			return this;
-		},
-
-		toJSON: function() {
-			// Convert to array.
-			return Array.prototype.slice.apply(this);
-		},
-
-		toObject: function(key) {
-			// Convert to object, using a keyed value on
-			// each object as map keys.
-			key = key || this.index;
-
-			var object = {};
-			var prop, type;
-
-			while (n--) {
-				prop = this[n][key];
-				type = typeof prop;
-
-				if (type === 'string' || type === 'number' && prop > -Infinity && prop < Infinity) {
-					object[prop] = this[n];
-				}
-				else {
-					console.warn('Collection: toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
-				}
-			}
-
-			return object;
-		},
-
-		sub: function(query, settings) {
-			return new SubCollection(this, query, settings);
-		}
-	});
-
-	function SubCollection(collection, query, settings) {
-		// TODO: Clean up SubCollection
-
-		var options = assign({ sort: sort }, settings);
-		var keys = Object.keys(query);
-		var echo = true;
-		var subset = this;
-
-		function sort(o1, o2) {
-			// Keep the subset ordered as the collection
-			var i1 = collection.indexOf(o1);
-			var i2 = collection.indexOf(o2);
-			return i1 > i2 ? 1 : -1 ;
-		}
-
-		function update(object) {
-			var i = subset.indexOf(object);
-
-			echo = false;
-
-			if (queryObject(object, query, keys)) {
-				if (i === -1) {
-					// Keep subset is sorted with default sort fn,
-					// splice object into position
-					if (options.sort === sort) {
-						var i1 = collection.indexOf(object) ;
-						var n = i1;
-						var o2, i2;
-
-						while (n--) {
-							o2 = collection[n];
-							i2 = subset.indexOf(o2);
-							if (i2 > -1 && i2 < i1) { break; }
-						}
-
-						subset.splice(i2 + 1, 0, object);
-					}
-					else {
-						subset.add(object);
-					}
-
-					subset.on('add', subsetAdd);
-				}
-			}
-			else {
-				if (i !== -1) {
-					subset.remove(object);
-				}
-			}
-
-			echo = true;
-		}
-
-		function add(collection, object) {
-			var n = keys.length;
-			var key;
-
-			// Observe keys of this object that might affect
-			// it's right to remain in the subset
-			while (n--) {
-				key = keys[n];
-				observe(object, key, update);
-			}
-
-			update(object);
-		}
-
-		function remove(collection, object) {
-			var n = keys.length;
-			var key;
-
-			while (n--) {
-				key = keys[n];
-				unobserve(object, key, update);
-			}
-
-			var i = subset.indexOf(object);
-
-			if (i > -1) {
-				echo = false;
-				subset.splice(i, 1);
-				echo = true;
-			}
-		}
-
-		function destroy(collection) {
-			collection.forEach(function(object) {
-				remove(collection, object);
-			});
-
-			subset
-			.off('add', subsetAdd)
-			.off('remove', subsetRemove);
-		}
-
-		function subsetAdd(subset, object) {
-			if (!echo) { return; }
-			collection.add(object);
-		}
-
-		function subsetRemove(subset, object) {
-			if (!echo) { return; }
-			collection.remove(object);
-		}
-
-		// Initialise as collection.
-		Collection.call(this, options);
-
-		// Observe the collection to update the subset
-		collection
-		.on('add', add)
-		.on('remove', remove)
-		.on('destroy', destroy);
-
-		// Initialise existing object in collection and echo
-		// subset add and remove operations to collection.
-		if (collection.length) {
-			collection.forEach(function(object) {
-				add(collection, object);
-			});
-		}
-		else {
-			subset
-			.on('add', subsetAdd)
-			.on('remove', subsetRemove);
-		}
-
-		subset.destroy = function() {
-			// Lots of unbinding
-			destroy(collection);
-
-			collection
-			.off('add', add)
-			.off('remove', remove)
-			.off('destroy', destroy);
-
-			subset.off();
-		};
-
-		this.synchronise = function() {
-			// Force a sync from code that only has access
-			// to the subset.
-			this.forEach(update);
-		};
-	}
-
-	assign(SubCollection.prototype, Collection.prototype);
-
-	Collection.add = add;
-	Collection.remove = remove;
-	Collection.isCollection = isCollection;
-
-	window.Collection = Collection;
-})(this);
-
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
 
@@ -1236,10 +592,12 @@ if (!Math.log10) {
 
 	var empty = [];
 
-	var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
+	//var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
 
-	// Check whether a path begins with '.' or '['
-	var rrelativepath = /^\.|^\[/;
+	// Check whether a path begins with '.' or '[', but not '..' or '[[', now
+	// that we are able to redefine tag delimiters. Todo: when you sort out tag
+	// delimiters clean this crap up.
+	var rrelativepath = /^\.[^\.]|^\[[^\[]/;
 
 	var prototype = Object.assign({
 		create: function() {},
@@ -1441,7 +799,7 @@ if (!Math.log10) {
 			return;
 		}
 
-		// data-scope="path.to.data"
+		// data-scope=".path.to.data"
 		if (rrelativepath.test(path)) {
 			data = findByPath(model, path.replace(rrelativepath, ''));
 
@@ -1454,10 +812,10 @@ if (!Math.log10) {
 		}
 
 		// data-scope="{{path.to.data}}"
-		rtag.lastIndex = 0;
-		if (rtag.test(path)) {
-			rtag.lastIndex = 0;
-			var path1 = rtag.exec(path)[1];
+		Sparky.rtags.lastIndex = 0;
+		if (Sparky.rtags.test(path)) {
+			Sparky.rtags.lastIndex = 0;
+			var path1 = Sparky.rtags.exec(path)[2];
 
 			data = findByPath(scope, path1);
 
@@ -1506,19 +864,19 @@ if (!Math.log10) {
 			return;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(Sparky.data, path), undefined, undefined, sparky));
+		slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
 		var templateId = node.getAttribute && node.getAttribute('data-template');
-		var templateFragment = templateId && fetchTemplate(templateId);
+		var templateFragment = templateId && Sparky.template(templateId);
 		var scope, timer;
 
 		function insertTemplate(sparky, node, templateFragment) {
 			// Wait until the scope is rendered on the next animation frame
 			requestAnimationFrame(function() {
-				dom.empty(node);
-				dom.append(node, templateFragment);
+				Sparky.dom.empty(node);
+				Sparky.dom.append(node, templateFragment);
 				sparky.trigger('template', node);
 			});
 		}
@@ -1746,7 +1104,7 @@ if (!Math.log10) {
 		var sparky = Object.create(prototype);
 
 		Object.defineProperties(sparky, {
-			data: { value: Object.create(parent ? parent.data : Sparky.data) },
+			data: { value: Object.create(parent ? parent.data : Sparky.data), writable: true },
 			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
 		});
 
@@ -1768,7 +1126,6 @@ if (!Math.log10) {
 	// Expose
 
 	Sparky.debug    = false;
-	Sparky.config   = {};
 	Sparky.settings = {};
 	Sparky.data     = {};
 	Sparky.ctrl     = {};
@@ -1926,11 +1283,11 @@ if (!Math.log10) {
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-
+	
 	function insertBefore(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target);
 	}
-
+	
 	function insertAfter(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
@@ -1954,7 +1311,7 @@ if (!Math.log10) {
 		empty:     empty,
 		remove:    remove,
 		closest:   closest,
-		matches:   matches,
+		matches:   matches,  
 		classes:   getClassList,
 		style:     getStyle,
 		getClass:  getClass,
@@ -1986,7 +1343,7 @@ if (!Math.log10) {
 			return fragmentFromContent(node);
 		}
 		else {
-			// In browsers where templates are not inert, ids used inside them
+			// In browsers where templates are not inert, ids used inside them 
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
@@ -2347,9 +1704,9 @@ if (!Math.log10) {
 		if (!classes) { return; }
 
 		// Remove tags and store them
-		rclasstags.lastIndex = 0;
+		Sparky.rclasstags.lastIndex = 0;
 		var tags = [];
-		var text = classes.replace(rclasstags, function($0) {
+		var text = classes.replace(Sparky.rclasstags, function($0) {
 			tags.push($0);
 			return '';
 		});
@@ -2552,8 +1909,13 @@ if (!Math.log10) {
 
 	assign(Sparky, {
 		attributes: attributes,
+
+		// Todo: We expose these regexes so we can change tag delimiters. Find
+		// a better way to declare just the tag delimiters without exposing
+		// these regexes.
 		rtags: rtags,
-		rspaces: rspaces
+		rspaces: rspaces,
+		rclasstags: rclasstags
 	});
 
 	assign(Sparky.prototype, {
@@ -2803,6 +2165,11 @@ if (!Math.log10) {
 		if (unbind) { this.on('destroy', unbind); }
 	}
 
+	function valueIntegerCtrl(node, model) {
+		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
 	function valueBooleanCtrl(node, model) {
 		var type = node.type;
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
@@ -2837,13 +2204,19 @@ if (!Math.log10) {
 	assign(Sparky.ctrl, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
-		'value-number':         valueNumberCtrl,
 
-		"value-integer": function(node, model) {
-			var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-			if (unbind) { this.on('destroy', unbind); }
+		'value-number':         function(argument) {
+			console.warn('Sparky: value-number controller is renamed to value-float (or value-int).');
+			return valueNumberCtrl.apply(this, arguments);
 		},
 
+		'value-number-invert':         function(argument) {
+			console.warn('Sparky: value-number-invert controller is renamed to value-float-invert (or value-int-invert).');
+			return valueNumberInvertCtrl.apply(this, arguments);
+		},
+
+		'value-float':          valueNumberCtrl,
+		'value-int':            valueIntegerCtrl,
 		'value-number-invert':  valueNumberInvertCtrl,
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl
@@ -2886,7 +2259,7 @@ if (!Math.log10) {
 
 	function objTo(root, array, obj) {
 		var key = array[0];
-
+		
 		return array.length > 1 ?
 			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
 			(root[key] = obj) ;
@@ -3014,7 +2387,7 @@ if (!Math.log10) {
 
 	function getPath(obj, path) {
 		var array = splitPath(path);
-
+		
 		return array.length === 1 ?
 			obj[path] :
 			objFrom(obj, array) ;
@@ -3052,7 +2425,7 @@ if (!Math.log10) {
 				fn();
 			}
 
-			if (!active) { return; }
+			if (!active) { return; } 
 
 			window.requestAnimationFrame(frame);
 		};
@@ -3072,7 +2445,7 @@ if (!Math.log10) {
 		unpollers.push([object, property, fn, Poll(object, property, fn)]);
 		return object;
 	}
-
+	
 	function unpoll(object, property, fn) {
 		var n = unpollers.length;
 		var unpoller;
@@ -3193,7 +2566,7 @@ if (!Math.log10) {
 					return unpoll(object, property, fn);
 				}
 			}
-
+	
 			return unobserve(object, property, fn);
 		};
 	})(Sparky)
@@ -3340,6 +2713,39 @@ if (!Math.log10) {
 		this.on('destroy', unbind);
 	};
 
+	Sparky.ctrl['value-int-log'] = function(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
+		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
+		var ratio = max / min;
+
+		if (min <= 0) {
+			console.warn('Sparky: ctrl "value-int-log" cannot accept a min attribute of 0 or lower.', node);
+			return;
+		}
+
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			var n = denormalise(Math.log(Math.round(value) / min) / Math.log(ratio), min, max);
+			return n + '';
+		}
+
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			return Math.round(min * Math.pow(ratio, normalise(n, min, max)));
+		}
+
+		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+
+		this.on('destroy', unbind);
+	};
+
+
+
+
+
+
+
 	Sparky.ctrl['value-pow-2'] = function() {
 		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
 	};
@@ -3393,11 +2799,14 @@ if (!Math.log10) {
 (function() {
 	"use strict";
 
-	var n = 0;
-
 	Sparky.ctrl['log'] = function(node, scope) {
-		console.log('node: ', node);
-		console.log('scope:', scope);
+		console.group('Sparky.ctrl.log:');
+		console.log('node:  ', node);
+		console.log('scope: ', scope);
+		console.log('data:  ', this.data);
+		console.log('ctrl:  ', this.ctrl);
+		console.log('sparky:', this);
+		console.groupEnd();
 	};
 
 	Sparky.ctrl['log-events'] = function(node, model) {
@@ -3407,13 +2816,13 @@ if (!Math.log10) {
 
 		this
 		.on('ready', function() {
-			console.log('READY', ready++, node);
+			console.log('Sparky.ctrl.log-events: READY  ', ready++, node);
 		})
 		.on('insert', function() {
-			console.log('INSERT', insert++, node);
+			console.log('Sparky.ctrl.log-events: INSERT ', insert++, node);
 		})
 		.on('destroy', function() {
-			console.log('DESTROY', destroy++, node);
+			console.log('Sparky.ctrl.log-events: DESTROY', destroy++, node);
 		});
 	};
 })();
@@ -3616,7 +3025,7 @@ if (!Math.log10) {
 			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound3ToString, stringToNumber);
 			if (unbind) { this.on('destroy', unbind); }
 		}
-	}); 
+	});
 })();
 
 
@@ -3633,7 +3042,7 @@ if (!Math.log10) {
 				dom.classes(this[0]).remove('hidden');
 			});
 		}
-	}); 
+	});
 })(this);
 
 
@@ -3842,7 +3251,7 @@ if (!Math.log10) {
 				!isDefined(value) ? '' :
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		},
-		
+
 		floor: function(value) {
 			return Math.floor(value);
 		},
@@ -3857,6 +3266,10 @@ if (!Math.log10) {
 
 		invert: function(value) {
 			return 1 / value;
+		},
+
+		is: function(value, val, string1, string2) {
+			return (value === val ? string1 : string2) || '';
 		},
 
 		join: function(value, string) {
@@ -3899,14 +3312,10 @@ if (!Math.log10) {
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-<<<<<<< HEAD
 		mod: function(value, n) {
 			if (typeof value !== 'number') { return; }
 			return value % n;
 		},
-=======
-		//make_list
->>>>>>> 703be042fefba32306e0927ed837b6d45afca72f
 
 		multiply: function(value, n) {
 			return value * n;
