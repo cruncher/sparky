@@ -1,0 +1,12 @@
+{
+  "env": {
+    "browser": 1
+  },
+
+  "globals": {
+    "Collection": 1,
+    "Sparky": 1,
+    "jQuery": 1,
+    "mixin": 1
+  }
+}
