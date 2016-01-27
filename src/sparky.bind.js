@@ -212,10 +212,11 @@
 			child = nodes[n];
 
 			// Don't bind child nodes that have their own Sparky controllers.
-			if (child.getAttribute &&
-			   (isDefined(child.getAttribute('data-ctrl')) ||
-			    isDefined(child.getAttribute('data-scope')))) {
-				//create(child);
+			if (child.getAttribute && (
+				isDefined(child.getAttribute('data-ctrl')) ||
+			    isDefined(child.getAttribute('data-scope')) ||
+			    isDefined(child.getAttribute('data-template'))
+			)) {
 				sparky = create(child);
 				unobservers.push(sparky.destroy.bind(sparky));
 			}
@@ -451,7 +452,6 @@
 		}
 
 		this.unbind = function unbind() {
-console.log(unobservers);
 			unobservers.forEach(call);
 			return this;
 		};

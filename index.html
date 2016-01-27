@@ -123,11 +123,16 @@
 	</div>
 
 
-
+	<template id="parp">
+		Template content.
+	</template>
 
 	<div data-scope="test-model">
-		<p data-scope="test-model-1">{{property}}</p>
-		<p data-scope="test-model-2">{{property}}</p>
+		<!--p data-scope="test-model-1" data-template="parp">You cant't see this.</p-->
+		<p data-scope="test-model-2">
+			<small data-template="parp">You can't see this.</small>
+			You can see this.
+		</p>
 	</div>
 
 
@@ -158,14 +163,14 @@ var model  = Sparky.data['test-model']   = {};
 var model1 = Sparky.data['test-model-1'] = {};
 var model2 = Sparky.data['test-model-2'] = {};
 var div2 = document.body.querySelector('[data-scope="test-model"]');
-var p5   = document.body.querySelector('[data-scope="test-model-1"]');
+//var p5   = document.body.querySelector('[data-scope="test-model-1"]');
 var sparky = Sparky(div2);
 
 model1.property = 'Value 1';
-sparky.destroy();
-model1.property = 'Value 2';
+//sparky.destroy();
+//model1.property = 'Value 2';
 
-console.log(p5, p5.innerHTML);
+//console.log(p5, p5.innerHTML);
 </script>
 
 </body>
