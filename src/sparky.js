@@ -65,7 +65,7 @@
 		slave: function(node, scope, ctrl) {
 			return Sparky(node, scope, ctrl, undefined, this);
 		}
-	}, window.mixin.events, window.mixin.array);
+	}, window.mixin.events);
 
 
 	// Pure functions
@@ -224,14 +224,12 @@
 			// We know that model is not defined, and we don't want child
 			// sparkies to loop unless explicitly told to do so, so stop
 			// it from looping. TODO: clean up Sparky's looping behaviour.
-			slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky));
-			return;
+			return slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky));
 		}
 
 		// data-scope="."
 		if (path === '.') {
-			slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky));
-			return;
+			return slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky));
 		}
 
 		// data-scope=".path.to.data"
@@ -242,8 +240,7 @@
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
 			}
 
-			slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky));
-			return;
+			return slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky));
 		}
 
 		// data-scope="{{path.to.data}}"
@@ -296,10 +293,10 @@
 				teardown();
 			});
 
-			return;
+			return childSparky;
 		}
 
-		slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
+		return slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -362,7 +359,9 @@
 
 		scope = scope || model || {};
 
-		if (Sparky.debug && templateId) { console.log('Sparky: template:', templateId); }
+		if (templateId) {
+			console.log('Sparky: template:', templateId);
+		}
 
 		function observe(property, fn) {
 			Sparky.observePath(scope, property, fn);
@@ -402,6 +401,13 @@
 		}
 
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
+
+		if (templateFragment) {
+			Sparky.dom.empty(node);
+			Sparky.dom.append(node, templateFragment);
+			sparky.trigger('template', node);
+		}
+
 		sparky.trigger('ready');
 
 		// If this sparky is in the DOM, send the insert event right away.
@@ -472,7 +478,7 @@
 			);
 		}
 
-		// Loop adn data are 'hidden' parameter, used internally.
+		// Loop and data are 'hidden' parameter, used internally.
 		// Everything needs a clean-up. You should consider using
 		// prototypal inheritance to make child sparkies children
 		// of ther parents, instead of doing that for the separate
@@ -530,8 +536,8 @@
 			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl'), parent ? parent.ctrl : Sparky.ctrl) ;
 
 		// Where model is an array or array-like object with a length property,
-		// but not a function, set up Sparky to clone node for every object in
-		// the array.
+		// but not a function (whihc also has length), set up Sparky to clone
+		// node for every object in the array.
 		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
 			return setupCollection(node, model, ctrl, parent);
 		}

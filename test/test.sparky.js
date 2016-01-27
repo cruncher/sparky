@@ -3,7 +3,7 @@ module('Controller', function(fixture) {
 
 	test("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
 		var node = fixture.querySelector('div');
-		
+
 		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
 			ok(model === undefined);
 			return { property: 'peas' };
@@ -15,7 +15,7 @@ module('Controller', function(fixture) {
 
 	test("ctrl passed in as fn parameter and {{tag}} replaced with scope property", function() {
 		var node = fixture.querySelector('div');
-	
+
 		Sparky(node, undefined, function(node, model, sparky) {
 			ok(model === undefined);
 			return { property: 'peas' };
@@ -33,7 +33,7 @@ module('Controller', function(fixture) {
 module('Live tags', function(fixture) {
 	test("{{tag}} is replaced with model property", function() {
 		var node = fixture.querySelector('div');
-		
+
 		Sparky.data['test-model'] = { property: 'juice' };
 		Sparky(node);
 
@@ -186,7 +186,7 @@ module('Child sparky', function(fixture) {
 
 	asyncTest("Tests .destroy() of sparky's children", function(assert) {
 		expect(2);
-		
+
 		// Reset Sparky
 		Sparky.data = {};
 
@@ -203,7 +203,7 @@ module('Child sparky', function(fixture) {
 		model1.property = 'Value 2';
 
 		window.requestAnimationFrame(function() {
-			assert.ok(p5.innerHTML === 'Value 1', "Child successfully destroyed.");
+			assert.ok(p5.innerHTML === 'Value 1', "Child successfully destroyed. " + p5.innerHTML);
 		});
 
 		// Restart QUnit

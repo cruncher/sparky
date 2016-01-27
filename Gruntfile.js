@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
 	grunt.initConfig({
 		concat: {
-			'js/sparky.js': [
+			'package/sparky.js': [
 				'modules/object.assign/object.assign.js',
 				'src/number.isnan.js',
 				'src/math.log10.js',
@@ -26,7 +26,7 @@ module.exports = function(grunt) {
 		uglify: {
 			target: {
 				files: {
-					'js/sparky.min.js': ['js/sparky.js']
+					'package/sparky.min.js': ['package/sparky.js']
 				}
 			},
 			options: {
