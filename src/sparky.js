@@ -353,9 +353,9 @@
 		function observe(property, fn) {
 			Sparky.observePath(scope, property, fn);
 
-			if (templateFragment) {
-				Sparky.observePathOnce(scope, property, insert);
-			}
+			//if (templateFragment) {
+			//	Sparky.observePathOnce(scope, property, insert);
+			//}
 		}
 
 		function unobserve(property, fn) {
@@ -390,8 +390,8 @@
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 
 		if (templateFragment) {
-			//Sparky.dom.empty(node);
-			//Sparky.dom.append(node, templateFragment);
+			Sparky.dom.empty(node);
+			Sparky.dom.append(node, templateFragment);
 			sparky.trigger('template', node);
 		}
 
