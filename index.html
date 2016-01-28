@@ -100,6 +100,7 @@
 			color: white;
 			z-index: 1;
 			position: relative;
+			text-shadow: 0 0 100px #402F20;
 		}
 
 		.inline-h1 + .inline-block {
@@ -122,22 +123,11 @@
 		</div>
 	</div>
 
-
-	<template id="parp">
-		Template content.
-	</template>
-
-	<div data-scope="test-model">
-		<!--p data-scope="test-model-1" data-template="parp">You cant't see this.</p-->
-		<p data-scope="test-model-2">
-			<small data-template="parp">You can't see this.</small>
-			You can see this.
-		</p>
-	</div>
-
-
-
+	<p data-ctrl="boop" data-template="price">100 CHF</p>
+	<!--p data-ctrl="boop">{{price|floatformat:2}} CHF</p-->
 </div>
+
+<template id="price">{{price|floatformat:2}} CHF</template>
 
 <script src="src/jquery-2.1.1.js"></script>
 <script src="modules/object.assign/object.assign.js"></script>
@@ -159,18 +149,28 @@
 <script src="src/sparky.ready.js"></script>
 
 <script>
-var model  = Sparky.data['test-model']   = {};
-var model1 = Sparky.data['test-model-1'] = {};
-var model2 = Sparky.data['test-model-2'] = {};
-var div2 = document.body.querySelector('[data-scope="test-model"]');
+//var model  = Sparky.data['test-model']   = {};
+//var model1 = Sparky.data['test-model-1'] = {};
+//var model2 = Sparky.data['test-model-2'] = {};
+//var div2 = document.body.querySelector('[data-scope="test-model"]');
 //var p5   = document.body.querySelector('[data-scope="test-model-1"]');
-var sparky = Sparky(div2);
+//var sparky = Sparky(div2);
 
-model1.property = 'Value 1';
+//model1.property = 'Value 1';
 //sparky.destroy();
 //model1.property = 'Value 2';
 
 //console.log(p5, p5.innerHTML);
+
+var scope = { price: 50 }
+
+Sparky.ctrl.boop = function() {
+	this.on('destroy unbind remove', function(){
+		console.log('HOI');
+	});
+
+	return scope;
+};
 </script>
 
 </body>

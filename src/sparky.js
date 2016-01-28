@@ -100,16 +100,6 @@
 	}
 
 
-	// Getting and setting
-
-	function findByPath(obj, path) {
-		if (!isDefined(obj) || !isDefined(path)) { return; }
-
-		return path === '.' ?
-			obj :
-			Sparky.get(obj, path) ;
-	}
-
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
@@ -234,7 +224,7 @@
 
 		// data-scope=".path.to.data"
 		if (rrelativepath.test(path)) {
-			data = findByPath(model, path.replace(rrelativepath, ''));
+			data = Sparky.get(model, path.replace(rrelativepath, ''));
 
 			if (!data) {
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
@@ -249,7 +239,7 @@
 			Sparky.rtags.lastIndex = 0;
 			var path1 = Sparky.rtags.exec(path)[2];
 
-			data = findByPath(scope, path1);
+			data = Sparky.get(scope, path1);
 
 			var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
 			var master = node.cloneNode(true);
@@ -296,7 +286,7 @@
 			return childSparky;
 		}
 
-		return slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
+		return slaveSparky(sparky, Sparky(node, Sparky.get(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -319,9 +309,7 @@
 		}
 
 		function get(path) {
-			return path === '.' ?
-				scope :
-				Sparky.get(scope, path) ;
+			return Sparky.get(scope, path);
 		}
 
 		function set(property, value) {
@@ -330,7 +318,6 @@
 
 		function create(node) {
 			var path = node.getAttribute('data-scope');
-
 			return createChild(sparky, node, scope, model, path);
 		}
 
@@ -367,7 +354,7 @@
 			Sparky.observePath(scope, property, fn);
 
 			if (templateFragment) {
-				Sparky.observePath(scope, property, insert);
+				Sparky.observePathOnce(scope, property, insert);
 			}
 		}
 
@@ -403,8 +390,8 @@
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 
 		if (templateFragment) {
-			Sparky.dom.empty(node);
-			Sparky.dom.append(node, templateFragment);
+			//Sparky.dom.empty(node);
+			//Sparky.dom.append(node, templateFragment);
 			sparky.trigger('template', node);
 		}
 
@@ -452,7 +439,7 @@
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = findByPath(ctrls, paths[n]);
+			ctrl = Sparky.get(ctrls, paths[n]);
 
 			if (!ctrl) {
 				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
@@ -516,7 +503,7 @@
 			modelPath = node.getAttribute('data-scope');
 
 			if (isDefined(modelPath)) {
-				model = findByPath(Sparky.data, modelPath);
+				model = Sparky.get(Sparky.data, modelPath);
 
 				if (Sparky.debug && !model) {
 					console.log('Sparky: data-scope="' + modelPath + '" model not found in sparky.data. Path will be observed.' );

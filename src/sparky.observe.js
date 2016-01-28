@@ -32,7 +32,7 @@
 
 	function objTo(root, array, obj) {
 		var key = array[0];
-		
+
 		return array.length > 1 ?
 			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
 			(root[key] = obj) ;
@@ -159,11 +159,9 @@
 	}
 
 	function getPath(obj, path) {
-		var array = splitPath(path);
-		
-		return array.length === 1 ?
-			obj[path] :
-			objFrom(obj, array) ;
+		return path === '.' ?
+			obj :
+			objFrom(obj, splitPath(path)) ;
 	}
 
 	function setPath(root, path, obj) {
@@ -198,7 +196,7 @@
 				fn();
 			}
 
-			if (!active) { return; } 
+			if (!active) { return; }
 
 			window.requestAnimationFrame(frame);
 		};
@@ -218,7 +216,7 @@
 		unpollers.push([object, property, fn, Poll(object, property, fn)]);
 		return object;
 	}
-	
+
 	function unpoll(object, property, fn) {
 		var n = unpollers.length;
 		var unpoller;
@@ -339,7 +337,7 @@
 					return unpoll(object, property, fn);
 				}
 			}
-	
+
 			return unobserve(object, property, fn);
 		};
 	})(Sparky)

@@ -476,8 +476,6 @@
 	});
 
 
-	// -------------------------------------------------------------------
-
 	// 2-way binding for form elements.
 	// HTML form elements are hard to handle. They do all sorts of strange
 	// things such as radios and checkboxes having a default value of 'on'
@@ -619,7 +617,6 @@
 
 		return bindPathToValue(node, model, path, to, from);
 	}
-
 
 
 	// Controllers
@@ -773,6 +770,9 @@
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl
 	});
+
+
+	// Expose
 
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
