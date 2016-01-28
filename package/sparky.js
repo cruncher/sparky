@@ -1544,10 +1544,6 @@ if (!Math.log10) {
 
 		scope = scope || model || {};
 
-		if (templateId) {
-			console.log('Sparky: template:', templateId);
-		}
-
 		function observe(property, fn) {
 			Sparky.observePath(scope, property, fn);
 
