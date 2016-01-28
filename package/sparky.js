@@ -1298,16 +1298,6 @@ if (!Math.log10) {
 	}
 
 
-	// Getting and setting
-
-	function findByPath(obj, path) {
-		if (!isDefined(obj) || !isDefined(path)) { return; }
-
-		return path === '.' ?
-			obj :
-			Sparky.get(obj, path) ;
-	}
-
 	// Sparky - the meat and potatoes
 
 	function slaveSparky(sparky1, sparky2) {
@@ -1432,7 +1422,7 @@ if (!Math.log10) {
 
 		// data-scope=".path.to.data"
 		if (rrelativepath.test(path)) {
-			data = findByPath(model, path.replace(rrelativepath, ''));
+			data = Sparky.get(model, path.replace(rrelativepath, ''));
 
 			if (!data) {
 				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
@@ -1447,7 +1437,7 @@ if (!Math.log10) {
 			Sparky.rtags.lastIndex = 0;
 			var path1 = Sparky.rtags.exec(path)[2];
 
-			data = findByPath(scope, path1);
+			data = Sparky.get(scope, path1);
 
 			var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
 			var master = node.cloneNode(true);
@@ -1494,7 +1484,7 @@ if (!Math.log10) {
 			return childSparky;
 		}
 
-		return slaveSparky(sparky, Sparky(node, findByPath(sparky.data, path), undefined, undefined, sparky));
+		return slaveSparky(sparky, Sparky(node, Sparky.get(sparky.data, path), undefined, undefined, sparky));
 	}
 
 	function setupSparky(sparky, node, model, ctrl) {
@@ -1517,9 +1507,7 @@ if (!Math.log10) {
 		}
 
 		function get(path) {
-			return path === '.' ?
-				scope :
-				Sparky.get(scope, path) ;
+			return Sparky.get(scope, path);
 		}
 
 		function set(property, value) {
@@ -1528,7 +1516,6 @@ if (!Math.log10) {
 
 		function create(node) {
 			var path = node.getAttribute('data-scope');
-
 			return createChild(sparky, node, scope, model, path);
 		}
 
@@ -1565,7 +1552,7 @@ if (!Math.log10) {
 			Sparky.observePath(scope, property, fn);
 
 			if (templateFragment) {
-				Sparky.observePath(scope, property, insert);
+				Sparky.observePathOnce(scope, property, insert);
 			}
 		}
 
@@ -1601,8 +1588,8 @@ if (!Math.log10) {
 		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
 
 		if (templateFragment) {
-			Sparky.dom.empty(node);
-			Sparky.dom.append(node, templateFragment);
+			//Sparky.dom.empty(node);
+			//Sparky.dom.append(node, templateFragment);
 			sparky.trigger('template', node);
 		}
 
@@ -1650,7 +1637,7 @@ if (!Math.log10) {
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = findByPath(ctrls, paths[n]);
+			ctrl = Sparky.get(ctrls, paths[n]);
 
 			if (!ctrl) {
 				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
@@ -1714,7 +1701,7 @@ if (!Math.log10) {
 			modelPath = node.getAttribute('data-scope');
 
 			if (isDefined(modelPath)) {
-				model = findByPath(Sparky.data, modelPath);
+				model = Sparky.get(Sparky.data, modelPath);
 
 				if (Sparky.debug && !model) {
 					console.log('Sparky: data-scope="' + modelPath + '" model not found in sparky.data. Path will be observed.' );
@@ -2120,7 +2107,7 @@ if (!Math.log10) {
 
 	function objTo(root, array, obj) {
 		var key = array[0];
-		
+
 		return array.length > 1 ?
 			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
 			(root[key] = obj) ;
@@ -2247,11 +2234,9 @@ if (!Math.log10) {
 	}
 
 	function getPath(obj, path) {
-		var array = splitPath(path);
-		
-		return array.length === 1 ?
-			obj[path] :
-			objFrom(obj, array) ;
+		return path === '.' ?
+			obj :
+			objFrom(obj, splitPath(path)) ;
 	}
 
 	function setPath(root, path, obj) {
@@ -2286,7 +2271,7 @@ if (!Math.log10) {
 				fn();
 			}
 
-			if (!active) { return; } 
+			if (!active) { return; }
 
 			window.requestAnimationFrame(frame);
 		};
@@ -2306,7 +2291,7 @@ if (!Math.log10) {
 		unpollers.push([object, property, fn, Poll(object, property, fn)]);
 		return object;
 	}
-	
+
 	function unpoll(object, property, fn) {
 		var n = unpollers.length;
 		var unpoller;
@@ -2427,7 +2412,7 @@ if (!Math.log10) {
 					return unpoll(object, property, fn);
 				}
 			}
-	
+
 			return unobserve(object, property, fn);
 		};
 	})(Sparky)
@@ -2965,8 +2950,6 @@ if (!Math.log10) {
 	});
 
 
-	// -------------------------------------------------------------------
-
 	// 2-way binding for form elements.
 	// HTML form elements are hard to handle. They do all sorts of strange
 	// things such as radios and checkboxes having a default value of 'on'
@@ -3108,7 +3091,6 @@ if (!Math.log10) {
 
 		return bindPathToValue(node, model, path, to, from);
 	}
-
 
 
 	// Controllers
@@ -3262,6 +3244,9 @@ if (!Math.log10) {
 		'value-boolean':        valueBooleanCtrl,
 		'value-boolean-invert': valueBooleanInvertCtrl
 	});
+
+
+	// Expose
 
 	Sparky.bindNamedValueToObject = bindNamedValueToObject;
 })(Sparky);
