@@ -133,11 +133,11 @@
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-	
+
 	function insertBefore(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target);
 	}
-	
+
 	function insertAfter(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
@@ -151,6 +151,22 @@
 		return slice(node.querySelectorAll(selector));
 	}
 
+	function isElementNode(node) {
+		return node.nodeType === 1;
+	}
+
+	function isTextNode(node) {
+		return node.nodeType === 3;
+	}
+
+	function isCommentNode(node) {
+		return node.nodeType === 8;
+	}
+
+	function isFragmentNode(node) {
+		return node.nodeType === 11;
+	}
+
 	assign(dom, {
 		query:     query,
 		tag:       tagName,
@@ -161,11 +177,15 @@
 		empty:     empty,
 		remove:    remove,
 		closest:   closest,
-		matches:   matches,  
+		matches:   matches,
 		classes:   getClassList,
 		style:     getStyle,
 		getClass:  getClass,
-		setClass:  setClass
+		setClass:  setClass,
+		isElementNode:  isElementNode,
+		isTextNode:     isTextNode,
+		isCommentNode:  isCommentNode,
+		isFragmentNode: isFragmentNode
 	});
 
 
@@ -193,7 +213,7 @@
 			return fragmentFromContent(node);
 		}
 		else {
-			// In browsers where templates are not inert, ids used inside them 
+			// In browsers where templates are not inert, ids used inside them
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
