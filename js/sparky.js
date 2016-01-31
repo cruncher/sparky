@@ -1,4 +1,6 @@
 (function(window) {
+	"use strict";
+
 	var assign = Object.assign;
 
 	var errors = {
@@ -54,21 +56,17 @@
 			node ;
 	}
 
-	function resolveScope(sparky, node, scope, data, setup, teardown) {
-		function update(scope) {
-			return scope ? setup(sparky, scope) : teardown(sparky) ;
-		}
-
+	function resolveScope(node, scope, data, observe, update) {
 		// No getAttribute method (may be a fragment), use current scope.
 		if (!node.getAttribute) {
-			return setup(sparky, scope || {});
+			return update(scope || {});
 		}
 
 		var path = node.getAttribute('data-scope');
 
 		// No data-scope attribute, use current scope.
 		if (!isDefined(path)) {
-			return setup(sparky, scope || {});
+			return update(scope || {});
 		}
 
 		// data-scope="{{path.to.data}}", find new scope in current scope.
@@ -83,11 +81,9 @@
 			scope = data;
 		}
 
-		// Observe changes to scope path
-		Sparky.observePath(scope, path, update);
-		sparky.on('destroy', function() {
-			Sparky.unobservePath(scope, path, update);
-		});
+		return scope && path ?
+			observe(scope, path) :
+			update(scope);
 	}
 
 	function getCtrl(node, fn, ctrl) {
@@ -155,140 +151,8 @@
 		return makeDistributeCtrlFromPaths(paths, ctrls);
 	}
 
-	function setupSparky(sparky, node, scope, ctrl) {
-		var frame;
-		var children = [];
-		var bindings = [];
-		var parentScope = scope;
-
-		function get(path) {
-			return Sparky.get(scope, path);
-		}
-
-		function set(property, value) {
-			Sparky.set(scope, property, value);
-		}
-
-		function create(node) {
-			var child = sparky.create(node, scope);
-			children.push(child);
-			return child;
-		}
-
-		function cancelTimer() {
-			window.cancelAnimationFrame(frame);
-		}
-
-		function observe(path, fn) {
-			bindings.push([path, fn]);
-			//Sparky.observePath(scope, path, fn);
-		}
-
-		function unobserve(path, fn) {
-			var n = bindings.length;
-
-			while (n--) {
-				if (bindings[n][0] === path && bindings[n][1] === fn) {
-					bindings.splice(n, 1);
-				}
-			}
-
-			//Sparky.unobservePath(scope, path, fn);
-		}
-var existingScope;
-		function bind1(_scope) {
-			if (_scope === existingScope) { return this; }
-
-			existingScope = _scope;
-
-			// If a scope object is returned by the ctrl, we use that.
-			var object = ctrl && ctrl.call(sparky, node, _scope);
-
-			// A controller returning false is telling us not to do data binding.
-			if (object === false) { return; }
-
-			scope = object || scope;
-			var n = bindings.length;
-
-			while (n--) {
-				path = bindings[n][0];
-				fn = bindings[n][1];
-				Sparky.observePath(scope, path, fn);
-			}
-
-			n = children.length;
-
-			while (n--) {
-				children[n].scope(scope);
-			}
-
-			this.bind = bind2;
-			this.unbind = unbind;
-			return this;
-		}
-
-		function bind2(scope) {
-			return this.unbind().bind(scope);
-		}
-
-		function unbind() {
-			var n = bindings.length;
-			while (n--) {
-				path = bindings[n][0];
-				fn = bindings[n][1];
-				Sparky.unobservePath(scope, path, fn);
-			}
-			this.bind = bind1;
-			this.unbind = returnThis;
-			return this;
-		}
-
-//		var inserted = document.body.contains(sparky[0]);
-//
-//		// If this template is not already in the DOM, poll it until it is. We
-//		// schedule the poll before binding in order that child sparkies that
-//		// result from binding will hear this 'insert' before their own.
-//		if (!inserted) {
-//			sparky.on('insert', cancelTimer);
-//			frame = window.requestAnimationFrame(function poll() {
-//				// Is this node in the DOM ?
-//				if (document.body.contains(sparky[0])) {
-//					//console.log('ASYNC  DOM', sparky.length, sparky[0].nodeType, sparky[0]);
-//					sparky.trigger('insert');
-//				}
-//				else {
-//					//console.log('NOPE', sparky[0]);
-//					frame = window.requestAnimationFrame(poll);
-//				}
-//			});
-//		}
-
-		// If a scope object is returned by the ctrl, we use that.
-		var object = ctrl && ctrl.call(sparky, node, scope);
-
-		// A controller returning false is telling us not to do data binding.
-		if (object === false) { return; }
-
-		scope = object || scope;
-
-		Sparky.bind(sparky, observe, unobserve, get, set, create);
-
-		if (bindings.length === 0 && children.length === 0) {
-			log('Sparky: No Sparky tags found to bind to in', sparky);
-		}
-
-		sparky.bind = bind1;
-		sparky.unbind = returnThis;
-
-		sparky.trigger('ready');
-
-		// If this sparky is in the DOM, send the insert event right away.
-		//if (inserted) { sparky.trigger('insert'); }
-	}
-
 	function replaceWithComment(node, i, sparky) {
-		// If debug is on, use comments as placeholders, otherwise use empty
-		// text nodes.
+		// If debug use comments as placeholders, otherwise use text nodes.
 		var placeholder = Sparky.debug ?
 			Sparky.dom.create('comment', Sparky.dom.tag(node)) :
 			Sparky.dom.create('text', '') ;
@@ -298,45 +162,135 @@ var existingScope;
 	}
 
 	function replaceWithNode(node, i, sparky) {
-		var placeholder = sparky.comments[i];
+		var placeholder = sparky.placeholders[i];
 		Sparky.dom.before(placeholder, node);
 		Sparky.dom.remove(placeholder);
 	}
 
-	function setup(sparky, scope) {
-		sparky.bind(scope);
+	function bind(sparky, scope, bindings) {
+		var n = bindings.length;
+		var path, fn;
 
-		if (sparky.comments) {
-//			window.requestAnimationFrame(function() {
-				sparky.forEach(replaceWithNode);
-				delete sparky.comments;
-//			});
+		while (n--) {
+			path = bindings[n][0];
+			fn = bindings[n][1];
+			Sparky.observePath(scope, path, fn);
 		}
 	}
 
-	function teardown(sparky) {
-		var comments = sparky.map(replaceWithComment);
-		sparky.comments = comments;
-		sparky.unbind();
+	function unbind(sparky, scope, bindings) {
+		var n = bindings.length;
+		var path, fn;
+
+		while (n--) {
+			path = bindings[n][0];
+			fn = bindings[n][1];
+			Sparky.unobservePath(scope, path, fn);
+		}
 	}
 
-	function destroy(sparky) {
-		Sparky.dom.remove(sparky);
-		sparky.unbind().off();
+	function setup(sparky, scope, bindings, children) {
+		bind(sparky, scope, bindings);
+		var n = children.length;
+		while (n--) {
+			children[n].scope(scope);
+		}
 	}
 
-	function Sparky(node, scope, fn) {
+	function teardown(sparky, scope, bindings, children) {
+		unbind(sparky, scope, bindings);
+		var n = children.length;
+		while (n--) {
+			children[n].scope();
+		}
+	}
+
+	function addNodes(sparky) {
+		if (!sparky.placeholders) { return; }
+		//window.requestAnimationFrame(function() {
+			sparky.forEach(replaceWithNode);
+			sparky.placeholders = false;
+			sparky.trigger('dom-add');
+		//});
+	}
+
+	function removeNodes(sparky) {
+		if (sparky.placeholders) { return; }
+		sparky.placeholders = sparky.map(replaceWithComment);
+		sparky.trigger('dom-remove');
+	}
+
+	function Sparky(node, scope, fn, parent) {
 		// Allow calling the constructor with or without 'new'.
 		if (!(this instanceof Sparky)) {
-			return new Sparky(node, scope, fn, arguments[3]);
+			return new Sparky(node, scope, fn, parent);
 		}
 
-		// 'secret' argument parent
-		var parent = arguments[3];
-
-		logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
+		Sparky.logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 			(scope && '{}'), ',',
 			(fn && (fn.name || 'anonymous function')), ')');
+
+		var sparky = this;
+		var bindings = [];
+		var children = [];
+		var data = parent ? parent.data : Sparky.data;
+		var ctrl = parent ? parent.ctrl : Sparky.ctrl;
+		var init = true;
+		var unobserveScope = noop;
+
+		function get(path) {
+			return scope && Sparky.get(scope, path);
+		}
+
+		function set(property, value) {
+			Sparky.set(scope, property, value);
+		}
+
+		function create(node) {
+			children.push(sparky.create(node));
+		}
+
+		function bind(path, fn) {
+			bindings.push([path, fn]);
+		}
+
+		function updateScope(object) {
+			// If a scope object is returned by the ctrl, we use that.
+			var ctrlscope = fn && fn.call(sparky, node, object);
+
+			// A controller returning false is telling us not to do data
+			// binding. Uh-oh... we've already done data binding. todo.
+			if (ctrlscope === false) { return; }
+
+			var newscope = ctrlscope || object;
+			var oldscope = scope;
+
+			if (!init) {
+				// If scope is unchanged, do nothing.
+				if (newscope === oldscope) { return; }
+
+				// If old scope exists, tear it down
+				if (oldscope) { teardown(sparky, oldscope, bindings, children); }
+			}
+
+			init = false;
+			scope = newscope;
+
+			// Where there is no scope, there should be no nodes in the DOM
+			if (!scope) { return removeNodes(sparky); }
+
+			// Assign and set up scope
+			setup(sparky, scope, bindings, children);
+			addNodes(sparky);
+		}
+
+		function observeScope(scope, path) {
+			unobserveScope();
+			unobserveScope = function() {
+				Sparky.unobservePath(scope, path, updateScope);
+			};
+			Sparky.observePath(scope, path, updateScope);
+		}
 
 		node = resolveNode(node);
 
@@ -344,66 +298,63 @@ var existingScope;
 			throw new Error("Sparky: Sparky(node) called, node not found: " + node);
 		}
 
-		var data = parent ? parent.data : Sparky.data;
-		var ctrl = parent ? parent.ctrl : Sparky.ctrl;
-
 		fn = getCtrl(node, fn, ctrl);
 
 		// Define data and ctrl inheritance
 		Object.defineProperties(this, {
 			data: { value: Object.create(data), writable: true },
-			ctrl: { value: Object.create(ctrl) }
+			ctrl: { value: Object.create(ctrl) },
+			placeholders: { writable: true }
 		});
 
 		// Setup this as a Collection of nodes. Where node is a document
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
+		// Parse the DOM nodes for Sparky tags. The parser returns an function
+		// that kills it's throttles and so on.
+		var unparse = Sparky.parse(sparky, bind, noop, get, set, create);
+
+		if (bindings.length === 0 && children.length === 0) {
+			log('No Sparky tags found', sparky);
+		}
+
+		this.scope = function(object) {
+			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
+			return this;
+		};
+
+		this.on('destroy', function() {
+			Sparky.dom.remove(this);
+			this.placeholders && Sparky.dom.remove(this.placeholders);
+			unparse();
+			unobserveScope();
+			unbind(sparky, scope, bindings);
+		});
+
+		this.scope(scope);
+
 		// If parent exists, slave this sparky to it. todo: you may run into
 		// trouble with the 'ready' event. See old version, slaveSparky() fn.
 		if (parent) {
-			parent.on(this);
+			parent.on(sparky);
 		}
-
-		this.on('destroy', destroy);
-
-		var flag = false;
-
-		this.scope = function(scope) {
-			resolveScope(this, node, scope, data, function(sparky, scope) {
-console.log('RESOLVED', node, scope);
-				// Scope has become available
-				if (!flag) {
-					setupSparky(sparky, node, scope, fn);
-					flag = true;
-				}
-
-				setup(sparky, scope);
-			}, function(sparky) {
-console.log('UNRESOLVED', node);
-
-				teardown(sparky);
-			});
-		};
-
-		this.scope(scope);
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
 
 	assign(Sparky.prototype, {
-		// Create a slave Sparky dependent upon this.
+		// Create a child Sparky dependent upon this one.
 		create: function(node, scope, fn) {
 			return Sparky(node, scope, fn, this);
 		},
 
 		// Unbind and destroy Sparky bindings and nodes.
 		destroy: function destroy() {
-			return this.trigger('destroy');
+			return this.trigger('destroy').off();
 		},
 
-		bind: returnThis,
-		unbind: returnThis,
+		scope: returnThis,
 
 		// Returns sparky's element nodes wrapped as a jQuery object. If jQuery
 		// is not present, returns undefined.
@@ -421,10 +372,8 @@ console.log('UNRESOLVED', node);
 		logVerbose: logVerbose,
 		svgNamespace:   "http://www.w3.org/2000/svg",
 		xlinkNamespace: "http://www.w3.org/1999/xlink",
-
 		data:  {},
 		ctrl:  {},
-
 		template: function() {
 			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
 		}

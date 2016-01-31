@@ -325,7 +325,6 @@
 
 	function testTemplate() {
 		// Older browsers don't know about the content property of templates.
-
 		return 'content' in document.createElement('template');
 	}
 

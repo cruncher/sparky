@@ -107,13 +107,85 @@
 			margin-left: -100%;
 			margin-right: 0;
 		}
+
+		.test-block {
+			display: inline-block;
+			width: 46%;
+			padding-top: 0.5rem;
+			padding-bottom: 0.5rem;
+			min-height: 8rem;
+			margin-left: 2%;
+			margin-right: 2%;
+			vertical-align: top;
+		}
+
+		.test-block + .test-block + .test-block {
+			border-top: 1px solid #888888;
+		}
+
+		.clock-block {
+			position: relative;
+			width: 10rem;
+			height: 10rem;
+			background-color: white;
+			border-radius: 50%;
+		}
+
+		.clock-block::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 6%;
+			height: 6%;
+			margin-top: -3%;
+			margin-left: -3%;
+			background-color: white;
+			border-radius: 50%;
+		}
+
+		.clock-block > .hand {
+			position: absolute;
+			top: 0;
+			left: 50%;
+			height: 50%;
+		}
+
+		.clock-block > .hour-hand {
+			top: 10%;
+			height: 40%;
+		}
+
+		.hour-hand {
+			margin-left: -2px;
+			border-left: 4px solid black;
+		}
+
+		.second-hand {
+			color: red;
+			margin-left: -1px;
+			border-left: 1px solid currentcolor;
+			border-right: 1px solid currentcolor;
+		}
+
+		.second-hand::after {
+			content: '';
+			position: absolute;
+			top: -2px;
+			left: 0;
+			width: 12px;
+			height: 12px;
+			margin-top: 0;
+			margin-left: -6px;
+			background-color: currentcolor;
+			border-radius: 50%;
+		}
 	</style>
 </head>
 
 <body>
 
 <div class="site-wrap wrap">
-
 	<h1 class="inline-h1">Sparky</h1
 
 	><div class="inline-block block">
@@ -122,32 +194,45 @@
 			Sparky is a model-agnostic live data binding view layer for HTML/JS. Sparky enhances the DOM with declarative data bindings, passes data through Django-style template tags and filters, and renders multiple changes in batches on browser frames for performance.
 		</div>
 	</div>
+</div>
 
-	<!--p data-ctrl="test"><code>scope.number</code> {{number|floatformat:2}}</p>
+<div class="test-block block">
+	<div class="clock-block block" data-scope="clock">
+		<div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
+		<div class="second-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'s'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
+	</div>
+</div
+
+><div class="test-block block">
+	<p data-ctrl="test"><code>scope.number</code> {{number|floatformat:2}}</p>
 	<p data-ctrl="test" data-template="number">Default text.</p>
 	<p data-ctrl="test"><span data-template="number">Default text.</span></p>
+</div
 
+><div class="test-block block">
 	<ul data-ctrl="test" class="index">
 		<li data-scope="{{object}}"><code>scope.object.text</code> {{text}}</li>
 		<li data-scope="{{object}}" data-template="text">Default text.</li>
 		<li data-scope="{{object}}"><span data-template="text">Default text.</span></li>
 	</ul>
+</div
 
+><div class="test-block block">
 	<ul data-ctrl="test" class="index">
 		<li data-scope="object"><code>data.object.text</code> {{text}}</li>
 		<li data-scope="object" data-template="data-text">Default text.</li>
 		<li data-scope="object"><span data-template="data-text">Default text.</span></li>
 	</ul>
+</div
 
-	<hr/-->
-
+><div class="test-block block">
 	<div data-ctrl="test">
 		<p data-scope="{{object}}">
 			<span data-scope="{{thing}}"><code>scope.object.thing.text</code> {{text}}</span>
 		</p>
 	</div>
 
-	<!--div data-ctrl="test">
+	<div data-ctrl="test">
 		<p data-scope="{{object}}">
 			<span data-template="thing-text-1">Placeholder text.</span>
 		</p>
@@ -157,7 +242,51 @@
 		<p data-scope="{{object}}">
 			<span data-template="thing-text-2">Placeholder text.</span>
 		</p>
-	</div-->
+	</div>
+</div
+
+><div class="test-block block">
+	<div data-ctrl="test">
+		<p>
+			<span data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-ctrl="sub">
+			<span data-template="sub-text">Placeholder text</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p>
+			<span data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-scope="{{thing}}" data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-scope="{{thing}}" data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+		</p>
+	</div>
 </div>
 
 <template id="number"><code>scope.number</code> {{number|floatformat:2}}</template>
@@ -165,7 +294,7 @@
 <template id="data-text"><code>data.object.text</code> {{text}}</template>
 <template id="thing-text-1"><code>scope.object.thing.text</code> {{thing.text}}</template>
 <template id="thing-text-2"><code>scope.object.thing.text</code> <span data-scope="{{thing}}">{{text}}</span></template>
-
+<template id="sub-text"><code>subscope.text</code> {{text}}</template>
 
 <script src="src/jquery-2.1.1.js"></script>
 <script src="modules/object.assign/object.assign.js"></script>
@@ -182,7 +311,7 @@
 <script src="js/sparky.dom.js"></script>
 <script src="js/sparky.observe.js"></script>
 <script src="js/sparky.throttle.js"></script>
-<script src="js/sparky.bind.js"></script>
+<script src="js/sparky.parse.js"></script>
 <script src="js/sparky.ctrl.js"></script>
 <script src="js/sparky.filters.js"></script>
 <script src="js/sparky.ready.js"></script>
@@ -196,6 +325,14 @@ var scope = {
 	object: undefined
 };
 
+var subScope = {
+	text: 'Ctrl scope text.'
+};
+
+var data = {
+	object: undefined
+};
+
 var object1 = { text: 'Text in object 1' };
 var object2 = { text: 'Text in object 2' };
 var thing1 = { text: 'Text in thing 1' };
@@ -205,48 +342,60 @@ var thing3 = { text: 'Text in thing 3' }
 object1.thing = thing1;
 object2.thing = thing3;
 
+//data.object = object1;
 
-var data = {};
+setTimeout(function() {
+	console.log('1 –––––– scope.object = object1');
+	object1.text = '1 second';
+	scope.object = object1;
+}, 1000);
 
-scope.object = object1;
+setTimeout(function() {
+	console.log('2 –––––– scope.object = undefined');
+	object1.text = '2 seconds';
+	scope.object = undefined;
+	data.object = object1;
+}, 2000);
 
-//setTimeout(function() {
-//	console.log('1 –––––– scope.object = object');
-//	object1.text = 'Text in object 1 on 1st second';
-//	scope.object = object1;
-//}, 1000);
-//
-//setTimeout(function() {
-//	console.log('2 –––––– scope.object = undefined');
-//	object1.text = 'Text in object 1 on 2nd second';
-//	scope.object = undefined;
-//}, 2000);
-//
-//setTimeout(function() {
-//	console.log('3 –––––– scope.object = object');
-//	object1.text = 'Text in object 1 on 3rd second';
-//	object1.thing = thing2;
-//	scope.object = object1;
-//}, 3000);
-//
-//setTimeout(function() {
-//	console.log('4 –––––– data.object = object');
-//	object1.text = 'Text in object 1 on 4th second';
-//	scope.object = object2;
-//	data.object = object1;
-//}, 4000);
-//
-//setTimeout(function() {
-//	console.log('5 –––––– data.object = undefined');
-//	object1.text = 'Text in object 1 on 5th second';
-//	data.object = undefined;
-//}, 5000);
-//
-//setTimeout(function() {
-//	console.log('6 –––––– data.object = object');
-//	object1.text = 'Text in object 1 on 6th second';
-//	data.object = object1;
-//}, 6000);
+setTimeout(function() {
+	console.log('3 –––––– scope.object = object2');
+	object1.text = '3 seconds';
+	scope.object = object2;
+}, 3000);
+
+setTimeout(function() {
+	console.log('4 –––––– scope.object = undefined');
+	object1.text = '4 seconds';
+	scope.object = undefined;
+	subScope.text = 'Still ctrl scope text.'
+	data.object = object2;
+}, 4000);
+
+setTimeout(function() {
+	console.log('5 –––––– scope.object = object1; object1.thing = thing2');
+	object1.text = '5 seconds';
+	object1.thing = thing2;
+	scope.object = object1;
+}, 5000);
+
+setTimeout(function() {
+	console.log('6 –––––– data.object = object');
+	object1.text = '6 seconds';
+	scope.object = object2;
+	data.object = object1;
+}, 6000);
+
+setTimeout(function() {
+	console.log('7 –––––– data.object = undefined');
+	object1.text = '7 seconds';
+	data.object = undefined;
+}, 7000);
+
+setTimeout(function() {
+	console.log('8 –––––– data.object = object');
+	object1.text = '8 seconds';
+	data.object = object1;
+}, 8000);
 
 Sparky.ctrl.test = function() {
 	this.on('destroy unbind remove', function(){
@@ -254,9 +403,21 @@ Sparky.ctrl.test = function() {
 	});
 
 	this.data = data;
-
 	return scope;
 };
+
+Sparky.ctrl.sub = function(node, scope) {
+	return subScope;
+};
+
+Sparky.data.clock = {
+	time: new Date()
+};
+
+setInterval(function() {
+	Sparky.data.clock.time = new Date();
+}, 1000);
+
 </script>
 
 </body>

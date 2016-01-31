@@ -97,7 +97,7 @@
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 	    	},
 
-	    	input: function(node, bind, unbind, get, set, create, unobservers, scope) {
+	    	input: function(node, bind, unbind, get, set, create, unobservers) {
 	    		var type = node.type;
 
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -117,7 +117,7 @@
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	select: function(node, bind, unbind, get, set, create, unobservers, scope) {
+	    	select: function(node, bind, unbind, get, set, create, unobservers) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 
@@ -126,18 +126,18 @@
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	option: function(node, bind, unbind, get, set, create, unobservers, scope) {
+	    	option: function(node, bind, unbind, get, set, create, unobservers) {
 	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 	    	},
 
-	    	textarea: function(node, bind, unbind, get, set, create, unobservers, scope) {
+	    	textarea: function(node, bind, unbind, get, set, create, unobservers) {
 	    		// Only let strings set the value of a textarea
 	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
 	    		if (unbind) { unobservers.push(unbind); }
 	    	},
 
-	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
+	    	time: function(node, bind, unbind, get, set, create, unobservers)  {
 	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
 	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
 	    	},
@@ -147,7 +147,7 @@
 	    	}
 	    };
 
-	function domNode(node, bind, unbind, get, set, create, scope) {
+	function domNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
 		var tag = node.tagName.toLowerCase();
 
@@ -158,7 +158,7 @@
 
 		// Set up special binding for certain elements like form inputs
 		if (tags[tag]) {
-			tags[tag](node, bind, unbind, get, set, create, unobservers, scope);
+			tags[tag](node, bind, unbind, get, set, create, unobservers);
 		}
 
 		// Or sparkify the child nodes
@@ -241,11 +241,11 @@
 				isDefined(child.getAttribute('data-scope'))
 			)) {
 				//create(child);
-				sparky = create(child);
-				unobservers.push(sparky.destroy.bind(sparky));
+				create(child);
+				//unobservers.push(sparky.destroy.bind(sparky));
 			}
 			else if (binders[child.nodeType]) {
-				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
 	}
@@ -466,18 +466,18 @@
 		};
 	}
 
-	function bind(sparky, observe, unobserve, get, set, create, scope) {
-		var unobservers = Array.prototype.concat.apply([], sparky.map(function(node) {
-			return binders[node.nodeType](node, observe, unobserve, get, set, create, scope);
+	function parse(collection, bind, unbind, get, set, create) {
+		var unobservers = Array.prototype.concat.apply([], collection.map(function(node) {
+			return binders[node.nodeType](node, bind, unbind, get, set, create);
 		}));
 
-		sparky.on('destroy', function() {
+		return function unparse() {
 			unobservers.forEach(call);
-		});
+		};
 	}
 
 	assign(Sparky, {
-		bind: bind,
+		parse: parse,
 		attributes: attributes,
 
 		// Todo: We expose these regexes so we can change tag delimiters. Find
