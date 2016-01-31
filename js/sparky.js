@@ -37,13 +37,22 @@
 	}
 
 
-	// Functions
+	// Utility functions
 
 	function noop() {}
 
 	function returnThis() { return this; }
 
-	function isDefined(val) { return val !== undefined && val !== null; }
+	function returnArg(arg) { return arg; }
+
+	function isDefined(n) {
+		return n !== undefined && n !== null && !Number.isNaN(n);
+	}
+
+	function classOf(object) {
+		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
+	}
+
 
 	// Sparky
 
@@ -243,7 +252,7 @@
 		}
 
 		function set(property, value) {
-			Sparky.set(scope, property, value);
+			scope && Sparky.set(scope, property, value);
 		}
 
 		function create(node) {
@@ -313,7 +322,7 @@
 
 		// Parse the DOM nodes for Sparky tags. The parser returns an function
 		// that kills it's throttles and so on.
-		var unparse = Sparky.parse(sparky, bind, noop, get, set, create);
+		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
 
 		if (bindings.length === 0 && children.length === 0) {
 			log('No Sparky tags found', sparky);
@@ -364,16 +373,24 @@
 		}
 	});
 
-	// Expose
+	// Export
 
 	assign(Sparky, {
 		debug: false,
 		log: log,
 		logVerbose: logVerbose,
+
+		noop:       noop,
+		returnThis: returnThis,
+		returnArg:  returnArg,
+		isDefined:  isDefined,
+		classOf:    classOf,
+
 		svgNamespace:   "http://www.w3.org/2000/svg",
 		xlinkNamespace: "http://www.w3.org/1999/xlink",
-		data:  {},
-		ctrl:  {},
+		data: {},
+		ctrl: {},
+
 		template: function() {
 			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
 		}

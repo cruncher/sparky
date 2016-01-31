@@ -1,37 +1,19 @@
 
-// Sparky.bind
+// Sparky.parse()
 //
-// Binds data to the DOM. Changes in data are then immediately rendered
-// in the nodes that display that data via template tags such as {{ name }}.
-// Only those nodes containing the changed data are updated, other nodes are
-// left alone. The actual DOM tree does not change. Template tags can also
-// be used in the attributes href, title, id, class, style and value.
+// Sparky.parse(nodes, get, set, bind, unbind, create);
 //
-// dataBind(node, observeFn, unobserveFn, getFn)
-//
-// node
-//
-// A DOM node to use as a route. The inner DOM tree is traversed and references
-// to property names written as {{ name }} cause bindFn to be called with name
-// as property.
-//
-// bindFn(property, fn)
-//
-// Responsible for listening to changes to properties on a data object or model.
-// When the named property changes, function fn must be called.
-//
-// getFn(property)
-//
-// Responsible for returning the value of the named property from a data object
-// or model.
+// Parses a collection of DOM nodes and all their descendants looking for
+// Sparky tags. For each tag found in the DOM, the bind callback is called
+// with the params (path, fn), where path is of the form 'path.to.data' and
+// fn is a function to be called when the data at that path changes.
 
-
-(function(Sparky) {
+(function(window) {
 	"use strict";
 
 	var assign = Object.assign;
-
-	var dom = Sparky.dom;
+	var Sparky = window.Sparky;
+	var dom    = Sparky.dom;
 
 	var attributes = [
 		'href',
@@ -62,90 +44,112 @@
 
 	var filterCache = {};
 
-	var binders = {
-	    	1: domNode,
-	    	3: textNode,
-	    	11: fragmentNode
-	    };
-
 	var empty = [];
 
 	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	// Utility functions
 
+	var noop       = Sparky.noop;
+	var returnArg  = Sparky.returnArg;
+	var returnThis = Sparky.returnThis;
+	var isDefined  = Sparky.isDefined;
+	var classOf    = Sparky.classOf;
+
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
-
-	function noop() {}
-
-	function returnThis() { return this; }
 
 	function call(fn) { fn(); }
 
-	function isDefined(n) {
-		return !!n || n !== undefined && n !== null && !Number.isNaN(n);
+
+	// DOM
+
+	function setAttributeSVG(node, attribute, value) {
+		if (attribute = 'd') {
+			node.setAttribute(attribute, value);
+		}
+		else {
+			node.setAttributeNS(Sparky.xlink, attribute, value);
+		}
 	}
 
-	function classOf(object) {
-		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
+	function setAttributeHTML(node, attribute, value) {
+		node.setAttribute(attribute, value);
 	}
 
-	// Nodes that require special bindings
+	function addClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.add.apply(classList, classes);
+	}
+
+	function removeClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.remove.apply(classList, classes);
+	}
+
+
+	// Binding system
+
+	var binders = {
+		1: domNode,
+		3: textNode,
+		11: fragmentNode
+	};
+
 	var tags = {
-	    	label: function(node, bind, unbind, get, set, create, unobservers) {
-	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-	    	},
+		label: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'for', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
 
-	    	input: function(node, bind, unbind, get, set, create, unobservers) {
-	    		var type = node.type;
+		input: function(node, bind, unbind, get, set, create, unobservers) {
+			var type = node.type;
 
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindAttribute(node, 'min', bind, unbind, get, unobservers);
-	    		bindAttribute(node, 'max', bind, unbind, get, unobservers);
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindAttribute(node, 'min', bind, unbind, get, unobservers);
+			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
-	    		var unbind = type === 'number' || type === 'range' ?
-	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
-	    		    // Checkboxes default to value "on" when the value attribute
-	    		    // is not given. Make them behave as booleans.
-	    		    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-	    		    	Sparky.bindNamedValueToObject(node, scope, booleanToStringOn, stringOnToBoolean) :
-	    		    	// Only let strings set the value of other inputs
-	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
+			var unbind = type === 'number' || type === 'range' ?
+			    	// Only let numbers set the value of number and range inputs
+			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
+			    // Checkboxes default to value "on" when the value attribute
+			    // is not given. Make them behave as booleans.
+			    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
+			    	// Only let strings set the value of other inputs
+			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
 
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
+			if (unbind) { unobservers.push(unbind); }
+		},
 
-	    	select: function(node, bind, unbind, get, set, create, unobservers) {
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
+		select: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
 
-	    		// Only let strings set the value of selects
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
+			// Only let strings set the value of selects
+			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbind) { unobservers.push(unbind); }
+		},
 
-	    	option: function(node, bind, unbind, get, set, create, unobservers) {
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-	    	},
+		option: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
 
-	    	textarea: function(node, bind, unbind, get, set, create, unobservers) {
-	    		// Only let strings set the value of a textarea
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
+		textarea: function(node, bind, unbind, get, set, create, unobservers) {
+			// Only let strings set the value of a textarea
+			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbind) { unobservers.push(unbind); }
+		},
 
-	    	time: function(node, bind, unbind, get, set, create, unobservers)  {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers);
-	    	},
+		time: function(node, bind, unbind, get, set, create, unobservers)  {
+			bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
 
-	    	path: function(node, bind, unbind, get, set, create, unobservers) {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['d']);
-	    	}
-	    };
+		path: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['d']);
+		}
+	};
 
 	function domNode(node, bind, unbind, get, set, create) {
 		var unobservers = [];
@@ -248,29 +252,6 @@
 				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
 			}
 		}
-	}
-
-	function setAttributeSVG(node, attribute, value) {
-		if (attribute = 'd') {
-			node.setAttribute(attribute, value);
-		}
-		else {
-			node.setAttributeNS(Sparky.xlink, attribute, value);
-		}
-	}
-
-	function setAttributeHTML(node, attribute, value) {
-		node.setAttribute(attribute, value);
-	}
-
-	function addClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
-		classList.add.apply(classList, classes);
-	}
-
-	function removeClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
-		classList.remove.apply(classList, classes);
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
@@ -466,33 +447,65 @@
 		};
 	}
 
-	function parse(collection, bind, unbind, get, set, create) {
-		var unobservers = Array.prototype.concat.apply([], collection.map(function(node) {
-			return binders[node.nodeType](node, bind, unbind, get, set, create);
-		}));
 
-		return function unparse() {
-			unobservers.forEach(call);
-		};
+	// Forms elements
+	//
+	// 2-way binding for form elements. HTML form elements are hard. They do
+	// all sorts of strange things such as having a default value of string
+	// 'on' where a value attribute is not given. This set of functions handles
+	// 2-way binding between a node and an object. They are deliberately strict.
+
+	function stringToFloat(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			n ;
 	}
 
-	assign(Sparky, {
-		parse: parse,
-		attributes: attributes,
+	function stringToInt(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			Math.round(n) ;
+	}
 
-		// Todo: We expose these regexes so we can change tag delimiters. Find
-		// a better way to declare just the tag delimiters without exposing
-		// these regexes.
-		rtags: rtags,
-		rspaces: rspaces,
-		rclasstags: rclasstags
-	});
+	function stringToBool(value) {
+		return value === 'false' ? false :
+			value === '0' ? false :
+			value === '' ? false :
+			!!value ;
+	}
 
-	// 2-way binding for form elements.
-	// HTML form elements are hard to handle. They do all sorts of strange
-	// things such as radios and checkboxes having a default value of 'on'
-	// where a value attribute is not given. This set of functions handles
-	// 2-way binding between a node and an object.
+	function stringOnToBool(value) {
+		return value === 'on' ;
+	}
+
+	function definedToString(value) {
+		return isDefined(value) ? value + '' :
+			undefined ;
+	}
+
+	function floatToString(value) {
+		return typeof value === 'number' ? value + '' :
+			undefined ;
+	}
+
+	function intToString(value) {
+		return typeof value === 'number' && value % 1 === 0 ? value + '' :
+			undefined ;
+	}
+
+	function boolToString(value) {
+		return typeof value === 'boolean' ? value + '' :
+			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function boolToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
+			undefined ;
+	}
 
 	function dispatchInputChangeEvent(node) {
 		// FireFox won't dispatch any events on disabled inputs so we need to do
@@ -513,12 +526,12 @@
 		}
 	}
 
-	function makeUpdateInput(node, model, path, fn) {
+	function makeUpdateInput(node, get, path, fn) {
 		var type = node.type;
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
-				var value = fn(Sparky.get(model, path));
+				var value = fn(get(path));
 				var checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
@@ -530,7 +543,7 @@
 				dispatchInputChangeEvent(node);
 			} :
 			function updateValue() {
-				var value = fn(Sparky.get(model, path));
+				var value = fn(get(path));
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -548,26 +561,26 @@
 			} ;
 	}
 
-	function makeChangeListener(node, model, path, fn) {
+	function makeChangeListener(node, set, path, fn) {
 		var type = node.type;
 
 		return type === 'radio' ? function radioChange(e) {
 				if (node.checked) {
-					Sparky.set(model, path, fn(node.value));
+					set(path, fn(node.value));
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.set(model, path, fn(node.checked ? node.value : undefined));
+				set(path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
-				Sparky.set(model, path, fn(node.value));
+				set(path, fn(node.value));
 			} ;
 	}
 
-	function bindPathToValue(node, model, path, to, from) {
+	function bindValue(node, get, set, bind, unbind, path, to, from) {
 		var nodeValue = node.getAttribute('value');
-		var update = makeUpdateInput(node, model, path, to);
-		var change = makeChangeListener(node, model, path, from);
+		var update = makeUpdateInput(node, get, path, to);
+		var change = makeChangeListener(node, set, path, from);
 		var throttle;
 
 		node.addEventListener('change', change);
@@ -582,12 +595,12 @@
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(Sparky.get(model, path))) {
+			if (!isDefined(get(path))) {
 				change();
 			}
 
 			throttle = Sparky.Throttle(update);
-			Sparky.observePath(model, path, throttle);
+			bind(path, throttle);
 		});
 
 		return function unbind() {
@@ -599,12 +612,12 @@
 			}
 			else {
 				throttle.cancel();
-				Sparky.unobservePath(model, path, throttle);
+				unbind(path, throttle);
 			}
 		};
 	}
 
-	function bindNamedValueToObject(node, model, to, from) {
+	function parseName(node, get, set, bind, unbind, to, from) {
 		var name = node.name;
 
 		if (!node.name) {
@@ -627,164 +640,42 @@
 		// from being name-value bound by any other controllers.
 		node.name = name.replace(Sparky.rtags, path);
 
-		return bindPathToValue(node, model, path, to, from);
+		return bindValue(node, get, set, bind, unbind, path, to, from);
 	}
 
 
-	// Controllers
+	// Export
 
-	function returnArg(arg) { return arg; }
+	function parse(nodes, get, set, bind, unbind, create) {
+		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return binders[node.nodeType](node, bind, unbind, get, set, create);
+		}));
 
-	function toString(value) { return '' + value; }
-
-	function stringToNumber(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined :
-			n ;
+		return function unparse() {
+			unobservers.forEach(call);
+		};
 	}
 
-	function stringToInteger(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined :
-			Math.round(n) ;
-	}
+	assign(Sparky, {
+		parse: parse,
+		parseName: parseName,
+		attributes: attributes,
 
-	function stringToBoolean(value) {
-		return value === 'false' ? false :
-			value === '0' ? false :
-			value === '' ? false :
-			!!value ;
-	}
+		stringToInt:     stringToInt,
+		stringToFloat:   stringToFloat,
+		stringToBool:    stringToBool,
+		stringOnToBool:  stringOnToBool,
+		definedToString: definedToString,
+		intToString:     intToString,
+		floatToString:   floatToString,
+		boolToString:    boolToString,
+		boolToStringOn:  boolToStringOn,
 
-	function stringToBooleanInverted(value) {
-		return !stringToBoolean(value);
-	}
-
-	function stringOnToBoolean(value) {
-		return value === 'on' ;
-	}
-
-	function stringOnToBooleanInverted(value) {
-		return value !== 'on';
-	}
-
-	function definedToString(value) {
-		return isDefined(value) ? value + '' :
-			undefined ;
-	}
-
-	function numberToString(value) {
-		return typeof value === 'number' ? value + '' :
-			undefined ;
-	}
-
-	function integerToString(value) {
-		return typeof value === 'number' && value % 1 === 0 ? value + '' :
-			undefined ;
-	}
-
-	function booleanToString(value) {
-		return typeof value === 'boolean' ? value + '' :
-			typeof value === 'number' ? !!value + '' :
-			undefined ;
-	}
-
-	function booleanToStringInverted(value) {
-		return typeof value === 'boolean' ? !value + '' :
-			typeof value === 'number' ? !value + '' :
-			undefined ;
-	}
-
-	function booleanToStringOn(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? 'on' : '' :
-			undefined ;
-	}
-
-	function booleanToStringOnInverted(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? '' : 'on' :
-			undefined ;
-	}
-
-	function valueAnyCtrl(node, model) {
-		// Coerce any defined value to string so that any values pass the type checker
-		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueStringCtrl(node, model) {
-		// Don't coerce so that only strings pass the type checker
-		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueNumberCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueBooleanCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOn, stringOnToBoolean) :
-		    	Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean) ;
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueBooleanInvertCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOnInverted, stringOnToBooleanInverted) :
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueNumberInvertCtrl(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
-
-		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
-			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
-		}, function from(value) {
-			var n = parseFloat(value);
-			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
-		});
-
-		if (unbind) { this.on('destroy', unbind); }
-	};
-
-
-	assign(Sparky.ctrl, {
-		'value-any':            valueAnyCtrl,
-		'value-string':         valueStringCtrl,
-
-		'value-number':         function(argument) {
-			console.warn('Sparky: value-number controller is renamed to value-float (or value-int).');
-			return valueNumberCtrl.apply(this, arguments);
-		},
-
-		'value-number-invert':         function(argument) {
-			console.warn('Sparky: value-number-invert controller is renamed to value-float-invert (or value-int-invert).');
-			return valueNumberInvertCtrl.apply(this, arguments);
-		},
-
-		'value-float':          valueNumberCtrl,
-		'value-int':            valueIntegerCtrl,
-		'value-number-invert':  valueNumberInvertCtrl,
-		'value-boolean':        valueBooleanCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl
+		// Todo: We expose these regexes so we can change tag delimiters. Find
+		// a better way to declare just the tag delimiters without exposing
+		// these regexes.
+		rtags: rtags,
+		rspaces: rspaces,
+		rclasstags: rclasstags
 	});
-
-
-	// Expose
-
-	Sparky.bindNamedValueToObject = bindNamedValueToObject;
-})(Sparky);
+})(this);

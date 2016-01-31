@@ -207,6 +207,7 @@
 	<p data-ctrl="test"><code>scope.number</code> {{number|floatformat:2}}</p>
 	<p data-ctrl="test" data-template="number">Default text.</p>
 	<p data-ctrl="test"><span data-template="number">Default text.</span></p>
+	<p data-ctrl="test"><input type="number" name="{{number}}" step="0.25" /></p>
 </div
 
 ><div class="test-block block">
@@ -214,6 +215,7 @@
 		<li data-scope="{{object}}"><code>scope.object.text</code> {{text}}</li>
 		<li data-scope="{{object}}" data-template="text">Default text.</li>
 		<li data-scope="{{object}}"><span data-template="text">Default text.</span></li>
+		<li data-scope="{{object}}"><input type="text" name="{{text}}" /></li>
 	</ul>
 </div
 
@@ -313,12 +315,13 @@
 <script src="js/sparky.throttle.js"></script>
 <script src="js/sparky.parse.js"></script>
 <script src="js/sparky.ctrl.js"></script>
+<!--script src="js/sparky.ctrl-input.js"></script-->
 <script src="js/sparky.filters.js"></script>
 <script src="js/sparky.ready.js"></script>
 
 <script>
 
-Sparky.debug = true;
+Sparky.debug = false;
 
 var scope = {
 	number: 50,
@@ -342,7 +345,13 @@ var thing3 = { text: 'Text in thing 3' }
 object1.thing = thing1;
 object2.thing = thing3;
 
-//data.object = object1;
+Sparky.data.clock = {
+	time: new Date()
+};
+
+setInterval(function() {
+	Sparky.data.clock.time = new Date();
+}, 1000);
 
 setTimeout(function() {
 	console.log('1 –––––– scope.object = object1');
@@ -409,14 +418,6 @@ Sparky.ctrl.test = function() {
 Sparky.ctrl.sub = function(node, scope) {
 	return subScope;
 };
-
-Sparky.data.clock = {
-	time: new Date()
-};
-
-setInterval(function() {
-	Sparky.data.clock.time = new Date();
-}, 1000);
 
 </script>
 
