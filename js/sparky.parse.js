@@ -15,14 +15,7 @@
 	var Sparky = window.Sparky;
 	var dom    = Sparky.dom;
 
-	var attributes = [
-		'href',
-		'title',
-		'id',
-		'style',
-		'src',
-		'alt'
-	];
+	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
 	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;

@@ -196,7 +196,7 @@
 	</div>
 </div>
 
-<div class="test-block block">
+<!--div class="test-block block">
 	<div class="clock-block block" data-scope="clock">
 		<div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
 		<div class="second-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'s'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
@@ -289,6 +289,12 @@
 			<span data-ctrl="sub" data-template="sub-text">Placeholder text</span>
 		</p>
 	</div>
+</div
+
+--><div class="test-block block">
+	<ul data-ctrl="test">
+		<li data-scope="{{collection}}" data-ctrl="each">{{text}}</li>
+	</ul>
 </div>
 
 <template id="number"><code>scope.number</code> {{number|floatformat:2}}</template>
@@ -314,18 +320,24 @@
 <script src="js/sparky.observe.js"></script>
 <script src="js/sparky.throttle.js"></script>
 <script src="js/sparky.parse.js"></script>
-<script src="js/sparky.ctrl.js"></script>
-<!--script src="js/sparky.ctrl-input.js"></script-->
+<script src="js/sparky.fn.js"></script>
+<script src="js/sparky.fn.each.js"></script>
+<script src="js/sparky.fn.input.js"></script>
 <script src="js/sparky.filters.js"></script>
 <script src="js/sparky.ready.js"></script>
 
 <script>
 
-Sparky.debug = false;
+Sparky.debug = true;
 
 var scope = {
 	number: 50,
-	object: undefined
+	object: undefined,
+	collection: Collection([
+		{ text: 'Item 1' },
+		{ text: 'Item 2' },
+		{ text: 'Item 3' }
+	])
 };
 
 var subScope = {
@@ -338,9 +350,9 @@ var data = {
 
 var object1 = { text: 'Text in object 1' };
 var object2 = { text: 'Text in object 2' };
-var thing1 = { text: 'Text in thing 1' };
-var thing2 = { text: 'Text in thing 2' };
-var thing3 = { text: 'Text in thing 3' }
+var thing1 =  { text: 'Text in thing 1' };
+var thing2 =  { text: 'Text in thing 2' };
+var thing3 =  { text: 'Text in thing 3' }
 
 object1.thing = thing1;
 object2.thing = thing3;

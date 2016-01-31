@@ -1,96 +1,114 @@
-(function(undefined) {
+(function(window) {
+	"use strict";
 
+	var assing = Object.assign;
+	var Sparky = window.Sparky;
+	var dom = Sparky.dom;
 
-	Sparky.ctrl.each = function setupCollection(node, model) {
+	function call(fn) { fn(); }
+
+	Sparky.ctrl.each = function setupCollection(node, collection) {
 		// todo: somehow get the remaining ctrls and call child sparkies with
 		// them.
 
-		var parent = this;
-		var modelName = node.getAttribute('data-scope');
-		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
-		var nodes = [];
+		var sparky = this;
+		var nodes  = [];
 		var sparkies = [];
-		var cache = [];
-		var inserted;
-		// A pseudo-sparky that delegates events to all
-		// sparkies in the collection.
-		var sparky = Object.create(prototype);
+		var cache  = [];
+		var tasks  = [];
+		var clone  = node.cloneNode(true);
+		var placeholder = Sparky.debug ?
+			dom.create('comment', 'each') :
+			dom.create('text', '') ;
 
-		function updateNodes() {
+		function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};
 			var i, obj;
 
-			if (Sparky.debug) { var t = +new Date(); }
+			if (Sparky.debug) { var t = window.performance.now(); }
 
 			while (l--) {
 				obj = cache[l];
-				i = model.indexOf(obj);
+				i = collection.indexOf(obj);
 
 				if (i === -1) {
-					Sparky.dom.remove(nodes[l]);
 					sparkies[l].destroy();
-					sparky.off(sparkies[l]);
 				}
 				else if (nodes[l] && sparkies[l]) {
 					map[i] = [nodes[l], sparkies[l]];
 				}
 			}
 
-			l = model.length;
+			l = collection.length;
 
-			nodes.length = l;
+			nodes.length    = l;
 			sparkies.length = l;
-			cache.length = l;
+			cache.length    = l;
 
 			while(++n < l) {
-				cache[n] = model[n];
+				cache[n] = collection[n];
 
 				if (map[n]) {
 					nodes[n] = map[n][0];
 					sparkies[n] = map[n][1];
 				}
 				else {
-					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, parent);
-					sparky.on(sparkies[n]);
+					nodes[n] = clone.cloneNode(true);
+					sparkies[n] = sparky.create(nodes[n], collection[n]);
 				}
 
-				Sparky.dom.before(endNode, nodes[n]);
-
-				if (document.body.contains(sparkies[n][0])) {
-					sparkies[n].trigger('insert');
-				}
+				tasks.push(dom.before.bind(dom, placeholder, nodes[n]));
+				taskThrottle();
 			}
 
-			if (Sparky.debug) {
-				console.log('Sparky: collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
-			}
+			Sparky.log('collection rendered (length: ' + collection.length + ', time: ' + (window.performance.now() - t) + 'ms)');
 		}
 
-		// Put the marker node in place
-		Sparky.dom.before(node, endNode);
+		function run() {
+			tasks.forEach(call);
+			tasks.length = 0;
+		}
 
-		// Remove the node
-		Sparky.dom.remove(node);
+		clone.removeAttribute('data-scope');
+		clone.removeAttribute('data-ctrl');
+
+		// Put the marker node in place and remove the node
+		dom.before(node, placeholder);
+		dom.remove(node);
+
+		var taskThrottle = Sparky.Throttle(run);
 
 		// Remove anything that would make Sparky bind the node
 		// again. This can happen when a collection is appended
 		// by a controller without waiting for it's 'ready' event.
-		node.removeAttribute('data-scope');
-		node.removeAttribute('data-ctrl');
+		//node.removeAttribute('data-scope');
+		//node.removeAttribute('data-ctrl');
 
-		var throttle = Sparky.Throttle(updateNodes);
+		var throttle = Sparky.Throttle(update);
 
-		Sparky.observe(model, 'length', throttle);
+		if (collection.on) {
+			collection.on('add remove', throttle);
+			throttle();
+		}
+		else {
+			Sparky.observe(collection, 'length', throttle);
+		}
 
-		sparky.on('destroy', function destroy() {
+		this.on('destroy', function destroy() {
 			throttle.cancel();
-			Sparky.unobserve(model, 'length', throttle);
+
+			if (collection.on) {
+				collection.off('add remove', throttle);
+			}
+			else {
+				Sparky.unobserve(collection, 'length', throttle);
+			}
 		});
 
 		// Return false to stop the current sparky from binding.
+		// ??????? Do we? Dont we? Whazzappnin?
 		return false;
 	};
-})();
+})(this);

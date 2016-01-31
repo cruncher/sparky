@@ -237,11 +237,12 @@
 
 		Sparky.logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 			(scope && '{}'), ',',
-			(fn && (fn.name || 'anonymous function')), ')');
+			(fn && (fn.name || 'anonymous')), ')');
 
 		var sparky = this;
 		var bindings = [];
 		var children = [];
+		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.ctrl : Sparky.ctrl;
 		var init = true;
@@ -256,7 +257,7 @@
 		}
 
 		function create(node) {
-			children.push(sparky.create(node));
+			nodes.push(node);
 		}
 
 		function bind(path, fn) {
@@ -343,11 +344,10 @@
 
 		this.scope(scope);
 
-		// If parent exists, slave this sparky to it. todo: you may run into
-		// trouble with the 'ready' event. See old version, slaveSparky() fn.
-		if (parent) {
-			parent.on(sparky);
-		}
+		// Instantiate children AFTER this sparky has been fully wired up.
+		children = nodes.map(function(node) {
+			return sparky.create(node, scope);
+		});
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
@@ -355,7 +355,16 @@
 	assign(Sparky.prototype, {
 		// Create a child Sparky dependent upon this one.
 		create: function(node, scope, fn) {
-			return Sparky(node, scope, fn, this);
+			var boss = this;
+			var sparky = Sparky(node, scope, fn, this);
+
+			// Slave new sparky to this. (todo: you may run into trouble with
+			// the 'ready' event. See old version, slaveSparky() fn.)
+			this.on(sparky);
+
+			return sparky.on('destroy', function() {
+				boss.off(sparky);
+			});
 		},
 
 		// Unbind and destroy Sparky bindings and nodes.
