@@ -124,6 +124,11 @@
 			return document.createComment(arguments[1]);
 		}
 
+		// create('text', 'Text')
+		if (name === 'text') {
+			return document.createTextNode(arguments[1]);
+		}
+
 		// create('fragment')
 		if (name === 'fragment') {
 			return document.createDocumentFragment();
@@ -185,12 +190,29 @@
 		query:     query,
 		tag:       tagName,
 		create:    createNode,
-		append:    append,
-		appendAll: all(append),
+
+		append: function(node1, node2) {
+			if (Node.prototype.isPrototypeOf(node2)) {
+				append(node1, node2);
+			}
+			else {
+				Array.prototype.forEach.call(node2, function(node) {
+					append(node1, node);
+				});
+			}
+		},
+
 		after:     insertAfter,
 		before:    insertBefore,
 		empty:     empty,
-		remove:    remove,
+		remove:    function(node) {
+			if (Node.prototype.isPrototypeOf(node)) {
+				remove(node);
+				return;
+			}
+
+			Array.prototype.forEach.call(node, remove);
+		},
 		closest:   closest,
 		matches:   matches,
 		classes:   getClassList,

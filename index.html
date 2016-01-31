@@ -123,11 +123,49 @@
 		</div>
 	</div>
 
-	<p data-ctrl="boop" data-template="price">100 CHF</p>
-	<!--p data-ctrl="boop">{{price|floatformat:2}} CHF</p-->
+	<!--p data-ctrl="test"><code>scope.number</code> {{number|floatformat:2}}</p>
+	<p data-ctrl="test" data-template="number">Default text.</p>
+	<p data-ctrl="test"><span data-template="number">Default text.</span></p>
+
+	<ul data-ctrl="test" class="index">
+		<li data-scope="{{object}}"><code>scope.object.text</code> {{text}}</li>
+		<li data-scope="{{object}}" data-template="text">Default text.</li>
+		<li data-scope="{{object}}"><span data-template="text">Default text.</span></li>
+	</ul>
+
+	<ul data-ctrl="test" class="index">
+		<li data-scope="object"><code>data.object.text</code> {{text}}</li>
+		<li data-scope="object" data-template="data-text">Default text.</li>
+		<li data-scope="object"><span data-template="data-text">Default text.</span></li>
+	</ul>
+
+	<hr/-->
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-scope="{{thing}}"><code>scope.object.thing.text</code> {{text}}</span>
+		</p>
+	</div>
+
+	<!--div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-template="thing-text-1">Placeholder text.</span>
+		</p>
+	</div>
+
+	<div data-ctrl="test">
+		<p data-scope="{{object}}">
+			<span data-template="thing-text-2">Placeholder text.</span>
+		</p>
+	</div-->
 </div>
 
-<template id="price">{{price|floatformat:2}} CHF</template>
+<template id="number"><code>scope.number</code> {{number|floatformat:2}}</template>
+<template id="text"><code>scope.object.text</code> {{text}}</template>
+<template id="data-text"><code>data.object.text</code> {{text}}</template>
+<template id="thing-text-1"><code>scope.object.thing.text</code> {{thing.text}}</template>
+<template id="thing-text-2"><code>scope.object.thing.text</code> <span data-scope="{{thing}}">{{text}}</span></template>
+
 
 <script src="src/jquery-2.1.1.js"></script>
 <script src="modules/object.assign/object.assign.js"></script>
@@ -139,35 +177,83 @@
 <script src="src/observe.js"></script>
 <script src="src/mixin.events.js"></script>
 <script src="modules/collection/js/collection.js"></script>
-<script src="src/sparky.js"></script>
-<script src="src/sparky.dom.js"></script>
-<script src="src/sparky.observe.js"></script>
-<script src="src/sparky.throttle.js"></script>
-<script src="src/sparky.bind.js"></script>
-<script src="src/sparky.ctrl.js"></script>
-<script src="src/sparky.filters.js"></script>
-<script src="src/sparky.ready.js"></script>
+
+<script src="js/sparky.js"></script>
+<script src="js/sparky.dom.js"></script>
+<script src="js/sparky.observe.js"></script>
+<script src="js/sparky.throttle.js"></script>
+<script src="js/sparky.bind.js"></script>
+<script src="js/sparky.ctrl.js"></script>
+<script src="js/sparky.filters.js"></script>
+<script src="js/sparky.ready.js"></script>
 
 <script>
-//var model  = Sparky.data['test-model']   = {};
-//var model1 = Sparky.data['test-model-1'] = {};
-//var model2 = Sparky.data['test-model-2'] = {};
-//var div2 = document.body.querySelector('[data-scope="test-model"]');
-//var p5   = document.body.querySelector('[data-scope="test-model-1"]');
-//var sparky = Sparky(div2);
 
-//model1.property = 'Value 1';
-//sparky.destroy();
-//model1.property = 'Value 2';
+Sparky.debug = true;
 
-//console.log(p5, p5.innerHTML);
+var scope = {
+	number: 50,
+	object: undefined
+};
 
-var scope = { price: 50 }
+var object1 = { text: 'Text in object 1' };
+var object2 = { text: 'Text in object 2' };
+var thing1 = { text: 'Text in thing 1' };
+var thing2 = { text: 'Text in thing 2' };
+var thing3 = { text: 'Text in thing 3' }
 
-Sparky.ctrl.boop = function() {
+object1.thing = thing1;
+object2.thing = thing3;
+
+
+var data = {};
+
+scope.object = object1;
+
+//setTimeout(function() {
+//	console.log('1 –––––– scope.object = object');
+//	object1.text = 'Text in object 1 on 1st second';
+//	scope.object = object1;
+//}, 1000);
+//
+//setTimeout(function() {
+//	console.log('2 –––––– scope.object = undefined');
+//	object1.text = 'Text in object 1 on 2nd second';
+//	scope.object = undefined;
+//}, 2000);
+//
+//setTimeout(function() {
+//	console.log('3 –––––– scope.object = object');
+//	object1.text = 'Text in object 1 on 3rd second';
+//	object1.thing = thing2;
+//	scope.object = object1;
+//}, 3000);
+//
+//setTimeout(function() {
+//	console.log('4 –––––– data.object = object');
+//	object1.text = 'Text in object 1 on 4th second';
+//	scope.object = object2;
+//	data.object = object1;
+//}, 4000);
+//
+//setTimeout(function() {
+//	console.log('5 –––––– data.object = undefined');
+//	object1.text = 'Text in object 1 on 5th second';
+//	data.object = undefined;
+//}, 5000);
+//
+//setTimeout(function() {
+//	console.log('6 –––––– data.object = object');
+//	object1.text = 'Text in object 1 on 6th second';
+//	data.object = object1;
+//}, 6000);
+
+Sparky.ctrl.test = function() {
 	this.on('destroy unbind remove', function(){
 		console.log('HOI');
 	});
+
+	this.data = data;
 
 	return scope;
 };
