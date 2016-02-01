@@ -1197,92 +1197,15 @@ if (!Math.log10) {
 })(this);
 
 (function(window) {
-	if (!window.console || !window.console.log) { return; }
-
-	console.log('Sparky');
-	console.log('http://github.com/cruncher/sparky');
-	//console.log('Live data binding templates for the DOM');
-})(this);
-
-// Sparky
-//
-// Reads data attributes in the DOM to bind dynamic data to
-// controllers.
-//
-// Views
-//
-// <div data-ctrl="name" data-scope="path.to.data">
-//     <h1>Hello world</h1>
-// </div>
-//
-// Where 'name' is the key of a view function in
-// Sparky.ctrl and path.to.data points to an object
-// in Sparky.data.
-
-
-(function(window){
 	"use strict";
 
-	var empty = [];
+	var assign = Object.assign;
 
-	//var rtag = /\{\{\s*([\w\-\.\[\]]+)\s*\}\}/g;
-
-	// Check whether a path begins with '.' or '[', but not '..' or '[[', now
-	// that we are able to redefine tag delimiters. Todo: when you sort out tag
-	// delimiters clean this crap up.
-	var rrelativepath = /^\.[^\.]|^\[[^\[]/;
-
-	var prototype = Object.assign({
-		create: function() {},
-
-		reset: function() {},
-
-		unbind: noop,
-
-		destroy: function destroy() {
-			return this
-				.unbind()
-				.remove()
-				.trigger('destroy')
-				.off();
-		},
-
-		remove: function() {
-			while (this.length-- > 0) {
-				Sparky.dom.remove(this[this.length]);
-			}
-
-			return this;
-		},
-
-		appendTo: function(node) {
-			Sparky.dom.appendAll(node, this);
-			return this;
-		},
-
-		slave: function(node, scope, ctrl) {
-			return Sparky(node, scope, ctrl, undefined, this);
-		}
-	}, window.mixin.events);
-
-
-	// Pure functions
-
-	var slice  = Function.prototype.call.bind(Array.prototype.slice);
-	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
-
-	function noop() {}
-	function isDefined(val) { return val !== undefined && val !== null; }
-
-
-	// Object helpers
-
-	function copy(array1, array2) {
-		Array.prototype.push.apply(array2, array1);
+	var errors = {
+		"node-not-found": "Sparky: Sparky(node) called, node not found: #{{$0}}"
 	}
 
-
-	// Debug helpers
+	// Debug
 
 	function nodeToText(node) {
 		return [
@@ -1290,312 +1213,96 @@ if (!Math.log10) {
 			Sparky.dom.tag(node),
 			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
+			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
 		].join('');
 	}
 
-
-	// Sparky - the meat and potatoes
-
-	function slaveSparky(sparky1, sparky2) {
-		function destroy() { sparky2.destroy(); }
-
-		function ready() {
-			sparky1.off('destroy', destroy);
-			sparky1.on(sparky2);
-		}
-
-		// Delegate the new sparky to the old.
-		sparky1
-		.on('destroy', destroy)
-		.on('ready', ready);
-
-		return sparky2;
+	function log() {
+		if (!Sparky.debug) { return; }
+		var array = ['Sparky:'];
+		Array.prototype.push.apply(array, arguments);
+		console.log.apply(console, array);
 	}
 
-	function setupCollection(node, model, ctrl, parent) {
-		var modelName = node.getAttribute('data-scope');
-		var endNode = document.createComment(' [Sparky] data-scope="' + modelName + '" ');
-		var nodes = [];
-		var sparkies = [];
-		var cache = [];
-		var inserted;
-		// A pseudo-sparky that delegates events to all
-		// sparkies in the collection.
-		var sparky = Object.create(prototype);
-
-		function updateNodes() {
-			var n = -1;
-			var l = cache.length;
-			var map = {};
-			var i, obj;
-
-			if (Sparky.debug) { var t = +new Date(); }
-
-			while (l--) {
-				obj = cache[l];
-				i = model.indexOf(obj);
-
-				if (i === -1) {
-					Sparky.dom.remove(nodes[l]);
-					sparkies[l].destroy();
-					sparky.off(sparkies[l]);
-				}
-				else if (nodes[l] && sparkies[l]) {
-					map[i] = [nodes[l], sparkies[l]];
-				}
-			}
-
-			l = model.length;
-
-			nodes.length = l;
-			sparkies.length = l;
-			cache.length = l;
-
-			while(++n < l) {
-				cache[n] = model[n];
-
-				if (map[n]) {
-					nodes[n] = map[n][0];
-					sparkies[n] = map[n][1];
-				}
-				else {
-					nodes[n] = node.cloneNode(true);
-					sparkies[n] = Sparky(nodes[n], model[n], ctrl, false, parent);
-					sparky.on(sparkies[n]);
-				}
-
-				Sparky.dom.before(endNode, nodes[n]);
-
-				if (document.body.contains(sparkies[n][0])) {
-					sparkies[n].trigger('insert');
-				}
-			}
-
-			if (Sparky.debug) {
-				console.log('Sparky: collection rendered (length: ' + model.length + ' time: ' + (+new Date() - t) + 'ms)');
-			}
-		}
-
-		// Put the marker node in place
-		Sparky.dom.before(node, endNode);
-
-		// Remove the node
-		Sparky.dom.remove(node);
-
-		// Remove anything that would make Sparky bind the node
-		// again. This can happen when a collection is appended
-		// by a controller without waiting for it's 'ready' event.
-		node.removeAttribute('data-scope');
-		node.removeAttribute('data-ctrl');
-
-		var throttle = Sparky.Throttle(updateNodes);
-
-		Sparky.observe(model, 'length', throttle);
-
-		sparky.on('destroy', function destroy() {
-			throttle.cancel();
-			Sparky.unobserve(model, 'length', throttle);
-		});
-
-		return sparky;
+	function logVerbose() {
+		if (Sparky.debug !== 'verbose') { return; }
+		var array = ['Sparky:'];
+		Array.prototype.push.apply(array, arguments);
+		console.log.apply(console, array);
 	}
 
-	function createChild(sparky, node, scope, model, path) {
-		var data;
 
-		// no data-scope
+	// Utility functions
+
+	function noop() {}
+
+	function returnThis() { return this; }
+
+	function returnArg(arg) { return arg; }
+
+	function isDefined(n) {
+		return n !== undefined && n !== null && !Number.isNaN(n);
+	}
+
+	function classOf(object) {
+		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
+	}
+
+
+	// Sparky
+
+	function resolveNode(node) {
+		// If node is a string, assume it is the id of a template,
+		// and if it is not a template, assume it is the id of a
+		// node in the DOM.
+		return typeof node === 'string' ?
+			(Sparky.template(node) || document.getElementById(node)) :
+			node ;
+	}
+
+	function resolveScope(node, scope, data, observe, update) {
+		// No getAttribute method (may be a fragment), use current scope.
+		if (!node.getAttribute) {
+			return update(scope);
+		}
+
+		var path = node.getAttribute('data-scope');
+
+		// No data-scope attribute, use current scope.
 		if (!isDefined(path)) {
-			// We know that model is not defined, and we don't want child
-			// sparkies to loop unless explicitly told to do so, so stop
-			// it from looping. TODO: clean up Sparky's looping behaviour.
-			return slaveSparky(sparky, Sparky(node, scope, undefined, false, sparky));
+			return update(scope);
 		}
 
-		// data-scope="."
-		if (path === '.') {
-			return slaveSparky(sparky, Sparky(node, model, undefined, undefined, sparky));
-		}
-
-		// data-scope=".path.to.data"
-		if (rrelativepath.test(path)) {
-			data = Sparky.get(model, path.replace(rrelativepath, ''));
-
-			if (!data) {
-				throw new Error('Sparky: No object at relative path \'' + path + '\' of model#' + model.id);
-			}
-
-			return slaveSparky(sparky, Sparky(node, data, undefined, undefined, sparky));
-		}
-
-		// data-scope="{{path.to.data}}"
+		// data-scope="{{path.to.data}}", find new scope in current scope.
 		Sparky.rtags.lastIndex = 0;
-		if (Sparky.rtags.test(path)) {
-			Sparky.rtags.lastIndex = 0;
-			var path1 = Sparky.rtags.exec(path)[2];
-
-			data = Sparky.get(scope, path1);
-
-			var comment = document.createComment(' [Sparky] data-scope="' + path + '" ');
-			var master = node.cloneNode(true);
-			var childSparky;
-
-			var setup = function(data) {
-				if (childSparky) {
-					childSparky.destroy();
-				}
-
-				if (!node) {
-					node = master.cloneNode(true);
-				}
-
-				childSparky = Sparky(node, data, undefined, undefined, sparky);
-				Sparky.dom.after(comment, node);
-				Sparky.dom.remove(comment);
-				slaveSparky(sparky, childSparky);
-			};
-
-			var teardown = function() {
-				Sparky.dom.before(node, comment);
-				Sparky.dom.remove(node);
-
-				if (childSparky) {
-					childSparky.destroy();
-					childSparky = undefined;
-					node = undefined;
-				}
-			};
-
-			var update = function(data) {
-				return data ? setup(data) : teardown() ;
-			};
-
-			Sparky.observePath(scope, path1, update);
-			update(data);
-
-			sparky.on('destroy', function destroy() {
-				Sparky.unobservePath(scope, path1, update);
-				teardown();
-			});
-
-			return childSparky;
+		var parsedPath = Sparky.rtags.exec(path);
+		if (parsedPath) {
+			path = parsedPath[2];
 		}
 
-		return slaveSparky(sparky, Sparky(node, Sparky.get(sparky.data, path), undefined, undefined, sparky));
-	}
-
-	function setupSparky(sparky, node, model, ctrl) {
-		var templateId = node.getAttribute && node.getAttribute('data-template');
-		var templateFragment = templateId && Sparky.template(templateId);
-		var scope, timer;
-
-		function insertTemplate(sparky, node, templateFragment) {
-			// Wait until the scope is rendered on the next animation frame
-			requestAnimationFrame(function() {
-				Sparky.dom.empty(node);
-				Sparky.dom.append(node, templateFragment);
-				sparky.trigger('template', node);
-			});
-		}
-
-		function insert() {
-			insertTemplate(sparky, node, templateFragment);
-			insertTemplate = noop;
-		}
-
-		function get(path) {
-			return Sparky.get(scope, path);
-		}
-
-		function set(property, value) {
-			Sparky.set(scope, property, value);
-		}
-
-		function create(node) {
-			var path = node.getAttribute('data-scope');
-			return createChild(sparky, node, scope, model, path);
-		}
-
-		function cancelTimer() {
-			window.cancelAnimationFrame(timer);
-		}
-
-		if (node.nodeType === 11) {
-			// node is a document fragment. Copy all it's children
-			// onto sparky.
-			copy(node.childNodes, sparky);
-		}
+		// data-scope="path.to.data", find new scope in data.
 		else {
-			sparky[0] = node;
-			sparky.length = 1;
+			scope = data;
 		}
 
-		// If a scope object is returned by the ctrl, we use that, otherwise
-		// we use the model object as scope.
-		scope = ctrl && ctrl.call(sparky, node, model);
-
-		// A controller returning false is telling us not to do data binding.
-		// TODO: this is in the wrong place. We still need to handle the
-		// insert event.
-		if (scope === false) { return; }
-
-		scope = scope || model || {};
-
-		function observe(property, fn) {
-			Sparky.observePath(scope, property, fn);
-
-			//if (templateFragment) {
-			//	Sparky.observePathOnce(scope, property, insert);
-			//}
-		}
-
-		function unobserve(property, fn) {
-			Sparky.unobservePath(scope, property, fn);
-		}
-
-		var inserted = document.body.contains(sparky[0]);
-
-		// Gaurantee that insert handlers are only fired once.
-		sparky.on('insert', offInsert);
-
-		function poll() {
-			// Is this node in the DOM ?
-			if (document.body.contains(sparky[0])) {
-				//console.log('ASYNC  DOM', sparky.length, sparky[0].nodeType, sparky[0]);
-				sparky.trigger('insert');
-			}
-			else {
-				//console.log('NOPE', sparky[0]);
-				timer = window.requestAnimationFrame(poll);
-			}
-		}
-
-		// If this template is not already in the DOM, poll it until it is. We
-		// schedule the poll before binding in order that child sparkies that
-		// result from binding will hear this 'insert' before their own.
-		if (!inserted) {
-			sparky.on('insert', cancelTimer);
-			timer = window.requestAnimationFrame(poll);
-		}
-
-		sparky.bind(templateFragment || node, observe, unobserve, get, set, create, scope);
-
-		if (templateFragment) {
-			Sparky.dom.empty(node);
-			Sparky.dom.append(node, templateFragment);
-			sparky.trigger('template', node);
-		}
-
-		sparky.trigger('ready');
-
-		// If this sparky is in the DOM, send the insert event right away.
-		if (inserted) { sparky.trigger('insert'); }
+		return scope && path ?
+			observe(scope, path) :
+			update(scope);
 	}
 
-	function offInsert() { this.off('insert'); }
+	function getCtrl(node, fn, ctrl) {
+		// The ctrl list can be a space-separated string of ctrl paths,
+		return typeof fn === 'string' ? makeCtrl(fn, ctrl) :
+			// a function,
+			typeof fn === 'function' ? makeDistributeCtrl([fn]) :
+			// an array of functions,
+			typeof fn === 'object' ? makeDistributeCtrl(fn) :
+			// or defined in the data-fn attribute
+			node.getAttribute && makeCtrl(node.getAttribute('data-fn'), ctrl) ;
+	}
 
 	function makeDistributeCtrl(list) {
 		return function distributeCtrl(node, model) {
@@ -1636,7 +1343,7 @@ if (!Math.log10) {
 			ctrl = Sparky.get(ctrls, paths[n]);
 
 			if (!ctrl) {
-				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
+				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
 			}
 
 			list.push(ctrl);
@@ -1651,124 +1358,265 @@ if (!Math.log10) {
 		return makeDistributeCtrlFromPaths(paths, ctrls);
 	}
 
-	function Sparky(node, model, ctrl) {
-		if (Sparky.debug === 'verbose') {
-			console.log('Sparky: Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
-				(model && '{}'), ',',
-				(ctrl && (ctrl.name || 'anonymous function')), ')'
-			);
-		}
-
-		// Loop and data are 'hidden' parameter, used internally.
-		// Everything needs a clean-up. You should consider using
-		// prototypal inheritance to make child sparkies children
-		// of ther parents, instead of doing that for the separate
-		// data object. But to do that, they can no longer be
-		// collections. So the DOM collection bit of it would
-		// need to be a property of sparky.
-		var loop = arguments[3] !== false;
-		var parent = arguments[4];
-		var modelPath, ctrlPath, tag, id;
-
-		// If node is a string, assume it is the id of a template,
-		// and if it is not a template, assume it is the id of a
-		// node in the DOM.
-		if (typeof node === 'string') {
-			id = node;
-			node = Sparky.template(id);
-
-			if (!node) {
-				node = document.getElementById(id);
-			}
-
-			if (!node) {
-				throw new Error('Sparky: Sparky() called but id of node not found: #' + id);
-			}
-		}
-
-		if (!node) {
-			throw new Error('Sparky: Sparky() called without node: ' + node);
-		}
-
-		// Where model is not defined look for the data-scope
-		// attribute. Document fragments do not have a getAttribute
-		// method.
-		if (!isDefined(model) && node.getAttribute) {
-			modelPath = node.getAttribute('data-scope');
-
-			if (isDefined(modelPath)) {
-				model = Sparky.get(Sparky.data, modelPath);
-
-				if (Sparky.debug && !model) {
-					console.log('Sparky: data-scope="' + modelPath + '" model not found in sparky.data. Path will be observed.' );
-				}
-			}
-		}
-
-		// The ctrl list can be...
-		ctrl =
-			// a space-separated string of ctrl paths
-			typeof ctrl === 'string' ? makeCtrl(ctrl, parent.ctrl) :
-			// a function
-			typeof ctrl === 'function' ? makeDistributeCtrl([ctrl]) :
-			// an array of functions
-			typeof ctrl === 'object' ? makeDistributeCtrl(ctrl) :
-			// defined in the data-ctrl attribute
-			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl'), parent ? parent.ctrl : Sparky.ctrl) ;
-
-		// Where model is an array or array-like object with a length property,
-		// but not a function (whihc also has length), set up Sparky to clone
-		// node for every object in the array.
-		if (loop && model && typeof model.length === 'number' && typeof model !== 'function') {
-			return setupCollection(node, model, ctrl, parent);
-		}
-
-		var sparky = Object.create(prototype);
-
-		Object.defineProperties(sparky, {
-			data: { value: Object.create(parent ? parent.data : Sparky.data), writable: true },
-			ctrl: { value: Object.create(parent ? parent.ctrl : Sparky.ctrl) }
-		});
-
-		// Check if there should be a model, but it isn't available yet. If so,
-		// observe the path to the model until it appears.
-		if (modelPath && !model) {
-			Sparky.observePathOnce(Sparky.data, modelPath, function(model) {
-				setupSparky(sparky, node, model, ctrl);
-			});
-		}
-		else {
-			setupSparky(sparky, node, model, ctrl);
-		}
-
-		return sparky;
+	function replaceWithComment(node, i, sparky) {
+		// If debug use comments as placeholders, otherwise use text nodes.
+		var placeholder = Sparky.debug ?
+			Sparky.dom.create('comment', Sparky.dom.tag(node)) :
+			Sparky.dom.create('text', '') ;
+		Sparky.dom.before(node, placeholder);
+		Sparky.dom.remove(node);
+		return placeholder;
 	}
 
+	function replaceWithNode(node, i, sparky) {
+		var placeholder = sparky.placeholders[i];
+		Sparky.dom.before(placeholder, node);
+		Sparky.dom.remove(placeholder);
+	}
 
-	// Expose
+	function bind(sparky, scope, bindings) {
+		var n = bindings.length;
+		var path, fn;
 
-	Sparky.debug    = false;
-	Sparky.settings = {};
-	Sparky.data     = {};
-	Sparky.ctrl     = {};
+		while (n--) {
+			path = bindings[n][0];
+			fn = bindings[n][1];
+			Sparky.observePath(scope, path, fn);
+		}
+	}
 
-	Sparky.template = function() {
-		return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
-	};
+	function unbind(sparky, scope, bindings) {
+		var n = bindings.length;
+		var path, fn;
 
-	Sparky.extend = function() {
-		console.warn('Sparky.extend() is deprecated. Use Object.assign().');
-		console.warn('Object.assign polyfill: https://github.com/cruncher/object.assign');
-		console.trace();
-		return Object.assign.apply(this, arguments);
-	};
+		while (n--) {
+			path = bindings[n][0];
+			fn = bindings[n][1];
+			Sparky.unobservePath(scope, path, fn);
+		}
+	}
 
-	Sparky.svgNamespace = "http://www.w3.org/2000/svg";
-	Sparky.xlink        = "http://www.w3.org/1999/xlink";
-	Sparky.prototype    = prototype;
+	function setup(sparky, scope, bindings, children) {
+		bind(sparky, scope, bindings);
+		var n = children.length;
+		while (n--) {
+			children[n].scope(scope);
+		}
+	}
+
+	function teardown(sparky, scope, bindings, children) {
+		unbind(sparky, scope, bindings);
+		var n = children.length;
+		while (n--) {
+			children[n].scope();
+		}
+	}
+
+	function addNodes(sparky) {
+		if (!sparky.placeholders) { return; }
+		//window.requestAnimationFrame(function() {
+			sparky.forEach(replaceWithNode);
+			sparky.placeholders = false;
+			sparky.trigger('dom-add');
+		//});
+	}
+
+	function removeNodes(sparky) {
+		if (sparky.placeholders) { return; }
+		sparky.placeholders = sparky.map(replaceWithComment);
+		sparky.trigger('dom-remove');
+	}
+
+	function Sparky(node, scope, fn, parent) {
+		// Allow calling the constructor with or without 'new'.
+		if (!(this instanceof Sparky)) {
+			return new Sparky(node, scope, fn, parent);
+		}
+
+		Sparky.logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
+			(scope && '{}'), ',',
+			(fn && (fn.name || 'anonymous')), ')');
+
+		var sparky = this;
+		var bindings = [];
+		var children = [];
+		var nodes = [];
+		var data = parent ? parent.data : Sparky.data;
+		var ctrl = parent ? parent.fn : Sparky.fn;
+		var init = true;
+		var unobserveScope = noop;
+
+		function get(path) {
+			return scope && Sparky.get(scope, path);
+		}
+
+		function set(property, value) {
+			scope && Sparky.set(scope, property, value);
+		}
+
+		function create(node) {
+			nodes.push(node);
+		}
+
+		function bind(path, fn) {
+			bindings.push([path, fn]);
+		}
+
+		function updateScope(object) {
+			var newscope = ctrlscope || object;
+
+			if (!init) {
+				// If scope is unchanged, do nothing.
+				if (newscope === scope) { return; }
+
+				// If old scope exists, tear it down
+				if (scope) { teardown(sparky, scope, bindings, children); }
+			}
+
+			init = false;
+			scope = newscope;
+			sparky.trigger('scope', scope);
+
+			// Where there is no scope, there should be no nodes in the DOM
+			if (!scope) { return removeNodes(sparky); }
+
+			// Assign and set up scope
+			setup(sparky, scope, bindings, children);
+			addNodes(sparky);
+		}
+
+		function observeScope(scope, path) {
+			unobserveScope();
+			unobserveScope = function() {
+				Sparky.unobservePath(scope, path, updateScope);
+			};
+			Sparky.observePath(scope, path, updateScope);
+		}
+
+		node = resolveNode(node);
+
+		if (!node) {
+			throw new Error("Sparky: Sparky(node) called, node not found: " + node);
+		}
+
+		fn = getCtrl(node, fn, ctrl);
+
+		// Define data and ctrl inheritance
+		Object.defineProperties(this, {
+			data: { value: Object.create(data), writable: true },
+			fn:   { value: Object.create(ctrl) },
+			placeholders: { writable: true }
+		});
+
+		this.scope = function(object) {
+			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
+			return this;
+		};
+
+		// Setup this as a Collection of nodes. Where node is a document
+		// fragment, assign all it's children to sparky collection.
+		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
+
+		var ctrlscope;
+
+		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+			ctrlscope = Sparky.get(basescope, path);
+		}, function(object) {
+			ctrlscope = object;
+		});
+
+		// If a scope object is returned by the ctrl, we use that.
+		var ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+
+		// A controller returning false is telling us not to do data
+		// binding. We can skip the heavy work.
+		if (ctrlscope === false) { return this; }
+
+		// If ctrlscope is unchanged from scope, ctrlscope should not override
+		// scope changes. There's probably a better way of expressing this.
+		if (ctrlscope === scope) { ctrlscope = undefined; }
+
+		// Parse the DOM nodes for Sparky tags. The parser returns an function
+		// that kills it's throttles and so on.
+		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
+
+		this.on('destroy', function() {
+			Sparky.dom.remove(this);
+			this.placeholders && Sparky.dom.remove(this.placeholders);
+			unparse();
+			unobserveScope();
+			unbind(sparky, scope, bindings);
+		});
+
+		this.scope(scope);
+
+		// Instantiate children AFTER this sparky has been fully wired up.
+		children = nodes.map(function(node) {
+			return sparky.create(node, scope);
+		});
+
+		if (bindings.length === 0 && children.length === 0) {
+			log('No Sparky tags found', sparky);
+		}
+	}
+
+	Sparky.prototype = Object.create(Collection.prototype);
+
+	assign(Sparky.prototype, {
+		// Create a child Sparky dependent upon this one.
+		create: function(node, scope, fn) {
+			var boss = this;
+			var sparky = Sparky(node, scope, fn, this);
+
+			// Slave new sparky to this. (todo: you may run into trouble with
+			// the 'ready' event. See old version, slaveSparky() fn.)
+			this.on(sparky);
+
+			return sparky.on('destroy', function() {
+				boss.off(sparky);
+			});
+		},
+
+		// Unbind and destroy Sparky bindings and nodes.
+		destroy: function destroy() {
+			return this.trigger('destroy').off();
+		},
+
+		scope: returnThis,
+
+		// Returns sparky's element nodes wrapped as a jQuery object. If jQuery
+		// is not present, returns undefined.
+		tojQuery: function() {
+			if (!window.jQuery) { return; }
+			return jQuery(this.filter(Sparky.dom.isElement));
+		}
+	});
+
+	// Export
+
+	assign(Sparky, {
+		debug: false,
+		log: log,
+		logVerbose: logVerbose,
+
+		noop:       noop,
+		returnThis: returnThis,
+		returnArg:  returnArg,
+		isDefined:  isDefined,
+		classOf:    classOf,
+
+		svgNamespace:   "http://www.w3.org/2000/svg",
+		xlinkNamespace: "http://www.w3.org/1999/xlink",
+		data: {},
+		fn:   {},
+
+		template: function() {
+			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
+		}
+	});
 
 	window.Sparky = Sparky;
-})(window);
+})(this);
 
 (function(Sparky) {
 	"use strict";
@@ -1776,10 +1624,7 @@ if (!Math.log10) {
 	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
-
-
 	var dom = {};
-
 
 	// Utility functions
 
@@ -1893,9 +1738,31 @@ if (!Math.log10) {
 		return node.tagName.toLowerCase();
 	}
 
-	function append(parent, node) {
-		parent.appendChild(node);
-		return parent;
+	function createNode(name) {
+		// create('comment', 'Text');
+		if (name === 'comment' || name === '!') {
+			return document.createComment(arguments[1]);
+		}
+
+		// create('text', 'Text')
+		if (name === 'text') {
+			return document.createTextNode(arguments[1]);
+		}
+
+		// create('fragment')
+		if (name === 'fragment') {
+			return document.createDocumentFragment();
+		}
+
+		// create('div', 'HTML')
+		var node = document.createElement(name);
+		node.innerHTML = arguments[1];
+		return node;
+	}
+
+	function append(node1, node2) {
+		node1.appendChild(node2);
+		return node1;
 	}
 
 	function empty(node) {
@@ -1905,11 +1772,11 @@ if (!Math.log10) {
 	function remove(node) {
 		node.parentNode && node.parentNode.removeChild(node);
 	}
-	
+
 	function insertBefore(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target);
 	}
-	
+
 	function insertAfter(target, node) {
 		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	}
@@ -1923,21 +1790,59 @@ if (!Math.log10) {
 		return slice(node.querySelectorAll(selector));
 	}
 
+	function isElementNode(node) {
+		return node.nodeType === 1;
+	}
+
+	function isTextNode(node) {
+		return node.nodeType === 3;
+	}
+
+	function isCommentNode(node) {
+		return node.nodeType === 8;
+	}
+
+	function isFragmentNode(node) {
+		return node.nodeType === 11;
+	}
+
 	assign(dom, {
 		query:     query,
 		tag:       tagName,
-		append:    append,
-		appendAll: all(append),
+		create:    createNode,
+
+		append: function(node1, node2) {
+			if (Node.prototype.isPrototypeOf(node2)) {
+				append(node1, node2);
+			}
+			else {
+				Array.prototype.forEach.call(node2, function(node) {
+					append(node1, node);
+				});
+			}
+		},
+
 		after:     insertAfter,
 		before:    insertBefore,
 		empty:     empty,
-		remove:    remove,
+		remove:    function(node) {
+			if (Node.prototype.isPrototypeOf(node)) {
+				remove(node);
+				return;
+			}
+
+			Array.prototype.forEach.call(node, remove);
+		},
 		closest:   closest,
-		matches:   matches,  
+		matches:   matches,
 		classes:   getClassList,
 		style:     getStyle,
 		getClass:  getClass,
-		setClass:  setClass
+		setClass:  setClass,
+		isElementNode:  isElementNode,
+		isTextNode:     isTextNode,
+		isCommentNode:  isCommentNode,
+		isFragmentNode: isFragmentNode
 	});
 
 
@@ -1965,7 +1870,7 @@ if (!Math.log10) {
 			return fragmentFromContent(node);
 		}
 		else {
-			// In browsers where templates are not inert, ids used inside them 
+			// In browsers where templates are not inert, ids used inside them
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
@@ -2040,7 +1945,6 @@ if (!Math.log10) {
 
 	function testTemplate() {
 		// Older browsers don't know about the content property of templates.
-
 		return 'content' in document.createElement('template');
 	}
 
@@ -2069,6 +1973,7 @@ if (!Math.log10) {
 	// Export
 	Sparky.dom = dom;
 })(window.Sparky);
+
 
 // Sparky.observe()
 // Sparky.unobserve()
@@ -2111,10 +2016,7 @@ if (!Math.log10) {
 
 	function observePath3(root, prop, array, fn, notify) {
 		function update() {
-			if (Sparky.debug === 'verbose') {
-				console.log('Sparky: path resolved. Value:', root[prop]);
-			}
-
+			Sparky.logVerbose('path resolved to value:', root[prop]);
 			fn(root[prop]);
 		}
 
@@ -2145,7 +2047,6 @@ if (!Math.log10) {
 		};
 
 		Sparky.observe(root, prop, update);
-		update();
 		notify = true;
 
 		return function unobserve() {
@@ -2394,7 +2295,8 @@ if (!Math.log10) {
 				}
 			}
 
-			return observe(object, property, fn);
+			observe(object, property, fn);
+			fn(object);
 		};
 
 		Sparky.unobserve = function(object, property, fn) {
@@ -2460,7 +2362,7 @@ if (!Math.log10) {
 		}
 
 		throttle.cancel = cancel;
-		update();
+		//update();
 
 		return throttle;
 	}
@@ -2469,48 +2371,23 @@ if (!Math.log10) {
 })(Sparky);
 
 
-// Sparky.bind
+// Sparky.parse()
 //
-// Binds data to the DOM. Changes in data are then immediately rendered
-// in the nodes that display that data via template tags such as {{ name }}.
-// Only those nodes containing the changed data are updated, other nodes are
-// left alone. The actual DOM tree does not change. Template tags can also
-// be used in the attributes href, title, id, class, style and value.
+// Sparky.parse(nodes, get, set, bind, unbind, create);
 //
-// dataBind(node, observeFn, unobserveFn, getFn)
-//
-// node
-//
-// A DOM node to use as a route. The inner DOM tree is traversed and references
-// to property names written as {{ name }} cause bindFn to be called with name
-// as property.
-//
-// bindFn(property, fn)
-//
-// Responsible for listening to changes to properties on a data object or model.
-// When the named property changes, function fn must be called.
-//
-// getFn(property)
-//
-// Responsible for returning the value of the named property from a data object
-// or model.
+// Parses a collection of DOM nodes and all their descendants looking for
+// Sparky tags. For each tag found in the DOM, the bind callback is called
+// with the params (path, fn), where path is of the form 'path.to.data' and
+// fn is a function to be called when the data at that path changes.
 
-
-(function(Sparky) {
+(function(window) {
 	"use strict";
 
 	var assign = Object.assign;
+	var Sparky = window.Sparky;
+	var dom    = Sparky.dom;
 
-	var dom = Sparky.dom;
-
-	var attributes = [
-		'href',
-		'title',
-		'id',
-		'style',
-		'src',
-		'alt'
-	];
+	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
 	// Matches a sparky template tag, capturing (tag name, filter string)
 	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
@@ -2532,169 +2409,24 @@ if (!Math.log10) {
 
 	var filterCache = {};
 
-	var binders = {
-	    	1: domNode,
-	    	3: textNode,
-	    	11: fragmentNode
-	    };
-
 	var empty = [];
 
 	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
 
 	// Utility functions
 
+	var noop       = Sparky.noop;
+	var returnArg  = Sparky.returnArg;
+	var returnThis = Sparky.returnThis;
+	var isDefined  = Sparky.isDefined;
+	var classOf    = Sparky.classOf;
+
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
-
-	function noop() {}
-
-	function returnThis() { return this; }
 
 	function call(fn) { fn(); }
 
-	function isDefined(n) {
-		return !!n || n !== undefined && n !== null && !Number.isNaN(n);
-	}
 
-	function classOf(object) {
-		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
-	}
-
-	// Nodes that require special bindings
-	var tags = {
-	    	label: function(node, bind, unbind, get, set, create, unobservers, scope) {
-	    		bindAttribute(node, 'for', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-	    	},
-
-	    	input: function(node, bind, unbind, get, set, create, unobservers, scope) {
-	    		var type = node.type;
-
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindAttribute(node, 'min', bind, unbind, get, unobservers);
-	    		bindAttribute(node, 'max', bind, unbind, get, unobservers);
-
-	    		var unbind = type === 'number' || type === 'range' ?
-	    		    	// Only let numbers set the value of number and range inputs
-	    		    	Sparky.bindNamedValueToObject(node, scope, numberToString, stringToNumber) :
-	    		    // Checkboxes default to value "on" when the value attribute
-	    		    // is not given. Make them behave as booleans.
-	    		    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-	    		    	Sparky.bindNamedValueToObject(node, scope, booleanToStringOn, stringOnToBoolean) :
-	    		    	// Only let strings set the value of other inputs
-	    		    	Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg) ;
-
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
-
-	    	select: function(node, bind, unbind, get, set, create, unobservers, scope) {
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-
-	    		// Only let strings set the value of selects
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
-
-	    	option: function(node, bind, unbind, get, set, create, unobservers, scope) {
-	    		bindAttribute(node, 'value', bind, unbind, get, unobservers);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-	    	},
-
-	    	textarea: function(node, bind, unbind, get, set, create, unobservers, scope) {
-	    		// Only let strings set the value of a textarea
-	    		var unbind = Sparky.bindNamedValueToObject(node, scope, returnArg, returnArg);
-	    		if (unbind) { unobservers.push(unbind); }
-	    	},
-
-	    	time: function(node, bind, unbind, get, set, create, unobservers, scope)  {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
-	    		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-	    	},
-
-	    	path: function(node, bind, unbind, get, set, create, unobservers) {
-	    		bindAttributes(node, bind, unbind, get, unobservers, ['d']);
-	    	}
-	    };
-
-	function domNode(node, bind, unbind, get, set, create, scope) {
-		var unobservers = [];
-		var tag = node.tagName.toLowerCase();
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
-
-		bindClasses(node, bind, unbind, get, unobservers);
-		bindAttributes(node, bind, unbind, get, unobservers, attributes);
-
-		// Set up special binding for certain elements like form inputs
-		if (tags[tag]) {
-			tags[tag](node, bind, unbind, get, set, create, unobservers, scope);
-		}
-
-		// Or sparkify the child nodes
-		else {
-			bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-		}
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function textNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
-
-		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
-			node.nodeValue = text;
-		}, unobservers);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function fragmentNode(node, bind, unbind, get, set, create, scope) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
-
-		bindNodes(node, bind, unbind, get, set, create, unobservers, scope);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function bindNodes(node, bind, unbind, get, set, create, unobservers, scope) {
-		if (node.childNodes.length === 0) { return; }
-
-		// childNodes is a live list, and we don't want it to be because we may
-		// be about to modify the DOM. Copy it.
-		var nodes = slice(node.childNodes);
-		var n = -1;
-		var l = nodes.length;
-		var child, sparky, unbind;
-
-		// Loop forwards through the children
-		while (++n < l) {
-			child = nodes[n];
-
-			// Don't bind child nodes that have their own Sparky controllers.
-			if (child.getAttribute && (
-				isDefined(child.getAttribute('data-ctrl')) ||
-			    isDefined(child.getAttribute('data-scope')) ||
-			    isDefined(child.getAttribute('data-template'))
-			)) {
-				sparky = create(child);
-				unobservers.push(sparky.destroy.bind(sparky));
-			}
-			else if (binders[child.nodeType]) {
-				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create, scope));
-			}
-		}
-	}
+	// DOM
 
 	function setAttributeSVG(node, attribute, value) {
 		if (attribute = 'd') {
@@ -2717,6 +2449,174 @@ if (!Math.log10) {
 	function removeClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
 		classList.remove.apply(classList, classes);
+	}
+
+
+	// Binding system
+
+	var binders = {
+		1: domNode,
+		3: textNode,
+		11: fragmentNode
+	};
+
+	var tags = {
+		label: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'for', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
+
+		input: function(node, bind, unbind, get, set, create, unobservers) {
+			var type = node.type;
+
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindAttribute(node, 'min', bind, unbind, get, unobservers);
+			bindAttribute(node, 'max', bind, unbind, get, unobservers);
+
+			var unbind = type === 'number' || type === 'range' ?
+			    	// Only let numbers set the value of number and range inputs
+			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
+			    // Checkboxes default to value "on" when the value attribute
+			    // is not given. Make them behave as booleans.
+			    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
+			    	// Only let strings set the value of other inputs
+			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
+
+			if (unbind) { unobservers.push(unbind); }
+		},
+
+		select: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+
+			// Only let strings set the value of selects
+			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbind) { unobservers.push(unbind); }
+		},
+
+		option: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
+
+		textarea: function(node, bind, unbind, get, set, create, unobservers) {
+			// Only let strings set the value of a textarea
+			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbind) { unobservers.push(unbind); }
+		},
+
+		time: function(node, bind, unbind, get, set, create, unobservers)  {
+			bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		},
+
+		path: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['d']);
+		}
+	};
+
+	function domNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
+		var tag = node.tagName.toLowerCase();
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+
+		bindClasses(node, bind, unbind, get, unobservers);
+		bindAttributes(node, bind, unbind, get, unobservers, attributes);
+
+		// Set up special binding for certain elements like form inputs
+		if (tags[tag]) {
+			tags[tag](node, bind, unbind, get, set, create, unobservers);
+		}
+
+		// Or sparkify the child nodes
+		else {
+			bindNodes(node, bind, unbind, get, set, create, unobservers);
+		}
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function textNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+
+		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+			node.nodeValue = text;
+		}, unobservers);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function fragmentNode(node, bind, unbind, get, set, create) {
+		var unobservers = [];
+
+		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+
+		bindNodes(node, bind, unbind, get, set, create, unobservers);
+
+		if (Sparky.debug === 'verbose') { console.groupEnd(); }
+
+		return unobservers;
+	}
+
+	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
+		// Document fragments do not have a getAttribute method.
+		var id = node.getAttribute && node.getAttribute('data-template');
+		var template, nodes;
+
+		if (isDefined(id)) {
+			template = Sparky.template(id);
+
+			// If the template does not exist, do nothing.
+			if (!template) {
+				Sparky.log('template "' + id + '" not found in DOM.');
+				return;
+			}
+
+			// childNodes is a live list, and we don't want that because we may
+			// be about to modify the DOM.
+			nodes = slice(template.childNodes);
+
+			// Insert the template on the next frame.
+			window.requestAnimationFrame(function() {
+				Sparky.dom.empty(node);
+				Sparky.dom.append(node, template);
+			});
+		}
+		else {
+			// childNodes is a live list, and we don't want that because we may
+			// be about to modify the DOM.
+			nodes = slice(node.childNodes);
+		}
+
+		var n = -1;
+		var l = nodes.length;
+		var child, sparky, unbind;
+
+		// Loop forwards through the children
+		while (++n < l) {
+			child = nodes[n];
+
+			// Don't bind child nodes that have their own Sparky controllers.
+			if (child.getAttribute && (
+				isDefined(child.getAttribute('data-fn')) ||
+				isDefined(child.getAttribute('data-scope'))
+			)) {
+				//create(child);
+				create(child);
+				//unobservers.push(sparky.destroy.bind(sparky));
+			}
+			else if (binders[child.nodeType]) {
+				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
+			}
+		}
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
@@ -2912,45 +2812,65 @@ if (!Math.log10) {
 		};
 	}
 
-	function bind(node, observe, unobserve, get, set, create, scope) {
-		// Assume this is a DOM node, and set the binder off. The
-		// binder returns a function that destroys the bindings.
-		var unobservers = binders[node.nodeType](node, observe, unobserve, get, set, create, scope);
 
-		if (Sparky.debug && unobservers.length === 0) {
-			console.log('Sparky: No Sparky tags found in', node);
-		}
+	// Forms elements
+	//
+	// 2-way binding for form elements. HTML form elements are hard. They do
+	// all sorts of strange things such as having a default value of string
+	// 'on' where a value attribute is not given. This set of functions handles
+	// 2-way binding between a node and an object. They are deliberately strict.
 
-		this.unbind = function unbind() {
-			unobservers.forEach(call);
-			return this;
-		};
-
-		return this;
+	function stringToFloat(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			n ;
 	}
 
-	assign(Sparky, {
-		attributes: attributes,
+	function stringToInt(value) {
+		// coerse to number
+		var n = parseFloat(value);
+		return Number.isNaN(n) ? undefined :
+			Math.round(n) ;
+	}
 
-		// Todo: We expose these regexes so we can change tag delimiters. Find
-		// a better way to declare just the tag delimiters without exposing
-		// these regexes.
-		rtags: rtags,
-		rspaces: rspaces,
-		rclasstags: rclasstags
-	});
+	function stringToBool(value) {
+		return value === 'false' ? false :
+			value === '0' ? false :
+			value === '' ? false :
+			!!value ;
+	}
 
-	assign(Sparky.prototype, {
-		bind: bind,
-		unbind: returnThis
-	});
+	function stringOnToBool(value) {
+		return value === 'on' ;
+	}
 
+	function definedToString(value) {
+		return isDefined(value) ? value + '' :
+			undefined ;
+	}
 
-	// 2-way binding for form elements.
-	// HTML form elements are hard to handle. They do all sorts of strange
-	// things such as radios and checkboxes having a default value of 'on'
-	// where a value attribute is not given. This set of functions handles
-	// 2-way binding between a node and an object.
+	function floatToString(value) {
+		return typeof value === 'number' ? value + '' :
+			undefined ;
+	}
+
+	function intToString(value) {
+		return typeof value === 'number' && value % 1 === 0 ? value + '' :
+			undefined ;
+	}
+
+	function boolToString(value) {
+		return typeof value === 'boolean' ? value + '' :
+			typeof value === 'number' ? !!value + '' :
+			undefined ;
+	}
+
+	function boolToStringOn(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? 'on' : '' :
+			undefined ;
+	}
 
 	function dispatchInputChangeEvent(node) {
 		// FireFox won't dispatch any events on disabled inputs so we need to do
@@ -2971,12 +2891,12 @@ if (!Math.log10) {
 		}
 	}
 
-	function makeUpdateInput(node, model, path, fn) {
+	function makeUpdateInput(node, get, path, fn) {
 		var type = node.type;
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
-				var value = fn(Sparky.get(model, path));
+				var value = fn(get(path));
 				var checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
@@ -2988,7 +2908,7 @@ if (!Math.log10) {
 				dispatchInputChangeEvent(node);
 			} :
 			function updateValue() {
-				var value = fn(Sparky.get(model, path));
+				var value = fn(get(path));
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -3006,26 +2926,26 @@ if (!Math.log10) {
 			} ;
 	}
 
-	function makeChangeListener(node, model, path, fn) {
+	function makeChangeListener(node, set, path, fn) {
 		var type = node.type;
 
 		return type === 'radio' ? function radioChange(e) {
 				if (node.checked) {
-					Sparky.set(model, path, fn(node.value));
+					set(path, fn(node.value));
 				}
 			} :
 			type === 'checkbox' ? function checkboxChange(e) {
-				Sparky.set(model, path, fn(node.checked ? node.value : undefined));
+				set(path, fn(node.checked ? node.value : undefined));
 			} :
 			function valueChange(e) {
-				Sparky.set(model, path, fn(node.value));
+				set(path, fn(node.value));
 			} ;
 	}
 
-	function bindPathToValue(node, model, path, to, from) {
+	function bindValue(node, get, set, bind, unbind, path, to, from) {
 		var nodeValue = node.getAttribute('value');
-		var update = makeUpdateInput(node, model, path, to);
-		var change = makeChangeListener(node, model, path, from);
+		var update = makeUpdateInput(node, get, path, to);
+		var change = makeChangeListener(node, set, path, from);
 		var throttle;
 
 		node.addEventListener('change', change);
@@ -3040,12 +2960,12 @@ if (!Math.log10) {
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(Sparky.get(model, path))) {
+			if (!isDefined(get(path))) {
 				change();
 			}
 
 			throttle = Sparky.Throttle(update);
-			Sparky.observePath(model, path, throttle);
+			bind(path, throttle);
 		});
 
 		return function unbind() {
@@ -3057,12 +2977,12 @@ if (!Math.log10) {
 			}
 			else {
 				throttle.cancel();
-				Sparky.unobservePath(model, path, throttle);
+				unbind(path, throttle);
 			}
 		};
 	}
 
-	function bindNamedValueToObject(node, model, to, from) {
+	function parseName(node, get, set, bind, unbind, to, from) {
 		var name = node.name;
 
 		if (!node.name) {
@@ -3085,170 +3005,48 @@ if (!Math.log10) {
 		// from being name-value bound by any other controllers.
 		node.name = name.replace(Sparky.rtags, path);
 
-		return bindPathToValue(node, model, path, to, from);
+		return bindValue(node, get, set, bind, unbind, path, to, from);
 	}
 
 
-	// Controllers
+	// Export
 
-	function returnArg(arg) { return arg; }
+	function parse(nodes, get, set, bind, unbind, create) {
+		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return binders[node.nodeType](node, bind, unbind, get, set, create);
+		}));
 
-	function toString(value) { return '' + value; }
-
-	function stringToNumber(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined :
-			n ;
+		return function unparse() {
+			unobservers.forEach(call);
+		};
 	}
 
-	function stringToInteger(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined :
-			Math.round(n) ;
-	}
+	assign(Sparky, {
+		parse: parse,
+		parseName: parseName,
+		attributes: attributes,
 
-	function stringToBoolean(value) {
-		return value === 'false' ? false :
-			value === '0' ? false :
-			value === '' ? false :
-			!!value ;
-	}
+		stringToInt:     stringToInt,
+		stringToFloat:   stringToFloat,
+		stringToBool:    stringToBool,
+		stringOnToBool:  stringOnToBool,
+		definedToString: definedToString,
+		intToString:     intToString,
+		floatToString:   floatToString,
+		boolToString:    boolToString,
+		boolToStringOn:  boolToStringOn,
 
-	function stringToBooleanInverted(value) {
-		return !stringToBoolean(value);
-	}
-
-	function stringOnToBoolean(value) {
-		return value === 'on' ;
-	}
-
-	function stringOnToBooleanInverted(value) {
-		return value !== 'on';
-	}
-
-	function definedToString(value) {
-		return isDefined(value) ? value + '' :
-			undefined ;
-	}
-
-	function numberToString(value) {
-		return typeof value === 'number' ? value + '' :
-			undefined ;
-	}
-
-	function integerToString(value) {
-		return typeof value === 'number' && value % 1 === 0 ? value + '' :
-			undefined ;
-	}
-
-	function booleanToString(value) {
-		return typeof value === 'boolean' ? value + '' :
-			typeof value === 'number' ? !!value + '' :
-			undefined ;
-	}
-
-	function booleanToStringInverted(value) {
-		return typeof value === 'boolean' ? !value + '' :
-			typeof value === 'number' ? !value + '' :
-			undefined ;
-	}
-
-	function booleanToStringOn(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? 'on' : '' :
-			undefined ;
-	}
-
-	function booleanToStringOnInverted(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? '' : 'on' :
-			undefined ;
-	}
-
-	function valueAnyCtrl(node, model) {
-		// Coerce any defined value to string so that any values pass the type checker
-		var unbind = Sparky.bindNamedValueToObject(node, model, definedToString, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueStringCtrl(node, model) {
-		// Don't coerce so that only strings pass the type checker
-		var unbind = Sparky.bindNamedValueToObject(node, model, returnArg, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueNumberCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToNumber);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.bindNamedValueToObject(node, model, numberToString, stringToInteger);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueBooleanCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOn, stringOnToBoolean) :
-		    	Sparky.bindNamedValueToObject(node, model, booleanToString, stringToBoolean) ;
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueBooleanInvertCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringOnInverted, stringOnToBooleanInverted) :
-		    	Sparky.bindNamedValueToObject(node, model, booleanToStringInverted, stringToBooleanInverted);
-		if (unbind) { this.on('destroy', unbind); }
-	}
-
-	function valueNumberInvertCtrl(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
-
-		var unbind = Sparky.bindNamedValueToObject(node, model, function to(value) {
-			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
-		}, function from(value) {
-			var n = parseFloat(value);
-			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
-		});
-
-		if (unbind) { this.on('destroy', unbind); }
-	};
-
-
-	assign(Sparky.ctrl, {
-		'value-any':            valueAnyCtrl,
-		'value-string':         valueStringCtrl,
-
-		'value-number':         function(argument) {
-			console.warn('Sparky: value-number controller is renamed to value-float (or value-int).');
-			return valueNumberCtrl.apply(this, arguments);
-		},
-
-		'value-number-invert':         function(argument) {
-			console.warn('Sparky: value-number-invert controller is renamed to value-float-invert (or value-int-invert).');
-			return valueNumberInvertCtrl.apply(this, arguments);
-		},
-
-		'value-float':          valueNumberCtrl,
-		'value-int':            valueIntegerCtrl,
-		'value-number-invert':  valueNumberInvertCtrl,
-		'value-boolean':        valueBooleanCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl
+		// Todo: We expose these regexes so we can change tag delimiters. Find
+		// a better way to declare just the tag delimiters without exposing
+		// these regexes.
+		rtags: rtags,
+		rspaces: rspaces,
+		rclasstags: rclasstags
 	});
+})(this);
 
 
-	// Expose
-
-	Sparky.bindNamedValueToObject = bindNamedValueToObject;
-})(Sparky);
-
-
-// Sparky.ctrls
+// Sparky.fns
 
 (function() {
 	"use strict";
@@ -3267,7 +3065,7 @@ if (!Math.log10) {
 		return value * (max - min) + min;
 	}
 
-	Sparky.ctrl['value-number-pow-2'] = function(node, model) {
+	Sparky.fn['value-number-pow-2'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
@@ -3283,11 +3081,11 @@ if (!Math.log10) {
 			return denormalise(pow(normalise(n, min, max), 2), min, max);
 		}
 
-		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		var unbind = Sparky.parseName(node, model, to, from);
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-number-pow-3'] = function(node, model) {
+	Sparky.fn['value-number-pow-3'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
@@ -3303,11 +3101,11 @@ if (!Math.log10) {
 			return denormalise(pow(normalise(n, min, max), 3), min, max);
 		}
 
-		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		var unbind = Sparky.parseName(node, model, to, from);
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-number-log'] = function(node, model) {
+	Sparky.fn['value-number-log'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
@@ -3329,12 +3127,12 @@ if (!Math.log10) {
 			return min * Math.pow(ratio, normalise(n, min, max));
 		}
 
-		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		var unbind = Sparky.parseName(node, model, to, from);
 
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-int-log'] = function(node, model) {
+	Sparky.fn['value-int-log'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
@@ -3356,7 +3154,7 @@ if (!Math.log10) {
 			return Math.round(min * Math.pow(ratio, normalise(n, min, max)));
 		}
 
-		var unbind = Sparky.bindNamedValueToObject(node, model, to, from);
+		var unbind = Sparky.parseName(node, model, to, from);
 
 		this.on('destroy', unbind);
 	};
@@ -3367,15 +3165,15 @@ if (!Math.log10) {
 
 
 
-	Sparky.ctrl['value-pow-2'] = function() {
+	Sparky.fn['value-pow-2'] = function() {
 		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
 	};
 
-	Sparky.ctrl['value-pow-3'] = function() {
+	Sparky.fn['value-pow-3'] = function() {
 		console.warn('Sparky: ctrl "value-pow-3" is deprecated. Use "value-number-pow-3"');
 	};
 
-	Sparky.ctrl['value-log'] = function(node, model) {
+	Sparky.fn['value-log'] = function(node, model) {
 		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
 	};
 
@@ -3397,7 +3195,7 @@ if (!Math.log10) {
 		return jQuery.data(node, 'scope');
 	};
 
-	Object.assign(Sparky.ctrl, {
+	Object.assign(Sparky.fn, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {
@@ -3420,8 +3218,8 @@ if (!Math.log10) {
 (function() {
 	"use strict";
 
-	Sparky.ctrl['log'] = function(node, scope) {
-		console.group('Sparky.ctrl.log:');
+	Sparky.fn['log'] = function(node, scope) {
+		console.group('Sparky.fn.log:');
 		console.log('node:  ', node);
 		console.log('scope: ', scope);
 		console.log('data:  ', this.data);
@@ -3430,20 +3228,20 @@ if (!Math.log10) {
 		console.groupEnd();
 	};
 
-	Sparky.ctrl['log-events'] = function(node, model) {
+	Sparky.fn['log-events'] = function(node, model) {
 		var ready = 0;
 		var insert = 0;
 		var destroy = 0;
 
 		this
 		.on('ready', function() {
-			console.log('Sparky.ctrl.log-events: READY  ', ready++, node);
+			console.log('Sparky.fn.log-events: READY  ', ready++, node);
 		})
 		.on('insert', function() {
-			console.log('Sparky.ctrl.log-events: INSERT ', insert++, node);
+			console.log('Sparky.fn.log-events: INSERT ', insert++, node);
 		})
 		.on('destroy', function() {
-			console.log('Sparky.ctrl.log-events: DESTROY', destroy++, node);
+			console.log('Sparky.fn.log-events: DESTROY', destroy++, node);
 		});
 	};
 })();
@@ -3451,7 +3249,7 @@ if (!Math.log10) {
 (function() {
 	"use strict";
 
-	Sparky.ctrl['html'] = function(node, scope) {
+	Sparky.fn['html'] = function(node, scope) {
 		var property = node.getAttribute('data-property');
 
 		function update() {
@@ -3465,16 +3263,16 @@ if (!Math.log10) {
 		};
 	};
 
-	Sparky.ctrl['inner-html'] = function() {
-		console.warn('Sparky: deprecated data-ctrl="inner-html". Use data-ctrl="html"');
-		Sparky.ctrl['html'].apply(this, arguments);
+	Sparky.fn['inner-html'] = function() {
+		console.warn('Sparky: deprecated data-fn="inner-html". Use data-fn="html"');
+		Sparky.fn['html'].apply(this, arguments);
 	};
 })();
 
 (function() {
 	"use strict";
 
-	Sparky.ctrl['click-to-call'] = function(node, scope) {
+	Sparky.fn['click-to-call'] = function(node, scope) {
 		var name = node.getAttribute('data-fn');
 
 		function update(e) {
@@ -3495,7 +3293,7 @@ if (!Math.log10) {
 
 	var dom = Sparky.dom;
 
-	Sparky.ctrl['replace'] = function(node, scope) {
+	Sparky.fn['replace'] = function(node, scope) {
 		// Replaces node with contents of one or more
 		// templates given by data-replace attribute
 
@@ -3527,7 +3325,7 @@ if (!Math.log10) {
 
 	var dom = Sparky.dom;
 
-	Sparky.ctrl['x-scroll-slave'] = function(node, scope) {
+	Sparky.fn['x-scroll-slave'] = function(node, scope) {
 		var name = node.getAttribute('data-x-scroll-master');
 		var master;
 
@@ -3553,7 +3351,7 @@ if (!Math.log10) {
 		});
 	};
 
-	Sparky.ctrl['y-scroll-slave'] = function(node, scope) {
+	Sparky.fn['y-scroll-slave'] = function(node, scope) {
 		var name = node.getAttribute('data-y-scroll-master');
 		var master = document.getElementById(name);
 
@@ -3574,7 +3372,7 @@ if (!Math.log10) {
 		});
 	};
 
-	Sparky.ctrl["x-scroll-center"] = function(node) {
+	Sparky.fn["x-scroll-center"] = function(node) {
 		// Center the scroll position horizontally
 		this.on('insert', function() {
 			var w = node.clientWidth;
@@ -3583,7 +3381,7 @@ if (!Math.log10) {
 		});
 	};
 
-	Sparky.ctrl["y-scroll-center"] = function(node) {
+	Sparky.fn["y-scroll-center"] = function(node) {
 		// Center the scroll position vertically
 		this.on('insert', function() {
 			var h = node.clientHeight;
@@ -3599,7 +3397,7 @@ if (!Math.log10) {
 
 	var assign = Object.assign;
 
-	function stringToNumber(value) {
+	function stringToFloat(value) {
 		// coerse to number
 		var n = parseFloat(value);
 		return Number.isNaN(n) ? undefined :
@@ -3626,24 +3424,24 @@ if (!Math.log10) {
 			undefined ;
 	}
 
-	assign(Sparky.ctrl, {
+	assign(Sparky.fn, {
 		"value-number-decimals-0": function(node, model) {
-			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound0ToString, stringToNumber);
+			var unbind = Sparky.parseName(node, model, numberRound0ToString, stringToFloat);
 			if (unbind) { this.on('destroy', unbind); }
 		},
 
 		"value-number-decimals-1": function(node, model) {
-			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound1ToString, stringToNumber);
+			var unbind = Sparky.parseName(node, model, numberRound1ToString, stringToFloat);
 			if (unbind) { this.on('destroy', unbind); }
 		},
 
 		"value-number-decimals-2": function(node, model) {
-			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound2ToString, stringToNumber);
+			var unbind = Sparky.parseName(node, model, numberRound2ToString, stringToFloat);
 			if (unbind) { this.on('destroy', unbind); }
 		},
 
 		"value-number-decimals-3": function(node, model) {
-			var unbind = Sparky.bindNamedValueToObject(node, model, numberRound3ToString, stringToNumber);
+			var unbind = Sparky.parseName(node, model, numberRound3ToString, stringToFloat);
 			if (unbind) { this.on('destroy', unbind); }
 		}
 	});
@@ -3657,12 +3455,256 @@ if (!Math.log10) {
 	var Sparky = window.Sparky;
 	var dom = Sparky.dom;
 
-	assign(Sparky.ctrl, {
+	assign(Sparky.fn, {
 		"on-ready-unhide": function onReadyUnhide(node, model) {
 			this.on('ready', function() {
 				dom.classes(this[0]).remove('hidden');
 			});
 		}
+	});
+})(this);
+
+(function(window) {
+	"use strict";
+
+	var assing = Object.assign;
+	var Sparky = window.Sparky;
+	var dom = Sparky.dom;
+
+	function call(fn) { fn(); }
+
+	Sparky.fn.each = function setupCollection(node, collection) {
+		// todo: somehow get the remaining ctrls and call child sparkies with
+		// them.
+
+		var sparky = this;
+		var nodes  = [];
+		var sparkies = [];
+		var cache  = [];
+		var tasks  = [];
+		var clone  = node.cloneNode(true);
+		var taskThrottle = Sparky.Throttle(run);
+		var updateThrottle = Sparky.Throttle(update);
+		var placeholder, attrScope, attrCtrl;
+
+		if (Sparky.debug) {
+			attrScope = node.getAttribute('data-scope');
+			attrCtrl = node.getAttribute('data-fn');
+			placeholder = dom.create('comment',
+				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
+				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
+		}
+		else {
+			placeholder = dom.create('text', '');
+		}
+
+		function run() {
+			tasks.forEach(call);
+			tasks.length = 0;
+		}
+
+		function update() {
+			var n = -1;
+			var l = cache.length;
+			var map = {};
+			var i, obj, t;
+
+			if (Sparky.debug) { t = window.performance.now(); }
+
+			// Compare the cached version of the collection against the
+			// collection and construct a map of found object positions.
+			while (l--) {
+				obj = cache[l];
+				i = collection.indexOf(obj);
+
+				if (i === -1) {
+					sparkies[l].destroy();
+				}
+				else if (nodes[l] && sparkies[l]) {
+					map[i] = [nodes[l], sparkies[l]];
+				}
+			}
+
+			l = nodes.length = sparkies.length = cache.length = collection.length;
+
+			// Loop through the collection, recaching objects and creating
+			// sparkies where needed.
+			while(++n < l) {
+				cache[n] = collection[n];
+
+				if (map[n]) {
+					nodes[n]    = map[n][0];
+					sparkies[n] = map[n][1];
+				}
+				else {
+					nodes[n]    = clone.cloneNode(true);
+					sparkies[n] = sparky.create(nodes[n], collection[n]);
+				}
+
+				// Push DOM changes to the task list for handling on
+				// the next frame.
+				tasks.push(dom.before.bind(dom, placeholder, nodes[n]));
+				taskThrottle();
+			}
+
+			Sparky.log(
+				'collection rendered (length: ' + collection.length +
+				', time: ' + (window.performance.now() - t) + 'ms)'
+			);
+		}
+
+		function observeCollection() {
+			if (collection.on) {
+				collection.on('add remove', updateThrottle);
+				updateThrottle();
+			}
+			else {
+				Sparky.observe(collection, 'length', updateThrottle);
+			}
+		}
+
+		function unobserveCollection() {
+			if (collection.on) {
+				collection.off('add remove', updateThrottle);
+			}
+			else {
+				Sparky.unobserve(collection, 'length', updateThrottle);
+			}
+		}
+
+		// Stop Sparky trying to bind the same scope and ctrls again.
+		clone.removeAttribute('data-scope');
+		clone.removeAttribute('data-fn');
+
+		// Put the placeholder in place and remove the node
+		dom.before(node, placeholder);
+		dom.remove(node);
+
+		observeCollection()
+
+		this
+		.on('scope', function(source, scope){
+			if (this !== source) { return; }
+			unobserveCollection();
+			if (scope === undefined) { return; }
+			collection = scope;
+			observeCollection();
+		})
+		.on('destroy', function destroy() {
+			taskThrottle.cancel();
+			updateThrottle.cancel();
+			unobserveCollection();
+		});
+
+		// Return false to stop the current sparky from binding.
+		// ??????? Do we? Dont we? Whazzappnin?
+		return false;
+	};
+})(this);
+
+(function(window) {
+	"use strict";
+
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+	var parseName = Sparky.parseName;
+	var returnArg = Sparky.returnArg;
+	var stringToInt = Sparky.stringToInt;
+	var stringToFloat = Sparky.stringToFloat;
+	var stringToBool = Sparky.stringToBool ;
+	var stringOnToBool = Sparky.stringOnToBool;
+	var stringToBoolInverted = Sparky.stringToBoolInverted;
+	var stringOnToBoolInverted = Sparky.stringOnToBoolInverted;
+	var definedToString = Sparky.definedToString;
+	var intToString = Sparky.intToString;
+	var floatToString = Sparky.floatToString;
+	var boolToString = Sparky.boolToString;
+	var boolToStringOn = Sparky.boolToStringOn;
+	var boolToStringOnInverted = Sparky.boolToStringOnInverted;
+
+	function stringToBoolInverted(value) {
+		return !stringToBool(value);
+	}
+
+	function stringOnToBoolInverted(value) {
+		return value !== 'on';
+	}
+
+	function boolToStringInverted(value) {
+		return typeof value === 'boolean' ? !value + '' :
+			typeof value === 'number' ? !value + '' :
+			undefined ;
+	}
+
+	function boolToStringOnInverted(value) {
+		return typeof value === 'boolean' || typeof value === 'number' ?
+			value ? '' : 'on' :
+			undefined ;
+	}
+
+	// Controllers
+
+	function valueAnyCtrl(node, model) {
+		// Coerce any defined value to string so that any values pass the type checker
+		var unbind = Sparky.parseName(node, model, definedToString, returnArg);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueStringCtrl(node, model) {
+		// Don't coerce so that only strings pass the type checker
+		var unbind = Sparky.parseName(node, model, returnArg, returnArg);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueNumberCtrl(node, model) {
+		var unbind = Sparky.parseName(node, model, floatToString, stringToFloat);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueIntegerCtrl(node, model) {
+		var unbind = Sparky.parseName(node, model, floatToString, stringToInt);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueBooleanCtrl(node, model) {
+		var type = node.type;
+		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+		    	Sparky.parseName(node, model, boolToStringOn, stringOnToBool) :
+		    	Sparky.parseName(node, model, boolToString, stringToBool) ;
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueBooleanInvertCtrl(node, model) {
+		var type = node.type;
+		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+		    	Sparky.parseName(node, model, boolToStringOnInverted, stringOnToBoolInverted) :
+		    	Sparky.parseName(node, model, boolToStringInverted, stringToBoolInverted);
+		if (unbind) { this.on('destroy', unbind); }
+	}
+
+	function valueNumberInvertCtrl(node, model) {
+		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
+		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
+
+		var unbind = Sparky.parseName(node, model, function to(value) {
+			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
+		}, function from(value) {
+			var n = parseFloat(value);
+			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
+		});
+
+		if (unbind) { this.on('destroy', unbind); }
+	};
+
+
+	assign(Sparky.fn, {
+		'value-any':            valueAnyCtrl,
+		'value-string':         valueStringCtrl,
+		'value-float':          valueNumberCtrl,
+		'value-int':            valueIntegerCtrl,
+		'value-bool':           valueBooleanCtrl,
+		'value-number-invert':  valueNumberInvertCtrl,
+		'value-boolean-invert': valueBooleanInvertCtrl
 	});
 })(this);
 
@@ -4126,7 +4168,7 @@ if (!Math.log10) {
 // Sparky ready
 //
 // If jQuery is present and when the DOM is ready, traverse it looking for
-// data-scope and data-ctrl attributes and use them to instantiate Sparky.
+// data-scope and data-fn attributes and use them to instantiate Sparky.
 
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
@@ -4145,7 +4187,7 @@ if (!Math.log10) {
 
 		if (window.console) { start = Date.now(); }
 
-		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
+		var nodes = document.querySelectorAll('[data-fn], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;

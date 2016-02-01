@@ -29,7 +29,7 @@ module.exports = function(config) {
       'js/sparky.parse.js',
       'js/sparky.fn.js',
       'js/sparky.fn.each.js',
-      'js/sparky.fn.input.js',
+      'js/sparky.fn.value.js',
       'js/sparky.filters.js',
       'js/sparky.ready.js',
       'test/module.js',
