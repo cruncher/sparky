@@ -1,5 +1,5 @@
 
-// Sparky.ctrls
+// Sparky.fns
 
 (function() {
 	"use strict";
@@ -18,7 +18,7 @@
 		return value * (max - min) + min;
 	}
 
-	Sparky.ctrl['value-number-pow-2'] = function(node, model) {
+	Sparky.fn['value-number-pow-2'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
@@ -38,7 +38,7 @@
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-number-pow-3'] = function(node, model) {
+	Sparky.fn['value-number-pow-3'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
 
@@ -58,7 +58,7 @@
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-number-log'] = function(node, model) {
+	Sparky.fn['value-number-log'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
@@ -85,7 +85,7 @@
 		this.on('destroy', unbind);
 	};
 
-	Sparky.ctrl['value-int-log'] = function(node, model) {
+	Sparky.fn['value-int-log'] = function(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
 		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
 		var ratio = max / min;
@@ -118,15 +118,15 @@
 
 
 
-	Sparky.ctrl['value-pow-2'] = function() {
+	Sparky.fn['value-pow-2'] = function() {
 		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
 	};
 
-	Sparky.ctrl['value-pow-3'] = function() {
+	Sparky.fn['value-pow-3'] = function() {
 		console.warn('Sparky: ctrl "value-pow-3" is deprecated. Use "value-number-pow-3"');
 	};
 
-	Sparky.ctrl['value-log'] = function(node, model) {
+	Sparky.fn['value-log'] = function(node, model) {
 		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
 	};
 
@@ -148,7 +148,7 @@
 		return jQuery.data(node, 'scope');
 	};
 
-	Object.assign(Sparky.ctrl, {
+	Object.assign(Sparky.fn, {
 		"prevent-click": function preventClickCtrl(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {
@@ -171,8 +171,8 @@
 (function() {
 	"use strict";
 
-	Sparky.ctrl['log'] = function(node, scope) {
-		console.group('Sparky.ctrl.log:');
+	Sparky.fn['log'] = function(node, scope) {
+		console.group('Sparky.fn.log:');
 		console.log('node:  ', node);
 		console.log('scope: ', scope);
 		console.log('data:  ', this.data);
@@ -181,20 +181,20 @@
 		console.groupEnd();
 	};
 
-	Sparky.ctrl['log-events'] = function(node, model) {
+	Sparky.fn['log-events'] = function(node, model) {
 		var ready = 0;
 		var insert = 0;
 		var destroy = 0;
 
 		this
 		.on('ready', function() {
-			console.log('Sparky.ctrl.log-events: READY  ', ready++, node);
+			console.log('Sparky.fn.log-events: READY  ', ready++, node);
 		})
 		.on('insert', function() {
-			console.log('Sparky.ctrl.log-events: INSERT ', insert++, node);
+			console.log('Sparky.fn.log-events: INSERT ', insert++, node);
 		})
 		.on('destroy', function() {
-			console.log('Sparky.ctrl.log-events: DESTROY', destroy++, node);
+			console.log('Sparky.fn.log-events: DESTROY', destroy++, node);
 		});
 	};
 })();
@@ -202,7 +202,7 @@
 (function() {
 	"use strict";
 
-	Sparky.ctrl['html'] = function(node, scope) {
+	Sparky.fn['html'] = function(node, scope) {
 		var property = node.getAttribute('data-property');
 
 		function update() {
@@ -216,16 +216,16 @@
 		};
 	};
 
-	Sparky.ctrl['inner-html'] = function() {
-		console.warn('Sparky: deprecated data-ctrl="inner-html". Use data-ctrl="html"');
-		Sparky.ctrl['html'].apply(this, arguments);
+	Sparky.fn['inner-html'] = function() {
+		console.warn('Sparky: deprecated data-fn="inner-html". Use data-fn="html"');
+		Sparky.fn['html'].apply(this, arguments);
 	};
 })();
 
 (function() {
 	"use strict";
 
-	Sparky.ctrl['click-to-call'] = function(node, scope) {
+	Sparky.fn['click-to-call'] = function(node, scope) {
 		var name = node.getAttribute('data-fn');
 
 		function update(e) {
@@ -246,7 +246,7 @@
 
 	var dom = Sparky.dom;
 
-	Sparky.ctrl['replace'] = function(node, scope) {
+	Sparky.fn['replace'] = function(node, scope) {
 		// Replaces node with contents of one or more
 		// templates given by data-replace attribute
 
@@ -278,7 +278,7 @@
 
 	var dom = Sparky.dom;
 
-	Sparky.ctrl['x-scroll-slave'] = function(node, scope) {
+	Sparky.fn['x-scroll-slave'] = function(node, scope) {
 		var name = node.getAttribute('data-x-scroll-master');
 		var master;
 
@@ -304,7 +304,7 @@
 		});
 	};
 
-	Sparky.ctrl['y-scroll-slave'] = function(node, scope) {
+	Sparky.fn['y-scroll-slave'] = function(node, scope) {
 		var name = node.getAttribute('data-y-scroll-master');
 		var master = document.getElementById(name);
 
@@ -325,7 +325,7 @@
 		});
 	};
 
-	Sparky.ctrl["x-scroll-center"] = function(node) {
+	Sparky.fn["x-scroll-center"] = function(node) {
 		// Center the scroll position horizontally
 		this.on('insert', function() {
 			var w = node.clientWidth;
@@ -334,7 +334,7 @@
 		});
 	};
 
-	Sparky.ctrl["y-scroll-center"] = function(node) {
+	Sparky.fn["y-scroll-center"] = function(node) {
 		// Center the scroll position vertically
 		this.on('insert', function() {
 			var h = node.clientHeight;
@@ -377,7 +377,7 @@
 			undefined ;
 	}
 
-	assign(Sparky.ctrl, {
+	assign(Sparky.fn, {
 		"value-number-decimals-0": function(node, model) {
 			var unbind = Sparky.parseName(node, model, numberRound0ToString, stringToFloat);
 			if (unbind) { this.on('destroy', unbind); }
@@ -408,7 +408,7 @@
 	var Sparky = window.Sparky;
 	var dom = Sparky.dom;
 
-	assign(Sparky.ctrl, {
+	assign(Sparky.fn, {
 		"on-ready-unhide": function onReadyUnhide(node, model) {
 			this.on('ready', function() {
 				dom.classes(this[0]).remove('hidden');

@@ -15,7 +15,7 @@
 			Sparky.dom.tag(node),
 			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-ctrl') ? ' data-ctrl="' + node.getAttribute('data-ctrl') + '"' : ''),
+			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
@@ -102,8 +102,8 @@
 			typeof fn === 'function' ? makeDistributeCtrl([fn]) :
 			// an array of functions,
 			typeof fn === 'object' ? makeDistributeCtrl(fn) :
-			// or defined in the data-ctrl attribute
-			node.getAttribute && makeCtrl(node.getAttribute('data-ctrl'), ctrl) ;
+			// or defined in the data-fn attribute
+			node.getAttribute && makeCtrl(node.getAttribute('data-fn'), ctrl) ;
 	}
 
 	function makeDistributeCtrl(list) {
@@ -145,7 +145,7 @@
 			ctrl = Sparky.get(ctrls, paths[n]);
 
 			if (!ctrl) {
-				throw new Error('Sparky: data-ctrl "' + paths[n] + '" not found in sparky.ctrl');
+				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
 			}
 
 			list.push(ctrl);
@@ -244,7 +244,7 @@
 		var children = [];
 		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
-		var ctrl = parent ? parent.ctrl : Sparky.ctrl;
+		var ctrl = parent ? parent.fn : Sparky.fn;
 		var init = true;
 		var unobserveScope = noop;
 
@@ -313,7 +313,7 @@
 		// Define data and ctrl inheritance
 		Object.defineProperties(this, {
 			data: { value: Object.create(data), writable: true },
-			ctrl: { value: Object.create(ctrl) },
+			fn:   { value: Object.create(ctrl) },
 			placeholders: { writable: true }
 		});
 
@@ -324,10 +324,6 @@
 		// Parse the DOM nodes for Sparky tags. The parser returns an function
 		// that kills it's throttles and so on.
 		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
-
-		if (bindings.length === 0 && children.length === 0) {
-			log('No Sparky tags found', sparky);
-		}
 
 		this.scope = function(object) {
 			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
@@ -348,6 +344,10 @@
 		children = nodes.map(function(node) {
 			return sparky.create(node, scope);
 		});
+
+		if (bindings.length === 0 && children.length === 0) {
+			log('No Sparky tags found', sparky);
+		}
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
@@ -398,7 +398,7 @@
 		svgNamespace:   "http://www.w3.org/2000/svg",
 		xlinkNamespace: "http://www.w3.org/1999/xlink",
 		data: {},
-		ctrl: {},
+		fn:   {},
 
 		template: function() {
 			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);

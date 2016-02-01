@@ -196,7 +196,7 @@
 	</div>
 </div>
 
-<!--div class="test-block block">
+<div class="test-block block">
 	<div class="clock-block block" data-scope="clock">
 		<div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
 		<div class="second-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'s'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
@@ -204,14 +204,14 @@
 </div
 
 ><div class="test-block block">
-	<p data-ctrl="test"><code>scope.number</code> {{number|floatformat:2}}</p>
-	<p data-ctrl="test" data-template="number">Default text.</p>
-	<p data-ctrl="test"><span data-template="number">Default text.</span></p>
-	<p data-ctrl="test"><input type="number" name="{{number}}" step="0.25" /></p>
+	<p data-fn="test"><code>scope.number</code> {{number|floatformat:2}}</p>
+	<p data-fn="test" data-template="number">Default text.</p>
+	<p data-fn="test"><span data-template="number">Default text.</span></p>
+	<p data-fn="test"><input type="number" name="{{number}}" step="0.25" /></p>
 </div
 
 ><div class="test-block block">
-	<ul data-ctrl="test" class="index">
+	<ul data-fn="test" class="index">
 		<li data-scope="{{object}}"><code>scope.object.text</code> {{text}}</li>
 		<li data-scope="{{object}}" data-template="text">Default text.</li>
 		<li data-scope="{{object}}"><span data-template="text">Default text.</span></li>
@@ -220,7 +220,7 @@
 </div
 
 ><div class="test-block block">
-	<ul data-ctrl="test" class="index">
+	<ul data-fn="test" class="index">
 		<li data-scope="object"><code>data.object.text</code> {{text}}</li>
 		<li data-scope="object" data-template="data-text">Default text.</li>
 		<li data-scope="object"><span data-template="data-text">Default text.</span></li>
@@ -228,19 +228,19 @@
 </div
 
 ><div class="test-block block">
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
 			<span data-scope="{{thing}}"><code>scope.object.thing.text</code> {{text}}</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
 			<span data-template="thing-text-1">Placeholder text.</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
 			<span data-template="thing-text-2">Placeholder text.</span>
 		</p>
@@ -248,52 +248,58 @@
 </div
 
 ><div class="test-block block">
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p>
-			<span data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+			<span data-fn="sub"><code>subscope.text</code> {{text}}</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
-		<p data-ctrl="sub">
+	<div data-fn="test">
+		<p data-fn="sub">
 			<span data-template="sub-text">Placeholder text</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p>
-			<span data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+			<span data-fn="sub" data-template="sub-text">Placeholder text</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
-			<span data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+			<span data-fn="sub"><code>subscope.text</code> {{text}}</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
-			<span data-scope="{{thing}}" data-ctrl="sub"><code>subscope.text</code> {{text}}</span>
+			<span data-scope="{{thing}}" data-fn="sub"><code>subscope.text</code> {{text}}</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
-			<span data-scope="{{thing}}" data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+			<span data-scope="{{thing}}" data-fn="sub" data-template="sub-text">Placeholder text</span>
 		</p>
 	</div>
 
-	<div data-ctrl="test">
+	<div data-fn="test">
 		<p data-scope="{{object}}">
-			<span data-ctrl="sub" data-template="sub-text">Placeholder text</span>
+			<span data-fn="sub" data-template="sub-text">Placeholder text</span>
 		</p>
 	</div>
 </div
 
---><div class="test-block block">
-	<ul data-ctrl="test">
-		<li data-scope="{{collection}}" data-ctrl="each">{{text}}</li>
+><div class="test-block block">
+	<ul data-fn="test">
+		<li data-scope="{{collection}}" data-fn="each">{{text}}</li>
+	</ul>
+</div
+
+><div class="test-block block">
+	<ul data-fn="test">
+		<li data-scope="{{collection}}" data-fn="each" data-template="item">Default text.</li>
 	</ul>
 </div>
 
@@ -303,6 +309,10 @@
 <template id="thing-text-1"><code>scope.object.thing.text</code> {{thing.text}}</template>
 <template id="thing-text-2"><code>scope.object.thing.text</code> <span data-scope="{{thing}}">{{text}}</span></template>
 <template id="sub-text"><code>subscope.text</code> {{text}}</template>
+<template id="item">
+	<h4>{{text}}</h4>
+	<p data-scope="{{things}}">{{0.text}}, {{1.text}}</p>
+</template>
 
 <script src="src/jquery-2.1.1.js"></script>
 <script src="modules/object.assign/object.assign.js"></script>
@@ -334,9 +344,9 @@ var scope = {
 	number: 50,
 	object: undefined,
 	collection: Collection([
-		{ text: 'Item 1' },
-		{ text: 'Item 2' },
-		{ text: 'Item 3' }
+		{ text: 'Item 1', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) },
+		{ text: 'Item 2', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) },
+		{ text: 'Item 3', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) }
 	])
 };
 
@@ -418,7 +428,29 @@ setTimeout(function() {
 	data.object = object1;
 }, 8000);
 
-Sparky.ctrl.test = function() {
+setTimeout(function() {
+	console.log('8 –––––– data.object = object');
+	object1.text = '9 seconds';
+	scope.collection.add({text: 'Oh boy, a new item.'});
+}, 9000);
+
+setTimeout(function() {
+	console.log('8 –––––– data.object = object');
+	object1.text = '10 seconds';
+	scope.collection.remove();
+}, 10000);
+
+setTimeout(function() {
+	console.log('8 –––––– data.object = object');
+	object1.text = '11 seconds';
+	scope.collection.add(
+		{ text: 'Boom',  things: Collection([{text: '1'}, {text: '2'}]) },
+		{ text: 'Shaka', things: Collection([{text: '3'}, {text: '4'}]) },
+		{ text: 'Laka',  things: Collection([{text: '5'}, {text: '6'}]) }
+	);
+}, 11000);
+
+Sparky.fn.test = function() {
 	this.on('destroy unbind remove', function(){
 		console.log('HOI');
 	});
@@ -427,7 +459,7 @@ Sparky.ctrl.test = function() {
 	return scope;
 };
 
-Sparky.ctrl.sub = function(node, scope) {
+Sparky.fn.sub = function(node, scope) {
 	return subScope;
 };
 

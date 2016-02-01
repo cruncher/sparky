@@ -2,164 +2,113 @@
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a flexible, model-agnostic live data binding view/controller
-layer for HTML/JS. Sparky enhances the DOM with declarative data bindings,
-passes data through Django-style template filters and renders multiple changes
-in batches on browser frames for performance.</strong>
+<strong>Sparky is a live data binding template and view layer for HTML/JS.
+Sparky enhances the DOM with declarative data bindings, passes data through
+Django-style template filters and renders DOM changes in batches at the browser
+frame rate for performance.</strong>
 
-## Quick start
+## Quick Start
 
-Sparky wires up the DOM automatically on <code>load</code>. He binds nodes with
-a <code>data-scope</code> attribute to model objects stored in
-<code>Sparky.data</code>, and passes nodes with a <code>data-ctrl</code>
-attribute to controller functions stored in <code>Sparky.ctrl</code>.
+Sparky wires up the DOM automatically on <code>DOMContentLoad</code>. It binds
+nodes with a <code>data-scope</code> attribute to data objects stored in
+<code>Sparky.data</code>, and passes nodes with a <code>data-fn</code>
+attribute to controller functions stored in <code>Sparky.fn</code>.
 
-HTML:
-
-    <div class="{{type}}-block" data-scope="my-data">
+    <div data-scope="my-data" data-fn="my-fn">
         <input type="text" name="{{title}}" />
         <p>{{title|uppercase}} loves you!</p>
     </div>
 
-JS:
-
     Sparky.data['my-data'] = {
-        title: 'Sparky',
-        type: 'user'
+        title: 'Sparky'
     };
 
-Here a Sparky template is live bound to the properties of <code>my-data</code>.
-The result is:
-
-    <div class="user-block" data-scope="my-data">
-        <input type="text" name="{{title}}" value="Sparky" />
-        <p>SPARKY loves you!</p>
-    </div>
-
-Live binding means that when the data changes, the DOM is kept up-to-date.
-Inputs get two-way binding. Typing text into the input updates 
-<code>my-data.title</code>, and thus also the text in the paragraph.
-
-Sparky defaults to using models directly as scope for rendering templates,
-making it quick and easy to set up basic views for an app. Where more control is
-needed, a controller function can be used to return an alternative object to be
-used as scope.
-
-HTML:
-
-    <div class="{{type}}-block" data-scope="my-data" data-ctrl="my-ctrl">
-        <input type="text" name="{{title}}" />
-        <p>{{title}} loves you!</p>
-    </div>
-
-JS:
-
-    Sparky.ctrl['my-ctrl'] = function(node, model) {
-        var scope = {
-            title: model.title,
-            type: model.type
-        };
-
-        // Do something with the node and/or model
-
-        // Return the scope object Sparky should use to
-        // render the node.
-        return scope;
+    Sparky.fn['my-fn'] = function(node, scope) {
+        // Do something with the node and/or scope
     };
+
+When the data changes, the DOM is kept up-to-date. Typing text into the input
+updates <code>title</code>, and thus also the text in the paragraph.
 
 Sparky does not make scope objects for you, you create them where you need them.
-The controller function is passed the node, and a model where
-<code>data-scope</code> is given. If the function returns
-<code>undefined</code>, the scope defaults to the model.
+A <code>fn</code> can return an object to have Sparky use that object as scope.
+Sparky can also be instantiated via JS:
 
-Either or both <code>data-scope</code> and <code>data-ctrl</code> can be defined
-for Sparky to template a node.
+    <template id="">
+        <p>{{time|date:'m s'}}</p>
+    </template>
 
-It is not required to store data models in <code>Sparky.data</code> and
-controllers in <code>Sparky.ctrl</code>, nor to declare them in the DOM – a node
-can also be bound to a model object via a controller function by calling
-<code>Sparky(node, model, controller)</code>. Both the model and the controller
-are optional.
+    var sparky = Sparky('clock', { time: new Date() });
 
 ## Sparky templates
 
-#### The data-ctrl attribute
+#### data-scope
 
-The <code>data-ctrl</code> attribute defines which controller(s) to run when
-sparky binds this element.
+The <code>data-scope</code> attribute is a path to an object to be used as
+scope to render the tags in this elements. Paths are written in dot notation.
 
-    <form data-ctrl="validate-on-submit">{{day}}</form>
+    <div data-scope="path.to.object">
+        <h1>{{title}}</h1>
+    </div>
 
-You can find controllers by logging <code>Sparky.ctrl</code>.
-
-Controllers are simply functions that are called when Sparky scans this node.
-
-    Sparky.ctrl['validate-on-submit'] = function validateCtrl(node, scope) {
-        node.addEventListener('submit', function(e) {
-            // TODO: Validate the form node
-            e.preventDefault();
-        });
-    };
-
-The return value of the controller is used as scope for the template to bind
-to, unless that value is <code>undefined</code>, in which case scope defaults
-to the current scope.
-
-More than one controller can be defined. They are run in order. The return value
-of one controller is passed to the next as the <code>scope</code> argument.
-
-    <form data-ctrl="my-app-scope validate-on-submit">
-        <input type="range" name="{{volume}}" min="0" max="11" data-ctrl="value-number-pow-3" />
-        <output>{{volume|decibels}}dB</output>
-    </form>
-
-<a href="#define-a-controller-function">Define a controller function</a>.
-
-#### The data-scope attribute
-
-The <code>data-scope</code> attribute describes a path to an object in the
-current scope to use as scope to render this node, in dot notation.
+This will look for the object in the current sparky's <code>sparky.data</code>
+object, or in the global data object <code>Sparky.data</code>. A tagged path
+makes Sparky look for an object in the current scope.
 
     <div data-scope="{{path.to.object}}">
         <h1>{{title}}</h1>
     </div>
 
-Without the <code>{{}}</code> brackets, <code>data-scope</code> is a path
-to an object in <code>Sparky.data</code>.
+If no object is found at <code>path.to.object</code>, the
+<code>&lt;div&gt;</code> is removed from the DOM. Sparky puts it back as soon
+as the path can be resolved to an object. Sparky even updates the DOM if any of
+the objects in the path are swapped for new objects.
 
-    Sparky.data['my-app'] = {
-        author: { name: 'Nigel' }
-    };
+Object names can contain <code>-</code> characters, or be numbers.
 
-    <div data-scope="my-app.author">
-        <h1>{{name}}</h1>
-    </div>
+    {{path.0.my-object}}
 
-It's ok to write paths that have an '-' in their property names.
 
-If <code>data-ctrl</code> is defined the scope is passed to a controller.
+#### data-fn
 
-Where <code>data-scope</code> resolves to an array or array-like object such as
-a <code>Sparky.Collection()</code>, the node is cloned for each item in the
-collection and controllers called on each new node.
+The <code>data-fn</code> attribute tells Sparky to run one or more functions
+when it wires up this element.
+
+    <form data-fn="submit-validate">...</form>
+
+Sparky looks for functions in the current sparky's <code>sparky.fn</code> store,
+or in the global function store <code>Sparky.fn</code>. Functions are powerful.
+They can modify or replace the scope, change and listen to the DOM, define new
+<code>data</code> and <code>fn</code> stores and so on. Sparky deliberately
+permits anything in a function so that you may organise your app as you please.
+
+More than one <code>fn</code> can be defined. They are run in order.
+
+    <form data-fn="my-app-scope validate-on-submit">...</form>
+
+The return value of each function is passed along the chain as the
+<code>scope</code> argument of the next.
+
+<a href="#define-a-controller-function">Define a ctrl function</a>.
+
 
 #### {{tag}}
 
-Sparky template tags will look familiar to anyone who has written a Django
-template. Sparky tags, however, perform live data binding.
+Sparky replaces template tags with data, and updates them when the data changes.
 
-    <h1 data-scope="my-model">{{ title }}</h1>
+    <h1 data-scope="object">{{ first-page.title }}</h1>
 
 The text in the <code>&lt;h1&gt;</code> is now updated whenever
-<code>my-model.title</code> changes.
+<code>object.first-page.title</code> changes.
 
-Tags also grok paths:
+Sparky will find tags in text nodes, <code>class</code>, <code>href</code>, <code>title</code>, <code>id</code>, <code>style</code>, <code>src</code>,
+<code>alt</code>, <code>for</code>, <code>value</code>, <code>min</code>, <code>max</code> and <code>name</code> attributes. This list can be modified
+by pushing to <code>Sparky.attributes</code>.
 
-    <h1 data-scope="my-model" class="words-{{path-to.meta.word-count}}">{{title}}</h1>
+Sparky treats tags in the <code>class</code> attribute as individual tokens, so
+it is safe to modify the <code>class</code> attribute outside of Sparky. Sparky
+avoids overwriting any new classes that are added.
 
-Sparky treats tags in the <code>class</code> attribute as individual tokens: it
-is safe to modify the <code>class</code> attribute outside of Sparky, as Sparky
-avoids overwriting any new classes that have been added.
 
 #### {{tag|filter}}
 
@@ -171,6 +120,7 @@ Modify scope values with filters:
 
 More about <a href="#sparky-template-filters">filters</a>.
 
+
 #### {{{tag}}}
 
 A triple bracket tag updates from the scope once only.
@@ -181,19 +131,22 @@ These tags are updated once from the scope (in this case my-model), but they
 don't live bind to changes. If you know where you can do it, this can be good
 for performance.
 
-#### input, select and textarea elements
+
+#### Input, select and textarea elements
 
 By putting a Sparky tag in the <code>name</code> attribute, inputs, selects and
-textareas get 2-way data binding. When the scope changes, their values are
-updated, and when their values are changed, the scope is updated.
+textareas are 2-way wired up to the corresponding data. When the scope changes,
+their values are updated, and when their values are changed, the scope is
+updated.
 
-    <form class="user-form" data-scope="my-model">
-        <input type="text" name="{{title}}" value="" />
+    <form class="user-form {{valid|yesno:'bg-green'}}" data-scope="{{user}}">
+        <input type="text" name="{{name}}" placeholder="Sparky" />
+        <input type="number" name="{{age}}" />
     </form>
 
-By default Sparky is strict about type in form elements. The input above is
-<code>type="text"</code> and it will only get the <code>title</code> property
-if it is a string. Other types will display as an empty string.
+By default Sparky is strict about type in form elements. The first input above
+is <code>type="text"</code> and it will only get the <code>title</code>
+property if that property is a string. Other types will display as an empty.
 
     model.title = 'Sparky loves you'; // input.value is 'Sparky loves you'
     model.title = 3;                  // input.value is ''
@@ -204,59 +157,40 @@ get and set numbers, and if the value attribute is not given
 <code>false</code>. (If the value attribute is given, the property must be a
 string matching the value attribute for the checkbox to be checked).
 
-To get and set other types, give the element one of Sparky's value controllers:
+
+#### data-fn="value-int"
+
+To get and set other types, give the element one of Sparky's value functions:
 
 - <code>value-string</code> gets and sets strings
-- <code>value-number</code> gets and sets numbers
-- <code>value-integer</code> gets and sets integer numbers, rounding if necessary
-- <code>value-boolean</code> gets and sets <code>true</code> or <code>false</code>
-- <code>value-number-inverted</code> gets and sets numbers, inverting the range between max and min
-- <code>value-boolean-inverted</code> gets and sets <code>true</code> or <code>false</code>, inverting the state of the input
+- <code>value-float</code> gets and sets numbers
+- <code>value-int</code> gets and sets integer numbers, rounding if necessary
+- <code>value-bool</code> gets and sets <code>true</code> or <code>false</code>
 - <code>value-any</code> gets any type, sets strings
 
-Here are some examples. Radio inputs that sets scope.property to <code>1</code> or <code>2</code>:
+Here are some examples. Radio inputs that sets scope.property to number
+<code>1</code> or <code>2</code>:
 
-    <input type="radio" data-ctrl="value-number" name="{{property}}" value="1" />
-    <input type="radio" data-ctrl="value-number" name="{{property}}" value="2" />
+    <input type="radio" data-fn="value-int" name="{{property}}" value="1" />
+    <input type="radio" data-fn="value-int" name="{{property}}" value="2" />
 
 A select that sets scope.property to <code>true</code> or <code>false</code>:
 
-    <select data-ctrl="value-boolean" name="{{property}}">
+    <select data-fn="value-bool" name="{{property}}">
         <option value="true">Yes</option>
         <option value="false">No</option>
     </select>
 
 A checkbox that is checked when <code>scope.property === 3</code>:
 
-    <input type="checkbox" data-ctrl="value-number" name="{{property}}" value="3" />
+    <input type="checkbox" data-fn="value-int" name="{{property}}" value="3" />
 
 A range slider that sets scope.property as a string:
 
-    <input type="range" data-ctrl="value-string" name="{{property}}" min="0" max="1" step="any" />
+    <input type="range" data-fn="value-string" name="{{property}}" min="0" max="1" step="any" />
 
-#### attributes
 
-Sparky looks for tags in text nodes and the following attributes:
-
-- <code>href</code>
-- <code>title</code>
-- <code>id</code>
-- <code>style</code>
-- <code>src</code>
-- <code>alt</code>
-
-You can change the list by modifying the array <code>Sparky.attributes</code>.
-
-inputs, selects and textareas also use:
-
-- <code>name</code>
-- <code>value</code>
-- <code>max</code>
-- <code>min</code>
-
-They're a bit special. They get two-way data binding.
-
-#### Loop over a collection
+#### data-fn="each"
 
 Sparky has no special syntax for looping over a collection, but where
 <code>data-scope</code> resolves to an array or array-like object
@@ -285,16 +219,95 @@ the items in the collection. So this...
         </li>
     </ul>
 
-## Sparky API
 
-#### Define a controller function
+## Sparky(node, scope, fn)
 
-Controllers are stored in <code>Sparky.ctrl</code>. A controller is a function
+    var sparky = Sparky(node, scope, fn)
+
+To bind a node in JS, call <code>Sparky</code> with a node or id, a scope
+object and/or a function.
+
+#### parameters
+
+<code>node</code>: DOM node | document fragment | string
+
+A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
+<code>node</code> is a required parameter.
+
+<code>scope</code>: object | string | undefined
+
+A string defines a path to an object in <code>Sparky.data</code> using dot
+notation.
+
+<code>fn</code>: function | string | undefined
+
+A string defines a name, or a space-separated list of names of ctrl functions
+stored in <code>Sparky.fn</code>.
+
+#### return
+
+<code>sparky</code>
+
+A sparky object is an array-like object of DOM nodes that have been bound to
+data models. It emits lifecycle events and exposes a few methods for
+interacting with the template.
+
+### Methods
+
+#### .create()
+
+Creates a new sparky that is a child of the current sparky.
+
+    var child = sparky.create(node, scope, fn);
+
+Parameters are the same as for the <code>Sparky()</code> constructor. Child
+sparkies inherit <code>data</code> and <code>fn</code> objects, and are updated
+and destroyed along with their parents.
+
+#### .destroy()
+
+The nuke option. Destroys the data bindings, removes nodes from the DOM and
+removes any event handlers. Also destroys any children.
+
+#### .scope(object)
+
+Swap the scope being used by this sparky for a new object. Sparky simply updates
+it's DOM with data from the new scope.
+
+#### .tojQuery()
+
+Where jQuery is available, returns sparky's element nodes (but not text nodes)
+wrapped as a jQuery object.
+
+Sparky templates are reasonably tolerant to being manipulated in the DOM.
+Nodes in a template will stay bound to data when they are moved around or
+removed from the DOM, or when other nodes are inserted between them.
+
+You should be aware, though, that changing text content or attributes of nodes
+that had Sparky tags in them when they were bound will likely cause problems –
+Sparky will overwrite your changes the next time it's data is updated. The
+exception is the <code>class</code> attribute: you can add and remove your own
+classes as much as you like without fear of upsetting Sparky.
+
+### Events
+
+- <code>ready</code>: triggered after Sparky first updates the node
+- <code>insert</code>: triggered when the node is inserted into the DOM (CURRENTLY UNRELIABLE)
+- <code>destroy</code>: triggered when the node has been unbound from the model
+and removed from the DOM
+
+
+
+## API
+
+#### Define a ctrl function
+
+Functions are stored in <code>Sparky.fn</code>. A controller is a function
 that is run just before sparky data-binds the node. The return value of the
 controller is used as scope to update the tags in the sparky template. In Sparky
 scope objects are just plain objects you create.
 
-    Sparky.ctrl['my-ctrl-1'] = function(node, model) {
+    Sparky.fn['my-ctrl-1'] = function(node, model) {
         var scope = { day: 'unknown'; };
 
         // Listen for changes on a model
@@ -315,18 +328,18 @@ Controllers are called with a <code>sparky</code> object as their context
 <code>this</code>. It's common to listen to lifecycle events inside a
 controller:
 
-    Sparky.ctrl['my-ctrl-2'] = function myCtrl2(node, model) {
+    Sparky.fn['my-ctrl-2'] = function myCtrl2(node, model) {
         var scope = { day: 'unknown'; };
-        
+
         this.on('ready', function() {
             // The node has bound and has been populated with any
             // existing model data.
         });
-        
+
         this.on('insert', function() {
             // The node has been inserted into the DOM.
         });
-        
+
         this.on('destroy', function() {
             // The node has been unbound from the model and
             // removed from the DOM
@@ -335,149 +348,17 @@ controller:
         return scope;
     };
 
-Where multiple controllers are defined in <code>data-ctrl</code> they are all
+Where multiple controllers are defined in <code>data-fn</code> they are all
 called with the same <code>sparky</code> object as context.
 
-#### Define a model object
+#### Define a data object
 
-Models are stored in <code>Sparky.data</code>. A model is an object that Sparky
-watches for changes.
+Data objects are stored in <code>Sparky.data</code>. A model is an object that
+Sparky watches for changes.
 
     Sparky.data['my-model'] = {
         date: new Date()
     };
-
-Sparky is agnostic about how you structure your apps. How you structure
-your data models is how you control the paths used in your templates.
-Store your models in <code>Sparky.data</code> to give them to Sparky templates
-bound on DOM load, or bind them yourself with <code>Sparky(node, model, ctrl)</code>. 
-
-#### Sparky(node, model, ctrl)
-
-To bind a node in JS, call <code>Sparky(node, model, ctrl)</code>.
-
-##### parameters
-
-<code>node</code>: DOM node | document fragment | string
-
-A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
-<code>node</code> is a required parameter.
-
-<code>model</code>: object | string | undefined
-
-A string defines a path to an object in <code>Sparky.data</code> using dot
-notation.
-
-<code>ctrl</code>: function | string | undefined
-
-A string defines a name, or a space-separated list of names of ctrl functions
-stored in <code>Sparky.ctrl</code>. Controller functions are called with
-<code>(node, model)</code>.
-
-##### return value
-
-<code>sparky</code>: sparky object
-
-Used to listen to lifecycle events and can be used to communicate with controllers.
-
-### The sparky object
-
-A sparky object is an array-like object of DOM nodes that have been bound to
-data models. It also emits lifecycle events and exposes a few methods for
-interacting with the template.
-
-#### Events
-
-- <code>ready</code>: triggered after Sparky first updates the node
-- <code>insert</code>: triggered when the node is inserted into the DOM (CURRENTLY UNRELIABLE)
-- <code>destroy</code>: triggered when the node has been unbound from the model
-and removed from the DOM
-
-#### Methods
-
-- <code>.destroy()</code> Unbind all of this sparky's nodes from data models.
-
-## Manipulating bound nodes in the DOM
-
-Sparky templates are reasonably tolerant to being manipulated in the DOM.
-Nodes in a template will stay bound to models when they are moved around or
-removed from the DOM, or even when other nodes are inserted between them.
-
-Because <code>sparky</code> is an array-like object, and jQuery accepts node
-arrays, one easy way of manipulating its nodes is simply to wrap it in
-jQuery, allowing you to use jQuery's API to move the templated nodes around:
-
-    jQuery(sparky).appendTo(document.body);
-
-You should be aware, though, that trying to manipulate text content or
-attributes that had Sparky tags in them when they were bound will likely cause
-problems – with the exception of the <code>class</code> attribute: you can add
-and remove your own classes as much as you like without fear of upsetting
-Sparky.
-
-## Sparky functions
-
-#### Sparky.Collection(array, options)
-
-Returns an array-like object with a number of methods for managing a collection.
-
-    var collection = Sparky.Collection();
-
-##### collection.add(object)
-##### collection.update(object)
-##### collection.remove()
-
-<code>.remove()</code> Removes all objects from the collection.
-
-<code>.remove(id)</code> Removes object found via <code>collection.find(id)</code> from the collection.
-
-<code>.remove(object)</code> Removes object found via <code>collection.find(object)</code> from the collection.
-
-##### collection.find()
-
-<code>.find(id)</code> returns the object in the collection with that id, or <code>undefined</code>.
-
-<code>.find(object)</code> returns <code>object</code> if it is already in the collection. Otherwise if <code>object</code> has an <code>id</code>, that is used to <code>.find(id)</code> an object.
-
-##### collection.query(queryObject)
-
-Filters the collection by the properties of <code>queryObject</code>
-
-##### collection.sort()
-
-<code>.sort()</code> sorts the collection by <code>object.id</code> by default. Override the default by defining <code>options.sort</code> as a function.
-
-<code>.sort(fn)</code> sorts the collection by the return value of <code>fn</code>, like <code>array.sort(fn)</code>.
-
-##### collection.sub(queryObject)
-
-Creates a new collection that is bound to the current one, but filtered by <code>queryObject</code>.
-
-##### collection.get(name)
-
-If they all have the same value, returns value of property <code>name</code> of the objects in the collection. Otherwise returns <code>undefined</code>.
-
-##### collection.set(name, value)
-
-Sets property <code>name</code> of all objects in the collection to <code>value</code>.
-
-##### collection.on()
-##### collection.off()
-##### collection.trigger()
-##### collection.push()
-##### collection.pop()
-##### collection.splice()
-
-Also, a Collection inherits the Array methods:
-
-- <code>.map()</code>
-- <code>.reduce()</code>
-- <code>.concat()</code>
-- <code>.slice()</code>
-- <code>.some()</code>
-- <code>.indexOf()</code>
-- <code>.forEach()</code>
-
 
 #### Sparky.Throttle(fn)
 
@@ -491,7 +372,6 @@ browser frame. Multiple calls to <code>throttle()</code> result in just one call
 to <code>fn</code> on the next frame. <code>fn</code> is called with the
 arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
 
-#### Sparky.extend(object1, object2, ... )
 
 #### Sparky.observe(object, property, fn)
 
@@ -519,10 +399,32 @@ If any object in the path does not exist, <code>getPath</code> returns <code>und
 Given the id of a template tag in the DOM, <code>Sparky.template(id)</code>
 returns the cloned contents of that template as a document fragment.
 
-Supports browsers where <code>&lt;template&gt;</code> does not have the
+Supports older browsers where <code>&lt;template&gt;</code> does not have the
 associated JavaScript property <code>template.content</code>.
 
-## Sparky template filters
+### Sparky.attributes
+
+An array of attributes where Sparky looks for template tags.
+
+- <code>class</code>
+- <code>href</code>
+- <code>title</code>
+- <code>id</code>
+- <code>style</code>
+- <code>src</code>
+- <code>alt</code>
+
+For labels, inputs, selects and textareas Sparky also looks in:
+
+- <code>for</code>
+- <code>name</code>
+- <code>value</code>
+- <code>max</code>
+- <code>min</code>
+
+### Sparky.filters
+
+An object containing template filters.
 
 Display the date, formatted:
 
@@ -555,7 +457,7 @@ Sparky has a subset of the Django filters:
 - lower
 - multiply: number
 - parseint
-- pluralize: 
+- pluralize:
 - random
 - replace
 - safe
@@ -575,8 +477,8 @@ And some of it's own:
 - get:'propertyName' – Takes an object and renders the named property.
 - lowercase – Alias of lower.
 - percent – Takes a number and multiplies by 100 to render it as a percentage.
-- prepad: n, 'character' – 
-- postpad: n, 'character' – 
+- prepad: n, 'character' –
+- postpad: n, 'character' –
 - symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
 
 ## Notes
@@ -593,23 +495,6 @@ Django's. To avoid Sparky templates being read by Django, wrap them in Django's
         <time>{{date|date:'d M Y'}}</time>
     </h1>
     {% endverbatim %}
-
-#### <a href="#loop-over-a-collection">* note</a>
-
-It actually looks like this:
-
-    <ul>
-        <li>
-            <a href="http://github.com/cruncher/sparky">Sparky</a>
-        </li>
-        <li>
-            <a href="http://cruncher.ch">Marco</a>
-        </li>
-        <!-- [Sparky] data-scope="text.meta.contributors" -->
-    </ul>
-
-The comment node is added automatically and is required by Sparky to maintain
-the collection. This technique is nicked from AngularJS.
 
 ## Sparky says thankwoo
 
@@ -652,4 +537,3 @@ Don't forget the unobserver:
        object.off(property, fn);
    }
 -->
-

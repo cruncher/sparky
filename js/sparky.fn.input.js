@@ -93,7 +93,7 @@
 	};
 
 
-	assign(Sparky.ctrl, {
+	assign(Sparky.fn, {
 		'value-any':            valueAnyCtrl,
 		'value-string':         valueStringCtrl,
 		'value-float':          valueNumberCtrl,

@@ -2,7 +2,7 @@
 // Sparky ready
 //
 // If jQuery is present and when the DOM is ready, traverse it looking for
-// data-scope and data-ctrl attributes and use them to instantiate Sparky.
+// data-scope and data-fn attributes and use them to instantiate Sparky.
 
 (function(jQuery, Sparky) {
 	if (!jQuery) { return; }
@@ -21,7 +21,7 @@
 
 		if (window.console) { start = Date.now(); }
 
-		var nodes = document.querySelectorAll('[data-ctrl], [data-scope]');
+		var nodes = document.querySelectorAll('[data-fn], [data-scope]');
 		var n = -1;
 		var l = nodes.length;
 		var node;

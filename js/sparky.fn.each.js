@@ -7,7 +7,7 @@
 
 	function call(fn) { fn(); }
 
-	Sparky.ctrl.each = function setupCollection(node, collection) {
+	Sparky.fn.each = function setupCollection(node, collection) {
 		// todo: somehow get the remaining ctrls and call child sparkies with
 		// them.
 
@@ -17,18 +17,36 @@
 		var cache  = [];
 		var tasks  = [];
 		var clone  = node.cloneNode(true);
-		var placeholder = Sparky.debug ?
-			dom.create('comment', 'each') :
-			dom.create('text', '') ;
+		var taskThrottle = Sparky.Throttle(run);
+		var updateThrottle = Sparky.Throttle(update);
+		var placeholder, attrScope, attrCtrl;
+
+		if (Sparky.debug) {
+			attrScope = node.getAttribute('data-scope');
+			attrCtrl = node.getAttribute('data-fn');
+			placeholder = dom.create('comment',
+				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
+				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
+		}
+		else {
+			placeholder = dom.create('text', '');
+		}
+
+		function run() {
+			tasks.forEach(call);
+			tasks.length = 0;
+		}
 
 		function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};
-			var i, obj;
+			var i, obj, t;
 
-			if (Sparky.debug) { var t = window.performance.now(); }
+			if (Sparky.debug) { t = window.performance.now(); }
 
+			// Compare the cached version of the collection against the
+			// collection and construct a map of found object positions.
 			while (l--) {
 				obj = cache[l];
 				i = collection.indexOf(obj);
@@ -41,69 +59,59 @@
 				}
 			}
 
-			l = collection.length;
+			l = nodes.length = sparkies.length = cache.length = collection.length;
 
-			nodes.length    = l;
-			sparkies.length = l;
-			cache.length    = l;
-
+			// Loop through the collection, recaching objects and creating
+			// sparkies where needed.
 			while(++n < l) {
 				cache[n] = collection[n];
 
 				if (map[n]) {
-					nodes[n] = map[n][0];
+					nodes[n]    = map[n][0];
 					sparkies[n] = map[n][1];
 				}
 				else {
-					nodes[n] = clone.cloneNode(true);
+					nodes[n]    = clone.cloneNode(true);
 					sparkies[n] = sparky.create(nodes[n], collection[n]);
 				}
 
+				// Push DOM changes to the task list for handling on
+				// the next frame.
 				tasks.push(dom.before.bind(dom, placeholder, nodes[n]));
 				taskThrottle();
 			}
 
-			Sparky.log('collection rendered (length: ' + collection.length + ', time: ' + (window.performance.now() - t) + 'ms)');
+			Sparky.log(
+				'collection rendered (length: ' + collection.length +
+				', time: ' + (window.performance.now() - t) + 'ms)'
+			);
 		}
 
-		function run() {
-			tasks.forEach(call);
-			tasks.length = 0;
-		}
-
+		// Stop Sparky trying to bind the same scope and ctrls again.
 		clone.removeAttribute('data-scope');
-		clone.removeAttribute('data-ctrl');
+		clone.removeAttribute('data-fn');
 
-		// Put the marker node in place and remove the node
+		// Put the placeholder in place and remove the node
 		dom.before(node, placeholder);
 		dom.remove(node);
 
-		var taskThrottle = Sparky.Throttle(run);
-
-		// Remove anything that would make Sparky bind the node
-		// again. This can happen when a collection is appended
-		// by a controller without waiting for it's 'ready' event.
-		//node.removeAttribute('data-scope');
-		//node.removeAttribute('data-ctrl');
-
-		var throttle = Sparky.Throttle(update);
-
 		if (collection.on) {
-			collection.on('add remove', throttle);
-			throttle();
+			collection.on('add remove', updateThrottle);
+			updateThrottle();
 		}
 		else {
-			Sparky.observe(collection, 'length', throttle);
+			Sparky.observe(collection, 'length', updateThrottle);
 		}
 
 		this.on('destroy', function destroy() {
-			throttle.cancel();
+			taskThrottle.cancel();
+			updateThrottle.cancel();
 
 			if (collection.on) {
-				collection.off('add remove', throttle);
+				collection.off('add remove', updateThrottle);
 			}
 			else {
-				Sparky.unobserve(collection, 'length', throttle);
+				Sparky.unobserve(collection, 'length', updateThrottle);
 			}
 		});
 
