@@ -2,10 +2,10 @@
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a live data binding template and view layer for HTML/JS.
-Sparky enhances the DOM with declarative data bindings, passes data through
-Django-style template filters and renders DOM changes in batches at the browser
-frame rate for performance.</strong>
+<strong>Sparky is a live data binding template/view layer for HTML/JS.
+Sparky enhances the DOM with declarative data bindings and composeable templates,
+updates Django-style tags and filters and renders DOM changes in batches at the
+browser frame rate for performance.</strong>
 
 ## Quick Start
 

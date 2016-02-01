@@ -47,15 +47,15 @@
 
 		.inline-block {
 			display: inline-block;
-			height: 7.5rem;
+			height: 12rem;
 			/* We use line-height: 1px; to get identical rendering across
 			   FF/Chrome. line-height: 0; Does not render the same. */
 			line-height: 1px;
 			font-size: 0;
 
 			/* Compensate for border. */
-			vertical-align: -7.5rem;
-			border: 2px solid grey;
+			vertical-align: -12rem;
+			/*border: 2px solid grey;*/
 			width: 100%;
 			margin-right: -100%;
 			box-sizing: border-box;
@@ -81,8 +81,10 @@
 			bottom: 0;
 			line-height: 30px;
 			color: white;
-			font-size: 20px;
+			font-size: 18px;
 			padding: 11px;
+			padding-top: 2.5rem;
+			background-image: linear-gradient(to bottom, #d8d8d8 0%, #bbbbbb 20%, #bbbbbb 100%);
 		}
 
 		.inline-h1 {
@@ -96,6 +98,7 @@
 			letter-spacing: -0.033333333em;
 			color: white;
 			z-index: 1;
+			margin-top: 0;
 			position: relative;
 			text-shadow: 0 0 100px #402F20;
 		}
@@ -103,6 +106,13 @@
 		.inline-h1 + .inline-block {
 			margin-left: -100%;
 			margin-right: 0;
+		}
+
+		.inline-h1 > img {
+			display: inline-block;
+			vertical-align: -42px;
+			width: 500px;
+			height: auto;
 		}
 
 		.test-block {
@@ -200,7 +210,7 @@
 <body>
 
 <div class="site-wrap wrap">
-	<h1 class="inline-h1">Sparky</h1
+	<h1 class="inline-h1">Sparky <img src="images/sparky-logo.png" /></h1
 
 	><div class="inline-block block">
 		&nbsp;
