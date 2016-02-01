@@ -13,14 +13,14 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'src/jquery-2.1.1.js',
+      'modules/jquery/jquery-2.1.1.js',
       'modules/object.assing/object.assign.js',
-      'src/number.isnan.js',
-      'src/math.log10.js',
-      'src/window.customevent.js',
-      'src/window.requestanimationframe.js',
-      'src/observe.js',
-      'src/mixin.events.js',
+      'modules/polyfills/number.isnan.js',
+      'modules/polyfills/math.log10.js',
+      'modules/polyfills/window.customevent.js',
+      'modules/polyfills/window.requestanimationframe.js',
+      'modules/polyfills/observe.js',
+      'modules/polyfills/mixin.events.js',
       'modules/collection/js/collection.js',
       'js/sparky.js',
       'js/sparky.dom.js',
@@ -44,10 +44,10 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'src/sparky*.js': ['coverage'],
-      'src/mixin*.js': ['coverage'],
-      'src/observe.js': ['coverage'],
-      'src/collection.js': ['coverage']
+      'modules/polyfills/sparky*.js': ['coverage'],
+      'modules/polyfills/mixin*.js': ['coverage'],
+      'modules/polyfills/observe.js': ['coverage'],
+      'modules/polyfills/collection.js': ['coverage']
     },
 
     // test results reporter to use
