@@ -87,6 +87,25 @@
 			);
 		}
 
+		function observeCollection() {
+			if (collection.on) {
+				collection.on('add remove', updateThrottle);
+				updateThrottle();
+			}
+			else {
+				Sparky.observe(collection, 'length', updateThrottle);
+			}
+		}
+
+		function unobserveCollection() {
+			if (collection.on) {
+				collection.off('add remove', updateThrottle);
+			}
+			else {
+				Sparky.unobserve(collection, 'length', updateThrottle);
+			}
+		}
+
 		// Stop Sparky trying to bind the same scope and ctrls again.
 		clone.removeAttribute('data-scope');
 		clone.removeAttribute('data-fn');
@@ -95,24 +114,20 @@
 		dom.before(node, placeholder);
 		dom.remove(node);
 
-		if (collection.on) {
-			collection.on('add remove', updateThrottle);
-			updateThrottle();
-		}
-		else {
-			Sparky.observe(collection, 'length', updateThrottle);
-		}
+		observeCollection()
 
-		this.on('destroy', function destroy() {
+		this
+		.on('scope', function(source, scope){
+			if (this !== source) { return; }
+			unobserveCollection();
+			if (scope === undefined) { return; }
+			collection = scope;
+			observeCollection();
+		})
+		.on('destroy', function destroy() {
 			taskThrottle.cancel();
 			updateThrottle.cancel();
-
-			if (collection.on) {
-				collection.off('add remove', updateThrottle);
-			}
-			else {
-				Sparky.unobserve(collection, 'length', updateThrottle);
-			}
+			unobserveCollection();
 		});
 
 		// Return false to stop the current sparky from binding.

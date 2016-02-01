@@ -265,26 +265,19 @@
 		}
 
 		function updateScope(object) {
-			// If a scope object is returned by the ctrl, we use that.
-			var ctrlscope = fn && fn.call(sparky, node, object);
-
-			// A controller returning false is telling us not to do data
-			// binding. Uh-oh... we've already done data binding. todo.
-			if (ctrlscope === false) { return; }
-
 			var newscope = ctrlscope || object;
-			var oldscope = scope;
 
 			if (!init) {
 				// If scope is unchanged, do nothing.
-				if (newscope === oldscope) { return; }
+				if (newscope === scope) { return; }
 
 				// If old scope exists, tear it down
-				if (oldscope) { teardown(sparky, oldscope, bindings, children); }
+				if (scope) { teardown(sparky, scope, bindings, children); }
 			}
 
 			init = false;
 			scope = newscope;
+			sparky.trigger('scope', scope);
 
 			// Where there is no scope, there should be no nodes in the DOM
 			if (!scope) { return removeNodes(sparky); }
@@ -317,18 +310,37 @@
 			placeholders: { writable: true }
 		});
 
-		// Setup this as a Collection of nodes. Where node is a document
-		// fragment, assign all it's children to sparky collection.
-		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
-
-		// Parse the DOM nodes for Sparky tags. The parser returns an function
-		// that kills it's throttles and so on.
-		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
-
 		this.scope = function(object) {
 			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
 			return this;
 		};
+
+		// Setup this as a Collection of nodes. Where node is a document
+		// fragment, assign all it's children to sparky collection.
+		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
+
+		var ctrlscope;
+
+		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+			ctrlscope = Sparky.get(basescope, path);
+		}, function(object) {
+			ctrlscope = object;
+		});
+
+		// If a scope object is returned by the ctrl, we use that.
+		var ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+
+		// A controller returning false is telling us not to do data
+		// binding. We can skip the heavy work.
+		if (ctrlscope === false) { return this; }
+
+		// If ctrlscope is unchanged from scope, ctrlscope should not override
+		// scope changes. There's probably a better way of expressing this.
+		if (ctrlscope === scope) { ctrlscope = undefined; }
+
+		// Parse the DOM nodes for Sparky tags. The parser returns an function
+		// that kills it's throttles and so on.
+		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
 
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
