@@ -8,7 +8,7 @@ updates Django-style tags and filters and renders DOM changes in batches at the
 browser frame rate for performance.</strong>
 
 
-## Progressively enhance the DOM with Sparky
+## A Quick Example
 
 Here's how to progressively enhance a list of items in a shopping cart using
 Sparky.
