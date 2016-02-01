@@ -4,13 +4,13 @@ module('Sparky:collections', function(fixture) {
 	test('Sparky should bind to an empty collection by inserting no nodes.', function() {
 		var collection = Collection([]);
 
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			return {
 				collection: collection
 			};
 		};
 
-		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 
 		Sparky(ul);
 
@@ -24,13 +24,13 @@ module('Sparky:collections', function(fixture) {
 		    	property: 2
 		    }]);
 
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			return {
 				collection: collection
 			};
 		};
 
-		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 
 		Sparky(ul);
 
@@ -48,13 +48,13 @@ module('Sparky:collections', function(fixture) {
 		    	property: 2
 		    }]);
 		
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			return {
 				collection: collection
 			};
 		};
 
-		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 		Sparky(ul);
 
 		ok(ul.querySelectorAll('li').length === 2, 'All is well.');
@@ -76,13 +76,13 @@ module('Sparky:collections', function(fixture) {
 	asyncTest("Zero to hero", function(assert) {
 		var collection = Collection();
 
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
 			return {
 				collection: collection
 			};
 		};
 
-		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 		var sparky = Sparky(ul);
 
 		ok(ul.querySelectorAll('li').length === 0, 'All is well.');
@@ -109,13 +109,13 @@ module('Sparky:collections', function(fixture) {
 		    	property: 2
 		    }]);
 
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
 			return {
 				collection: collection
 			};
 		};
 
-		var ul = fixture.querySelector('[data-ctrl="test-ctrl"]');
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 		var sparky = Sparky(ul);
 
 		assert.ok(ul.querySelectorAll('li').length === 2, 'All is well.');
@@ -146,7 +146,7 @@ module('Sparky:collections', function(fixture) {
 	});
 }, function() {/*
 
-<ul data-ctrl="test-ctrl">
+<ul data-fn="test-ctrl">
 	<li class="li-{{property}}" data-scope="{{collection}}">{{property}}</li>
 </ul>
 

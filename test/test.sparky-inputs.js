@@ -166,9 +166,9 @@ module('Test 2 way input binding for value-string...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-ctrl="value-string" />
-<input type="radio" name="{{property}}" data-ctrl="value-string" value="3" />
-<input type="checkbox" name="{{property}}" data-ctrl="value-string" value="3" />
+<input type="text" name="{{property}}" data-fn="value-string" />
+<input type="radio" name="{{property}}" data-fn="value-string" value="3" />
+<input type="checkbox" name="{{property}}" data-fn="value-string" value="3" />
 
 */});
 
@@ -214,9 +214,9 @@ module('Test 2 way binding for value-number...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-ctrl="value-number" />
-<input type="radio" name="{{property}}" data-ctrl="value-number" value="3" />
-<input type="checkbox" name="{{property}}" data-ctrl="value-number" value="3" />
+<input type="text" name="{{property}}" data-fn="value-number" />
+<input type="radio" name="{{property}}" data-fn="value-number" value="3" />
+<input type="checkbox" name="{{property}}" data-fn="value-number" value="3" />
 
 */});
 
@@ -262,9 +262,9 @@ module('Test 2 way binding for value-boolean true...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-ctrl="value-boolean" />
-<input type="radio" name="{{property}}" data-ctrl="value-boolean" value="true" />
-<input type="checkbox" name="{{property}}" data-ctrl="value-boolean" value="true" />
+<input type="text" name="{{property}}" data-fn="value-boolean" />
+<input type="radio" name="{{property}}" data-fn="value-boolean" value="true" />
+<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="true" />
 
 */});
 
@@ -313,9 +313,9 @@ module('Test 2 way binding for value-boolean false...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-ctrl="value-boolean" />
-<input type="radio" name="{{property}}" data-ctrl="value-boolean" value="false" />
-<input type="checkbox" name="{{property}}" data-ctrl="value-boolean" value="false" />
+<input type="text" name="{{property}}" data-fn="value-boolean" />
+<input type="radio" name="{{property}}" data-fn="value-boolean" value="false" />
+<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="false" />
 
 */});
 
@@ -413,7 +413,7 @@ module('Test 2 way binding for select...', function(fixture) {
 	<option value="3">3</option>
 </select>
 
-<select class="select-2" name="{{property}}" data-ctrl="value-number">
+<select class="select-2" name="{{property}}" data-fn="value-number">
 	<option value="0">0</option>
 	<option value="1">1</option>
 	<option value="2">2</option>

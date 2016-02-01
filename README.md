@@ -402,6 +402,42 @@ returns the cloned contents of that template as a document fragment.
 Supports older browsers where <code>&lt;template&gt;</code> does not have the
 associated JavaScript property <code>template.content</code>.
 
+
+### Sparky.dom
+
+A small library of DOM helper functions.
+
+- <code>.query(node, selector)</code> -
+- <code>.tag(node)</code> - Returns the element's tag name
+- <code>.create(type, text)</code> - Creates a 'text', 'comment', 'fragment' or element node
+- <code>.append(parent, node || collection)</code> - Append node to parent
+- <code>.after(node1, node2)</code> -
+- <code>.before(node1, node2)</code> -
+- <code>.empty(node)</code> -
+- <code>.remove(node || collection)</code> -
+- <code>.closest(node, selector [, root])</code> - Finds closest ancestor matching selector
+- <code>.matches(node, selector)</code> -
+- <code>.classes(node)</code> - Returns a classList object
+- <code>.style(node, name)</code> - Returns the computed style for named CSS property
+- <code>.fragmentFromTemplate(id)</code> - Returns cloned fragment from a template's content
+- <code>.fragmentFromContent(node)</code> - Returns a fragment containing a node's content or children
+
+Nodes
+
+- <code>.isElementNode(node)</code> -
+- <code>.isTextNode(node)</code> -
+- <code>.isCommentNode(node)</code> -
+- <code>.isFragmentNode(node)</code> -
+
+Events
+
+- <code>.on(node, type, fn)</code> -
+- <code>.off(node, type, fn)</code> -
+- <code>.trigger(node, type)</code> -
+- <code>.delegate(selector, fn)</code> -
+- <code>.isPrimaryButton(e)</code> -
+
+
 ### Sparky.attributes
 
 An array of attributes where Sparky looks for template tags.

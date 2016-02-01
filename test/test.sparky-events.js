@@ -11,7 +11,7 @@ module('Event propogation', function(fixture) {
 		// Reset Sparky
 		Sparky.data = {};
 
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			this.on('boo', function(sparky) {
 				ok(sparky === this, 'sparky is target');
 				ok(n++ === 0, 'This event called first');
@@ -20,7 +20,7 @@ module('Event propogation', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model) {
+		Sparky.fn['test-ctrl-1'] = function(node, model) {
 			sparky1 = this;
 
 			this.on('boo', function(sparky) {
@@ -31,12 +31,12 @@ module('Event propogation', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
+		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			return {};
 		};
 
-		var div = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var p1  = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
+		var div = fixture.querySelector('[data-fn="test-ctrl"]');
+		var p1  = fixture.querySelector('[data-fn="test-ctrl-1"]');
 		var sparky = Sparky(div);
 
 		ok(sparky !== sparky1)
@@ -56,9 +56,9 @@ module('Event propogation', function(fixture) {
 	});
 }, function() {/*
 
-<div data-ctrl="test-ctrl">
-	<p data-ctrl="test-ctrl-1">{{property}}</p>
-	<p data-ctrl="test-ctrl-2">{{property}}</p>
+<div data-fn="test-ctrl">
+	<p data-fn="test-ctrl-1">{{property}}</p>
+	<p data-fn="test-ctrl-2">{{property}}</p>
 </div>
 
 */});
@@ -74,7 +74,7 @@ module('Event propogation ready event', function(fixture) {
 		// Reset Sparky
 		Sparky.data = {};
 
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			sparky = this;
 
 			this.on('ready', function() {
@@ -85,7 +85,7 @@ module('Event propogation ready event', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model) {
+		Sparky.fn['test-ctrl-1'] = function(node, model) {
 			sparky1 = this;
 
 			this.on('ready', function() {
@@ -96,7 +96,7 @@ module('Event propogation ready event', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
+		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			sparky2 = this;
 
 			this.on('ready', function() {
@@ -107,9 +107,9 @@ module('Event propogation ready event', function(fixture) {
 			return {};
 		};
 
-		var node  = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var node1 = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
-		var node2 = fixture.querySelector('[data-ctrl="test-ctrl-2"]');
+		var node  = fixture.querySelector('[data-fn="test-ctrl"]');
+		var node1 = fixture.querySelector('[data-fn="test-ctrl-1"]');
+		var node2 = fixture.querySelector('[data-fn="test-ctrl-2"]');
 
 		sparky = Sparky(node);
 
@@ -118,9 +118,9 @@ module('Event propogation ready event', function(fixture) {
 	});
 }, function() {/*
 
-<div data-ctrl="test-ctrl">
-	<p data-ctrl="test-ctrl-1">{{property}}</p>
-	<p data-ctrl="test-ctrl-2">{{property}}</p>
+<div data-fn="test-ctrl">
+	<p data-fn="test-ctrl-1">{{property}}</p>
+	<p data-fn="test-ctrl-2">{{property}}</p>
 </div>
 
 */});
@@ -138,7 +138,7 @@ module('Event propogation insert event', function(fixture) {
 		// Reset Sparky
 		Sparky.data = {};
 
-		Sparky.ctrl['test-ctrl'] = function(node, model) {
+		Sparky.fn['test-ctrl'] = function(node, model) {
 			sparky = this;
 
 			this.on('insert', function() {
@@ -149,7 +149,7 @@ module('Event propogation insert event', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model) {
+		Sparky.fn['test-ctrl-1'] = function(node, model) {
 			sparky1 = this;
 
 			this.on('insert', function() {
@@ -160,7 +160,7 @@ module('Event propogation insert event', function(fixture) {
 			return {};
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
+		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			sparky2 = this;
 
 			this.on('insert', function() {
@@ -171,9 +171,9 @@ module('Event propogation insert event', function(fixture) {
 			return {};
 		};
 
-		var node  = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var node1 = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
-		var node2 = fixture.querySelector('[data-ctrl="test-ctrl-2"]');
+		var node  = fixture.querySelector('[data-fn="test-ctrl"]');
+		var node1 = fixture.querySelector('[data-fn="test-ctrl-1"]');
+		var node2 = fixture.querySelector('[data-fn="test-ctrl-2"]');
 
 		sparky = Sparky(node);
 
@@ -184,9 +184,9 @@ module('Event propogation insert event', function(fixture) {
 	});
 }, function() {/*
 
-<div data-ctrl="test-ctrl">
-	<p data-ctrl="test-ctrl-1">{{property}}</p>
-	<p data-ctrl="test-ctrl-2">{{property}}</p>
+<div data-fn="test-ctrl">
+	<p data-fn="test-ctrl-1">{{property}}</p>
+	<p data-fn="test-ctrl-2">{{property}}</p>
 </div>
 
 */});
@@ -200,7 +200,7 @@ module('Event propogation insert event', function(fixture) {
 		var r = 0;
 		var sparky2, sparky3, sparky4, sparky5;
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model) {
+		Sparky.fn['test-ctrl-1'] = function(node, model) {
 
 			this
 
@@ -218,7 +218,7 @@ module('Event propogation insert event', function(fixture) {
 			});
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
+		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			sparky2 = this;
 
 			this
@@ -243,7 +243,7 @@ module('Event propogation insert event', function(fixture) {
 			});
 		};
 
-		Sparky.ctrl['test-ctrl-3'] = function(node, model) {
+		Sparky.fn['test-ctrl-3'] = function(node, model) {
 			sparky4 = this;
 			
 			this
@@ -257,7 +257,7 @@ module('Event propogation insert event', function(fixture) {
 			});
 		};
 
-		Sparky.ctrl['test-ctrl-4'] = function(node, model) {
+		Sparky.fn['test-ctrl-4'] = function(node, model) {
 			this
 			.on('insert', function(sparky) {
 				ok(sparky === sparky5, 'sparky should be sparky5.');
@@ -275,16 +275,16 @@ module('Event propogation insert event', function(fixture) {
 	});
 }, function() {/*
 
-<div class="node-1" data-ctrl="test-ctrl-1">
-	<div class="node-2" data-ctrl="test-ctrl-2">{{property}}</div>
+<div class="node-1" data-fn="test-ctrl-1">
+	<div class="node-2" data-fn="test-ctrl-2">{{property}}</div>
 </div>
 
 <template id="content-to-insert-1">
-	<p class="node-3" data-ctrl="test-ctrl-3">{{property}}</p>
+	<p class="node-3" data-fn="test-ctrl-3">{{property}}</p>
 </template>
 
 <template id="content-to-insert-2">
-	<p class="node-3" data-ctrl="test-ctrl-4">{{property}}</p>
+	<p class="node-3" data-fn="test-ctrl-4">{{property}}</p>
 </template>
 
 */});
@@ -299,8 +299,8 @@ module('Event propogation insert event', function(fixture) {
 
 		Sparky.data.collection = Collection([{ property: 1 }, { property: 2 }]);
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model) {};
-		Sparky.ctrl['test-ctrl-2'] = function(node, model) {
+		Sparky.fn['test-ctrl-1'] = function(node, model) {};
+		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			var n = 0;
 			
 			this
@@ -329,8 +329,8 @@ module('Event propogation insert event', function(fixture) {
 	});
 }, function() {/*
 
-<div class="node-1" data-ctrl="test-ctrl-1">
-	<div class="node-2" data-scope="collection" data-ctrl="test-ctrl-2">{{property}}</div>
+<div class="node-1" data-fn="test-ctrl-1">
+	<div class="node-2" data-scope="collection" data-fn="test-ctrl-2">{{property}}</div>
 </div>
 
 */});

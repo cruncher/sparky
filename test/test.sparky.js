@@ -1,31 +1,42 @@
 module('Controller', function(fixture) {
 	console.log('Test Sparky()...');
 
-	test("ctrl found in Sparky.ctrl and {{tag}} replaced with scope property", function() {
+	asyncTest("ctrl found in Sparky.fn and {{tag}} replaced with scope property", function(assert) {
 		var node = fixture.querySelector('div');
 
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
-			ok(model === undefined);
+		expect(2);
+
+		Sparky.fn['test-ctrl'] = function(node, model) {
+			ok(model === undefined, model);
 			return { property: 'peas' };
 		};
+
 		Sparky(node);
 
-		ok(node.innerHTML === 'peas');
+		window.requestAnimationFrame(function functionName() {
+			ok(node.innerHTML === 'peas', node.innerHTML);
+			QUnit.start();
+		});
 	});
 
-	test("ctrl passed in as fn parameter and {{tag}} replaced with scope property", function() {
+	asyncTest("ctrl passed in as fn parameter and {{tag}} replaced with scope property", function(assert) {
 		var node = fixture.querySelector('div');
 
+		expect(2);
+
 		Sparky(node, undefined, function(node, model, sparky) {
-			ok(model === undefined);
+			ok(model === undefined, model);
 			return { property: 'peas' };
 		});
 
-		ok(node.innerHTML === 'peas');
+		window.requestAnimationFrame(function functionName() {
+			ok(node.innerHTML === 'peas', node.innerHTML);
+			QUnit.start();
+		});
 	});
 }, function() {/*
 
-<div data-ctrl="test-ctrl">{{property}}</div>
+<div data-fn="test-ctrl">{{property}}</div>
 
 */});
 
@@ -69,18 +80,18 @@ module('Static tags', function(fixture) {
 
 module('Child sparky', function(fixture) {
 	test('Children instantiated with correct controllers and models', function() {
-		Sparky.ctrl['test-ctrl'] = function(node, model, sparky) {
+		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
 			return {
 				'sub-model-1': { property: 'sub-1' },
 				'sub-model-2': { property: 'sub-2' }
 			};
 		};
 
-		Sparky.ctrl['test-ctrl-1'] = function(node, model, sparky) {
+		Sparky.fn['test-ctrl-1'] = function(node, model, sparky) {
 			return { property: 'value-1' };
 		};
 
-		Sparky.ctrl['test-ctrl-2'] = function(node, model, sparky) {
+		Sparky.fn['test-ctrl-2'] = function(node, model, sparky) {
 			return { property: 'value-2' };
 		};
 
@@ -92,9 +103,9 @@ module('Child sparky', function(fixture) {
 			property: 'value-4'
 		};
 
-		var div1 = fixture.querySelector('[data-ctrl="test-ctrl"]');
-		var p1   = fixture.querySelector('[data-ctrl="test-ctrl-1"]');
-		var p2   = fixture.querySelector('[data-ctrl="test-ctrl-2"]');
+		var div1 = fixture.querySelector('[data-fn="test-ctrl"]');
+		var p1   = fixture.querySelector('[data-fn="test-ctrl-1"]');
+		var p2   = fixture.querySelector('[data-fn="test-ctrl-2"]');
 
 		Sparky(div1);
 
@@ -214,9 +225,9 @@ module('Child sparky', function(fixture) {
 
 }, function() {/*
 
-<div data-ctrl="test-ctrl">
-	<p data-ctrl="test-ctrl-1">{{property}}</p>
-	<p data-ctrl="test-ctrl-2">{{property}}</p>
+<div data-fn="test-ctrl">
+	<p data-fn="test-ctrl-1">{{property}}</p>
+	<p data-fn="test-ctrl-2">{{property}}</p>
 
 	<p data-scope="{{sub-model-1}}">{{property}}</p>
 	<p data-scope="{{sub-model-2}}">{{property}}</p>

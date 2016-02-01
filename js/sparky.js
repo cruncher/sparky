@@ -68,14 +68,14 @@
 	function resolveScope(node, scope, data, observe, update) {
 		// No getAttribute method (may be a fragment), use current scope.
 		if (!node.getAttribute) {
-			return update(scope || {});
+			return update(scope);
 		}
 
 		var path = node.getAttribute('data-scope');
 
 		// No data-scope attribute, use current scope.
 		if (!isDefined(path)) {
-			return update(scope || {});
+			return update(scope);
 		}
 
 		// data-scope="{{path.to.data}}", find new scope in current scope.
