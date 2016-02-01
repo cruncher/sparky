@@ -19,8 +19,8 @@ module.exports = function(config) {
       'modules/polyfills/math.log10.js',
       'modules/polyfills/window.customevent.js',
       'modules/polyfills/window.requestanimationframe.js',
-      'modules/polyfills/observe.js',
-      'modules/polyfills/mixin.events.js',
+      'modules/collection/observe.js',
+      'modules/collection/mixin.events.js',
       'modules/collection/js/collection.js',
       'js/sparky.js',
       'js/sparky.dom.js',
@@ -44,10 +44,10 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'modules/polyfills/sparky*.js': ['coverage'],
-      'modules/polyfills/mixin*.js': ['coverage'],
-      'modules/polyfills/observe.js': ['coverage'],
-      'modules/polyfills/collection.js': ['coverage']
+      'js/sparky*.js': ['coverage'],
+      'modules/collection/js/mixin*.js': ['coverage'],
+      'modules/collection/observe.js': ['coverage'],
+      'modules/collection/collection.js': ['coverage']
     },
 
     // test results reporter to use
