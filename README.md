@@ -7,7 +7,58 @@ Sparky enhances the DOM with declarative data bindings and composeable templates
 updates Django-style tags and filters and renders DOM changes in batches at the
 browser frame rate for performance.</strong>
 
-## Quick Start
+
+## Progressively enhance the DOM with Sparky
+
+Here's how to progressively enhance a list of items in a shopping cart using
+Sparky.
+
+    <ul data-fn="cart" data-template="cart-items">
+        <li>
+            <h2>Rope</h2>
+            <p>Strong nylon rope.</p>
+            <p>Quantity: 3m</p>
+            <a href="cart/items/0/quantity">Change</a>
+            <a href="cart/items/0/remove">Remove</a>
+        </li>
+    </ul>
+
+    <template id="cart-items">
+        <li data-scope="{{items}}" data-fn="each">
+            <h2>{{title}}</h2>
+            <p>{{description}}</p>
+            <form>
+                <label>Quantity <input type="number" name="{{quantity}}" /> {{units}}</label>
+                <button data-fn="click-to-destroy">Remove</button>
+            </form>
+        </li>
+    </template>
+
+    // Define the cart data
+    var cart = {
+        items: Collection([
+            { title: 'Rope', description: 'Strong nylon rope.', quantity: 3, units: 'metres' }
+        ])
+    };
+
+    // Define a function that returns the data as scope
+    Sparky.fn.cart = function() { return cart; };
+
+The original <code>ul</code> is rendered by the server. When Sparky becomes
+available it replaces the contents of the <code>ul</code> with the contents of
+the template referenced by <code>data-template</code>.
+
+In the template <code>li</code>, the attributes
+<code>data-scope="{{items}}"</code> and <code>data-fn="each"</code> tell Sparky
+to loop over the collection. New items can now be added to the collection.
+
+    cart.items.add({ title: 'Potatoes', description: 'Maris Pipers.', quantity: 0.5, units: 'kg' });
+
+The results are seen in the DOM on the next render frame. Items can also be
+modified using the form controls. The data is updated automatically.
+
+
+<!--## Quick Start
 
 Sparky wires up the DOM automatically on <code>DOMContentLoad</code>. It binds
 nodes with a <code>data-scope</code> attribute to data objects stored in
@@ -38,7 +89,7 @@ Sparky can also be instantiated via JS:
         <p>{{time|date:'m s'}}</p>
     </template>
 
-    var sparky = Sparky('clock', { time: new Date() });
+    var sparky = Sparky('clock', { time: new Date() });-->
 
 ## Sparky templates
 

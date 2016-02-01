@@ -19,8 +19,8 @@ module.exports = function(config) {
       'modules/polyfills/math.log10.js',
       'modules/polyfills/window.customevent.js',
       'modules/polyfills/window.requestanimationframe.js',
-      'modules/collection/observe.js',
-      'modules/collection/mixin.events.js',
+      'modules/collection/js/observe.js',
+      'modules/collection/js/mixin.events.js',
       'modules/collection/js/collection.js',
       'js/sparky.js',
       'js/sparky.dom.js',
@@ -33,7 +33,15 @@ module.exports = function(config) {
       'js/sparky.filters.js',
       'js/sparky.ready.js',
       'test/module.js',
-      'test/test.sparky.js'
+      'test/test.observe.js',
+      'test/test.filters.js',
+      'test/test.sparky.js',
+      'test/test.sparky-template.js',
+      'test/test.sparky-delay.js',
+      'test/test.sparky-fn.js',
+      //'test/test.sparky-collection.js',
+      'test/test.sparky-inputs.js',
+      //'test/test.sparky-events.js'
     ],
 
     // list of files to exclude

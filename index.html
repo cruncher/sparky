@@ -204,6 +204,10 @@
 			background-color: currentcolor;
 			border-radius: 50%;
 		}
+
+		.red-bg    { background-color: red; }
+		.orange-bg { background-color: orange; }
+		.green-bg  { background-color: green; }
 	</style>
 </head>
 
@@ -225,6 +229,12 @@
 		<div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:30|mod:360}}deg) translate(0, -50%);"></div>
 		<div class="min-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'i'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
 		<div class="sec-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'s'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
+	</div>
+</div
+
+><div class="test-block block">
+	<div class="block {{ class }}" data-fn="test">
+		Class test
 	</div>
 </div
 
@@ -372,7 +382,8 @@ var scope = {
 		{ text: 'Item 1', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) },
 		{ text: 'Item 2', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) },
 		{ text: 'Item 3', things: Collection([{text: 'Thing 1'}, {text: 'Thing 2'}]) }
-	])
+	]),
+	class: "red-bg"
 };
 
 var subScope = {
@@ -404,6 +415,7 @@ setTimeout(function() {
 	console.log('1 –––––– scope.object = object1');
 	object1.text = '1 second';
 	scope.object = object1;
+	scope.class = "green-bg";
 }, 1000);
 
 setTimeout(function() {
@@ -411,6 +423,7 @@ setTimeout(function() {
 	object1.text = '2 seconds';
 	scope.object = undefined;
 	data.object = object1;
+	scope.class = "orange-bg";
 }, 2000);
 
 setTimeout(function() {

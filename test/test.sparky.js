@@ -42,13 +42,18 @@ module('Controller', function(fixture) {
 
 
 module('Live tags', function(fixture) {
-	test("{{tag}} is replaced with model property", function() {
+	asyncTest("{{tag}} is replaced with model property", function(assert) {
 		var node = fixture.querySelector('div');
+
+		expect(1);
 
 		Sparky.data['test-model'] = { property: 'juice' };
 		Sparky(node);
 
-		ok(node.innerHTML === 'juice');
+		window.requestAnimationFrame(function functionName() {
+			ok(node.innerHTML === 'juice');
+			QUnit.start();
+		});
 	});
 }, function() {/*
 
@@ -56,30 +61,30 @@ module('Live tags', function(fixture) {
 
 */});
 
-module('Static tags', function(fixture) {
-	asyncTest("{{{tag}}} is replaced with model property", function() {
-		var node = fixture.querySelector('div');
-
-		Sparky.data['test-model'] = { property: 'juice' };
-		Sparky(node);
-
-		window.requestAnimationFrame(function() {
-			ok(node.innerHTML === 'juice', 'node.innerHTML expected "juice", actually "' + node.innerHTML + '"');
-		});
-
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
-			QUnit.start();
-		});
-	});
-}, function() {/*
-
-<div data-scope="test-model">{{{property}}}</div>
-
-*/});
+//module('Static tags', function(fixture) {
+//	asyncTest("{{{tag}}} is replaced with model property", function() {
+//		expect(1);
+//
+//		var node = fixture.querySelector('div');
+//
+//		Sparky.data['test-model'] = { property: 'juice' };
+//		Sparky(node);
+//
+//		window.requestAnimationFrame(function() {
+//			ok(node.innerHTML === 'juice', 'node.innerHTML expected "juice", actually "' + node.innerHTML + '"');
+//			QUnit.start();
+//		});
+//	});
+//}, function() {/*
+//
+//<div data-scope="test-model">{{{property}}}</div>
+//
+//*/});
 
 module('Child sparky', function(fixture) {
-	test('Children instantiated with correct controllers and models', function() {
+	asyncTest('Children instantiated with correct controllers and models', function(assert) {
+		expect(6);
+
 		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
 			return {
 				'sub-model-1': { property: 'sub-1' },
@@ -106,17 +111,17 @@ module('Child sparky', function(fixture) {
 		var div1 = fixture.querySelector('[data-fn="test-ctrl"]');
 		var p1   = fixture.querySelector('[data-fn="test-ctrl-1"]');
 		var p2   = fixture.querySelector('[data-fn="test-ctrl-2"]');
-
-		Sparky(div1);
-
-		ok(p1.innerHTML === 'value-1');
-		ok(p2.innerHTML === 'value-2');
-
 		var p3   = fixture.querySelector('[data-scope="{{sub-model-1}}"]');
 		var p4   = fixture.querySelector('[data-scope="{{sub-model-2}}"]');
 
-		ok(p3.innerHTML === 'sub-1');
-		ok(p4.innerHTML === 'sub-2');
+		Sparky(div1);
+
+		window.requestAnimationFrame(function() {
+			ok(p1.innerHTML === 'value-1');
+			ok(p2.innerHTML === 'value-2');
+			ok(p3.innerHTML === 'sub-1');
+			ok(p4.innerHTML === 'sub-2');
+		});
 
 		var div2 = fixture.querySelector('[data-scope="test-model"]');
 		var p5   = fixture.querySelector('[data-scope="test-model-1"]');
@@ -124,8 +129,11 @@ module('Child sparky', function(fixture) {
 
 		Sparky(div2);
 
-		ok(p5.innerHTML === 'value-3');
-		ok(p6.innerHTML === 'value-4');
+		window.requestAnimationFrame(function() {
+			ok(p5.innerHTML === 'value-3');
+			ok(p6.innerHTML === 'value-4');
+			QUnit.start();
+		});
 	});
 
 	asyncTest("Test property changes update the DOM on animation frames.", function(assert) {
@@ -143,32 +151,36 @@ module('Child sparky', function(fixture) {
 
 		Sparky(div2);
 
-		assert.ok(p5.innerHTML === '', 'p5 is empty.');
-		model1.property = 'Hello duckies';
-		assert.ok(p5.innerHTML === '', 'DOM is not updated immediately.');
-
 		window.requestAnimationFrame(function() {
-			assert.ok(p5.innerHTML === 'Hello duckies', "DOM is updated on animation frame.");
-		});
+			assert.ok(p5.innerHTML === '', 'p5 is empty.');
+			model1.property = 'Hello duckies';
+			assert.ok(p5.innerHTML === '', 'DOM is not updated immediately.');
 
-		// TODO: DOM IS updated immediately on call to Sparky(). Not sure this is
-		// correct behaviour.
-		//assert.ok(p6.innerHTML === '', 'p6 is not updated immediately.');
-		model2.property = 'Goodbye friends';
+			window.requestAnimationFrame(function() {
+				assert.ok(p5.innerHTML === 'Hello duckies', "DOM is updated on animation frame.");
+			});
 
-		window.requestAnimationFrame(function() {
-			assert.ok(p6.innerHTML === 'Pass the carrot', "DOM is updated to latest value.");
-		});
+			// TODO: DOM IS updated immediately on call to Sparky(). Not sure this is
+			// correct behaviour.
+			//assert.ok(p6.innerHTML === '', 'p6 is not updated immediately.');
+			model2.property = 'Goodbye friends';
 
-		model2.property = 'Pass the carrot';
+			window.requestAnimationFrame(function() {
+				assert.ok(p6.innerHTML === 'Pass the carrot', "DOM is updated to latest value.");
+			});
 
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
-			QUnit.start();
+			model2.property = 'Pass the carrot';
+
+			// Restart QUnit
+			window.requestAnimationFrame(function() {
+				QUnit.start();
+			});
 		});
 	});
 
 	asyncTest("Tests .destroy()", function(assert) {
+		expect(2);
+
 		// Reset Sparky
 		Sparky.data = {};
 
@@ -178,19 +190,21 @@ module('Child sparky', function(fixture) {
 		var p5     = fixture.querySelector('[data-scope="test-model-1"]');
 		var sparky = Sparky(p5);
 
-		assert.ok(p5.innerHTML === '', 'p5 is empty.');
-
-		model1.property = 'Hello duckies';
-		sparky.destroy();
-		model1.property = 'Poop';
-
 		window.requestAnimationFrame(function() {
-			assert.ok(p5.innerHTML === 'Hello duckies', ".destroy()");
-		});
+			assert.ok(p5.innerHTML === '', 'p5 is empty.');
 
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
-			QUnit.start();
+			model1.property = 'Hello duckies';
+			sparky.destroy();
+			model1.property = 'Poop';
+
+			window.requestAnimationFrame(function() {
+				assert.ok(p5.innerHTML === 'Hello duckies', ".destroy()");
+			});
+
+			// Restart QUnit
+			window.requestAnimationFrame(function() {
+				QUnit.start();
+			});
 		});
 	});
 
@@ -208,18 +222,20 @@ module('Child sparky', function(fixture) {
 		var p5   = fixture.querySelector('[data-scope="test-model-1"]');
 		var sparky = Sparky(div2);
 
-		assert.ok(p5.innerHTML === '', 'p5 is empty.');
-		model1.property = 'Value 1';
-		sparky.destroy();
-		model1.property = 'Value 2';
-
 		window.requestAnimationFrame(function() {
-			assert.ok(p5.innerHTML === 'Value 1', "Child successfully destroyed. " + p5.innerHTML);
-		});
+			assert.ok(p5.innerHTML === '', 'p5 is empty.');
+			model1.property = 'Value 1';
+			sparky.destroy();
+			model1.property = 'Value 2';
 
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
-			QUnit.start();
+			window.requestAnimationFrame(function() {
+				assert.ok(p5.innerHTML === 'Value 1', "Child successfully destroyed. " + p5.innerHTML);
+			});
+
+			// Restart QUnit
+			window.requestAnimationFrame(function() {
+				QUnit.start();
+			});
 		});
 	});
 
@@ -244,35 +260,42 @@ module('Test tags in class attributes...', function(fixture) {
 	console.log('Test tags in class attributes...');
 
 	asyncTest("Tags is class attributes", function() {
+		expect(4);
+
 		var node = fixture.querySelector('div');
 		var model = { property: 'peas' };
 
+		Sparky.data.model = model;
 		Sparky(node, model);
 		node.classList.add('hello');
 
 		window.requestAnimationFrame(function() {
-			ok(node.getAttribute('class') === 'class-1 class-2 peas hello', 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
 
 			model.property = 'ice';
 
 			window.requestAnimationFrame(function() {
+				ok(!node.classList.contains('peas'), 'Classes expected to not contain "peas", actual: "' + node.getAttribute('class') + '"');
 				ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
-			});
-		});
-
-		window.requestAnimationFrame(function() {
-			window.requestAnimationFrame(function() {
-				window.requestAnimationFrame(function() {
-					QUnit.start();
-				});
+				QUnit.start();
 			});
 		});
 	});
+}, function() {/*
 
+<div data-scope="model" class="class-1 class-2 {{ property }}">{{property}}</div>
+
+*/});
+
+module('Test tags in class attributes...', function(fixture) {
 	asyncTest("Tags is class attributes", function() {
+		expect(3);
+
 		var node = fixture.querySelector('div');
 		var model = { property: 'peas' };
 
+		Sparky.data.model = model;
 		Sparky(node, model);
 		node.classList.remove('class-2');
 
@@ -284,14 +307,7 @@ module('Test tags in class attributes...', function(fixture) {
 
 			window.requestAnimationFrame(function() {
 				ok(!node.classList.contains('peas'), 'Classes not expected to contain "peas", actual: "' + node.getAttribute('class') + '"');
-			});
-		});
-
-		window.requestAnimationFrame(function() {
-			window.requestAnimationFrame(function() {
-				window.requestAnimationFrame(function() {
-					QUnit.start();
-				});
+				QUnit.start();
 			});
 		});
 	});
@@ -336,6 +352,8 @@ module('Test tags in SVG class attributes...', function(fixture) {
 	console.log('Test tags in SVG class attributes...');
 
 	asyncTest("Tags is class attributes", function() {
+		expect(7);
+
 		var node = fixture.querySelector('line');
 		var model = { property: 'peas' };
 
@@ -345,20 +363,17 @@ module('Test tags in SVG class attributes...', function(fixture) {
 		node.classList.add('hello');
 
 		window.requestAnimationFrame(function() {
-			ok(node.getAttribute('class') === 'class-1 class-2 peas hello', 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.length === 4,        'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('class-1'), 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('class-2'), 'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('peas'),    'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
+			ok(node.classList.contains('hello'),   'Classes expected: "class-1 class-2 peas hello", actual: ' + node.getAttribute('class'));
 
 			model.property = 'ice';
 
 			window.requestAnimationFrame(function() {
 				ok(node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
-			});
-		});
-
-		window.requestAnimationFrame(function() {
-			window.requestAnimationFrame(function() {
-				window.requestAnimationFrame(function() {
-					QUnit.start();
-				});
+				QUnit.start();
 			});
 		});
 	});

@@ -1,7 +1,9 @@
 module('Sparky:collections', function(fixture) {
 	console.log('Test Collection()...');
 
-	test('Sparky should bind to an empty collection by inserting no nodes.', function() {
+	asyncTest('Sparky should bind to an empty collection by inserting no nodes.', function() {
+		expect(1);
+
 		var collection = Collection([]);
 
 		Sparky.fn['test-ctrl'] = function(node, model) {
@@ -14,66 +16,87 @@ module('Sparky:collections', function(fixture) {
 
 		Sparky(ul);
 
-		ok(ul.querySelectorAll('li').length === 0, 'All is well.');
-	});
-
-	test('Initial length', function() {
-		var collection = Collection([{
-		    	property: 1
-		    }, {
-		    	property: 2
-		    }]);
-
-		Sparky.fn['test-ctrl'] = function(node, model) {
-			return {
-				collection: collection
-			};
-		};
-
-		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
-
-		Sparky(ul);
-
-		var lis = ul.querySelectorAll('li');
-
-		ok(lis.length === 2, 'Two <li>s inserted in the DOM');
-		ok(lis[0].innerHTML === '1', "First li content from collection item should be '1', is '" + lis[0].innerHTML + "'");
-		ok(lis[1].innerHTML === '2', "Second li content from collection item should be '2', is '" + lis[1].innerHTML + "'");
-	});
-
-	asyncTest("Two or three", function(assert) {
-		var collection = Collection([{
-		    	property: 1
-		    }, {
-		    	property: 2
-		    }]);
-		
-		Sparky.fn['test-ctrl'] = function(node, model) {
-			return {
-				collection: collection
-			};
-		};
-
-		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
-		Sparky(ul);
-
-		ok(ul.querySelectorAll('li').length === 2, 'All is well.');
-
-		collection.push({
-			property: 3
-		});
-
 		window.requestAnimationFrame(function() {
-			ok(ul.querySelectorAll('li').length === 3, 'All is well.');
-		});
-
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
+			ok(ul.querySelectorAll('li').length === 0, 'All is well.');
 			QUnit.start();
 		});
 	});
+}, function() {/*
 
+<ul data-fn="test-ctrl">
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+</ul>
+
+*/});
+
+module('Sparky:collections', function(fixture) {
+	asyncTest('Initial length', function() {
+		expect(3);
+
+		var collection = Collection([{ property: 1 }, { property: 2 }]);
+
+		Sparky.fn['test-ctrl'] = function(node, model) {
+			return {
+				collection: collection
+			};
+		};
+
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
+
+		Sparky(ul);
+
+		window.requestAnimationFrame(function() {
+			var lis = ul.querySelectorAll('li');
+			ok(lis.length === 2, 'Two <li>s expected in the DOM, actually ' + lis.length);
+			ok(lis[0] && lis[0].innerHTML === '1', "First li content from collection item should be '1', is '" + (lis[0] && lis[0].innerHTML) + "'");
+			ok(lis[1] && lis[1].innerHTML === '2', "Second li content from collection item should be '2', is '" + (lis[1] && lis[1].innerHTML) + "'");
+			QUnit.start();
+		});
+	});
+}, function() {/*
+
+<ul data-fn="test-ctrl">
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+</ul>
+
+*/});
+
+module('Sparky:collections', function(fixture) {
+	asyncTest("Two or three", function(assert) {
+		expect(2);
+
+		var collection = Collection([{ property: 1 }, { property: 2 }]);
+
+		Sparky.fn['test-ctrl'] = function(node, model) {
+			return { collection: collection };
+		};
+
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
+		Sparky(ul);
+
+		window.requestAnimationFrame(function functionName() {
+			ok(ul.querySelectorAll('li').length === 2, 'All is well.');
+
+			collection.push({ property: 3 });
+
+			window.requestAnimationFrame(function() {
+				ok(ul.querySelectorAll('li').length === 3, 'All is well.');
+				QUnit.start();
+			});
+		});
+	});
+}, function() {/*
+
+<ul data-fn="test-ctrl">
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+</ul>
+
+*/});
+
+module('Sparky:collections', function(fixture) {
 	asyncTest("Zero to hero", function(assert) {
+		expect(2);
+
 		var collection = Collection();
 
 		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
@@ -85,21 +108,27 @@ module('Sparky:collections', function(fixture) {
 		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 		var sparky = Sparky(ul);
 
-		ok(ul.querySelectorAll('li').length === 0, 'All is well.');
-
-		collection.push({ property: 1 });
-		collection.push({ property: 2 });
-
 		window.requestAnimationFrame(function() {
-			ok(ul.querySelectorAll('li').length === 2, 'All is well.');
-		});
+			ok(ul.querySelectorAll('li').length === 0, 'All is well.');
 
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
-			QUnit.start();
+			collection.push({ property: 1 });
+			collection.push({ property: 2 });
+
+			window.requestAnimationFrame(function() {
+				ok(ul.querySelectorAll('li').length === 2, 'All is well.');
+				QUnit.start();
+			});
 		});
 	});
+}, function() {/*
 
+<ul data-fn="test-ctrl">
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+</ul>
+
+*/});
+
+module('Sparky:collections', function(fixture) {
 	asyncTest("Detach collection items", function(assert) {
 		expect(5);
 
@@ -118,36 +147,37 @@ module('Sparky:collections', function(fixture) {
 		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
 		var sparky = Sparky(ul);
 
-		assert.ok(ul.querySelectorAll('li').length === 2, 'All is well.');
-
-		var li = ul.querySelector('.li-2');
-
-		assert.ok(!!li, 'li.li-2 exists.');
-
-		var item1 = collection[0];
-		var item2 = collection[1];
-
-		collection.length = 0;
-
 		window.requestAnimationFrame(function() {
-			// Sparky for the li should be detached by this
-			// point. This should do precisely nothing.
-			item2.property = 0;
+			assert.ok(ul.querySelectorAll('li').length === 2, 'All is well.');
 
-			assert.ok(ul.querySelectorAll('li').length === 0, 'There is nothing in the list.');
-			assert.ok(li.innerHTML === '2', 'li content is still 2');
+			var li = ul.querySelector('.li-2');
+
+			assert.ok(!!li, 'li.li-2 exists.');
+
+			var item1 = collection[0];
+			var item2 = collection[1];
+
+			collection.length = 0;
 
 			window.requestAnimationFrame(function() {
-				assert.ok(li.innerHTML === '2', 'li content is still 2');
+				// Sparky for the li should be detached by this
+				// point. This should do precisely nothing.
+				item2.property = 0;
 
-				QUnit.start();
+				assert.ok(ul.querySelectorAll('li').length === 0, 'There is nothing in the list.');
+				assert.ok(li && li.innerHTML === '2', 'li content is still 2');
+
+				window.requestAnimationFrame(function() {
+					assert.ok(li && li.innerHTML === '2', 'li content is still 2');
+					QUnit.start();
+				});
 			});
 		});
 	});
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}">{{property}}</li>
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
 </ul>
 
 */});

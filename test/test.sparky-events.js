@@ -65,7 +65,7 @@ module('Event propogation', function(fixture) {
 
 
 module('Event propogation ready event', function(fixture) {
-	test("Tests ready event", function(assert) {
+	test("Tests scope event", function(assert) {
 		expect(8);
 
 		var n = 0;
@@ -77,95 +77,31 @@ module('Event propogation ready event', function(fixture) {
 		Sparky.fn['test-ctrl'] = function(node, model) {
 			sparky = this;
 
-			this.on('ready', function() {
+			this.on('scope', function() {
 				ok(sparky === this, 'sparky is target');
-				ok(++n === 3, 'This event should be called 3rd. Actually: ' + n);
-			});
-
-			return {};
-		};
-
-		Sparky.fn['test-ctrl-1'] = function(node, model) {
-			sparky1 = this;
-
-			this.on('ready', function() {
-				ok(sparky1 === this, 'sparky1 is target');
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
 			});
 
 			return {};
 		};
 
-		Sparky.fn['test-ctrl-2'] = function(node, model) {
-			sparky2 = this;
+		Sparky.fn['test-ctrl-1'] = function(node, model) {
+			sparky1 = this;
 
-			this.on('ready', function() {
-				ok(sparky2 === this, 'sparky2 is target');
+			this.on('scope', function() {
+				ok(sparky1 === this, 'sparky1 is target');
 				ok(++n === 2, 'This event should be called 2nd. Actually: ' + n);
 			});
 
 			return {};
 		};
 
-		var node  = fixture.querySelector('[data-fn="test-ctrl"]');
-		var node1 = fixture.querySelector('[data-fn="test-ctrl-1"]');
-		var node2 = fixture.querySelector('[data-fn="test-ctrl-2"]');
-
-		sparky = Sparky(node);
-
-		ok(sparky !== sparky1);
-		ok(sparky !== sparky2);
-	});
-}, function() {/*
-
-<div data-fn="test-ctrl">
-	<p data-fn="test-ctrl-1">{{property}}</p>
-	<p data-fn="test-ctrl-2">{{property}}</p>
-</div>
-
-*/});
-
-
-
-
-module('Event propogation insert event', function(fixture) {
-	asyncTest("Tests insert event", function(assert) {
-		expect(8);
-
-		var n = 0;
-		var sparky, sparky1, sparky2;
-
-		// Reset Sparky
-		Sparky.data = {};
-
-		Sparky.fn['test-ctrl'] = function(node, model) {
-			sparky = this;
-
-			this.on('insert', function() {
-				ok(sparky === this, 'sparky is target');
-				ok(n++ === 2, 'This event called third');
-			});
-
-			return {};
-		};
-
-		Sparky.fn['test-ctrl-1'] = function(node, model) {
-			sparky1 = this;
-
-			this.on('insert', function() {
-				ok(sparky1 === this, 'sparky1 is target');
-				ok(n++ === 0, 'This event called first');
-			});
-
-			return {};
-		};
-
 		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			sparky2 = this;
 
-			this.on('insert', function() {
+			this.on('scope', function() {
 				ok(sparky2 === this, 'sparky2 is target');
-				ok(n++ === 1, 'This event called second');
+				ok(++n === 3, 'This event should be called 3rd. Actually: ' + n);
 			});
 
 			return {};
@@ -179,8 +115,6 @@ module('Event propogation insert event', function(fixture) {
 
 		ok(sparky !== sparky1);
 		ok(sparky !== sparky2);
-
-		QUnit.start();
 	});
 }, function() {/*
 
@@ -190,6 +124,73 @@ module('Event propogation insert event', function(fixture) {
 </div>
 
 */});
+
+
+
+// Not sure what we're doing with insert / dom-add event right now
+
+//module('Event propogation insert event', function(fixture) {
+//	asyncTest("Tests insert event", function(assert) {
+//		expect(8);
+//
+//		var n = 0;
+//		var sparky, sparky1, sparky2;
+//
+//		// Reset Sparky
+//		Sparky.data = {};
+//
+//		Sparky.fn['test-ctrl'] = function(node, model) {
+//			sparky = this;
+//
+//			this.on('dom-add', function() {
+//				ok(sparky === this, 'sparky is target');
+//				ok(n++ === 2, 'This event called third');
+//			});
+//
+//			return {};
+//		};
+//
+//		Sparky.fn['test-ctrl-1'] = function(node, model) {
+//			sparky1 = this;
+//
+//			this.on('dom-add', function() {
+//				ok(sparky1 === this, 'sparky1 is target');
+//				ok(n++ === 0, 'This event called first');
+//			});
+//
+//			return {};
+//		};
+//
+//		Sparky.fn['test-ctrl-2'] = function(node, model) {
+//			sparky2 = this;
+//
+//			this.on('dom-add', function() {
+//				ok(sparky2 === this, 'sparky2 is target');
+//				ok(n++ === 1, 'This event called second');
+//			});
+//
+//			return {};
+//		};
+//
+//		var node  = fixture.querySelector('[data-fn="test-ctrl"]');
+//		var node1 = fixture.querySelector('[data-fn="test-ctrl-1"]');
+//		var node2 = fixture.querySelector('[data-fn="test-ctrl-2"]');
+//
+//		sparky = Sparky(node);
+//
+//		ok(sparky !== sparky1);
+//		ok(sparky !== sparky2);
+//
+//		QUnit.start();
+//	});
+//}, function() {/*
+//
+//<div data-fn="test-ctrl">
+//	<p data-fn="test-ctrl-1">{{property}}</p>
+//	<p data-fn="test-ctrl-2">{{property}}</p>
+//</div>
+//
+//*/});
 
 
 
@@ -211,7 +212,7 @@ module('Event propogation insert event', function(fixture) {
 			.on('insert', function() {
 				ok(r++ === 3, 'This event called 3, actually ' + (r-1));
 			})
-			
+
 			// Test order of delegated insert events
 			.on('insert', function() {
 				ok(n++ === 3, 'This event called 3, actually ' + (n-1));
@@ -245,7 +246,7 @@ module('Event propogation insert event', function(fixture) {
 
 		Sparky.fn['test-ctrl-3'] = function(node, model) {
 			sparky4 = this;
-			
+
 			this
 			.on('ready', function() {
 				sparky5 = Sparky('content-to-insert-2');
@@ -302,7 +303,7 @@ module('Event propogation insert event', function(fixture) {
 		Sparky.fn['test-ctrl-1'] = function(node, model) {};
 		Sparky.fn['test-ctrl-2'] = function(node, model) {
 			var n = 0;
-			
+
 			this
 
 			// Test order of ready and insert events
@@ -334,4 +335,3 @@ module('Event propogation insert event', function(fixture) {
 </div>
 
 */});
-

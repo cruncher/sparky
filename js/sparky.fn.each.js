@@ -17,8 +17,7 @@
 		var cache  = [];
 		var tasks  = [];
 		var clone  = node.cloneNode(true);
-		var taskThrottle = Sparky.Throttle(run);
-		var updateThrottle = Sparky.Throttle(update);
+		var throttle = Sparky.Throttle(update);
 		var placeholder, attrScope, attrCtrl;
 
 		if (Sparky.debug) {
@@ -30,11 +29,6 @@
 		}
 		else {
 			placeholder = dom.create('text', '');
-		}
-
-		function run() {
-			tasks.forEach(call);
-			tasks.length = 0;
 		}
 
 		function update() {
@@ -77,8 +71,7 @@
 
 				// Push DOM changes to the task list for handling on
 				// the next frame.
-				tasks.push(dom.before.bind(dom, placeholder, nodes[n]));
-				taskThrottle();
+				dom.before(placeholder, nodes[n]);
 			}
 
 			Sparky.log(
@@ -89,20 +82,20 @@
 
 		function observeCollection() {
 			if (collection.on) {
-				collection.on('add remove', updateThrottle);
-				updateThrottle();
+				collection.on('add remove', throttle);
+				throttle();
 			}
 			else {
-				Sparky.observe(collection, 'length', updateThrottle);
+				Sparky.observe(collection, 'length', throttle);
 			}
 		}
 
 		function unobserveCollection() {
 			if (collection.on) {
-				collection.off('add remove', updateThrottle);
+				collection.off('add remove', throttle);
 			}
 			else {
-				Sparky.unobserve(collection, 'length', updateThrottle);
+				Sparky.unobserve(collection, 'length', throttle);
 			}
 		}
 
@@ -114,19 +107,19 @@
 		dom.before(node, placeholder);
 		dom.remove(node);
 
-		observeCollection()
+		observeCollection();
 
 		this
 		.on('scope', function(source, scope){
 			if (this !== source) { return; }
-			unobserveCollection();
-			if (scope === undefined) { return; }
+			if (scope === collection) { return; }
+			if (collection) { unobserveCollection(); }
 			collection = scope;
+			if (scope === undefined) { return; }
 			observeCollection();
 		})
 		.on('destroy', function destroy() {
-			taskThrottle.cancel();
-			updateThrottle.cancel();
+			throttle.cancel();
 			unobserveCollection();
 		});
 

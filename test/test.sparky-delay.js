@@ -2,49 +2,41 @@ module('Child sparky', function(fixture) {
 	console.log('Test async models...');
 
 	asyncTest("Delayed models", function(assert) {
-		// Reset Sparky
-		Sparky.data = {};
+		expect(4);
 
-		Sparky.data['dummy']   = {};
+		// Reset Sparky
+		Sparky.data = {
+			'model': {},
+			'dummy': {}
+		};
 
 		var a = fixture.querySelector('a');
 
 		Sparky(fixture);
 
 		setTimeout(function() {
-			Sparky.data.model = {};
-			
-			setTimeout(function() {
-				Sparky.data.model.object = {
-					thing: {
-						property: 'Hello!'
-					}
-				};
+			Sparky.data.model.object = {
+				thing: {
+					property: 'Hello!'
+				}
+			};
 
-				// TODO: DOM is updated immediately. Not sure that this is
-				// correct behaviour.
-				// assert.ok(a.innerHTML !== 'Hello!', "DOM not updated immediately object becomes available");
+			assert.ok(a.innerHTML !== 'Hello!', "DOM not updated immediately object becomes available");
 
-				window.requestAnimationFrame(function() {
-					assert.ok(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available: " + a.innerHTML);
-				});
+			window.requestAnimationFrame(function() {
+				assert.ok(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available: " + a.innerHTML);
+			});
 
-				Sparky.data.model.object.thing.blah = 7;
+			Sparky.data.model.object.thing.blah = 7;
 
-				assert.ok(a.hash !== '#7', "DOM href is not updated immediately property becomes available");
+			assert.ok(a.hash !== '#7', "DOM href is not updated immediately property becomes available");
 
-				window.requestAnimationFrame(function() {
-					assert.ok(a.hash === '#7', "DOM href not updated on animation frame after property available: " + a.hash);
-				});
-
-				// Restart QUnit
-				window.requestAnimationFrame(function() {
-					QUnit.start();
-				});
-			}, 200);
-		}, 200);
+			window.requestAnimationFrame(function() {
+				assert.ok(a.hash === '#7', "DOM href not updated on animation frame after property available: " + a.hash);
+				QUnit.start();
+			});
+		}, 400);
 	});
-
 }, function() {/*
 
 <div data-scope="dummy">
@@ -52,3 +44,56 @@ module('Child sparky', function(fixture) {
 </div>
 
 */});
+
+
+// This test cant work. See bug:
+//
+// https://github.com/cruncher/sparky/issues/3
+
+//module('Child sparky', function(fixture) {
+//	console.log('Test async models...');
+//
+//	asyncTest("Delayed models", function(assert) {
+//		// Reset Sparky
+//		Sparky.data = {
+//			'dummy': {}
+//		};
+//
+//		var a = fixture.querySelector('a');
+//
+//		Sparky(fixture);
+//
+//		setTimeout(function() {
+//			Sparky.data.model ={
+//				object: {
+//					thing: {
+//						property: 'Hello!'
+//					}
+//				}
+//			};
+//
+//			// TODO: DOM is updated immediately. Not sure that this is
+//			// correct behaviour.
+//			// assert.ok(a.innerHTML !== 'Hello!', "DOM not updated immediately object becomes available");
+//
+//			window.requestAnimationFrame(function() {
+//				assert.ok(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available: " + a.innerHTML);
+//			});
+//
+//			Sparky.data.model.object.thing.blah = 7;
+//
+//			assert.ok(a.hash !== '#7', "DOM href is not updated immediately property becomes available");
+//
+//			window.requestAnimationFrame(function() {
+//				assert.ok(a.hash === '#7', "DOM href not updated on animation frame after property available: " + a.hash);
+//				QUnit.start();
+//			});
+//		}, 400);
+//	});
+//}, function() {/*
+//
+//<div data-scope="dummy">
+//	<a data-scope="model.object.thing" href="#{{blah}}">{{property}}</a>
+//</div>
+//
+//*/});

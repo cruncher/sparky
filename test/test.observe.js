@@ -4,13 +4,13 @@ module('Sparky.observe', function(fixture) {
 
 	test("observe/unobserve anon fn", function() {
 		expect(1);
-		
+
 		var object = {};
-		
+
 		observe(object, 'ting', function() {
 			ok(object.ting === 1);
 		});
-		
+
 		object.ting = 1;
 		unobserve(object, 'ting');
 		object.ting = 2;
@@ -18,13 +18,13 @@ module('Sparky.observe', function(fixture) {
 
 	test("observe/unobserve named fn", function() {
 		expect(2);
-		
+
 		var object = {};
-		
+
 		function hello() {
 			ok(object.ting === 1);
 		}
-		
+
 		observe(object, 'ting', hello);
 		object.ting = 1;
 		unobserve(object, 'ting', hello);
@@ -46,14 +46,16 @@ module('Sparky.observe', function(fixture) {
 	});
 
 	test(".observePath() on resolvable path", function() {
-		expect(6);
-		
+		expect(7);
+
 		var object = {a: {b: {c: 0}}};
-		var expected = 0;
+		var expected;
+
+		object.a.b.c = expected = 0;
 
 		function update(value) {
 			ok(value === expected, 'Expected ' + expected + ', got ' + value);
-		};
+		}
 
 		Sparky.observePath(object, 'a.b.c', update);
 		object.a.b.c = expected = 1;
@@ -81,7 +83,7 @@ module('Sparky.observe', function(fixture) {
 	});
 
 	test(".observePath() on unresolvable path", function() {
-		expect(2);
+		expect(3);
 
 		var object = {};
 		var expected = 0;
@@ -130,7 +132,7 @@ module('Sparky.observe', function(fixture) {
 
 		expected = 2;
 		object.a.b.c = 2;
-		
+
 		//setTimeout(function() {
 		//	QUnit.start();
 		//}, 0);

@@ -347,7 +347,7 @@
 			this.placeholders && Sparky.dom.remove(this.placeholders);
 			unparse();
 			unobserveScope();
-			unbind(sparky, scope, bindings);
+			unbind(this, scope, bindings);
 		});
 
 		this.scope(scope);
