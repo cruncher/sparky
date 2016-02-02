@@ -106,7 +106,7 @@
 			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
 			    // Checkboxes default to value "on" when the value attribute
 			    // is not given. Make them behave as booleans.
-			    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+			    (type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
 			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
 			    	// Only let strings set the value of other inputs
 			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
