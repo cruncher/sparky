@@ -419,24 +419,17 @@
 	}
 
 	function observeProperties2(bind, unbind, update, properties) {
-		// Start throttling changes. The first update is immediate.
-		var throttle = Sparky.Throttle(update);
-
 		// Observe properties that are to be live updated
 		properties.forEach(function attach(property) {
-			bind(property, throttle);
+			bind(property, update);
 		});
 
 		// Return a function that destroys live bindings
 		return function destroyBinding() {
 			properties.forEach(function detach(property) {
 				// Unobserve properties
-				unbind(property, throttle);
+				unbind(property, update);
 			});
-
-			// Cancel already bound updates. If updates are queued,
-			// the throttle applies them before bowing out.
-			throttle.cancel();
 		};
 	}
 
@@ -574,15 +567,14 @@
 		var nodeValue = node.getAttribute('value');
 		var update = makeUpdateInput(node, get, path, to);
 		var change = makeChangeListener(node, set, path, from);
-		var throttle;
 
 		node.addEventListener('change', change);
 		node.addEventListener('input', change);
 
 		// Wait for animation frame to let Sparky fill in tags in value, min
 		// and max before controlling. TODO: I'm not sure about this. I'd like
-		// to update the model immediately if possible, and start throttle on
-		// the animation frame.
+		// to update the model immediately if possible... ooo, maybe that
+		// happens now in 0.9.4
 
 		var request = window.requestAnimationFrame(function() {
 			request = false;
@@ -592,8 +584,7 @@
 				change();
 			}
 
-			throttle = Sparky.Throttle(update);
-			bind(path, throttle);
+			bind(path, update);
 		});
 
 		return function unbind() {
@@ -604,8 +595,7 @@
 				window.cancelAnimationFrame(request);
 			}
 			else {
-				throttle.cancel();
-				unbind(path, throttle);
+				unbind(path, update);
 			}
 		};
 	}

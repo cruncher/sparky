@@ -124,7 +124,7 @@
 				result = list[n].call(this, node, scope);
 
 				// Returning false interrupts the ctrl calls.
-				if (result === false) { return; }
+				if (result === false) { return result; }
 
 				// Returning an object sets that object to
 				// be used as scope.
@@ -176,30 +176,39 @@
 		Sparky.dom.remove(placeholder);
 	}
 
-	function bind(sparky, scope, bindings) {
+	function bind(sparky, scope, bindings, init) {
 		var n = bindings.length;
-		var path, fn;
+		var path, fn, throttle;
 
 		while (n--) {
 			path = bindings[n][0];
 			fn = bindings[n][1];
-			Sparky.observePath(scope, path, fn);
+			throttle = bindings[n][2];
+			Sparky.observePath(scope, path, throttle);
+
+			// On initial run we populate the DOM immediately. The Sparky
+			// constructor is designed to be run inside requestAnimationFrame
+			// and we don't want to waiting for an extra frame.
+			if (init) {
+				fn(Sparky.get(scope, path)); }
 		}
 	}
 
 	function unbind(sparky, scope, bindings) {
 		var n = bindings.length;
-		var path, fn;
+		var path, fn, throttle;
 
 		while (n--) {
 			path = bindings[n][0];
 			fn = bindings[n][1];
-			Sparky.unobservePath(scope, path, fn);
+			throttle = bindings[n][2];
+			Sparky.unobservePath(scope, path, throttle);
+			throttle.cancel();
 		}
 	}
 
-	function setup(sparky, scope, bindings, children) {
-		bind(sparky, scope, bindings);
+	function setup(sparky, scope, bindings, children, init) {
+		bind(sparky, scope, bindings, init);
 		var n = children.length;
 		while (n--) {
 			children[n].scope(scope);
@@ -247,6 +256,8 @@
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var init = true;
 		var unobserveScope = noop;
+		var addThrottle = Sparky.Throttle(addThrottle);
+		var removeThrottle = Sparky.Throttle(removeThrottle);
 
 		function get(path) {
 			return scope && Sparky.get(scope, path);
@@ -261,7 +272,7 @@
 		}
 
 		function bind(path, fn) {
-			bindings.push([path, fn]);
+			bindings.push([path, fn, Sparky.Throttle(fn)]);
 		}
 
 		function updateScope(object) {
@@ -275,16 +286,26 @@
 				if (scope) { teardown(sparky, scope, bindings, children); }
 			}
 
-			init = false;
 			scope = newscope;
-			sparky.trigger('scope', scope);
 
 			// Where there is no scope, there should be no nodes in the DOM
-			if (!scope) { return removeNodes(sparky); }
+			if (scope) {
+				// Assign and set up scope
+				setup(sparky, scope, bindings, children, init);
 
-			// Assign and set up scope
-			setup(sparky, scope, bindings, children);
-			addNodes(sparky);
+				// On init we insert the nodes immediately - Sparky is designed
+				// to be called inside requestAnimationFrame, so we should not
+				// add one single extra frame's delay to proceeedings.
+				if (init) { addNodes(sparky); }
+				else { addThrottle(sparky); }
+			}
+			else {
+				if (init) { removeNodes(sparky); }
+				else { removeThrottle(sparky); }
+			}
+
+			sparky.trigger('scope', scope);
+			init = false;
 		}
 
 		function observeScope(scope, path) {
@@ -328,7 +349,7 @@
 		});
 
 		// If a scope object is returned by the ctrl, we use that.
-		var ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
@@ -338,7 +359,7 @@
 		// scope changes. There's probably a better way of expressing this.
 		if (ctrlscope === scope) { ctrlscope = undefined; }
 
-		// Parse the DOM nodes for Sparky tags. The parser returns an function
+		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
 		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
 
@@ -352,7 +373,10 @@
 
 		this.scope(scope);
 
-		// Instantiate children AFTER this sparky has been fully wired up.
+
+
+		// Instantiate children AFTER this sparky has been fully wired up. Not
+		// sure why. Don't think it's important.
 		children = nodes.map(function(node) {
 			return sparky.create(node, scope);
 		});

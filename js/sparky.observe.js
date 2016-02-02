@@ -44,9 +44,7 @@
 			fn(root[prop]);
 		}
 
-		if (notify) { update(); }
-
-		Sparky.observe(root, prop, update);
+		Sparky.observe(root, prop, update, notify);
 
 		return function unobserve() {
 			Sparky.unobserve(root, prop, update);
@@ -297,7 +295,7 @@
 			}
 		};
 	} : function(Sparky) {
-		Sparky.observe = function(object, property, fn) {
+		Sparky.observe = function(object, property, fn, immediate) {
 			// AudioParams objects must be polled, as they cannot be reconfigured
 			// to getters/setters, nor can they be Object.observed. And they fail
 			// to do both of those completely silently. So we test the scope to see
@@ -320,7 +318,9 @@
 			}
 
 			observe(object, property, fn);
-			fn(object);
+			if (immediate && isDefined(object[property])) {
+				fn(object);
+			}
 		};
 
 		Sparky.unobserve = function(object, property, fn) {
