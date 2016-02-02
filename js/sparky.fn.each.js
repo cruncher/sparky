@@ -7,7 +7,7 @@
 
 	function call(fn) { fn(); }
 
-	Sparky.fn.each = function setupCollection(node, collection) {
+	Sparky.fn.each = function setupCollection(node) {
 		// todo: somehow get the remaining ctrls and call child sparkies with
 		// them.
 
@@ -18,7 +18,7 @@
 		var tasks  = [];
 		var clone  = node.cloneNode(true);
 		var throttle = Sparky.Throttle(update);
-		var placeholder, attrScope, attrCtrl;
+		var collection, placeholder, attrScope, attrCtrl;
 
 		if (Sparky.debug) {
 			attrScope = node.getAttribute('data-scope');
@@ -106,8 +106,6 @@
 		// Put the placeholder in place and remove the node
 		dom.before(node, placeholder);
 		dom.remove(node);
-
-		observeCollection();
 
 		this
 		.on('scope', function(source, scope){

@@ -184,13 +184,14 @@
 			path = bindings[n][0];
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
-			Sparky.observePath(scope, path, throttle);
+			Sparky.observePath(scope, path, throttle, !init);
 
 			// On initial run we populate the DOM immediately. The Sparky
 			// constructor is designed to be run inside requestAnimationFrame
 			// and we don't want to waiting for an extra frame.
 			if (init) {
-				fn(Sparky.get(scope, path)); }
+				fn(Sparky.get(scope, path));
+			}
 		}
 	}
 
@@ -256,8 +257,8 @@
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var init = true;
 		var unobserveScope = noop;
-		var addThrottle = Sparky.Throttle(addThrottle);
-		var removeThrottle = Sparky.Throttle(removeThrottle);
+		var addThrottle = Sparky.Throttle(addNodes);
+		var removeThrottle = Sparky.Throttle(removeNodes);
 
 		function get(path) {
 			return scope && Sparky.get(scope, path);
@@ -313,7 +314,7 @@
 			unobserveScope = function() {
 				Sparky.unobservePath(scope, path, updateScope);
 			};
-			Sparky.observePath(scope, path, updateScope);
+			Sparky.observePath(scope, path, updateScope, true);
 		}
 
 		node = resolveNode(node);
@@ -340,8 +341,9 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
+		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
+		// accept scope as second parameter.
 		var ctrlscope;
-
 		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
 			ctrlscope = Sparky.get(basescope, path);
 		}, function(object) {
@@ -351,29 +353,34 @@
 		// If a scope object is returned by the ctrl, we use that.
 		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
 
-		// A controller returning false is telling us not to do data
-		// binding. We can skip the heavy work.
-		if (ctrlscope === false) { return this; }
-
 		// If ctrlscope is unchanged from scope, ctrlscope should not override
 		// scope changes. There's probably a better way of expressing this.
 		if (ctrlscope === scope) { ctrlscope = undefined; }
+
+		// A controller returning false is telling us not to do data
+		// binding. We can skip the heavy work.
+		if (ctrlscope === false) {
+			return this
+			.on('destroy', function() {
+				Sparky.dom.remove(this);
+				unobserveScope();
+			})
+			.scope(scope);
+		}
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
 		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
 
-		this.on('destroy', function() {
+		this
+		.on('destroy', function() {
 			Sparky.dom.remove(this);
 			this.placeholders && Sparky.dom.remove(this.placeholders);
 			unparse();
 			unobserveScope();
 			unbind(this, scope, bindings);
-		});
-
-		this.scope(scope);
-
-
+		})
+		.scope(scope);
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.

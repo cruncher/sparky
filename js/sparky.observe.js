@@ -68,7 +68,7 @@
 			}
 		};
 
-		Sparky.observe(root, prop, update);
+		Sparky.observe(root, prop, update, true);
 		notify = true;
 
 		return function unobserve() {
@@ -87,11 +87,11 @@
 			observePath2(root, prop, array, fn, notify) ;
 	}
 
-	function observePath(root, path, fn) {
+	function observePath(root, path, fn, immediate) {
 		var array = splitPath(path);
 
 		// Observe path without logs.
-		var destroy = observePath1(root, array, fn, false) ;
+		var destroy = observePath1(root, array, fn, immediate || false) ;
 
 		// Register this binding in a map
 		map.push([root, path, fn, destroy]);
@@ -200,7 +200,6 @@
 		}
 
 		window.requestAnimationFrame(frame);
-
 		return cancel;
 	}
 
@@ -318,9 +317,7 @@
 			}
 
 			observe(object, property, fn);
-			if (immediate && isDefined(object[property])) {
-				fn(object);
-			}
+			if (immediate) { fn(object); }
 		};
 
 		Sparky.unobserve = function(object, property, fn) {
