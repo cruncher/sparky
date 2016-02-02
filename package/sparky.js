@@ -879,7 +879,7 @@ if (!Math.log10) {
 		Sparky.dom.remove(placeholder);
 	}
 
-	function bind(sparky, scope, bindings, init) {
+	function bind(scope, bindings, init) {
 		var n = bindings.length;
 		var path, fn, throttle;
 
@@ -887,32 +887,42 @@ if (!Math.log10) {
 			path = bindings[n][0];
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
-			Sparky.observePath(scope, path, throttle, !init);
 
 			// On initial run we populate the DOM immediately. The Sparky
 			// constructor is designed to be run inside requestAnimationFrame
 			// and we don't want to waiting for an extra frame.
+			Sparky.observePath(scope, path, throttle, !init);
 			if (init) {
 				fn(Sparky.get(scope, path));
 			}
 		}
 	}
 
-	function unbind(sparky, scope, bindings) {
+	function unbind(scope, bindings) {
 		var n = bindings.length;
-		var path, fn, throttle;
+		var path, throttle;
 
 		while (n--) {
 			path = bindings[n][0];
-			fn = bindings[n][1];
 			throttle = bindings[n][2];
 			Sparky.unobservePath(scope, path, throttle);
-			throttle.cancel();
 		}
 	}
 
+	function endbind(bindings) {
+		var n = bindings.length;
+		var throttle;
+
+		while (n--) {
+			throttle = bindings[n][2];
+			throttle.cancel();
+		}
+
+		bindings.length = 0;
+	}
+
 	function setup(sparky, scope, bindings, children, init) {
-		bind(sparky, scope, bindings, init);
+		bind(scope, bindings, init);
 		var n = children.length;
 		while (n--) {
 			children[n].scope(scope);
@@ -920,7 +930,7 @@ if (!Math.log10) {
 	}
 
 	function teardown(sparky, scope, bindings, children) {
-		unbind(sparky, scope, bindings);
+		unbind(scope, bindings);
 		var n = children.length;
 		while (n--) {
 			children[n].scope();
@@ -1047,6 +1057,7 @@ if (!Math.log10) {
 		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
 		// accept scope as second parameter.
 		var ctrlscope;
+
 		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
 			ctrlscope = Sparky.get(basescope, path);
 		}, function(object) {
@@ -1081,7 +1092,8 @@ if (!Math.log10) {
 			this.placeholders && Sparky.dom.remove(this.placeholders);
 			unparse();
 			unobserveScope();
-			unbind(this, scope, bindings);
+			unbind(scope, bindings);
+			endbind(bindings);
 		})
 		.scope(scope);
 

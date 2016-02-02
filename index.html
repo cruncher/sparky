@@ -488,16 +488,20 @@ setTimeout(function() {
 	);
 }, 11000);
 
-Sparky.fn.test = function() {
-	this.on('destroy unbind remove', function(){
-		console.log('HOI');
+Sparky.fn.test = function(node) {
+	this.on('destroy', function(){
+		console.log('DESTROY');
 	});
 
 	this.data = data;
 	return scope;
 };
 
-Sparky.fn.sub = function(node, scope) {
+Sparky.fn.sub = function(node) {
+	//this.on('scope', function(scope) {
+	//	console.log('SCOPE', scope);
+	//});
+
 	return subScope;
 };
 
