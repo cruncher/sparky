@@ -40,7 +40,7 @@ module.exports = function(config) {
       'test/test.sparky-delay.js',
       'test/test.sparky-fn.js',
       'test/test.sparky-fn-each.js',
-      //'test/test.sparky-inputs.js',
+      'test/test.sparky-inputs.js',
       //'test/test.sparky-events.js'
     ],
 
