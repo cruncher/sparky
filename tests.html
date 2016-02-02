@@ -265,7 +265,11 @@
 	<label>
 		<code>svgScope.color</code>
 	</label>
-	<input type="text" name="{{color}}" />
+	<select name="{{color}}">
+		<option value="pink">pink</option>
+		<option value="blue">blue</option>
+		<option value="orange">orange</option>
+	</select>
 	<label>
 		<code>svgScope.x1/y1</code>
 	</label>
@@ -616,14 +620,14 @@ setInterval(function() {
 
 setTimeout(function() {
 	console.log('1 –––––– scope.object = object1');
-	object1.text = '1 second';
+	object1.text = '0.5 seconds';
 	scope.object = object1;
 	scope.class = "green-bg";
-}, 1000);
+}, 500);
 
 setTimeout(function() {
 	console.log('2 –––––– scope.object = undefined');
-	object1.text = '2 seconds';
+	object1.text = '1.0 second';
 	scope.object = undefined;
 	data.object = object1;
 	scope.class = "orange-bg";
@@ -634,79 +638,84 @@ setTimeout(function() {
 		x2: 88, y2: 18,
 		x3: 36, y3: 74
 	});
-}, 2000);
+}, 1000);
 
 setTimeout(function() {
 	console.log('3 –––––– scope.object = object2');
-	object1.text = '3 seconds';
+	object1.text = '1.5 seconds';
 	scope.object = object2;
 	Object.assign(svgScope, {
 		x1: 10, y1: 3,
 		x2: 100, y2: 10,
 		x3: 33, y3: 66
 	});
-}, 3000);
+}, 1500);
 
 setTimeout(function() {
 	console.log('4 –––––– scope.object = undefined');
-	object1.text = '4 seconds';
+	object1.text = '2.0 seconds';
 	scope.object = undefined;
 	subScope.text = 'Still ctrl scope text.'
 	data.object = object2;
 	Object.assign(svgScope, {
 		x1: 0, y1: 0
 	});
-}, 4000);
+}, 2000);
 
 setTimeout(function() {
 	console.log('5 –––––– scope.object = object1; object1.thing = thing2');
-	object1.text = '5 seconds';
+	object1.text = '2.5 seconds';
 	object1.thing = thing2;
 	scope.object = object1;
 	Object.assign(svgScope, {
 		x2: 100, y2: 0
 	});
-}, 5000);
+}, 2500);
 
 setTimeout(function() {
 	console.log('6 –––––– data.object = object');
-	object1.text = '6 seconds';
+	object1.text = '3.0 seconds';
 	scope.object = object2;
 	data.object = object1;
 	Object.assign(svgScope, {
 		x3: 50, y3: 100,
 		color: 'blue'
 	});
-}, 6000);
+}, 3000);
 
 setTimeout(function() {
 	console.log('7 –––––– data.object = undefined');
-	object1.text = '7 seconds';
+	object1.text = '3.5 seconds';
 	data.object = undefined;
 	svgScope.color = 'orange';
-}, 7000);
+}, 3500);
 
 setTimeout(function() {
 	console.log('8 –––––– data.object = object');
-	object1.text = '8 seconds';
+	object1.text = '4.0 seconds';
 	data.object = object1;
-}, 8000);
+}, 4000);
 
 setTimeout(function() {
 	console.log('9 –––––– data.object = object');
-	object1.text = '9 seconds';
+	object1.text = '4.5 seconds';
 	scope.collection.add({text: 'Oh boy, a new item.'});
-}, 9000);
+}, 4500);
 
 setTimeout(function() {
 	console.log('10 ––––– data.object = object');
-	object1.text = '10 seconds';
+	object1.text = '5.0 seconds';
 	scope.collection.remove();
-}, 10000);
+	Object.assign(svgScope, {
+		"x1":-114,"y1":6,
+		"x2":203,"y2":-74,
+		"x3":259,"y3":344
+	});
+}, 5000);
 
 setTimeout(function() {
 	console.log('11 ––––– data.object = object');
-	object1.text = '11 seconds';
+	object1.text = 'Timed tests ended';
 	scope.collection.add(
 		{ text: 'Boom',  things: Collection([{text: '1'}, {text: '2'}]) },
 		{ text: 'Shaka', things: Collection([{text: '3'}, {text: '4'}]) },
@@ -717,7 +726,7 @@ setTimeout(function() {
 		"x2":141,"y2":-36,
 		"x3":60,"y3":75
 	});
-}, 11000);
+}, 5500);
 
 Sparky.fn.test = function(node) {
 	this.on('destroy', function(){

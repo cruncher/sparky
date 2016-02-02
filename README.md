@@ -93,7 +93,7 @@ Sparky can also be instantiated via JS:
 
 ## Sparky templates
 
-#### data-scope
+#### [data-scope]
 
 The <code>data-scope</code> attribute is a path to an object to be used as
 scope to render the tags in this elements. Paths are written in dot notation.
@@ -120,7 +120,7 @@ Object names can contain <code>-</code> characters, or be numbers.
     {{path.0.my-object}}
 
 
-#### data-fn
+#### [data-fn]
 
 The <code>data-fn</code> attribute tells Sparky to run one or more functions
 when it wires up this element.
@@ -209,7 +209,7 @@ get and set numbers, and if the value attribute is not given
 string matching the value attribute for the checkbox to be checked).
 
 
-#### data-fn="value-int"
+#### [data-fn="value-int"]
 
 To get and set other types, give the element one of Sparky's value functions:
 
@@ -241,25 +241,28 @@ A range slider that sets scope.property as a string:
     <input type="range" data-fn="value-string" name="{{property}}" min="0" max="1" step="any" />
 
 
-#### data-fn="each"
+#### [data-fn="each"]
 
-Sparky has no special syntax for looping over a collection, but where
-<code>data-scope</code> resolves to an array or array-like object
-Sparky automatically loops over it, cloning the corresponding DOM node for all
-the items in the collection. So this...
+The <code>each</code> function loops over a scope that is a collection or array,
+cloning a new node for each item in the collection. This...
 
-    <ul>
-        <li data-scope="contributors">
+    <ul data-fn="sparky">
+        <li data-scope="{{contributors}}">
             <a href="{{url}}">{{name}}</a>
         </li>
     </ul>
 
-    Sparky.data.contributors = Sparky.Collection([
-        { name: "Sparky",   url: "http://github.com/cruncher/sparky" },
-        { name: "Cruncher", url: "http://cruncher.ch" }
-    ]);
+    Sparky.fn.sparky = function(node) {
+        // Return a scope object
+        return {
+            contributors: Collection([
+                { name: "Sparky",   url: "http://github.com/cruncher/sparky" },
+                { name: "Cruncher", url: "http://cruncher.ch" }
+            ])
+        };
+    };
 
-...results in a DOM that looks like this<a href="#-note">*<sup>note</note></a>:
+...results in a DOM that looks like this:
 
     <ul>
         <li>
@@ -278,22 +281,24 @@ the items in the collection. So this...
 To bind a node in JS, call <code>Sparky</code> with a node or id, a scope
 object and/or a function.
 
-#### parameters
+<code>node   </code>node | document fragment | string
 
-<code>node</code>: DOM node | document fragment | string
+Required parameter. If it is a DOM node, Sparky parses it for tags. If it is a
+string Sparky looks for a DOM node with that id, and if that DOM node is a <code>&lt;template&gt;</code> Sparky extracts the template contents and parses
+those.
 
-A string defines the <code>id</code> of a <code>&lt;template&gt;</code>.
-<code>node</code> is a required parameter.
+<code>scope  </code>object | string | undefined
 
-<code>scope</code>: object | string | undefined
+An object who's properties are used to render tags in the node. (Sparky's scope
+may also be replaced at a later time via <code>sparky.scope(object)</code>.) If
+the <code>scope</code> parameter is a string it defines path to an object in the <code>Sparky.data</code>.
 
-A string defines a path to an object in <code>Sparky.data</code> using dot
-notation.
+<code>fn     </code>function | string | undefined
 
-<code>fn</code>: function | string | undefined
-
-A string defines a name, or a space-separated list of names of ctrl functions
-stored in <code>Sparky.fn</code>.
+A function to run upon instantiating the node, or a string defining a name or
+names of function(s) stored in <code>sparky.fn<code> or in
+<code>Sparky.fn</code>. Log <code>Sparky.fn</code> in the console to see the
+default functions available.
 
 #### return
 
@@ -318,7 +323,7 @@ and destroyed along with their parents.
 #### .destroy()
 
 The nuke option. Destroys the data bindings, removes nodes from the DOM and
-removes any event handlers. Also destroys any children.
+removes any event handlers. Also destroys any child sparkies.
 
 #### .scope(object)
 
