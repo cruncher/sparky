@@ -32,7 +32,13 @@
 
 	<style>
 		html {
-			background-color: #dddddd;
+			background-image: linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, #DADADA 20rem, #DADADA 100%);
+			background-color: #DADADA;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
 		}
 
 		.checked {
@@ -84,7 +90,7 @@
 			font-size: 18px;
 			padding: 11px;
 			padding-top: 2.5rem;
-			background-image: linear-gradient(to bottom, #d8d8d8 0%, #bbbbbb 20%, #bbbbbb 100%);
+			background-image: linear-gradient(to bottom, #6D6360 0%, #ABA7A6 21%, #D0CECD 46%, #DADADA 100%);
 		}
 
 		.inline-h1 {
@@ -100,7 +106,8 @@
 			z-index: 1;
 			margin-top: 0;
 			position: relative;
-			text-shadow: 0 0 100px #402F20;
+			/* It flickers when other things animate. */
+			/*text-shadow: 0 0 100px #402F20;*/
 		}
 
 		.inline-h1 + .inline-block {
