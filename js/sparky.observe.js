@@ -153,9 +153,9 @@
 	}
 
 	function getPath(obj, path) {
-		return path === '.' ?
+		return obj && (path === '.' ?
 			obj :
-			objFrom(obj, splitPath(path)) ;
+			objFrom(obj, splitPath(path)));
 	}
 
 	function setPath(root, path, obj) {

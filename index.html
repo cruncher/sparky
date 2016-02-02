@@ -32,8 +32,9 @@
 
 	<style>
 		html {
-			background-image: linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, #DADADA 20rem, #DADADA 100%);
-			background-color: #DADADA;
+			background-image: linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, #DADADA 20rem, #E0DBD9 100%);
+			background-repeat: no-repeat;
+			background-color: #E0DBD9;
 		}
 
 		body {
@@ -90,7 +91,7 @@
 			font-size: 18px;
 			padding: 11px;
 			padding-top: 2.5rem;
-			background-image: linear-gradient(to bottom, #6D6360 0%, #ABA7A6 21%, #D0CECD 46%, #DADADA 100%);
+			background-image: linear-gradient(to bottom, #6D6360 0%, #ABA7A6 21%, #D0CECD 46%, #E0DBD9 100%);
 		}
 
 		.inline-h1 {
@@ -232,7 +233,7 @@
 	</div>
 </div>
 
-<div class="test-block block">
+<!--div class="test-block block">
 	<div class="clock-block block" data-scope="clock">
 		<div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:30|mod:360}}deg) translate(0, -50%);"></div>
 		<div class="min-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'i'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
@@ -344,7 +345,81 @@
 	<ul data-fn="test">
 		<li data-scope="{{collection}}" data-fn="each" data-template="item">Default text.</li>
 	</ul>
-</div>
+</div
+
+--><form data-fn="test" class="test-block block">
+	<h2><code>empty</code> <small>1</small></h2>
+	<input type="text" name="{{property1}}" />
+	<textarea name="{{property1}}"></textarea>
+	<input type="radio" name="{{property1}}" value="Sparky" />
+	<input type="radio" name="{{property1}}" />
+	<input type="checkbox" name="{{property1}}" value="Sparky" />
+	<input type="checkbox" name="{{property1}}" />
+	<select name="{{property1}}">
+		<option value="Sparky">Sparky</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+	</select>
+
+	<h2><code>default</code> <small>4, 5, 6, 7, 8</small></h2>
+	<input type="text" name="{{property4}}" value="bartholemew" />
+	<textarea name="blabla-{{property5}}">cooee</textarea>
+	<input type="radio" name="{{property6}}" value="plankton" checked="checked" />
+	<input type="checkbox" name="{{property7}}" value="heironymous" checked="checked" />
+	<select name="{{property8}}">
+		<option value="0" selected="selected">0</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+	</select>
+
+	<h2><code>data-fn="value-string"</code> <small>10</small></h2>
+	<input type="text" name="{{property10}}" data-fn="value-string" />
+	<input type="radio" name="{{property10}}" data-fn="value-string" value="Sparky" />
+	<input type="checkbox" name="{{property10}}" data-fn="value-string" value="Sparky" />
+	<select name="{{property10}}" data-fn="value-string">
+		<option value="Sparky">Sparky</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+	</select>
+
+	<h2><code>data-fn="value-int"</code> <small>11</small></h2>
+	<input type="text" name="{{property11}}" data-fn="value-int" />
+	<input type="radio" name="{{property11}}" data-fn="value-int" value="0" />
+	<input type="checkbox" name="{{property11}}" data-fn="value-int" value="1" />
+	<select name="{{property11}}" data-fn="value-int">
+		<option value="0">0</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+	</select>
+
+	<h2><code>data-fn="value-float"</code> <small>12</small></h2>
+	<input type="text" name="{{property12}}" data-fn="value-float" step="any" />
+	<input type="radio" name="{{property12}}" data-fn="value-float" value="0" />
+	<input type="checkbox" name="{{property12}}" data-fn="value-float" value="1.25" />
+	<select name="{{property12}}" data-fn="value-float">
+		<option value="0">0</option>
+		<option value="1.25">1.25</option>
+		<option value="2.5">2.5</option>
+		<option value="3.6">3.6</option>
+	</select>
+
+	<h2><code>data-fn="value-bool"</code> <small>13</small></h2>
+	<input type="text" name="{{property13}}" data-fn="value-bool" />
+	<input type="radio" name="{{property13}}" data-fn="value-bool" value="true" />
+	<input type="radio" name="{{property13}}" data-fn="value-bool" value="false" />
+	<input type="checkbox" name="{{property13}}" data-fn="value-bool" value="true" />
+	<input type="checkbox" name="{{property13}}" data-fn="value-bool" value="false" />
+	<select class="select-2" name="{{property13}}" data-fn="value-bool">
+		<option value="true">true</option>
+		<option value="false">false</option>
+		<option value="other">other (should fail)</option>
+	</select>
+</form>
+
 
 <template id="number"><code>scope.number</code> {{number|floatformat:2}}</template>
 <template id="text"><code>scope.object.text</code> {{text}}</template>

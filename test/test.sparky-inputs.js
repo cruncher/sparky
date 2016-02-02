@@ -108,7 +108,7 @@ module('Test 2 way binding...', function(fixture) {
 			text.value = 4;
 			text.dispatchEvent(changeEvent);
 			ok(model.property === '4', 'model.property should be 4, actually: ' + model.property);
-			
+
 			window.requestAnimationFrame(function() {
 				ok(radio.checked === false, '2. Input radio should not be checked, actually: ' + radio.checked);
 				ok(checkbox.checked === false, '2. Input checkbox should not be checked, actually: ' + checkbox.checked);
@@ -173,8 +173,8 @@ module('Test 2 way input binding for value-string...', function(fixture) {
 */});
 
 
-module('Test 2 way binding for value-number...', function(fixture) {
-	console.log('Test 2 way binding for value-number...');
+module('Test 2 way binding for value-int...', function(fixture) {
+	console.log('Test 2 way binding for value-int...');
 
 	asyncTest("text input", function() {
 		var text     = fixture.querySelector('[type="text"]');
@@ -194,7 +194,7 @@ module('Test 2 way binding for value-number...', function(fixture) {
 			text.value = 4;
 			text.dispatchEvent(changeEvent);
 			ok(model.property === 4, 'model.property should be number 4, actually: ' + (typeof model.property) + ' ' + model.property);
-			
+
 			window.requestAnimationFrame(function() {
 				ok(radio.checked === false, '6. Input radio should not be checked, actually: ' + radio.checked);
 				ok(checkbox.checked === false, '6. Input checkbox should not be checked, actually: ' + checkbox.checked);
@@ -214,15 +214,15 @@ module('Test 2 way binding for value-number...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-fn="value-number" />
-<input type="radio" name="{{property}}" data-fn="value-number" value="3" />
-<input type="checkbox" name="{{property}}" data-fn="value-number" value="3" />
+<input type="text" name="{{property}}" data-fn="value-int" />
+<input type="radio" name="{{property}}" data-fn="value-int" value="3" />
+<input type="checkbox" name="{{property}}" data-fn="value-int" value="3" />
 
 */});
 
 
-module('Test 2 way binding for value-boolean true...', function(fixture) {
-	console.log('Test 2 way binding for value-boolean true...');
+module('Test 2 way binding for value-bool true...', function(fixture) {
+	console.log('Test 2 way binding for value-bool true...');
 
 	asyncTest("text input", function() {
 		var text     = fixture.querySelector('[type="text"]');
@@ -262,15 +262,15 @@ module('Test 2 way binding for value-boolean true...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-fn="value-boolean" />
-<input type="radio" name="{{property}}" data-fn="value-boolean" value="true" />
-<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="true" />
+<input type="text" name="{{property}}" data-fn="value-bool" />
+<input type="radio" name="{{property}}" data-fn="value-bool" value="true" />
+<input type="checkbox" name="{{property}}" data-fn="value-bool" value="true" />
 
 */});
 
 
-module('Test 2 way binding for value-boolean false...', function(fixture) {
-	console.log('Test 2 way binding for value-boolean false...');
+module('Test 2 way binding for value-bool false...', function(fixture) {
+	console.log('Test 2 way binding for value-bool false...');
 
 	asyncTest("text input", function() {
 		var text     = fixture.querySelector('[type="text"]');
@@ -313,9 +313,9 @@ module('Test 2 way binding for value-boolean false...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-fn="value-boolean" />
-<input type="radio" name="{{property}}" data-fn="value-boolean" value="false" />
-<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="false" />
+<input type="text" name="{{property}}" data-fn="value-bool" />
+<input type="radio" name="{{property}}" data-fn="value-bool" value="false" />
+<input type="checkbox" name="{{property}}" data-fn="value-bool" value="false" />
 
 */});
 
@@ -413,7 +413,7 @@ module('Test 2 way binding for select...', function(fixture) {
 	<option value="3">3</option>
 </select>
 
-<select class="select-2" name="{{property}}" data-fn="value-number">
+<select class="select-2" name="{{property}}" data-fn="value-int">
 	<option value="0">0</option>
 	<option value="1">1</option>
 	<option value="2">2</option>

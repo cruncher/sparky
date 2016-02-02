@@ -3,6 +3,7 @@
 
 	var assign = Object.assign;
 	var Sparky = window.Sparky;
+	var isDefined = Sparky.isDefined;
 	var parseName = Sparky.parseName;
 	var returnArg = Sparky.returnArg;
 	var stringToInt = Sparky.stringToInt;
@@ -17,6 +18,8 @@
 	var boolToString = Sparky.boolToString;
 	var boolToStringOn = Sparky.boolToStringOn;
 	var boolToStringOnInverted = Sparky.boolToStringOnInverted;
+
+	function noop() {}
 
 	function stringToBoolInverted(value) {
 		return !stringToBool(value);
@@ -40,37 +43,59 @@
 
 	// Controllers
 
-	function valueAnyCtrl(node, model) {
+	function setup(sparky, node, to, from) {
+		var scope, path, fn;
+		var unbind = Sparky.parseName(node, function get(name) {
+			return Sparky.get(scope, name);
+		}, function set(name, value) {
+			return scope && Sparky.set(scope, name, value);
+		}, function bind(p, f) {
+			path = p;
+			fn = f;
+		}, noop, to, from);
+
+		sparky.on('scope', function update(sparky, newscope) {
+			// Ignore events not from this sparky
+			if (this !== sparky) { return; }
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+			scope = newscope;
+			if (scope) { Sparky.observePath(scope, path, fn, true); }
+		});
+
+		sparky.on('destroy', function() {
+			unbind();
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+		});
+	}
+
+	function valueAny(node, model) {
 		// Coerce any defined value to string so that any values pass the type checker
-		var unbind = Sparky.parseName(node, model, definedToString, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
+		setup(this, node, definedToString, returnArg);
 	}
 
-	function valueStringCtrl(node, model) {
+	function valueString(node, model) {
 		// Don't coerce so that only strings pass the type checker
-		var unbind = Sparky.parseName(node, model, returnArg, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
+		setup(this, node, returnArg, returnArg);
 	}
 
-	function valueNumberCtrl(node, model) {
-		var unbind = Sparky.parseName(node, model, floatToString, stringToFloat);
-		if (unbind) { this.on('destroy', unbind); }
+	function valueNumber(node, model) {
+		setup(this, node, floatToString, stringToFloat);
 	}
 
-	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.parseName(node, model, floatToString, stringToInt);
-		if (unbind) { this.on('destroy', unbind); }
+	function valueInteger(node, model) {
+		setup(this, node, floatToString, stringToInt);
 	}
 
-	function valueBooleanCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.parseName(node, model, boolToStringOn, stringOnToBool) :
-		    	Sparky.parseName(node, model, boolToString, stringToBool) ;
-		if (unbind) { this.on('destroy', unbind); }
+	function valueBoolean(node, model) {
+		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
+			setup(this, node, boolToStringOn, stringOnToBool);
+		}
+		else {
+			setup(this, node, boolToString, stringToBool);
+		}
 	}
 
-	function valueBooleanInvertCtrl(node, model) {
+	function valueBooleanInvert(node, model) {
 		var type = node.type;
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.parseName(node, model, boolToStringOnInverted, stringOnToBoolInverted) :
@@ -78,11 +103,11 @@
 		if (unbind) { this.on('destroy', unbind); }
 	}
 
-	function valueNumberInvertCtrl(node, model) {
+	function valueNumberInvert(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
 
-		var unbind = Sparky.parseName(node, model, function to(value) {
+		bindName(this, node, function to(value) {
 			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
 		}, function from(value) {
 			var n = parseFloat(value);
@@ -94,12 +119,12 @@
 
 
 	assign(Sparky.fn, {
-		'value-any':            valueAnyCtrl,
-		'value-string':         valueStringCtrl,
-		'value-float':          valueNumberCtrl,
-		'value-int':            valueIntegerCtrl,
-		'value-bool':           valueBooleanCtrl,
-		'value-number-invert':  valueNumberInvertCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl
+		'value-any':            valueAny,
+		'value-string':         valueString,
+		'value-int':            valueInteger,
+		'value-float':          valueNumber,
+		'value-bool':           valueBoolean,
+		'value-number-invert':  valueNumberInvert,
+		'value-boolean-invert': valueBooleanInvert
 	});
 })(this);

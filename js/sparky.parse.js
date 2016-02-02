@@ -97,7 +97,7 @@
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -512,24 +512,48 @@
 		}
 	}
 
-	function makeUpdateInput(node, get, path, fn) {
+	function makeUpdateInput(node, get, set, path, fn) {
 		var type = node.type;
+		var init = true;
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
 				var value = fn(get(path));
-				var checked = node.value === value;
+				var checked;
+
+				if (init) {
+					init = false;
+					if (!isDefined(value) && node.checked) {
+						// Avoid setting the value from the scope on initial run
+						// where there is no scope value. The change event will
+						// be called and the scope updated from the default value.
+						dispatchInputChangeEvent(node);
+						return;
+					}
+				}
+
+				checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
 				// certainly don't simulate a change event.
 				if (node.checked === checked) { return; }
 
 				node.checked = checked;
-
 				dispatchInputChangeEvent(node);
 			} :
 			function updateValue() {
 				var value = fn(get(path));
+
+				if (init) {
+					init = false;
+					if (!isDefined(value)) {
+						// Avoid setting the value from the scope on initial run
+						// where there is no scope value. The change event will be
+						// called and the scope updated from the default value.
+						dispatchInputChangeEvent(node);
+						return;
+					}
+				}
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -565,17 +589,14 @@
 
 	function bindValue(node, get, set, bind, unbind, path, to, from) {
 		var nodeValue = node.getAttribute('value');
-		var update = makeUpdateInput(node, get, path, to);
+		var update = makeUpdateInput(node, get, set, path, to);
 		var change = makeChangeListener(node, set, path, from);
 
 		node.addEventListener('change', change);
 		node.addEventListener('input', change);
 
 		// Wait for animation frame to let Sparky fill in tags in value, min
-		// and max before controlling. TODO: I'm not sure about this. I'd like
-		// to update the model immediately if possible... ooo, maybe that
-		// happens now in 0.9.4
-
+		// and max before controlling.
 		var request = window.requestAnimationFrame(function() {
 			request = false;
 
@@ -583,9 +604,9 @@
 			if (!isDefined(get(path))) {
 				change();
 			}
-
-			bind(path, update);
 		});
+
+		bind(path, update);
 
 		return function unbind() {
 			node.removeEventListener('change', change);
@@ -594,9 +615,21 @@
 			if (request) {
 				window.cancelAnimationFrame(request);
 			}
-			else {
-				unbind(path, update);
-			}
+
+			unbind(path, update);
+		};
+	}
+
+
+	// Export
+
+	function parse(nodes, get, set, bind, unbind, create) {
+		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return binders[node.nodeType](node, bind, unbind, get, set, create);
+		}));
+
+		return function unparse() {
+			unobservers.forEach(call);
 		};
 	}
 
@@ -624,19 +657,6 @@
 		node.name = name.replace(Sparky.rtags, path);
 
 		return bindValue(node, get, set, bind, unbind, path, to, from);
-	}
-
-
-	// Export
-
-	function parse(nodes, get, set, bind, unbind, create) {
-		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return binders[node.nodeType](node, bind, unbind, get, set, create);
-		}));
-
-		return function unparse() {
-			unobservers.forEach(call);
-		};
 	}
 
 	assign(Sparky, {
