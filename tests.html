@@ -32,7 +32,18 @@
 
 	<style>
 		html {
-			background-image: linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, #E0DBD9 20rem, #E0DBD9 100%);
+			background-image:
+				linear-gradient(to bottom, transparent 20rem, #E0DBD9 20rem, #E0DBD9 100%),
+				radial-gradient(#354767 22%, rgba(255,255,255,0) 70%),
+				linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, transparent 20rem);
+			background-size:
+				100% 100%,
+				100% 40rem,
+				100% 100%;
+			background-position:
+				0 0,
+				0 6rem,
+				0 0;
 			background-repeat: no-repeat;
 			background-color: #E0DBD9;
 		}
@@ -41,7 +52,8 @@
 			margin: 0;
 			padding: 0;
 			padding-bottom: 7.5rem;
-			border-bottom: 3.75rem solid #313C4E;
+			border-bottom: 0.75rem solid #313C4E;
+			color: #333A3E;
 		}
 
 		label {
@@ -50,7 +62,7 @@
 
 		.checked {
 			color: green;
-			background-color: pink;
+			background-color: red;
 		}
 
 		.hello {
@@ -93,10 +105,8 @@
 			right: 0;
 			bottom: 0;
 			line-height: 30px;
-			color: white;
-			font-size: 18px;
 			padding: 11px;
-			padding-top: 2.5rem;
+			padding-top: 3rem;
 			background-image: linear-gradient(to bottom, #6D6360 0%, #ABA7A6 21%, #D0CECD 46%, #E0DBD9 100%);
 		}
 
@@ -220,15 +230,27 @@
 			border-radius: 50%;
 		}
 
+		.text-2    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 1.25rem; font-weight: 400; }
 		.text-9    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 0.75rem; font-weight: 300; }
 
-		.red-bg    { background-color: red; }
-		.orange-bg { background-color: orange; }
-		.green-bg  { background-color: green; }
+		.test-button {
+			font-family: Fira, Helvetica, Arial, sans-serif;
+			font-size: 12px;
+			text-transform: uppercase;
+			color: white;
+			line-height: 40px;
+			padding-left: 12px;
+			padding-right: 12px;
+			border-radius: 0.375rem;
+		}
+
+		.red-bg    { background-color: #FF001A; }
+		.orange-bg { background-color: #DD5827; }
+		.blue-bg   { background-color: #1A83B7; }
 
 		svg { overflow: visible; }
 
-		.pink-stroke-color   { stroke-width: 3px; stroke: #EF1D4D; fill: #5F2734; }
+		.red-stroke-color    { stroke-width: 3px; stroke: #FF001A; fill: #691C24; }
 		.orange-stroke-color { stroke-width: 3px; stroke: #DD5827; fill: #E6E7E8; }
 		.blue-stroke-color   { stroke-width: 3px; stroke: #1A83B7; fill: #E6E7E8; }
 	</style>
@@ -241,8 +263,10 @@
 
 	><div class="inline-block block">
 		&nbsp;
-		<div class="float-block block">
-			Sparky is a model-agnostic live data binding view layer for HTML/JS. Sparky enhances the DOM with declarative data bindings, passes data through Django-style template tags and filters, and renders multiple changes in batches on browser frames for performance.
+		<div class="float-block block text-2">
+			Sparky is a live data binding template and view layer for HTML/SVG/JS.
+			It enhances the document with tags and filters and scopes and composeable
+			templates, and renders DOM changes at the browser frame rate.
 		</div>
 	</div>
 </div>
@@ -256,7 +280,7 @@
 </div
 
 ><div class="test-block block">
-	<div class="block {{ class }}" data-fn="test">
+	<div class="test-button button {{ class }}" data-fn="test">
 		Class test
 	</div>
 </div
@@ -266,7 +290,7 @@
 		<code>svgScope.color</code>
 	</label>
 	<select name="{{color}}">
-		<option value="pink">pink</option>
+		<option value="red">red</option>
 		<option value="blue">blue</option>
 		<option value="orange">orange</option>
 	</select>
@@ -622,7 +646,7 @@ setTimeout(function() {
 	console.log('1 –––––– scope.object = object1');
 	object1.text = '0.5 seconds';
 	scope.object = object1;
-	scope.class = "green-bg";
+	scope.class = "blue-bg";
 }, 500);
 
 setTimeout(function() {
@@ -633,7 +657,7 @@ setTimeout(function() {
 	scope.class = "orange-bg";
 
 	Object.assign(svgScope, {
-		color: 'pink',
+		color: 'red',
 		x1: 15, y1: 13,
 		x2: 88, y2: 18,
 		x3: 36, y3: 74
