@@ -263,7 +263,16 @@
 		return template && template.cloneNode(true);
 	}
 
+	function registerTemplate(id, node) {
+		templates[id] = node;
+	}
+
 	assign(dom, {
+		template: function(id, node) {
+			if (node) { registerTemplate(id, node); }
+			else { return cloneTemplate(id); }
+		},
+
 		fragmentFromTemplate: cloneTemplate,
 		fragmentFromContent: fragmentFromContent
 	});

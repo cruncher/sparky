@@ -206,15 +206,15 @@ module('Event propogation insert event', function(fixture) {
 			this
 
 			// Test order of ready and insert events
-			.on('ready', function() {
-				ok(r++ === 2, 'This event called 1, actually ' + (r-1));
+			.on('scope', function() {
+				ok(r++ === 0, 'This event called 1, actually ' + (r-1));
 			})
-			.on('insert', function() {
+			.on('dom-add', function() {
 				ok(r++ === 3, 'This event called 3, actually ' + (r-1));
 			})
 
 			// Test order of delegated insert events
-			.on('insert', function() {
+			.on('dom-add', function() {
 				ok(n++ === 3, 'This event called 3, actually ' + (n-1));
 			});
 		};
@@ -225,21 +225,21 @@ module('Event propogation insert event', function(fixture) {
 			this
 
 			// Test order of ready and insert events
-			.on('ready', function() {
-				ok(r++ === 0, 'This event called 0, actually ' + (r-1));
+			.on('scope', function() {
+				ok(r++ === 1, 'This event called 0, actually ' + (r-1));
 			})
-			.on('insert', function() {
-				ok(r++ === 1, 'This event called 3, actually ' + (r-1));
+			.on('dom-add', function() {
+				ok(r++ === 4, 'This event called 3, actually ' + (r-1));
 			})
 
 			// Test order of delegated insert events
-			.on('ready', function() {
+			.on('scope', function() {
 				ok(n++ === 0, 'This event called 0, actually ' + (n-1));
 				sparky3 = Sparky('content-to-insert-1');
 				ok(n++ === 1, 'This event called 1, actually ' + (n-1));
-				sparky3.appendTo(node);
+				Sparky.dom.append(node, sparky3);
 			})
-			.on('insert', function() {
+			.on('dom-add', function() {
 				ok(n++ === 2, 'This event called 2, actually ' + (n-1));
 			});
 		};
@@ -248,11 +248,13 @@ module('Event propogation insert event', function(fixture) {
 			sparky4 = this;
 
 			this
-			.on('ready', function() {
+			.on('scope', function() {
+				ok(r++ === 2, 'This event called 0, actually ' + (r-1));
 				sparky5 = Sparky('content-to-insert-2');
-				sparky5.appendTo(node);
+				Sparky.dom.append(node, sparky5);
 			})
-			.on('insert', function(sparky) {
+			.on('dom-add', function(sparky) {
+				ok(r++ === 5, 'This event called 3, actually ' + (r-1));
 				ok(sparky === sparky3, 'sparky should be sparky3.');
 				ok(n++ === 4, 'This event called 4, actually ' + (n-1));
 			});
@@ -260,7 +262,8 @@ module('Event propogation insert event', function(fixture) {
 
 		Sparky.fn['test-ctrl-4'] = function(node, model) {
 			this
-			.on('insert', function(sparky) {
+			.on('dom-add', function(sparky) {
+				ok(r++ === 6, 'This event called 3, actually ' + (r-1));
 				ok(sparky === sparky5, 'sparky should be sparky5.');
 				ok(n++ === 5, 'This event called 5, actually ' + (n-1));
 			});
@@ -268,6 +271,14 @@ module('Event propogation insert event', function(fixture) {
 
 		var node1 = fixture.querySelector('.node-1');
 		var node2 = fixture.querySelector('.node-2');
+
+		// Strangely, fixture is not in document, we need to add tempaltes
+		// manually
+		var template1 = fixture.querySelector('#content-to-insert-1');
+		var template2 = fixture.querySelector('#content-to-insert-2');
+		Sparky.template('content-to-insert-1', template1);
+		Sparky.template('content-to-insert-2', template2);
+
 		var sparky1 = Sparky(node1);
 
 		window.requestAnimationFrame(function() {
@@ -287,51 +298,5 @@ module('Event propogation insert event', function(fixture) {
 <template id="content-to-insert-2">
 	<p class="node-3" data-fn="test-ctrl-4">{{property}}</p>
 </template>
-
-*/});
-
-
-
-
-
-module('Event propogation insert event', function(fixture) {
-	asyncTest("Tests insert event", function(assert) {
-		expect(9);
-
-		Sparky.data.collection = Collection([{ property: 1 }, { property: 2 }]);
-
-		Sparky.fn['test-ctrl-1'] = function(node, model) {};
-		Sparky.fn['test-ctrl-2'] = function(node, model) {
-			var n = 0;
-
-			this
-
-			// Test order of ready and insert events
-			.on('ready', function(sparky) {
-				ok(sparky === this, 'This should be sparky. ' + sparky);
-				ok(n++ === 0, 'This event called 0, actually ' + (n-1));
-			})
-			.on('insert', function(sparky) {
-				//ok(sparky !== this, 'This should not be sparky. ' + sparky);
-				ok(n++ === 1, 'This event called 3, actually ' + (n-1));
-			});
-		};
-
-		var node1 = fixture.querySelector('.node-1');
-		var sparky1 = Sparky(node1);
-
-		Sparky.data.collection.add({
-			property: 3
-		});
-
-		window.requestAnimationFrame(function() {
-			QUnit.start();
-		});
-	});
-}, function() {/*
-
-<div class="node-1" data-fn="test-ctrl-1">
-	<div class="node-2" data-scope="collection" data-fn="test-ctrl-2">{{property}}</div>
-</div>
 
 */});

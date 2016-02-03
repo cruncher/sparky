@@ -41,7 +41,7 @@ module.exports = function(config) {
       'test/test.sparky-fn.js',
       'test/test.sparky-fn-each.js',
       'test/test.sparky-inputs.js',
-      //'test/test.sparky-events.js'
+      'test/test.sparky-events.js'
     ],
 
     // list of files to exclude
@@ -87,8 +87,8 @@ module.exports = function(config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    //browsers: ['Chrome', 'Firefox', 'Safari'],
-    browsers: ['Firefox'],
+    browsers: ['Chrome', 'Firefox', 'Safari'],
+    //browsers: ['Firefox'],
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits

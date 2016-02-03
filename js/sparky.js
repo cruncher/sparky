@@ -218,7 +218,7 @@
 		bindings.length = 0;
 	}
 
-	function setup(sparky, scope, bindings, children, init) {
+	function setup(scope, bindings, children, init) {
 		bind(scope, bindings, init);
 		var n = children.length;
 		while (n--) {
@@ -226,7 +226,7 @@
 		}
 	}
 
-	function teardown(sparky, scope, bindings, children) {
+	function teardown(scope, bindings, children) {
 		unbind(scope, bindings);
 		var n = children.length;
 		while (n--) {
@@ -234,19 +234,41 @@
 		}
 	}
 
-	function addNodes(sparky) {
+	function addNodes(sparky, init) {
 		if (!sparky.placeholders) { return; }
-		//window.requestAnimationFrame(function() {
-			sparky.forEach(replaceWithNode);
-			sparky.placeholders = false;
-			sparky.trigger('dom-add');
-		//});
+		sparky.forEach(replaceWithNode);
+		sparky.placeholders = false;
+		sparky.trigger('dom-add');
 	}
 
 	function removeNodes(sparky) {
 		if (sparky.placeholders) { return; }
 		sparky.placeholders = sparky.map(replaceWithComment);
 		sparky.trigger('dom-remove');
+	}
+
+	function updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init) {
+		// Where there is no scope, there should be no nodes in the DOM
+		if (scope) {
+			if (init) {
+				// If nodes are already in the DOM, just trigger the event.
+				if (document.body.contains(sparky[0])) {
+					sparky.trigger('dom-add');
+				}
+
+				// Or insert the nodes immediately - Sparky is designed
+				// to be called inside requestAnimationFrame, so we should not
+				// add one single extra frame's delay to proceeedings.
+				else {
+					addNodes(sparky, init);
+				}
+			}
+			else { addThrottle(sparky); }
+		}
+		else {
+			if (init) { removeNodes(sparky); }
+			else { removeThrottle(sparky); }
+		}
 	}
 
 	function Sparky(node, scope, fn, parent) {
@@ -294,28 +316,18 @@
 				if (newscope === scope) { return; }
 
 				// If old scope exists, tear it down
-				if (scope) { teardown(sparky, scope, bindings, children); }
+				if (scope) { teardown(scope, bindings, children); }
 			}
 
 			scope = newscope;
 
-			// Where there is no scope, there should be no nodes in the DOM
 			if (scope) {
 				// Assign and set up scope
-				setup(sparky, scope, bindings, children, init);
-
-				// On init we insert the nodes immediately - Sparky is designed
-				// to be called inside requestAnimationFrame, so we should not
-				// add one single extra frame's delay to proceeedings.
-				if (init) { addNodes(sparky); }
-				else { addThrottle(sparky); }
-			}
-			else {
-				if (init) { removeNodes(sparky); }
-				else { removeThrottle(sparky); }
+				setup(scope, bindings, children, init);
 			}
 
 			sparky.trigger('scope', scope);
+			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
 			init = false;
 		}
 
@@ -353,20 +365,20 @@
 
 		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
 		// accept scope as second parameter.
-		var ctrlscope;
-
-		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
-			ctrlscope = Sparky.get(basescope, path);
-		}, function(object) {
-			ctrlscope = object;
-		});
+//		var ctrlscope;
+//
+//		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+//			ctrlscope = Sparky.get(basescope, path);
+//		}, function(object) {
+//			ctrlscope = object;
+//		});
 
 		// If a scope object is returned by the ctrl, we use that.
-		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+		var ctrlscope = fn && fn.call(sparky, node);
 
 		// If ctrlscope is unchanged from scope, ctrlscope should not override
 		// scope changes. There's probably a better way of expressing this.
-		if (ctrlscope === scope) { ctrlscope = undefined; }
+//		if (ctrlscope === scope) { ctrlscope = undefined; }
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
@@ -455,8 +467,8 @@
 		data: {},
 		fn:   {},
 
-		template: function() {
-			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
+		template: function(id, node) {
+			return Sparky.dom.template.apply(this, arguments);
 		}
 	});
 

@@ -6,34 +6,39 @@ module('Multiple controllers', function(fixture) {
 
 		var sparky;
 		var scope = { property: 'value-1' };
+		var p = fixture.querySelector('p');
 
-		Sparky.fn['ctrl-1'] = function(node, model) {
+		expect(9);
+
+		Sparky.fn['ctrl-1'] = function(node) {
 			sparky = this;
-			ok(model === Sparky.data.model, 'ctrl-1 should be passed model object.');
+			ok(node === p, 'Function should be called with node');
+			this.on('scope', function(sparky, object) {
+				ok(scope === object, 'Should recieve scope from ctrl-2');
+			});
 		};
 
-		Sparky.fn['ctrl-2'] = function(node, model) {
-			ok(this === sparky);
-			ok(model === Sparky.data.model, 'ctrl-2 should be passed model object.');
+		Sparky.fn['ctrl-2'] = function(node) {
+			ok(this === sparky, 'Functions should share sparky *this* context.');
+			ok(Sparky.data.isPrototypeOf(this.data), 'data should inherit from Sparky.data');
+			ok(Sparky.fn.isPrototypeOf(this.fn), 'fn should inherit from Sparky.fn');
+			this.on('scope', function(sparky, object) {
+				ok(scope === object, 'Should recieve scope from ctrl-2');
+			});
 			return scope;
 		};
 
-		Sparky.fn['ctrl-3'] = function(node, model) {
-			ok(this === sparky);
-			ok(model === scope, 'ctrl-3 should be passed the scope object.');
-			return;
+		Sparky.fn['ctrl-3'] = function(node) {
+			ok(this === sparky, 'Functions should share sparky *this* context.');
+			this.on('scope', function(sparky, object) {
+				ok(scope === object, 'Should recieve scope from ctrl-2');
+			});
 		};
-
-		var p = fixture.querySelector('p');
 
 		Sparky(fixture);
 
 		window.requestAnimationFrame(function() {
 			ok(p.innerHTML === 'value-1');
-		});
-
-		// Restart QUnit
-		window.requestAnimationFrame(function() {
 			QUnit.start();
 		});
 	});
