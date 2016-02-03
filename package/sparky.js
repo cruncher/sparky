@@ -921,7 +921,7 @@ if (!Math.log10) {
 		bindings.length = 0;
 	}
 
-	function setup(sparky, scope, bindings, children, init) {
+	function setup(scope, bindings, children, init) {
 		bind(scope, bindings, init);
 		var n = children.length;
 		while (n--) {
@@ -929,7 +929,7 @@ if (!Math.log10) {
 		}
 	}
 
-	function teardown(sparky, scope, bindings, children) {
+	function teardown(scope, bindings, children) {
 		unbind(scope, bindings);
 		var n = children.length;
 		while (n--) {
@@ -937,19 +937,41 @@ if (!Math.log10) {
 		}
 	}
 
-	function addNodes(sparky) {
+	function addNodes(sparky, init) {
 		if (!sparky.placeholders) { return; }
-		//window.requestAnimationFrame(function() {
-			sparky.forEach(replaceWithNode);
-			sparky.placeholders = false;
-			sparky.trigger('dom-add');
-		//});
+		sparky.forEach(replaceWithNode);
+		sparky.placeholders = false;
+		sparky.trigger('dom-add');
 	}
 
 	function removeNodes(sparky) {
 		if (sparky.placeholders) { return; }
 		sparky.placeholders = sparky.map(replaceWithComment);
 		sparky.trigger('dom-remove');
+	}
+
+	function updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init) {
+		// Where there is no scope, there should be no nodes in the DOM
+		if (scope) {
+			if (init) {
+				// If nodes are already in the DOM, just trigger the event.
+				if (document.body.contains(sparky[0])) {
+					sparky.trigger('dom-add');
+				}
+
+				// Or insert the nodes immediately - Sparky is designed
+				// to be called inside requestAnimationFrame, so we should not
+				// add one single extra frame's delay to proceeedings.
+				else {
+					addNodes(sparky, init);
+				}
+			}
+			else { addThrottle(sparky); }
+		}
+		else {
+			if (init) { removeNodes(sparky); }
+			else { removeThrottle(sparky); }
+		}
 	}
 
 	function Sparky(node, scope, fn, parent) {
@@ -997,28 +1019,18 @@ if (!Math.log10) {
 				if (newscope === scope) { return; }
 
 				// If old scope exists, tear it down
-				if (scope) { teardown(sparky, scope, bindings, children); }
+				if (scope) { teardown(scope, bindings, children); }
 			}
 
 			scope = newscope;
 
-			// Where there is no scope, there should be no nodes in the DOM
 			if (scope) {
 				// Assign and set up scope
-				setup(sparky, scope, bindings, children, init);
-
-				// On init we insert the nodes immediately - Sparky is designed
-				// to be called inside requestAnimationFrame, so we should not
-				// add one single extra frame's delay to proceeedings.
-				if (init) { addNodes(sparky); }
-				else { addThrottle(sparky); }
-			}
-			else {
-				if (init) { removeNodes(sparky); }
-				else { removeThrottle(sparky); }
+				setup(scope, bindings, children, init);
 			}
 
 			sparky.trigger('scope', scope);
+			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
 			init = false;
 		}
 
@@ -1056,20 +1068,20 @@ if (!Math.log10) {
 
 		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
 		// accept scope as second parameter.
-		var ctrlscope;
-
-		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
-			ctrlscope = Sparky.get(basescope, path);
-		}, function(object) {
-			ctrlscope = object;
-		});
+//		var ctrlscope;
+//
+//		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+//			ctrlscope = Sparky.get(basescope, path);
+//		}, function(object) {
+//			ctrlscope = object;
+//		});
 
 		// If a scope object is returned by the ctrl, we use that.
-		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+		var ctrlscope = fn && fn.call(sparky, node);
 
 		// If ctrlscope is unchanged from scope, ctrlscope should not override
 		// scope changes. There's probably a better way of expressing this.
-		if (ctrlscope === scope) { ctrlscope = undefined; }
+//		if (ctrlscope === scope) { ctrlscope = undefined; }
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
@@ -1158,8 +1170,8 @@ if (!Math.log10) {
 		data: {},
 		fn:   {},
 
-		template: function() {
-			return Sparky.dom.fragmentFromTemplate.apply(this, arguments);
+		template: function(id, node) {
+			return Sparky.dom.template.apply(this, arguments);
 		}
 	});
 
@@ -1431,7 +1443,16 @@ if (!Math.log10) {
 		return template && template.cloneNode(true);
 	}
 
+	function registerTemplate(id, node) {
+		templates[id] = node;
+	}
+
 	assign(dom, {
+		template: function(id, node) {
+			if (node) { registerTemplate(id, node); }
+			else { return cloneTemplate(id); }
+		},
+
 		fragmentFromTemplate: cloneTemplate,
 		fragmentFromContent: fragmentFromContent
 	});
@@ -1677,9 +1698,9 @@ if (!Math.log10) {
 	}
 
 	function getPath(obj, path) {
-		return path === '.' ?
+		return obj && (path === '.' ?
 			obj :
-			objFrom(obj, splitPath(path)) ;
+			objFrom(obj, splitPath(path)));
 	}
 
 	function setPath(root, path, obj) {
@@ -2014,7 +2035,7 @@ if (!Math.log10) {
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -2023,7 +2044,7 @@ if (!Math.log10) {
 			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
 			    // Checkboxes default to value "on" when the value attribute
 			    // is not given. Make them behave as booleans.
-			    type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
+			    (type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
 			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
 			    	// Only let strings set the value of other inputs
 			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
@@ -2429,24 +2450,48 @@ if (!Math.log10) {
 		}
 	}
 
-	function makeUpdateInput(node, get, path, fn) {
+	function makeUpdateInput(node, get, set, path, fn) {
 		var type = node.type;
+		var init = true;
 
 		return type === 'radio' || type === 'checkbox' ?
 			function updateChecked() {
 				var value = fn(get(path));
-				var checked = node.value === value;
+				var checked;
+
+				if (init) {
+					init = false;
+					if (!isDefined(value) && node.checked) {
+						// Avoid setting the value from the scope on initial run
+						// where there is no scope value. The change event will
+						// be called and the scope updated from the default value.
+						dispatchInputChangeEvent(node);
+						return;
+					}
+				}
+
+				checked = node.value === value;
 
 				// Don't set checked state if it already has that state, and
 				// certainly don't simulate a change event.
 				if (node.checked === checked) { return; }
 
 				node.checked = checked;
-
 				dispatchInputChangeEvent(node);
 			} :
 			function updateValue() {
 				var value = fn(get(path));
+
+				if (init) {
+					init = false;
+					if (!isDefined(value)) {
+						// Avoid setting the value from the scope on initial run
+						// where there is no scope value. The change event will be
+						// called and the scope updated from the default value.
+						dispatchInputChangeEvent(node);
+						return;
+					}
+				}
 
 				if (typeof value === 'string') {
 					// Check against the current value - resetting the same
@@ -2482,17 +2527,14 @@ if (!Math.log10) {
 
 	function bindValue(node, get, set, bind, unbind, path, to, from) {
 		var nodeValue = node.getAttribute('value');
-		var update = makeUpdateInput(node, get, path, to);
+		var update = makeUpdateInput(node, get, set, path, to);
 		var change = makeChangeListener(node, set, path, from);
 
 		node.addEventListener('change', change);
 		node.addEventListener('input', change);
 
 		// Wait for animation frame to let Sparky fill in tags in value, min
-		// and max before controlling. TODO: I'm not sure about this. I'd like
-		// to update the model immediately if possible... ooo, maybe that
-		// happens now in 0.9.4
-
+		// and max before controlling.
 		var request = window.requestAnimationFrame(function() {
 			request = false;
 
@@ -2500,9 +2542,9 @@ if (!Math.log10) {
 			if (!isDefined(get(path))) {
 				change();
 			}
-
-			bind(path, update);
 		});
+
+		bind(path, update);
 
 		return function unbind() {
 			node.removeEventListener('change', change);
@@ -2511,9 +2553,21 @@ if (!Math.log10) {
 			if (request) {
 				window.cancelAnimationFrame(request);
 			}
-			else {
-				unbind(path, update);
-			}
+
+			unbind(path, update);
+		};
+	}
+
+
+	// Export
+
+	function parse(nodes, get, set, bind, unbind, create) {
+		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return binders[node.nodeType](node, bind, unbind, get, set, create);
+		}));
+
+		return function unparse() {
+			unobservers.forEach(call);
 		};
 	}
 
@@ -2541,19 +2595,6 @@ if (!Math.log10) {
 		node.name = name.replace(Sparky.rtags, path);
 
 		return bindValue(node, get, set, bind, unbind, path, to, from);
-	}
-
-
-	// Export
-
-	function parse(nodes, get, set, bind, unbind, create) {
-		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return binders[node.nodeType](node, bind, unbind, get, set, create);
-		}));
-
-		return function unparse() {
-			unobservers.forEach(call);
-		};
 	}
 
 	assign(Sparky, {
@@ -3133,6 +3174,7 @@ if (!Math.log10) {
 
 	var assign = Object.assign;
 	var Sparky = window.Sparky;
+	var isDefined = Sparky.isDefined;
 	var parseName = Sparky.parseName;
 	var returnArg = Sparky.returnArg;
 	var stringToInt = Sparky.stringToInt;
@@ -3147,6 +3189,8 @@ if (!Math.log10) {
 	var boolToString = Sparky.boolToString;
 	var boolToStringOn = Sparky.boolToStringOn;
 	var boolToStringOnInverted = Sparky.boolToStringOnInverted;
+
+	function noop() {}
 
 	function stringToBoolInverted(value) {
 		return !stringToBool(value);
@@ -3170,37 +3214,59 @@ if (!Math.log10) {
 
 	// Controllers
 
-	function valueAnyCtrl(node, model) {
+	function setup(sparky, node, to, from) {
+		var scope, path, fn;
+		var unbind = Sparky.parseName(node, function get(name) {
+			return Sparky.get(scope, name);
+		}, function set(name, value) {
+			return scope && Sparky.set(scope, name, value);
+		}, function bind(p, f) {
+			path = p;
+			fn = f;
+		}, noop, to, from);
+
+		sparky.on('scope', function update(sparky, newscope) {
+			// Ignore events not from this sparky
+			if (this !== sparky) { return; }
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+			scope = newscope;
+			if (scope) { Sparky.observePath(scope, path, fn, true); }
+		});
+
+		sparky.on('destroy', function() {
+			unbind();
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+		});
+	}
+
+	function valueAny(node, model) {
 		// Coerce any defined value to string so that any values pass the type checker
-		var unbind = Sparky.parseName(node, model, definedToString, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
+		setup(this, node, definedToString, returnArg);
 	}
 
-	function valueStringCtrl(node, model) {
+	function valueString(node, model) {
 		// Don't coerce so that only strings pass the type checker
-		var unbind = Sparky.parseName(node, model, returnArg, returnArg);
-		if (unbind) { this.on('destroy', unbind); }
+		setup(this, node, returnArg, returnArg);
 	}
 
-	function valueNumberCtrl(node, model) {
-		var unbind = Sparky.parseName(node, model, floatToString, stringToFloat);
-		if (unbind) { this.on('destroy', unbind); }
+	function valueNumber(node, model) {
+		setup(this, node, floatToString, stringToFloat);
 	}
 
-	function valueIntegerCtrl(node, model) {
-		var unbind = Sparky.parseName(node, model, floatToString, stringToInt);
-		if (unbind) { this.on('destroy', unbind); }
+	function valueInteger(node, model) {
+		setup(this, node, floatToString, stringToInt);
 	}
 
-	function valueBooleanCtrl(node, model) {
-		var type = node.type;
-		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-		    	Sparky.parseName(node, model, boolToStringOn, stringOnToBool) :
-		    	Sparky.parseName(node, model, boolToString, stringToBool) ;
-		if (unbind) { this.on('destroy', unbind); }
+	function valueBoolean(node, model) {
+		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
+			setup(this, node, boolToStringOn, stringOnToBool);
+		}
+		else {
+			setup(this, node, boolToString, stringToBool);
+		}
 	}
 
-	function valueBooleanInvertCtrl(node, model) {
+	function valueBooleanInvert(node, model) {
 		var type = node.type;
 		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
 		    	Sparky.parseName(node, model, boolToStringOnInverted, stringOnToBoolInverted) :
@@ -3208,11 +3274,11 @@ if (!Math.log10) {
 		if (unbind) { this.on('destroy', unbind); }
 	}
 
-	function valueNumberInvertCtrl(node, model) {
+	function valueNumberInvert(node, model) {
 		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
 		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
 
-		var unbind = Sparky.parseName(node, model, function to(value) {
+		bindName(this, node, function to(value) {
 			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
 		}, function from(value) {
 			var n = parseFloat(value);
@@ -3224,13 +3290,13 @@ if (!Math.log10) {
 
 
 	assign(Sparky.fn, {
-		'value-any':            valueAnyCtrl,
-		'value-string':         valueStringCtrl,
-		'value-float':          valueNumberCtrl,
-		'value-int':            valueIntegerCtrl,
-		'value-bool':           valueBooleanCtrl,
-		'value-number-invert':  valueNumberInvertCtrl,
-		'value-boolean-invert': valueBooleanInvertCtrl
+		'value-any':            valueAny,
+		'value-string':         valueString,
+		'value-int':            valueInteger,
+		'value-float':          valueNumber,
+		'value-bool':           valueBoolean,
+		'value-number-invert':  valueNumberInvert,
+		'value-boolean-invert': valueBooleanInvert
 	});
 })(this);
 
