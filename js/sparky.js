@@ -372,8 +372,21 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
+
+		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
+		// accept scope as second parameter. Actually, no no no - the potential
+		// scope must be passed to the fn, as the fn may return a different
+		// scope and has no access to this one otherwise.
+		var ctrlscope;
+
+		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+			ctrlscope = Sparky.get(basescope, path);
+		}, function(object) {
+			ctrlscope = object;
+		});
+
 		// If a scope object is returned by the ctrl, we use that.
-		var ctrlscope = fn && fn.call(sparky, node);
+		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
@@ -385,6 +398,10 @@
 			})
 			.scope(scope);
 		}
+
+		// If ctrlscope is unchanged from scope, ctrlscope should not override
+		// scope changes. There's probably a better way of expressing this.
+		if (ctrlscope === scope) { ctrlscope = undefined; }
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.

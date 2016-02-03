@@ -449,7 +449,7 @@
 
 ><div class="test-block block">
 	<ul data-fn="test">
-		<li data-scope="{{collection}}" data-fn="each">{{text}}</li>
+		<li data-scope="{{collection}}" data-fn="each item-scope">{{item.text}}</li>
 	</ul>
 </div
 
@@ -792,6 +792,10 @@ Sparky.fn.objects = function(node) {
 
 Sparky.fn.svg = function(node) {
 	return svgScope;
+};
+
+Sparky.fn['item-scope'] = function(node, item) {
+	return { item: item };
 };
 
 jQuery(function() {
