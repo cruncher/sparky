@@ -41,6 +41,8 @@
 
 	function noop() {}
 
+	function returnNoop() {}
+
 	function returnThis() { return this; }
 
 	function returnArg(arg) { return arg; }
@@ -95,19 +97,19 @@
 			update(scope);
 	}
 
-	function getCtrl(node, fn, ctrl) {
+	function resolveFn(node, fn, ctrl) {
 		// The ctrl list can be a space-separated string of ctrl paths,
-		return typeof fn === 'string' ? makeCtrl(fn, ctrl) :
+		return typeof fn === 'string' ? makeFn(fn, ctrl) :
 			// a function,
-			typeof fn === 'function' ? makeDistributeCtrl([fn]) :
+			typeof fn === 'function' ? makeDistributeFn([fn]) :
 			// an array of functions,
-			typeof fn === 'object' ? makeDistributeCtrl(fn) :
+			typeof fn === 'object' ? makeDistributeFn(fn) :
 			// or defined in the data-fn attribute
-			node.getAttribute && makeCtrl(node.getAttribute('data-fn'), ctrl) ;
+			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl) ;
 	}
 
-	function makeDistributeCtrl(list) {
-		return function distributeCtrl(node, model) {
+	function makeDistributeFn(list) {
+		return function distributeFn(node, model) {
 			// Distributor controller
 			var l = list.length;
 			var n = -1;
@@ -119,12 +121,19 @@
 			// Really naff. Find a better way.
 			this.ctrls = list;
 
+			var flag = false;
+
+			this.interrupt = function interrupt() {
+				flag = true;
+				return list.slice(n + 1);
+			};
+
 			while (++n < l) {
 				// Call the list of ctrls, in order.
 				result = list[n].call(this, node, scope);
 
-				// Returning false interrupts the ctrl calls.
-				if (result === false) { return result; }
+				// Returning false interrupts the fn calls.
+				if (flag) { return false; }
 
 				// Returning an object sets that object to
 				// be used as scope.
@@ -135,7 +144,7 @@
 		};
 	}
 
-	function makeDistributeCtrlFromPaths(paths, ctrls) {
+	function makeDistributeFnFromPaths(paths, ctrls) {
 		var list = [];
 		var l = paths.length;
 		var n = -1;
@@ -151,13 +160,13 @@
 			list.push(ctrl);
 		}
 
-		return makeDistributeCtrl(list);
+		return makeDistributeFn(list);
 	}
 
-	function makeCtrl(string, ctrls) {
+	function makeFn(string, ctrls) {
 		if (!isDefined(string)) { return; }
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeCtrlFromPaths(paths, ctrls);
+		return makeDistributeFnFromPaths(paths, ctrls);
 	}
 
 	function replaceWithComment(node, i, sparky) {
@@ -345,7 +354,7 @@
 			throw new Error("Sparky: Sparky(node) called, node not found: " + node);
 		}
 
-		fn = getCtrl(node, fn, ctrl);
+		fn = resolveFn(node, fn, ctrl);
 
 		// Define data and ctrl inheritance
 		Object.defineProperties(this, {
@@ -363,22 +372,8 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
-		// accept scope as second parameter.
-//		var ctrlscope;
-//
-//		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
-//			ctrlscope = Sparky.get(basescope, path);
-//		}, function(object) {
-//			ctrlscope = object;
-//		});
-
 		// If a scope object is returned by the ctrl, we use that.
 		var ctrlscope = fn && fn.call(sparky, node);
-
-		// If ctrlscope is unchanged from scope, ctrlscope should not override
-		// scope changes. There's probably a better way of expressing this.
-//		if (ctrlscope === scope) { ctrlscope = undefined; }
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
@@ -429,6 +424,14 @@
 			// the 'ready' event. See old version, slaveSparky() fn.)
 			this.on(sparky);
 
+			//this
+			//.on('destroy', function() {
+			//	sparky.destroy();
+			//})
+			//.on('scope', function(boss, scope) {
+			//	sparky.scope(scope);
+			//});
+
 			return sparky.on('destroy', function() {
 				boss.off(sparky);
 			});
@@ -440,6 +443,8 @@
 		},
 
 		scope: returnThis,
+
+		interrupt: function interrupt() { return []; },
 
 		// Returns sparky's element nodes wrapped as a jQuery object. If jQuery
 		// is not present, returns undefined.

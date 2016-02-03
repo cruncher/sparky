@@ -18,6 +18,7 @@
 		var tasks  = [];
 		var clone  = node.cloneNode(true);
 		var throttle = Sparky.Throttle(update);
+		var fns = this.interrupt();
 		var collection, placeholder, attrScope, attrCtrl;
 
 		if (Sparky.debug) {
@@ -66,11 +67,10 @@
 				}
 				else {
 					nodes[n]    = clone.cloneNode(true);
-					sparkies[n] = sparky.create(nodes[n], collection[n]);
+					sparkies[n] = sparky.create(nodes[n], collection[n], fns);
 				}
 
-				// Push DOM changes to the task list for handling on
-				// the next frame.
+				// We are in a frame. Go ahead and manipulate the DOM.
 				dom.before(placeholder, nodes[n]);
 			}
 
@@ -123,6 +123,6 @@
 
 		// Return false to stop the current sparky from binding.
 		// ??????? Do we? Dont we? Whazzappnin?
-		return false;
+		//return false;
 	};
 })(this);

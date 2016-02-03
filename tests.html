@@ -7,7 +7,7 @@
 
 	<title>Sparky</title>
 
-	<script>document.documentElement.className = 'js';</script>
+	<script>document.documentElement.className = 'js loading';</script>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 	<!-- Force latest IE rendering engine & Chrome Frame -->
@@ -33,7 +33,7 @@
 	<style>
 		html {
 			background-image:
-				linear-gradient(to bottom, transparent 20rem, #E0DBD9 20rem, #E0DBD9 100%),
+				linear-gradient(to bottom, transparent 20rem, #E0DBD9 20rem, #C8CACC 100%),
 				radial-gradient(#354767 22%, rgba(255,255,255,0) 70%),
 				linear-gradient(to bottom, #3A3330 0, #313C4E 20rem, transparent 20rem);
 			background-size:
@@ -45,14 +45,13 @@
 				0 6rem,
 				0 0;
 			background-repeat: no-repeat;
-			background-color: #E0DBD9;
+			background-color: #C8CACC;
 		}
 
 		body {
 			margin: 0;
 			padding: 0;
 			padding-bottom: 7.5rem;
-			border-bottom: 0.75rem solid #313C4E;
 			color: #333A3E;
 		}
 
@@ -114,7 +113,7 @@
 			display: inline-block;
 			width: 100%;
 			font-weight: 300;
-			font-size: 3.75rem;
+			font-size: 3.875rem;
 			line-height: 2.4375rem;
 			color: rgba(0,0,0,0.5);
 			font-family: Helvetica, sans-serif;
@@ -123,9 +122,25 @@
 			z-index: 1;
 			margin-top: 0;
 			position: relative;
+			letter-spacing: -1px;
+			box-sizing: border-box;
+			padding-left: 10px;
 			/* It flickers when other things animate. */
 			/*text-shadow: 0 0 100px #402F20;*/
+			/*letter-spacing: -1px;
+			opacity: 1;
+			transition:
+				opacity 2000ms linear,
+				letter-spacing 2600ms cubic-bezier(0, 0, 0, 1);
+			*/
 		}
+
+		/*
+		.loading .inline-h1 {
+			opacity: 0.76;
+			letter-spacing: -6px;
+		}
+		*/
 
 		.inline-h1 + .inline-block {
 			margin-left: -100%;
@@ -134,9 +149,11 @@
 
 		.inline-h1 > img {
 			display: inline-block;
-			vertical-align: -42px;
-			width: 500px;
+			vertical-align: -20px;
+			width: 152px;
 			height: auto;
+			margin-top: 30px;
+			margin-left: calc(45% - 220px);
 		}
 
 		.test-block {
@@ -259,14 +276,14 @@
 <body>
 
 <div class="site-wrap wrap">
-	<h1 class="inline-h1">Sparky <img src="images/sparky-logo.png" /></h1
+	<h1 class="inline-h1">Sparky<img src="images/sparky-logo-218x333.png" /></h1
 
 	><div class="inline-block block">
 		&nbsp;
 		<div class="float-block block text-2">
-			Sparky is a live data binding template and view layer for HTML/SVG/JS.
-			It enhances the document with tags and filters and scopes and composeable
-			templates, and renders DOM changes at the browser frame rate.
+			Sparky is a live data binding template/view layer for HTML/SVG and JS.
+			It enhances the document with tags and scopes and composeable templates,
+			observes changes to data and applies them to the DOM at the browser frame rate.
 		</div>
 	</div>
 </div>
@@ -776,6 +793,10 @@ Sparky.fn.objects = function(node) {
 Sparky.fn.svg = function(node) {
 	return svgScope;
 };
+
+jQuery(function() {
+	jQuery('html').removeClass('loading');
+});
 
 </script>
 
