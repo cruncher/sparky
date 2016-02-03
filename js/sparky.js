@@ -441,6 +441,7 @@
 			// the 'ready' event. See old version, slaveSparky() fn.)
 			this.on(sparky);
 
+			// Alternatively, bind individual events...
 			//this
 			//.on('destroy', function() {
 			//	sparky.destroy();
