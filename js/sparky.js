@@ -394,9 +394,7 @@
 			return this
 			.on('destroy', function() {
 				Sparky.dom.remove(this);
-				unobserveScope();
-			})
-			.scope(scope);
+			});
 		}
 
 		// If ctrlscope is unchanged from scope, ctrlscope should not override
