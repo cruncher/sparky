@@ -26,6 +26,7 @@ module.exports = function(config) {
       'js/sparky.dom.js',
       'js/sparky.observe.js',
       'js/sparky.throttle.js',
+      'js/sparky.render.js',
       'js/sparky.parse.js',
       'js/sparky.fn.js',
       'js/sparky.fn.each.js',

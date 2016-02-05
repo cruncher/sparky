@@ -17,11 +17,17 @@
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
-	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
+	// Matches a sparky template tag, capturing (path, filter)
+	var rtagstemplate = /({{0}})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtags;
+
+	// Matches a simple sparky template tag, capturing (path)
+	var rsimpletagstemplate = /{{0}}\s*([\w\-\.\[\]]+)\s*{{1}}/g;
+	var rsimpletags;
 
 	// Matches tags plus any directly adjacent text
-	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;
+	var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
+	var rclasstags;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
@@ -254,9 +260,9 @@
 		if (!classes) { return; }
 
 		// Remove tags and store them
-		Sparky.rclasstags.lastIndex = 0;
+		rclasstags.lastIndex = 0;
 		var tags = [];
-		var text = classes.replace(Sparky.rclasstags, function($0) {
+		var text = classes.replace(rclasstags, function($0) {
 			tags.push($0);
 			return '';
 		});
@@ -620,9 +626,6 @@
 		};
 	}
 
-
-	// Export
-
 	function parse(nodes, get, set, bind, unbind, create) {
 		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
 			return binders[node.nodeType](node, bind, unbind, get, set, create);
@@ -659,6 +662,32 @@
 		return bindValue(node, get, set, bind, unbind, path, to, from);
 	}
 
+
+	// Set up Sparky.tags(), Sparky.rtags, Sparky.rsimpletags
+
+	function changeTags(ropen, rclose) {
+		rtags = Sparky.render(rtagstemplate, arguments);
+		rsimpletags = Sparky.render(rsimpletagstemplate, arguments);
+		rclasstags = Sparky.render(rclasstagstemplate, arguments);
+	};
+
+	Object.defineProperties(Sparky, {
+		rtags: {
+			get: function() { return rtags; },
+			enumerable: true
+		},
+
+		rsimpletags: {
+			get: function() { return rsimpletags; },
+			enumerable: true
+		}
+	});
+
+	changeTags(/\{{2,3}/, /\}{2,3}/);
+
+
+	// Export
+
 	assign(Sparky, {
 		parse: parse,
 		parseName: parseName,
@@ -674,11 +703,7 @@
 		boolToString:    boolToString,
 		boolToStringOn:  boolToStringOn,
 
-		// Todo: We expose these regexes so we can change tag delimiters. Find
-		// a better way to declare just the tag delimiters without exposing
-		// these regexes.
-		rtags: rtags,
-		rspaces: rspaces,
-		rclasstags: rclasstags
+		tags:            changeTags,
+		rspaces:         rspaces
 	});
 })(this);

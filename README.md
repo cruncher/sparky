@@ -428,6 +428,51 @@ browser frame. Multiple calls to <code>throttle()</code> result in just one call
 to <code>fn</code> on the next frame. <code>fn</code> is called with the
 arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
 
+#### Sparky.render(template, object)
+
+Where <code>template</code> is a string, replaces the Sparky tags in the string
+with matching properties of object.
+
+    Sparky.render('{{ bossname }} loves wooo!', {
+        bossname: "Sparky"
+    });
+
+    // Returns: 'Sparky loves wooo!'
+
+Where <code>template</code> is a regular expression, composes the regexp with
+regexp properties of object.
+
+        Sparky.render(/{{ropen}}\s*(\w+)\s*{{rclose}}/g, {
+            ropen:  /\{{2,3}/,
+            rclose: /\}{2,3}/
+        });
+
+        // Returns: /\{{2,3}\s*(\w+)\s*\}{2,3}/g
+
+Where <code>template</code> is a function, and that function contains a single
+JS comment, the contents of the comment are whitespace-stripped and treated as
+a template string. This is a nice hacky technique for writing multiline
+templates in JS.
+
+    Sparky.render(function(){/*
+        {{ boss }} loves wooo!
+    */}, {
+        boss: "Sparky"
+    });
+
+    // -> 'Sparky loves wooo!'
+
+
+#### Sparky.tags(ropen, rclose)
+
+Change the opening and closing template tag brackets. <code>ropen</code> and <code>rclose</code> must be regexps.
+
+    Sparky.tags(/\{{2,3}/, /\{{2,3}/)
+
+The regular expressions used to test for tags (<code>Sparky.rtags</code>,
+<code>Sparky.rsimpletags</code>) are updated with the new opening and closing
+tags. <code>Sparky.rtags</code> and <code>Sparky.rsimpletags</code> are
+read-only properties.
 
 #### Sparky.observe(object, property, fn)
 
@@ -513,6 +558,17 @@ For labels, inputs, selects and textareas Sparky also looks in:
 - <code>value</code>
 - <code>max</code>
 - <code>min</code>
+
+### Sparky.rsimpletags
+
+A Regular expression matching tags of the form <code>{{ path.to.property }}</code>.
+The path is stored in capturing group 1.
+
+### Sparky.rtags
+
+A Regular expression matching tags of the form
+<code>{{ path.to.property|filter:'param' }}</code>. The opening brackets, the path
+and the filter string are stored in capturing groups 1,2 and 3.
 
 ### Sparky.filters
 
