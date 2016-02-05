@@ -450,9 +450,8 @@ regexp properties of object.
         // Returns: /\{{2,3}\s*(\w+)\s*\}{2,3}/g
 
 Where <code>template</code> is a function, and that function contains a single
-JS comment, the contents of the comment are whitespace-stripped and treated as
-a template string. This is a nice hacky technique for writing multiline
-templates in JS.
+JS comment, the contents of the comment are whitespace-cropped and treated as
+a template string.
 
     Sparky.render(function(){/*
         {{ boss }} loves wooo!
@@ -462,6 +461,10 @@ templates in JS.
 
     // -> 'Sparky loves wooo!'
 
+This is a nice hacky technique for writing multiline templates in JS, although now superseded by ES6 multiline strings.
+
+Note that <code>Sparky.render</code> is not used by Sparky to update the DOM.
+Sparky does not treat the DOM as strings, it treats the DOM as the DOM, keeping an internal map of node attributes and text node content bound directly to data changes.
 
 #### Sparky.tags(ropen, rclose)
 
