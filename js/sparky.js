@@ -194,12 +194,17 @@
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 
-			// On initial run we populate the DOM immediately. The Sparky
-			// constructor is designed to be run inside requestAnimationFrame
-			// and we don't want to waiting for an extra frame.
-			Sparky.observePath(scope, path, throttle, !init);
-			if (init) {
-				fn(Sparky.get(scope, path));
+			if (path) {
+				// On initial run we populate the DOM immediately. The Sparky
+				// constructor is designed to be run inside requestAnimationFrame
+				// and we don't want to waiting for an extra frame.
+				Sparky.observePath(scope, path, throttle, !init);
+				if (init) {
+					fn(Sparky.get(scope, path));
+				}
+			}
+			else {
+				fn();
 			}
 		}
 	}
@@ -266,10 +271,6 @@
 			return new Sparky(node, scope, fn, parent);
 		}
 
-		Sparky.log('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
-			(scope && '{}'), ',',
-			(fn && (fn.name || 'anonymous')), ')');
-
 		var sparky = this;
 		var init = true;
 		var initscope = scope;
@@ -285,22 +286,6 @@
 		var unobserveScope = noop;
 		var addThrottle = Sparky.Throttle(addNodes);
 		var removeThrottle = Sparky.Throttle(removeNodes);
-
-		function get(path) {
-			return scope && Sparky.get(scope, path);
-		}
-
-		function set(property, value) {
-			scope && Sparky.set(scope, property, value);
-		}
-
-		function create(node) {
-			nodes.push(node);
-		}
-
-		function bind(path, fn) {
-			bindings.push([path, fn, Sparky.Throttle(fn)]);
-		}
 
 		function updateScope(object) {
 			// If scope is unchanged, do nothing.
@@ -336,6 +321,13 @@
 		if (!node) {
 			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
+
+		Sparky.logVerbose('Sparky(', node, scope, fn && fn.name, ')');
+		//	typeof node === 'string' ? node :
+		//	Sparky.dom.isFragmentNode(node) ? node :
+		//	nodeToText(node), ',',
+		//	(scope && '{}'), ',',
+		//	(fn && (fn.name || 'anonymous')), ')');
 
 		fn = resolveFn(node, fn, ctrl);
 
@@ -391,7 +383,38 @@
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
-		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
+		var unparse = Sparky.parse(sparky,
+			function get(path) {
+				return scope && Sparky.get(scope, path);
+			},
+
+			function set(property, value) {
+				scope && Sparky.set(scope, property, value);
+			},
+
+			function bind(path, fn) {
+				if (!fn) {
+					fn = path;
+					path = false;
+				}
+
+				bindings.push([path, fn, Sparky.Throttle(fn)]);
+			},
+
+			function unbind(fn) {
+				var n = bindings.length;
+				while (n--) {
+					if (bindings[n][1] === fn) {
+						bindings.splice(n, 1);
+						return;
+					}
+				}
+			},
+
+			function create(node) {
+				nodes.push(node);
+			}
+		);
 
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
