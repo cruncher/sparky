@@ -103,7 +103,7 @@
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
