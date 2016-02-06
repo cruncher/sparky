@@ -897,12 +897,17 @@ if (!Math.log10) {
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 
-			// On initial run we populate the DOM immediately. The Sparky
-			// constructor is designed to be run inside requestAnimationFrame
-			// and we don't want to waiting for an extra frame.
-			Sparky.observePath(scope, path, throttle, !init);
-			if (init) {
-				fn(Sparky.get(scope, path));
+			if (path) {
+				// On initial run we populate the DOM immediately. The Sparky
+				// constructor is designed to be run inside requestAnimationFrame
+				// and we don't want to waiting for an extra frame.
+				Sparky.observePath(scope, path, throttle, !init);
+				if (init) {
+					fn(Sparky.get(scope, path));
+				}
+			}
+			else {
+				fn();
 			}
 		}
 	}
@@ -969,10 +974,6 @@ if (!Math.log10) {
 			return new Sparky(node, scope, fn, parent);
 		}
 
-		Sparky.log('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
-			(scope && '{}'), ',',
-			(fn && (fn.name || 'anonymous')), ')');
-
 		var sparky = this;
 		var init = true;
 		var initscope = scope;
@@ -988,22 +989,6 @@ if (!Math.log10) {
 		var unobserveScope = noop;
 		var addThrottle = Sparky.Throttle(addNodes);
 		var removeThrottle = Sparky.Throttle(removeNodes);
-
-		function get(path) {
-			return scope && Sparky.get(scope, path);
-		}
-
-		function set(property, value) {
-			scope && Sparky.set(scope, property, value);
-		}
-
-		function create(node) {
-			nodes.push(node);
-		}
-
-		function bind(path, fn) {
-			bindings.push([path, fn, Sparky.Throttle(fn)]);
-		}
 
 		function updateScope(object) {
 			// If scope is unchanged, do nothing.
@@ -1039,6 +1024,13 @@ if (!Math.log10) {
 		if (!node) {
 			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
+
+		Sparky.logVerbose('Sparky(', node, scope, fn && fn.name, ')');
+		//	typeof node === 'string' ? node :
+		//	Sparky.dom.isFragmentNode(node) ? node :
+		//	nodeToText(node), ',',
+		//	(scope && '{}'), ',',
+		//	(fn && (fn.name || 'anonymous')), ')');
 
 		fn = resolveFn(node, fn, ctrl);
 
@@ -1094,7 +1086,38 @@ if (!Math.log10) {
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
-		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
+		var unparse = Sparky.parse(sparky,
+			function get(path) {
+				return scope && Sparky.get(scope, path);
+			},
+
+			function set(property, value) {
+				scope && Sparky.set(scope, property, value);
+			},
+
+			function bind(path, fn) {
+				if (!fn) {
+					fn = path;
+					path = false;
+				}
+
+				bindings.push([path, fn, Sparky.Throttle(fn)]);
+			},
+
+			function unbind(fn) {
+				var n = bindings.length;
+				while (n--) {
+					if (bindings[n][1] === fn) {
+						bindings.splice(n, 1);
+						return;
+					}
+				}
+			},
+
+			function create(node) {
+				nodes.push(node);
+			}
+		);
 
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
@@ -1430,6 +1453,9 @@ if (!Math.log10) {
 	function getTemplate(id) {
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
+
+		var tag = dom.tag(node);
+		if (tag !== 'template' && tag !== 'script') { return; }
 
 		if (node.content) {
 			return fragmentFromContent(node);
@@ -2100,7 +2126,7 @@ if (!Math.log10) {
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -2215,8 +2241,14 @@ if (!Math.log10) {
 			// be about to modify the DOM.
 			nodes = slice(template.childNodes);
 
-			// Insert the template on the next frame.
-			window.requestAnimationFrame(function() {
+			// Wait for scope to become available with a self-unbinding function
+			// before appending the template to the DOM. BE AWARE, here, that
+			// this could throw a bug in the works: we're currently looping over
+			// bindings outside of the call to bind, and inside we call unbind,
+			// which modifies bindings... see? It won't bug just now, becuase
+			// negative loops, but if you change anything...
+			bind(function domify() {
+				unbind(domify);
 				Sparky.dom.empty(node);
 				Sparky.dom.append(node, template);
 			});
