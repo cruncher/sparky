@@ -312,35 +312,12 @@
 
 
 
-<div data-fn="cart" id="cart-block">
-  <ul data-scope="{{items}}" data-template="cart-items">
-    <li>
-      <h2>Rope</h2>
-      <p>Strong nylon rope.</p>
-      <p>Quantity: 3m</p>
-      <a href="cart/items/0/quantity">Change</a>
-      <a href="cart/items/0/remove">Remove</a>
-    </li>
-  </ul>
-</div>
-
-<template id="cart-items">
-  <li data-fn="each">
-    <h2>{{title}}</h2>
-    <p>{{description}}</p>
-    <form>
-      <label>Quantity <input type="number" name="{{quantity}}" /> {{units}}</label>
-      <button data-fn="click-to-destroy">Remove</button>
-    </form>
-  </li>
-</template>
 
 
 
 
 
-
-<!--div class="grid-wrap wrap" data-fn="each example" id="examples">
+<div class="grid-wrap wrap" data-fn="each example" id="examples">
 	<div class="grid-block block grid-1/3" data-fn="insert-template">
 	</div
 
@@ -353,9 +330,11 @@
 
 
 
+
+
 <!-- Progressive Cart -->
 
-<!--template id="cart">
+<template id="cart">
 <div data-fn="cart">
   <ul data-scope="{{items}}" data-template="cart-items">
     <li>
@@ -378,13 +357,22 @@
     </form>
   </li>
 </template>
-</template-->
+</template>
+
+<template id="cart-items">
+  <li data-fn="each">
+    <h2>{{title}}</h2>
+    <p>{{description}}</p>
+    <form>
+      <label>Quantity <input type="number" name="{{quantity}}" /> {{units}}</label>
+      <button data-fn="click-to-destroy">Remove</button>
+    </form>
+  </li>
+</template>
 
 <script id="Sparky.fn.cart">
 // Define the cart app
 var cart = { items: undefined };
-
-Sparky.debug = 'verbose';
 
 Sparky.fn.cart = function(node) {
   this.fn['click-to-destroy'] = function(node) {
@@ -394,22 +382,12 @@ Sparky.fn.cart = function(node) {
 
   return cart;
 };
-
-Sparky('cart-block');
-
-setTimeout(function() {
-	console.log('RUN');
-	cart.items = Collection([
-		{ title: 'Rope', description: 'Strong nylon rope.', quantity: 3, units: 'metres' }
-	]);
-}, 3000);
-
 </script>
 
 
 <!-- Clock -->
 
-<!--template id="clock">
+<template id="clock">
 <div class="clock-block block" data-fn="clock">
   <div class="hour-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'h'|multiply:30|mod:360}}deg) translate(0, -50%);"></div>
   <div class="min-hand hand" style="transform: translate(0, 50%) rotate({{time|date:'i'|multiply:6|mod:360}}deg) translate(0, -50%);"></div>
@@ -441,6 +419,8 @@ Sparky.fn.clock = function(node) {
 var Sparky = window.Sparky;
 var isDefined = Sparky.isDefined;
 
+Sparky.debug = true;
+
 function escapeHTML(html) {
 	return html
 	.replace(/^\s*/, '')
@@ -469,52 +449,54 @@ function textContent(id) {
 	return text;
 }
 
-Sparky.fn.example = function(node) {
-	Object.assign(this.fn, {
-		'insert-template': function(node) {
-			this
-			.on('scope', function(target, scope) {
-				var template = Sparky.template(scope.template);
-				Sparky.dom.append(node, template);
-				this.create(node.children[0], scope);
-			});
-		},
+var exampleFns = {
+	'insert-template': function(node) {
+		this
+		.on('scope', function(target, scope) {
+			var template = Sparky.template(scope.template);
+			Sparky.dom.append(node, template);
+			this.create(node.children[0], scope);
+		});
+	},
 
-		'insert-html': function(node) {
-			this
-			.on('scope', function(sparky, scope) {
-				node.textContent = textContent(scope.html);
-			})
-			.interrupt();
-		},
+	'insert-html': function(node) {
+		this
+		.on('scope', function(sparky, scope) {
+			node.textContent = textContent(scope.html);
+		})
+		.interrupt();
+	},
 
-		'insert-js': function(node) {
-			this
-			.on('scope', function(sparky, scope) {
-				node.textContent = textContent(scope.js);
-			})
-			.interrupt();
-		},
+	'insert-js': function(node) {
+		this
+		.on('scope', function(sparky, scope) {
+			node.textContent = textContent(scope.js);
+		})
+		.interrupt();
+	},
 
-		'click-to-run': function(node) {
-			var scope;
+	'click-to-run': function(node) {
+		var scope;
 
-			node.addEventListener('click', function click(e) {
-				scope && scope.run && scope.run();
-			});
+		node.addEventListener('click', function click(e) {
+			scope && scope.run && scope.run();
+		});
 
-			this.on('scope', function(sparky, newscope) {
-				scope = newscope;
-			});
-		}
-	});
+		this.on('scope', function(sparky, newscope) {
+			scope = newscope;
+		});
+	}
 };
 
-var examples = Collection([/*{
+Sparky.fn.example = function(node) {
+	Object.assign(this.fn, exampleFns);
+};
+
+var examples = Collection([{
 	template: "clock",
 	html: "clock-html",
 	js: "Sparky.fn.clock"
-}, */{
+}, {
 	template: "cart",
 	html: "cart",
 	js: "Sparky.fn.cart",
@@ -528,7 +510,7 @@ var examples = Collection([/*{
 
 var node = document.getElementById('examples');
 Sparky(node, examples);
-</script-->
+</script>
 
 </body>
 </html>

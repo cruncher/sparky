@@ -1,4 +1,13 @@
 (function(window) {
+	if (!window.console || !window.console.log) { return; }
+
+	console.log('Sparky');
+	console.log('http://github.com/cruncher/sparky');
+	console.log('_________________________________');
+})(this);
+
+
+(function(window) {
 	"use strict";
 
 	var assign = Object.assign;
