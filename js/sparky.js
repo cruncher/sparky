@@ -355,7 +355,6 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-
 		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
 		// accept scope as second parameter. Actually, no no no - the potential
 		// scope must be passed to the fn, as the fn may return a different
