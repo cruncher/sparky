@@ -2,7 +2,7 @@ module('Child sparky', function(fixture) {
 	console.log('Test async models...');
 
 	asyncTest("Delayed models", function(assert) {
-		expect(4);
+		expect(2);
 
 		// Reset Sparky
 		Sparky.data = {
@@ -21,18 +21,14 @@ module('Child sparky', function(fixture) {
 				}
 			};
 
-			assert.ok(a.innerHTML !== 'Hello!', "DOM not updated immediately object becomes available");
-
 			window.requestAnimationFrame(function() {
-				assert.ok(a.innerHTML === 'Hello!', "DOM updated on animation frame after object available: " + a.innerHTML);
+				assert.ok(a.innerHTML === 'Hello!', "DOM should be updated on frame after object available: " + a.innerHTML);
 			});
 
 			Sparky.data.model.object.thing.blah = 7;
 
-			assert.ok(a.hash !== '#7', "DOM href is not updated immediately property becomes available");
-
 			window.requestAnimationFrame(function() {
-				assert.ok(a.hash === '#7', "DOM href not updated on animation frame after property available: " + a.hash);
+				assert.ok(a.hash === '#7', "DOM href Should be updated on frame after property available: " + a.hash);
 				QUnit.start();
 			});
 		}, 400);

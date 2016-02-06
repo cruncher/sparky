@@ -185,7 +185,7 @@
 		Sparky.dom.remove(placeholder);
 	}
 
-	function bind(scope, bindings, init) {
+	function setup(scope, bindings, init) {
 		var n = bindings.length;
 		var path, fn, throttle;
 
@@ -204,7 +204,7 @@
 		}
 	}
 
-	function unbind(scope, bindings) {
+	function teardown(scope, bindings) {
 		var n = bindings.length;
 		var path, throttle;
 
@@ -215,7 +215,7 @@
 		}
 	}
 
-	function endbind(bindings) {
+	function destroy(bindings) {
 		var n = bindings.length;
 		var throttle;
 
@@ -227,24 +227,15 @@
 		bindings.length = 0;
 	}
 
-	function setup(scope, bindings, children, init) {
-		bind(scope, bindings, init);
-		var n = children.length;
-		while (n--) {
-			children[n].scope(scope);
-		}
-	}
+	function addNodes(sparky) {
+		if (!sparky.placeholders) {
+			// If nodes are already in the DOM trigger the event.
+			if (document.contains(sparky[0])) {
+				sparky.trigger('dom-add');
+			}
 
-	function teardown(scope, bindings, children) {
-		unbind(scope, bindings);
-		var n = children.length;
-		while (n--) {
-			children[n].scope();
+			return;
 		}
-	}
-
-	function addNodes(sparky, init) {
-		if (!sparky.placeholders) { return; }
 		sparky.forEach(replaceWithNode);
 		sparky.placeholders = false;
 		sparky.trigger('dom-add');
@@ -257,21 +248,10 @@
 	}
 
 	function updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init) {
-		// Where there is no scope, there should be no nodes in the DOM
+		// Where there is scope, the nodes should be added to the DOM, if not,
+		// they should be removed.
 		if (scope) {
-			if (init) {
-				// If nodes are already in the DOM, just trigger the event.
-				if (document.body.contains(sparky[0])) {
-					sparky.trigger('dom-add');
-				}
-
-				// Or insert the nodes immediately - Sparky is designed
-				// to be called inside requestAnimationFrame, so we should not
-				// add one single extra frame's delay to proceeedings.
-				else {
-					addNodes(sparky, init);
-				}
-			}
+			if (init) { addNodes(sparky, init); }
 			else { addThrottle(sparky); }
 		}
 		else {
@@ -286,17 +266,22 @@
 			return new Sparky(node, scope, fn, parent);
 		}
 
-		Sparky.logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
+		Sparky.log('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
 			(scope && '{}'), ',',
 			(fn && (fn.name || 'anonymous')), ')');
 
 		var sparky = this;
+		var init = true;
+		var initscope = scope;
+		var ctrlscope;
+
+		// Use scope variable as current scope.
+		scope = undefined;
+
 		var bindings = [];
-		var children = [];
 		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
-		var init = true;
 		var unobserveScope = noop;
 		var addThrottle = Sparky.Throttle(addNodes);
 		var removeThrottle = Sparky.Throttle(removeNodes);
@@ -318,24 +303,22 @@
 		}
 
 		function updateScope(object) {
-			var newscope = ctrlscope || object;
+			// If scope is unchanged, do nothing.
+			if (scope === (ctrlscope || object)) { return; }
 
-			if (!init) {
-				// If scope is unchanged, do nothing.
-				if (newscope === scope) { return; }
+			// If old scope exists, tear it down
+			if (scope) { teardown(scope, bindings); }
 
-				// If old scope exists, tear it down
-				if (scope) { teardown(scope, bindings, children); }
-			}
+			// ctrlscope trumps new objects
+			scope = ctrlscope || object;
 
-			scope = newscope;
+			// Assign and set up scope
+			if (scope) { setup(scope, bindings, init); }
 
-			if (scope) {
-				// Assign and set up scope
-				setup(scope, bindings, children, init);
-			}
-
+			// Trigger scope first, children assemble themselves
 			sparky.trigger('scope', scope);
+
+			// Then update this node
 			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
 			init = false;
 		}
@@ -351,7 +334,7 @@
 		node = resolveNode(node);
 
 		if (!node) {
-			throw new Error("Sparky: Sparky(node) called, node not found: " + node);
+			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
 		fn = resolveFn(node, fn, ctrl);
@@ -377,54 +360,58 @@
 		// accept scope as second parameter. Actually, no no no - the potential
 		// scope must be passed to the fn, as the fn may return a different
 		// scope and has no access to this one otherwise.
-		var ctrlscope;
-
-		resolveScope(node, scope, parent ? parent.data : Sparky.data, function(basescope, path) {
+		resolveScope(node, initscope, parent ? parent.data : Sparky.data, function(basescope, path) {
 			ctrlscope = Sparky.get(basescope, path);
 		}, function(object) {
 			ctrlscope = object;
 		});
 
-		// If a scope object is returned by the ctrl, we use that.
-		ctrlscope = fn && fn.call(sparky, node, ctrlscope);
+		// If fn is to be called and a scope is returned, we use that.
+		if (fn) {
+			ctrlscope = fn.call(sparky, node, ctrlscope) ;
+		}
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
 		if (ctrlscope === false) {
-			return this
+			this
 			.on('destroy', function() {
 				Sparky.dom.remove(this);
 			});
+
+			if (initscope) { this.scope(initscope); }
+
+			init = false;
+			return;
 		}
 
 		// If ctrlscope is unchanged from scope, ctrlscope should not override
 		// scope changes. There's probably a better way of expressing this.
-		if (ctrlscope === scope) { ctrlscope = undefined; }
+		if (ctrlscope === initscope) { ctrlscope = undefined; }
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
 		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
 
-		this
-		.on('destroy', function() {
+		this.on('destroy', function() {
 			Sparky.dom.remove(this);
 			this.placeholders && Sparky.dom.remove(this.placeholders);
 			unparse();
 			unobserveScope();
-			unbind(scope, bindings);
-			endbind(bindings);
-		})
-		.scope(scope);
+			teardown(scope, bindings);
+			destroy(bindings);
+		});
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.
-		children = nodes.map(function(node) {
+		nodes.forEach(function(node) {
 			return sparky.create(node, scope);
 		});
 
-		if (bindings.length === 0 && children.length === 0) {
-			log('No Sparky tags found', sparky);
-		}
+		// If there is scope, set it up now
+		if (initscope || ctrlscope) { this.scope(initscope || ctrlscope); }
+
+		init = false;
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
@@ -435,21 +422,18 @@
 			var boss = this;
 			var sparky = Sparky(node, scope, fn, this);
 
-			// Slave new sparky to this. (todo: you may run into trouble with
-			// the 'ready' event. See old version, slaveSparky() fn.)
-			this.on(sparky);
+			function destroy() { sparky.destroy(); }
+			function updateScope(self, scope) { sparky.scope(scope); }
 
-			// Alternatively, bind individual events...
-			//this
-			//.on('destroy', function() {
-			//	sparky.destroy();
-			//})
-			//.on('scope', function(boss, scope) {
-			//	sparky.scope(scope);
-			//});
+			// Bind events...
+			this
+			.on('destroy', destroy)
+			.on('scope', updateScope);
 
 			return sparky.on('destroy', function() {
-				boss.off(sparky);
+				boss
+				.off('destroy', destroy)
+				.off('scope', updateScope);
 			});
 		},
 
