@@ -181,3 +181,44 @@ module('Sparky:collections', function(fixture) {
 </ul>
 
 */});
+
+
+module('Sparky.fn.each scope replacement', function(fixture) {
+	asyncTest("Replace scope.collection", function(assert) {
+		expect(7);
+
+		var collection1 = Collection([{ property: 1 }, { property: 2 }]);
+		var collection2 = Collection([{ property: 3 }, { property: 4 }, { property: 5 }]);
+		var scope = { collection: collection1 };
+
+		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
+			return scope;
+		};
+
+		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
+		var sparky = Sparky(ul);
+
+		window.requestAnimationFrame(function() {
+			var lis = ul.querySelectorAll('li');
+			assert.ok(lis.length === 2, 'List should have 2 li.');
+			assert.ok(lis[0].innerHTML === '1', '');
+			assert.ok(lis[1].innerHTML === '2', '');
+			scope.collection = collection2;
+
+			window.requestAnimationFrame(function() {
+				var lis = ul.querySelectorAll('li');
+				assert.ok(lis.length === 3, 'List should have 3 li.');
+				assert.ok(lis[0].innerHTML === '3', '');
+				assert.ok(lis[1].innerHTML === '4', '');
+				assert.ok(lis[2].innerHTML === '5', '');
+				QUnit.start();
+			});
+		});
+	});
+}, function() {/*
+
+<ul data-fn="test-ctrl">
+	<li data-scope="{{collection}}" data-fn="each" class="li-{{property}}">{{property}}</li>
+</ul>
+
+*/});
