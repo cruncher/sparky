@@ -24,7 +24,7 @@ Install node modules for building and testing:
 
     var sparky = Sparky(node, scope, fn)
 
-To bind a node in JS, call <code>Sparky</code> with a node or id, a scope
+To bind a node call <code>Sparky</code> with a node or id, a scope
 object and/or a function.
 
 <code>node   </code>node | document fragment | string
@@ -42,7 +42,7 @@ the <code>scope</code> parameter is a string it defines path to an object in the
 <code>fn     </code>function | string | undefined
 
 A function to run upon instantiating the node, or a string defining a name or
-names of function(s) stored in <code>sparky.fn<code> or in
+names of function(s) stored in <code>sparky.fn</code> or in
 <code>Sparky.fn</code>. Log <code>Sparky.fn</code> in the console to see the
 default functions available.
 
