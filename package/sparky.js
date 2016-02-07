@@ -702,6 +702,15 @@ if (!Math.log10) {
 })(this);
 
 (function(window) {
+	if (!window.console || !window.console.log) { return; }
+
+	console.log('Sparky');
+	console.log('http://github.com/cruncher/sparky');
+	console.log('_________________________________');
+})(this);
+
+
+(function(window) {
 	"use strict";
 
 	var assign = Object.assign;
@@ -888,7 +897,7 @@ if (!Math.log10) {
 		Sparky.dom.remove(placeholder);
 	}
 
-	function bind(scope, bindings, init) {
+	function setup(scope, bindings, init) {
 		var n = bindings.length;
 		var path, fn, throttle;
 
@@ -897,17 +906,22 @@ if (!Math.log10) {
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 
-			// On initial run we populate the DOM immediately. The Sparky
-			// constructor is designed to be run inside requestAnimationFrame
-			// and we don't want to waiting for an extra frame.
-			Sparky.observePath(scope, path, throttle, !init);
-			if (init) {
-				fn(Sparky.get(scope, path));
+			if (path) {
+				// On initial run we populate the DOM immediately. The Sparky
+				// constructor is designed to be run inside requestAnimationFrame
+				// and we don't want to waiting for an extra frame.
+				Sparky.observePath(scope, path, throttle, !init);
+				if (init) {
+					fn(Sparky.get(scope, path));
+				}
+			}
+			else {
+				fn();
 			}
 		}
 	}
 
-	function unbind(scope, bindings) {
+	function teardown(scope, bindings) {
 		var n = bindings.length;
 		var path, throttle;
 
@@ -918,7 +932,7 @@ if (!Math.log10) {
 		}
 	}
 
-	function endbind(bindings) {
+	function destroy(bindings) {
 		var n = bindings.length;
 		var throttle;
 
@@ -930,24 +944,15 @@ if (!Math.log10) {
 		bindings.length = 0;
 	}
 
-	function setup(scope, bindings, children, init) {
-		bind(scope, bindings, init);
-		var n = children.length;
-		while (n--) {
-			children[n].scope(scope);
-		}
-	}
+	function addNodes(sparky) {
+		if (!sparky.placeholders) {
+			// If nodes are already in the DOM trigger the event.
+			if (document.contains(sparky[0])) {
+				sparky.trigger('dom-add');
+			}
 
-	function teardown(scope, bindings, children) {
-		unbind(scope, bindings);
-		var n = children.length;
-		while (n--) {
-			children[n].scope();
+			return;
 		}
-	}
-
-	function addNodes(sparky, init) {
-		if (!sparky.placeholders) { return; }
 		sparky.forEach(replaceWithNode);
 		sparky.placeholders = false;
 		sparky.trigger('dom-add');
@@ -960,21 +965,10 @@ if (!Math.log10) {
 	}
 
 	function updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init) {
-		// Where there is no scope, there should be no nodes in the DOM
+		// Where there is scope, the nodes should be added to the DOM, if not,
+		// they should be removed.
 		if (scope) {
-			if (init) {
-				// If nodes are already in the DOM, just trigger the event.
-				if (document.body.contains(sparky[0])) {
-					sparky.trigger('dom-add');
-				}
-
-				// Or insert the nodes immediately - Sparky is designed
-				// to be called inside requestAnimationFrame, so we should not
-				// add one single extra frame's delay to proceeedings.
-				else {
-					addNodes(sparky, init);
-				}
-			}
+			if (init) { addNodes(sparky, init); }
 			else { addThrottle(sparky); }
 		}
 		else {
@@ -989,56 +983,39 @@ if (!Math.log10) {
 			return new Sparky(node, scope, fn, parent);
 		}
 
-		Sparky.logVerbose('Sparky(', typeof node === 'string' ? node : nodeToText(node), ',',
-			(scope && '{}'), ',',
-			(fn && (fn.name || 'anonymous')), ')');
-
 		var sparky = this;
+		var init = true;
+		var initscope = scope;
+		var ctrlscope;
+
+		// Use scope variable as current scope.
+		scope = undefined;
+
 		var bindings = [];
-		var children = [];
 		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
-		var init = true;
 		var unobserveScope = noop;
 		var addThrottle = Sparky.Throttle(addNodes);
 		var removeThrottle = Sparky.Throttle(removeNodes);
 
-		function get(path) {
-			return scope && Sparky.get(scope, path);
-		}
-
-		function set(property, value) {
-			scope && Sparky.set(scope, property, value);
-		}
-
-		function create(node) {
-			nodes.push(node);
-		}
-
-		function bind(path, fn) {
-			bindings.push([path, fn, Sparky.Throttle(fn)]);
-		}
-
 		function updateScope(object) {
-			var newscope = ctrlscope || object;
+			// If scope is unchanged, do nothing.
+			if (scope === (ctrlscope || object)) { return; }
 
-			if (!init) {
-				// If scope is unchanged, do nothing.
-				if (newscope === scope) { return; }
+			// If old scope exists, tear it down
+			if (scope) { teardown(scope, bindings); }
 
-				// If old scope exists, tear it down
-				if (scope) { teardown(scope, bindings, children); }
-			}
+			// ctrlscope trumps new objects
+			scope = ctrlscope || object;
 
-			scope = newscope;
+			// Assign and set up scope
+			if (scope) { setup(scope, bindings, init); }
 
-			if (scope) {
-				// Assign and set up scope
-				setup(scope, bindings, children, init);
-			}
-
+			// Trigger scope first, children assemble themselves
 			sparky.trigger('scope', scope);
+
+			// Then update this node
 			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
 			init = false;
 		}
@@ -1054,8 +1031,15 @@ if (!Math.log10) {
 		node = resolveNode(node);
 
 		if (!node) {
-			throw new Error("Sparky: Sparky(node) called, node not found: " + node);
+			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
+
+		Sparky.logVerbose('Sparky(', node, scope, fn && fn.name, ')');
+		//	typeof node === 'string' ? node :
+		//	Sparky.dom.isFragmentNode(node) ? node :
+		//	nodeToText(node), ',',
+		//	(scope && '{}'), ',',
+		//	(fn && (fn.name || 'anonymous')), ')');
 
 		fn = resolveFn(node, fn, ctrl);
 
@@ -1075,44 +1059,94 @@ if (!Math.log10) {
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-		// If a scope object is returned by the ctrl, we use that.
-		var ctrlscope = fn && fn.call(sparky, node);
+
+		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
+		// accept scope as second parameter. Actually, no no no - the potential
+		// scope must be passed to the fn, as the fn may return a different
+		// scope and has no access to this one otherwise.
+		resolveScope(node, initscope, parent ? parent.data : Sparky.data, function(basescope, path) {
+			ctrlscope = Sparky.get(basescope, path);
+		}, function(object) {
+			ctrlscope = object;
+		});
+
+		// If fn is to be called and a scope is returned, we use that.
+		if (fn) {
+			ctrlscope = fn.call(sparky, node, ctrlscope) ;
+		}
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
 		if (ctrlscope === false) {
-			return this
+			this
 			.on('destroy', function() {
 				Sparky.dom.remove(this);
-				unobserveScope();
-			})
-			.scope(scope);
+			});
+
+			if (initscope) { this.scope(initscope); }
+
+			init = false;
+			return;
 		}
+
+		// If ctrlscope is unchanged from scope, ctrlscope should not override
+		// scope changes. There's probably a better way of expressing this.
+		if (ctrlscope === initscope) { ctrlscope = undefined; }
 
 		// Parse the DOM nodes for Sparky tags. The parser returns a function
 		// that kills it's throttles and so on.
-		var unparse = Sparky.parse(sparky, get, set, bind, noop, create);
+		var unparse = Sparky.parse(sparky,
+			function get(path) {
+				return scope && Sparky.get(scope, path);
+			},
 
-		this
-		.on('destroy', function() {
+			function set(property, value) {
+				scope && Sparky.set(scope, property, value);
+			},
+
+			function bind(path, fn) {
+				if (!fn) {
+					fn = path;
+					path = false;
+				}
+
+				bindings.push([path, fn, Sparky.Throttle(fn)]);
+			},
+
+			function unbind(fn) {
+				var n = bindings.length;
+				while (n--) {
+					if (bindings[n][1] === fn) {
+						bindings.splice(n, 1);
+						return;
+					}
+				}
+			},
+
+			function create(node) {
+				nodes.push(node);
+			}
+		);
+
+		this.on('destroy', function() {
 			Sparky.dom.remove(this);
 			this.placeholders && Sparky.dom.remove(this.placeholders);
 			unparse();
 			unobserveScope();
-			unbind(scope, bindings);
-			endbind(bindings);
-		})
-		.scope(scope);
+			teardown(scope, bindings);
+			destroy(bindings);
+		});
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.
-		children = nodes.map(function(node) {
+		nodes.forEach(function(node) {
 			return sparky.create(node, scope);
 		});
 
-		if (bindings.length === 0 && children.length === 0) {
-			log('No Sparky tags found', sparky);
-		}
+		// If there is scope, set it up now
+		if (initscope || ctrlscope) { this.scope(initscope || ctrlscope); }
+
+		init = false;
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
@@ -1123,20 +1157,18 @@ if (!Math.log10) {
 			var boss = this;
 			var sparky = Sparky(node, scope, fn, this);
 
-			// Slave new sparky to this. (todo: you may run into trouble with
-			// the 'ready' event. See old version, slaveSparky() fn.)
-			this.on(sparky);
+			function destroy() { sparky.destroy(); }
+			function updateScope(self, scope) { sparky.scope(scope); }
 
-			//this
-			//.on('destroy', function() {
-			//	sparky.destroy();
-			//})
-			//.on('scope', function(boss, scope) {
-			//	sparky.scope(scope);
-			//});
+			// Bind events...
+			this
+			.on('destroy', destroy)
+			.on('scope', updateScope);
 
 			return sparky.on('destroy', function() {
-				boss.off(sparky);
+				boss
+				.off('destroy', destroy)
+				.off('scope', updateScope);
 			});
 		},
 
@@ -1430,6 +1462,9 @@ if (!Math.log10) {
 	function getTemplate(id) {
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
+
+		var tag = dom.tag(node);
+		if (tag !== 'template' && tag !== 'script') { return; }
 
 		if (node.content) {
 			return fragmentFromContent(node);
@@ -1941,6 +1976,60 @@ if (!Math.log10) {
 	Sparky.Throttle = Throttle;
 })(Sparky);
 
+(function(window) {
+
+	var Sparky = window.Sparky;
+
+	function multiline(fn) {
+		return fn.toString()
+			.replace(/^function.+\{\s*\/\*\s*/, '')
+			.replace(/\s*\*\/\s*\}$/, '');
+	}
+
+	function replaceStringFn(obj) {
+		return function($0, $1) {
+			// $1 is the template key. Don't render falsy values like undefined.
+			var value = obj[$1];
+
+			return value instanceof Array ?
+				value.join(', ') :
+				value === undefined || value === null ? '' :
+				value ;
+		};
+	}
+
+	function replaceRegexFn(obj) {
+		return function($0, $1, $2) {
+			// $1 is the template key in {{key}}, while $2 exists where
+			// the template tag is followed by a repetition operator.
+			var r = obj[$1];
+
+			if (r === undefined || r === null) { throw new Error("Exception: attempting to build RegExp but obj['"+$1+"'] is undefined."); }
+
+			// Strip out beginning and end matchers
+			r = r.source.replace(/^\^|\$$/g, '');
+
+			// Return a non-capturing group when $2 exists, or just the source.
+			return $2 ? ['(?:', r, ')', $2].join('') : r ;
+		};
+	}
+
+	Sparky.render = function render(template, obj) {
+		return typeof template === 'function' ?
+			multiline(template).replace(Sparky.rsimpletags, replaceStringFn(obj)) :
+
+		template instanceof RegExp ?
+			RegExp(template.source
+				.replace(/\{\{\s*(\w+)\s*\}\}(\{\d|\?|\*|\+)?/g, replaceRegexFn(obj)),
+				(template.global ? 'g' : '') +
+				(template.ignoreCase ? 'i' : '') +
+				(template.multiline ? 'm' : '')
+			) :
+
+			template.replace(Sparky.rsimpletags, replaceStringFn(obj));
+	};
+})(this);
+
 
 // Sparky.parse()
 //
@@ -1960,11 +2049,17 @@ if (!Math.log10) {
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
-	// Matches a sparky template tag, capturing (tag name, filter string)
-	var rtags   = /(\{{2,3})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*\}{2,3}/g;
+	// Matches a sparky template tag, capturing (path, filter)
+	var rtagstemplate = /({{0}})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtags;
+
+	// Matches a simple sparky template tag, capturing (path)
+	var rsimpletagstemplate = /{{0}}\s*([\w\-\.\[\]]+)\s*{{1}}/g;
+	var rsimpletags;
 
 	// Matches tags plus any directly adjacent text
-	var rclasstags = /[^\s]*\{{2,3}[^\}]+\}{2,3}[^\s]*/g;
+	var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
+	var rclasstags;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
 	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
@@ -2040,7 +2135,7 @@ if (!Math.log10) {
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -2155,8 +2250,14 @@ if (!Math.log10) {
 			// be about to modify the DOM.
 			nodes = slice(template.childNodes);
 
-			// Insert the template on the next frame.
-			window.requestAnimationFrame(function() {
+			// Wait for scope to become available with a self-unbinding function
+			// before appending the template to the DOM. BE AWARE, here, that
+			// this could throw a bug in the works: we're currently looping over
+			// bindings outside of the call to bind, and inside we call unbind,
+			// which modifies bindings... see? It won't bug just now, becuase
+			// negative loops, but if you change anything...
+			bind(function domify() {
+				unbind(domify);
 				Sparky.dom.empty(node);
 				Sparky.dom.append(node, template);
 			});
@@ -2197,9 +2298,9 @@ if (!Math.log10) {
 		if (!classes) { return; }
 
 		// Remove tags and store them
-		Sparky.rclasstags.lastIndex = 0;
+		rclasstags.lastIndex = 0;
 		var tags = [];
-		var text = classes.replace(Sparky.rclasstags, function($0) {
+		var text = classes.replace(rclasstags, function($0) {
 			tags.push($0);
 			return '';
 		});
@@ -2563,9 +2664,6 @@ if (!Math.log10) {
 		};
 	}
 
-
-	// Export
-
 	function parse(nodes, get, set, bind, unbind, create) {
 		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
 			return binders[node.nodeType](node, bind, unbind, get, set, create);
@@ -2602,6 +2700,32 @@ if (!Math.log10) {
 		return bindValue(node, get, set, bind, unbind, path, to, from);
 	}
 
+
+	// Set up Sparky.tags(), Sparky.rtags, Sparky.rsimpletags
+
+	function changeTags(ropen, rclose) {
+		rtags = Sparky.render(rtagstemplate, arguments);
+		rsimpletags = Sparky.render(rsimpletagstemplate, arguments);
+		rclasstags = Sparky.render(rclasstagstemplate, arguments);
+	};
+
+	Object.defineProperties(Sparky, {
+		rtags: {
+			get: function() { return rtags; },
+			enumerable: true
+		},
+
+		rsimpletags: {
+			get: function() { return rsimpletags; },
+			enumerable: true
+		}
+	});
+
+	changeTags(/\{{2,3}/, /\}{2,3}/);
+
+
+	// Export
+
 	assign(Sparky, {
 		parse: parse,
 		parseName: parseName,
@@ -2617,147 +2741,45 @@ if (!Math.log10) {
 		boolToString:    boolToString,
 		boolToStringOn:  boolToStringOn,
 
-		// Todo: We expose these regexes so we can change tag delimiters. Find
-		// a better way to declare just the tag delimiters without exposing
-		// these regexes.
-		rtags: rtags,
-		rspaces: rspaces,
-		rclasstags: rclasstags
+		tags:            changeTags,
+		rspaces:         rspaces
 	});
 })(this);
 
 
 // Sparky.fns
 
-(function() {
+(function(window) {
+	var Sparky = window.Sparky;
+
+	// Stops Sparky from parsing the node.
+	Sparky.fn.ignore = function ignore() {
+		this.interrupt();
+	};
+})(this);
+
+(function(window) {
 	"use strict";
 
-	var pow = Math.pow;
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+	var dom    = Sparky.dom;
 
-	function isDefined(val) {
-		return val !== undefined && val !== null;
-	}
-
-	function normalise(value, min, max) {
-		return (value - min) / (max - min);
-	}
-
-	function denormalise(value, min, max) {
-		return value * (max - min) + min;
-	}
-
-	Sparky.fn['value-number-pow-2'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
-
-		function to(value) {
-			if (typeof value !== 'number') { return ''; }
-			var n = denormalise(pow(normalise(value, min, max), 1/2), min, max);
-			return n + '';
+	assign(Sparky.fn, {
+		"remove-hidden": function onReadyUnhide(node) {
+			this.on('scope', function() {
+				window.requestAnimationFrame(function() {
+					dom.classes(node).remove('hidden');
+				});
+			});
 		}
-
-		function from(value) {
-			var n = parseFloat(value);
-			if (Number.isNaN(n)) { return; }
-			return denormalise(pow(normalise(n, min, max), 2), min, max);
-		}
-
-		var unbind = Sparky.parseName(node, model, to, from);
-		this.on('destroy', unbind);
-	};
-
-	Sparky.fn['value-number-pow-3'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-		var max = node.max ? parseFloat(node.max) : (node.max = 1) ;
-
-		function to(value) {
-			if (typeof value !== 'number') { return ''; }
-			var n = denormalise(pow(normalise(value, min, max), 1/3), min, max);
-			return n + '';
-		}
-
-		function from(value) {
-			var n = parseFloat(value);
-			if (Number.isNaN(n)) { return; }
-			return denormalise(pow(normalise(n, min, max), 3), min, max);
-		}
-
-		var unbind = Sparky.parseName(node, model, to, from);
-		this.on('destroy', unbind);
-	};
-
-	Sparky.fn['value-number-log'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
-		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
-		var ratio = max / min;
-
-		if (min <= 0) {
-			console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
-			return;
-		}
-
-		function to(value) {
-			if (typeof value !== 'number') { return ''; }
-			var n = denormalise(Math.log(value / min) / Math.log(ratio), min, max);
-			return n + '';
-		}
-
-		function from(value) {
-			var n = parseFloat(value);
-			if (Number.isNaN(n)) { return; }
-			return min * Math.pow(ratio, normalise(n, min, max));
-		}
-
-		var unbind = Sparky.parseName(node, model, to, from);
-
-		this.on('destroy', unbind);
-	};
-
-	Sparky.fn['value-int-log'] = function(node, model) {
-		var min = node.min ? parseFloat(node.min) : (node.min = 1) ;
-		var max = node.max ? parseFloat(node.max) : (node.max = 10) ;
-		var ratio = max / min;
-
-		if (min <= 0) {
-			console.warn('Sparky: ctrl "value-int-log" cannot accept a min attribute of 0 or lower.', node);
-			return;
-		}
-
-		function to(value) {
-			if (typeof value !== 'number') { return ''; }
-			var n = denormalise(Math.log(Math.round(value) / min) / Math.log(ratio), min, max);
-			return n + '';
-		}
-
-		function from(value) {
-			var n = parseFloat(value);
-			if (Number.isNaN(n)) { return; }
-			return Math.round(min * Math.pow(ratio, normalise(n, min, max)));
-		}
-
-		var unbind = Sparky.parseName(node, model, to, from);
-
-		this.on('destroy', unbind);
-	};
+	});
+})(this);
 
 
 
-
-
-
-
-	Sparky.fn['value-pow-2'] = function() {
-		console.warn('Sparky: ctrl "value-pow-2" is deprecated. Use "value-number-pow-2"');
-	};
-
-	Sparky.fn['value-pow-3'] = function() {
-		console.warn('Sparky: ctrl "value-pow-3" is deprecated. Use "value-number-pow-3"');
-	};
-
-	Sparky.fn['value-log'] = function(node, model) {
-		console.warn('Sparky: ctrl "value-log" is deprecated. Replace with "value-number-log"');
-	};
-
+(function() {
+	"use strict";
 
 	function preventDefault(e) {
 		e.preventDefault();
@@ -2769,29 +2791,41 @@ if (!Math.log10) {
 	};
 
 	Sparky.setScope = function(node, scope) {
-		jQuery.data(node, 'scope', scope);
+		if (!window.jQuery) {
+			throw new Error('data-fn="store-scope" requires jQuery.');
+		}
+
+		window.jQuery && jQuery.data(node, 'scope', scope);
 	};
 
 	Sparky.getScope = function(node) {
+		if (!window.jQuery) {
+			throw new Error('data-fn="store-scope" requires jQuery.');
+		}
+
 		return jQuery.data(node, 'scope');
 	};
 
 	Object.assign(Sparky.fn, {
-		"prevent-click": function preventClickCtrl(node) {
+		"prevent-click": function(node) {
 			node.addEventListener('click', preventDefault);
 			this.on('destroy', function() {
 				node.removeEventListener('click', preventDefault);
 			});
 		},
 
-		"prevent-submit": function preventSubmitCtrl(node) {
+		"prevent-submit": function(node) {
 			node.addEventListener('submit', preventDefault);
 			this.on('destroy', function() {
 				node.removeEventListener('submit', preventDefault);
 			});
 		},
 
-		"delegate-scope": Sparky.setScope
+		"store-scope": function(node) {
+			this.on('scope', function(sparky, scope) {
+				Sparky.setScope(node, scope);
+			});
+		}
 	});
 })();
 
@@ -2799,114 +2833,9 @@ if (!Math.log10) {
 (function() {
 	"use strict";
 
-	Sparky.fn['log'] = function(node, scope) {
-		console.group('Sparky.fn.log:');
-		console.log('node:  ', node);
-		console.log('scope: ', scope);
-		console.log('data:  ', this.data);
-		console.log('ctrl:  ', this.ctrl);
-		console.log('sparky:', this);
-		console.groupEnd();
-	};
-
-	Sparky.fn['log-events'] = function(node, model) {
-		var ready = 0;
-		var insert = 0;
-		var destroy = 0;
-
-		this
-		.on('ready', function() {
-			console.log('Sparky.fn.log-events: READY  ', ready++, node);
-		})
-		.on('insert', function() {
-			console.log('Sparky.fn.log-events: INSERT ', insert++, node);
-		})
-		.on('destroy', function() {
-			console.log('Sparky.fn.log-events: DESTROY', destroy++, node);
-		});
-	};
-})();
-
-(function() {
-	"use strict";
-
-	Sparky.fn['html'] = function(node, scope) {
-		var property = node.getAttribute('data-property');
-
-		function update() {
-			node.innerHTML = scope[property];
-		}
-
-		observe(scope, property, update);
-
-		this.destroy = function() {
-			unobserve(scope, property, update);
-		};
-	};
-
-	Sparky.fn['inner-html'] = function() {
-		console.warn('Sparky: deprecated data-fn="inner-html". Use data-fn="html"');
-		Sparky.fn['html'].apply(this, arguments);
-	};
-})();
-
-(function() {
-	"use strict";
-
-	Sparky.fn['click-to-call'] = function(node, scope) {
-		var name = node.getAttribute('data-fn');
-
-		function update(e) {
-			scope[name]();
-			e.preventDefault();
-		}
-
-		node.addEventListener('click', update);
-
-		this.destroy = function() {
-			node.removeEventListener('click', update);
-		};
-	};
-})();
-
-(function() {
-	"use strict";
-
 	var dom = Sparky.dom;
 
-	Sparky.fn['replace'] = function(node, scope) {
-		// Replaces node with contents of one or more
-		// templates given by data-replace attribute
-
-		var sparky = this;
-		var string = node.getAttribute('data-replace');
-
-		if (!string) {
-			console.error(node);
-			throw new Error('Sparky: ctrl "replace" requires attribute data-replace.');
-		}
-
-		string
-		.split(Sparky.rspaces)
-		.forEach(function(name) {
-			var child = sparky.slave(name, scope);
-			var n = child.length;
-
-			while (n--) {
-				dom.after(node, child[n]);
-			}
-		});
-
-		dom.remove(node);
-	};
-})();
-
-(function() {
-	"use strict";
-
-	var dom = Sparky.dom;
-
-	Sparky.fn['x-scroll-slave'] = function(node, scope) {
+	Sparky.fn['x-scroll-slave'] = function(node) {
 		var name = node.getAttribute('data-x-scroll-master');
 		var master;
 
@@ -2915,7 +2844,7 @@ if (!Math.log10) {
 		}
 
 		this
-		.on('insert', function() {
+		.on('dom-add', function() {
 			master = document.getElementById(name);
 
 			if (!master) {
@@ -2932,7 +2861,7 @@ if (!Math.log10) {
 		});
 	};
 
-	Sparky.fn['y-scroll-slave'] = function(node, scope) {
+	Sparky.fn['y-scroll-slave'] = function(node) {
 		var name = node.getAttribute('data-y-scroll-master');
 		var master = document.getElementById(name);
 
@@ -2952,98 +2881,7 @@ if (!Math.log10) {
 			master.removeEventListener('scroll', update);
 		});
 	};
-
-	Sparky.fn["x-scroll-center"] = function(node) {
-		// Center the scroll position horizontally
-		this.on('insert', function() {
-			var w = node.clientWidth;
-			var s = node.scrollWidth;
-			node.scrollLeft = (s - w) / 2;
-		});
-	};
-
-	Sparky.fn["y-scroll-center"] = function(node) {
-		// Center the scroll position vertically
-		this.on('insert', function() {
-			var h = node.clientHeight;
-			var s = node.scrollHeight;
-			node.scrollTop = (s - h) / 2;
-		});
-	};
 })();
-
-
-(function() {
-	"use strict";
-
-	var assign = Object.assign;
-
-	function stringToFloat(value) {
-		// coerse to number
-		var n = parseFloat(value);
-		return Number.isNaN(n) ? undefined :
-			n ;
-	}
-
-	function numberRound0ToString(value) {
-		return typeof value === 'number' ? value.toFixed(0) + '' :
-			undefined ;
-	}
-
-	function numberRound1ToString(value) {
-		return typeof value === 'number' ? value.toFixed(1) + '' :
-			undefined ;
-	}
-
-	function numberRound2ToString(value) {
-		return typeof value === 'number' ? value.toFixed(2) + '' :
-			undefined ;
-	}
-
-	function numberRound3ToString(value) {
-		return typeof value === 'number' ? value.toFixed(3) + '' :
-			undefined ;
-	}
-
-	assign(Sparky.fn, {
-		"value-number-decimals-0": function(node, model) {
-			var unbind = Sparky.parseName(node, model, numberRound0ToString, stringToFloat);
-			if (unbind) { this.on('destroy', unbind); }
-		},
-
-		"value-number-decimals-1": function(node, model) {
-			var unbind = Sparky.parseName(node, model, numberRound1ToString, stringToFloat);
-			if (unbind) { this.on('destroy', unbind); }
-		},
-
-		"value-number-decimals-2": function(node, model) {
-			var unbind = Sparky.parseName(node, model, numberRound2ToString, stringToFloat);
-			if (unbind) { this.on('destroy', unbind); }
-		},
-
-		"value-number-decimals-3": function(node, model) {
-			var unbind = Sparky.parseName(node, model, numberRound3ToString, stringToFloat);
-			if (unbind) { this.on('destroy', unbind); }
-		}
-	});
-})();
-
-
-(function(window) {
-	"use strict";
-
-	var assign = Object.assign;
-	var Sparky = window.Sparky;
-	var dom = Sparky.dom;
-
-	assign(Sparky.fn, {
-		"on-ready-unhide": function onReadyUnhide(node, model) {
-			this.on('ready', function() {
-				dom.classes(this[0]).remove('hidden');
-			});
-		}
-	});
-})(this);
 
 (function(window) {
 	"use strict";
@@ -3833,11 +3671,6 @@ if (!Math.log10) {
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
 	});
 })(jQuery, Sparky);
-
-(function(window) {
-	if (!window.console || !window.console.log) { return; }
-	console.log('_________________________________');
-})(this);
 
 
 // Make the minifier remove debug code paths

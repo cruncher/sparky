@@ -177,10 +177,9 @@ module('Sparky:collections', function(fixture) {
 */});
 
 
-
 module('Sparky.fn.each scope replacement', function(fixture) {
-	asyncTest("", function(assert) {
-		//expect(5);
+	asyncTest("Replace scope.collection", function(assert) {
+		expect(7);
 
 		var collection1 = Collection([{ property: 1 }, { property: 2 }]);
 		var collection2 = Collection([{ property: 3 }, { property: 4 }, { property: 5 }]);

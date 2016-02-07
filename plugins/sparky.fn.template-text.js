@@ -10,7 +10,7 @@
 		//.replace(/\>/g, '&gt;');
 	}
 
-	Sparky.fn.code = function(node, scope) {
+	Sparky.fn['template-text'] = function(node) {
 		var sparky = this;
 		var id = node.getAttribute('data-template');
 		var text, template, code;
@@ -22,11 +22,12 @@
 		// But we do want to make sure the rest of the fns get their turn.
 		var n = -1;
 		fns.forEach(function(fn) {
-			fn.call(sparky, node, scope)
+			fn.call(sparky, node)
 		});
 
 		if (!isDefined(id)) {
-			text = 'data-fn="code" requires a data-template="id".';
+			console.warn('Sparky: data-fn="template-text" requires a data-template="id".')
+			text = '';
 		}
 		else {
 			template = document.getElementById(id);
@@ -35,7 +36,8 @@
 				text = escapeHTML(template.innerHTML);
 			}
 			else {
-				text = 'data-template="'+ id +'" not found in the DOM.';
+				console.warn('Sparky: data-template="'+ id +'" not found in the DOM.');
+				text = '';
 			}
 		}
 

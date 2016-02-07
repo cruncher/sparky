@@ -246,6 +246,9 @@
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
 
+		var tag = dom.tag(node);
+		if (tag !== 'template' && tag !== 'script') { return; }
+
 		if (node.content) {
 			return fragmentFromContent(node);
 		}

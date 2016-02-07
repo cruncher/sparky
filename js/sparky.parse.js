@@ -103,7 +103,7 @@
 		input: function(node, bind, unbind, get, set, create, unobservers) {
 			var type = node.type;
 
-//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -218,8 +218,14 @@
 			// be about to modify the DOM.
 			nodes = slice(template.childNodes);
 
-			// Insert the template on the next frame.
-			window.requestAnimationFrame(function() {
+			// Wait for scope to become available with a self-unbinding function
+			// before appending the template to the DOM. BE AWARE, here, that
+			// this could throw a bug in the works: we're currently looping over
+			// bindings outside of the call to bind, and inside we call unbind,
+			// which modifies bindings... see? It won't bug just now, becuase
+			// negative loops, but if you change anything...
+			bind(function domify() {
+				unbind(domify);
 				Sparky.dom.empty(node);
 				Sparky.dom.append(node, template);
 			});
@@ -614,7 +620,7 @@
 
 		bind(path, update);
 
-		return function unbind() {
+		return function() {
 			node.removeEventListener('change', change);
 			node.removeEventListener('input', change);
 
