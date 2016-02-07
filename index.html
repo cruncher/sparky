@@ -514,12 +514,14 @@
 		<p class="step-2">
 		That's Sparky in a nutshell.
 		</p>
-		<p>
+		<p class="step-2">
 		The <code>cart</code> object is exposed on <code>window</code> in
-		case you would like to play with it in the console.
+		case you would like to play with it in the console. Try replacing
+		<code>cart.items</code> with an entirely <code>new Collection()</code>
+		and notice that Sparky picks it right up.
 		</p>
-		<p>
-		Sparky is designed to be simple. It has some other nifty features –
+		<p class="step-2">
+		Sparky is designed to be simple. It a number of other nifty features –
 		but that's the gist of it.
 		</p>
 	</div>
@@ -572,7 +574,8 @@ Sparky.fn.cart = function(node) {
 						title: "Rope",
 						description: "Strong nylon rope.",
 						quantity: 3,
-						units: 'm'
+						units: 'm',
+						price: 8.00
 					}]);
 				},
 
@@ -609,7 +612,7 @@ Sparky.fn.cart = function(node) {
 </div>
 
 <div class="grid-block block">
-	<h1 class="block grid-1/1">Templates</h1>
+	<h1 class="block grid-1/1">HTML</h1>
 	<div class="block grid-1/3">
 		<h2>data-scope</h2>
 		<h3 class="text-7"><code>data-scope="path.to.object"</code></h3>
@@ -643,7 +646,7 @@ Sparky.fn.cart = function(node) {
 		<h2>data-template</h2>
 		<h3 class="text-7"><code>data-template="id"</code></h3>
 		<p>
-		Replaces the content of an element with the content of a template.
+		Replaces the content of an element with the content of a template referenced by id.
 		</p>
 	</div
 
@@ -753,6 +756,35 @@ Sparky.fn['my-function'] = function(node) {
 	</div>
 </div>
 
+
+<div class="grid-block block">
+	<h1 class="block grid-1/1">Technical</h1>
+
+	<div class="block grid-1/2">
+		<h2>DOM</h2>
+		<p>
+		Sparky is robust against DOM manipulations made outside of Sparky.
+		It does not require you to work with the DOM in a fixed way.
+		When a Sparky instance is constructed Sparky stores an internal reference to only those nodes and attributes where template tags are found.
+		It does not then care if those nodes are moved, classes added or attributes changed by other means –
+		they stay bound until the Sparky instance is destroyed.
+		</p>
+	</div
+
+	><div class="block grid-1/2">
+		<h2>Data</h2>
+		<p>
+		Sparky observes changes to muteable data structures.
+		The observation system uses getters and setters on object properties,
+		and comes with a <code>Collection([])</code> constructor for making observable array-like objects.
+		Arrays <i>can</i> be used, but as there is no sane way to observe them, they are observed by polling
+		(Sparky was disappointed when <a href="https://esdiscuss.org/topic/an-update-on-object-observe">Object.observe was dropped from ES7</a>).
+		</p>
+		<p>
+		If you don't like this observation mechanism you can entirely replace it to suit your own data by overwriting <code>Sparky.observe(object, property, fn)</code>.
+		</p>
+	</div>
+</div>
 
 <footer class="grid-block block">
 	<hr class="grid-1/1" />

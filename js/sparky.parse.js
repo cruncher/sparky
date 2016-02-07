@@ -620,7 +620,7 @@
 
 		bind(path, update);
 
-		return function unbind() {
+		return function() {
 			node.removeEventListener('change', change);
 			node.removeEventListener('input', change);
 
