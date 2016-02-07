@@ -2,10 +2,7 @@
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a live data binding template/view layer for HTML/JS.
-Sparky enhances the DOM with declarative data bindings and composeable templates,
-updates Django-style tags and filters and renders DOM changes in batches at the
-browser frame rate for performance.</strong>
+<strong>Sparky is a live data binding templating engine that enhances the DOM with declarative tags and composeable templates, updating tags and rendering changes in batches at the browser frame rate for performance.</strong>
 
 
 ## A Quick Example
@@ -330,6 +327,14 @@ removes any event handlers. Also destroys any child sparkies.
 Swap the scope being used by this sparky for a new object. Sparky simply updates
 it's DOM with data from the new scope.
 
+#### .interrupt()
+
+Stops Sparky from running functions and parsing a node for tags.
+Typically called when content is being replaced.
+For eaxmple, the built-in function <code>Sparky.fn.each</code> calls interrupt before cloning a node for each item in a collection.
+
+Returns a function containing all functions in the <code>data-fn</code> list that have not yet been run.
+
 #### .tojQuery()
 
 Where jQuery is available, returns sparky's element nodes (but not text nodes)
@@ -347,74 +352,12 @@ classes as much as you like without fear of upsetting Sparky.
 
 ### Events
 
-- <code>ready</code>: triggered after Sparky first updates the node
-- <code>insert</code>: triggered when the node is inserted into the DOM (CURRENTLY UNRELIABLE)
-- <code>destroy</code>: triggered when the node has been unbound from the model
-and removed from the DOM
+- <code>scope</code>: triggered when scope is initialised or changed
+- <code>destroy</code>: triggered when data bindings have been destroyed and
+the node removed from the DOM.
 
 
-
-## API
-
-#### Define a ctrl function
-
-Functions are stored in <code>Sparky.fn</code>. A controller is a function
-that is run just before sparky data-binds the node. The return value of the
-controller is used as scope to update the tags in the sparky template. In Sparky
-scope objects are just plain objects you create.
-
-    Sparky.fn['my-ctrl-1'] = function(node, model) {
-        var scope = { day: 'unknown'; };
-
-        // Listen for changes on a model
-        Sparky.observe(model, 'date', function() {
-            if (model.date === '2014-12-25') {
-                // Update the scope
-                scope.day = 'Christmas!';
-            }
-        });
-
-        return scope;
-    };
-
-Where the <code>ctrl</code> function returns <code>undefined</code>, Sparky uses
-the model as scope.
-
-Controllers are called with a <code>sparky</code> object as their context
-<code>this</code>. It's common to listen to lifecycle events inside a
-controller:
-
-    Sparky.fn['my-ctrl-2'] = function myCtrl2(node, model) {
-        var scope = { day: 'unknown'; };
-
-        this.on('ready', function() {
-            // The node has bound and has been populated with any
-            // existing model data.
-        });
-
-        this.on('insert', function() {
-            // The node has been inserted into the DOM.
-        });
-
-        this.on('destroy', function() {
-            // The node has been unbound from the model and
-            // removed from the DOM
-        });
-
-        return scope;
-    };
-
-Where multiple controllers are defined in <code>data-fn</code> they are all
-called with the same <code>sparky</code> object as context.
-
-#### Define a data object
-
-Data objects are stored in <code>Sparky.data</code>. A model is an object that
-Sparky watches for changes.
-
-    Sparky.data['my-model'] = {
-        date: new Date()
-    };
+## Sparky
 
 #### Sparky.Throttle(fn)
 
