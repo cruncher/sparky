@@ -4,9 +4,6 @@
 
 <strong>Sparky is a live data binding templating engine that enhances the DOM with declarative tags and composeable templates, updating tags and rendering changes in batches at the browser frame rate for performance.</strong>
 
-
-## About
-
 <a href="http://labs.cruncher.ch/sparky/">labs.cruncher.ch/sparky/</a>
 
 
