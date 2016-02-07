@@ -38,7 +38,7 @@
 		body {
 			margin: 0;
 			padding: 0;
-			padding-bottom: 7.5rem;
+			padding-bottom: 1.5625rem;
 			color: #5F333D;
 		}
 
@@ -266,9 +266,14 @@
 			border-radius: 50%;
 		}
 
-		.text-2    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 1.25rem; font-weight: 400; }
+		footer {
+			color: #5F333D;
+		}
+
+		.text-2    { font-family: Helvetica, Arial, sans-serif; font-size: 1.25rem; font-weight: 400; }
 		.text-7    { font-family: Courier, monospace;                 font-size: 1.125rem; font-weight:300; letter-spacing: -0.04em; }
-		.text-9    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 0.75rem; font-weight: 300; }
+		.text-9    { font-family: Helvetica, Arial, sans-serif; font-size: 0.75rem;  font-weight: 300; }
+		.text-10   { font-family: Helvetica, Arial, sans-serif; font-size: 0.875rem; font-weight: 400; }
 
 		.test-button {
 			font-family: Fira, Helvetica, Arial, sans-serif;
@@ -392,7 +397,7 @@
 <script src="js/sparky.filters.js"></script>
 <!--script src="js/sparky.ready.js"></script-->
 
-<script src="js/sparky.fn.code.js"></script>
+<script src="plugins/sparky.fn.template-text.js"></script>
 
 
 
@@ -739,8 +744,8 @@ Sparky.fn['my-function'] = function(node) {
 
 
 <footer class="grid-block block">
-	<hr class="block grid-1/1" />
-	<p class="block grid-1/2">Made at <a href="http://cruncher.ch">Cruncher</a></p>
+	<hr class="grid-1/1" />
+	<p class="block grid-1/2 text-10">Made at <a href="http://cruncher.ch">Cruncher</a></p>
 </footer>
 
 <!-- Clock -->
