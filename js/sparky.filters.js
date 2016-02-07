@@ -181,7 +181,7 @@
 
 		escape: (function() {
 			var pre = document.createElement('pre');
-			var text = document.createTextNode(this);
+			var text = document.createTextNode();
 
 			pre.appendChild(text);
 
@@ -190,10 +190,6 @@
 				return pre.innerHTML;
 			};
 		})(),
-
-		equals: function(value, val, string1, string2) {
-			return (value === val ? string1 : string2) || '';
-		},
 
 		first: function(value) {
 			return value[0];
@@ -295,7 +291,15 @@
 				value === 1 ? str1 : str2 ;
 		},
 
-		//pprint
+		postpad: function(value, n) {
+			var string = isDefined(value) ? value.toString() : '' ;
+			var l = string.length;
+			var m = parseInt(n, 10);
+
+			return m === l ? value :
+				m > l ? string + spaces(m - l) :
+				string.substring(0, m) ;
+		},
 
 		prepad: function(value, n, char) {
 			var string = isDefined(value) ? value.toString() : '' ;
@@ -310,22 +314,9 @@
 			return array.join(char || ' ');
 		},
 
-		postpad: function(value, n) {
-			var string = isDefined(value) ? value.toString() : '' ;
-			var l = string.length;
-			var m = parseInt(n, 10);
-
-			return m === l ? value :
-				m > l ? string + spaces(m - l) :
-				string.substring(0, m) ;
-		},
-
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
-
-		//raw
-		//removetags
 
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
@@ -339,11 +330,11 @@
 
 		//reverse
 
-		safe: function(string) {
-			if (typeof string !== string) { return; }
-			// Actually, we can't do this here, because we cant return DOM nodes
-			return;
-		},
+		//safe: function(string) {
+		//	if (typeof string !== string) { return; }
+		//	// Actually, we can't do this here, because we cant return DOM nodes
+		//	return;
+		//},
 
 		//safeseq
 
@@ -369,29 +360,29 @@
 			};
 		})(),
 
-		striptagsexcept: (function() {
-			var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
-			    allowedTags, result;
-
-			function strip($0, $1, $2) {
-				// Strip any attributes, letting the allowed tag name through.
-				return $2 && allowedTags.indexOf($2) !== -1 ?
-					'<' + ($1 || '') + $2 + '>' :
-					'' ;
-			}
-
-			return function(value, tags) {
-				if (!tags) {
-					return value.replace(rtag, '');
-				}
-
-				allowedTags = tags.split(' ');
-				result = value.replace(rtag, strip);
-				allowedTags = false;
-
-				return result;
-			};
-		})(),
+		//striptagsexcept: (function() {
+		//	var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
+		//	    allowedTags, result;
+		//
+		//	function strip($0, $1, $2) {
+		//		// Strip any attributes, letting the allowed tag name through.
+		//		return $2 && allowedTags.indexOf($2) !== -1 ?
+		//			'<' + ($1 || '') + $2 + '>' :
+		//			'' ;
+		//	}
+		//
+		//	return function(value, tags) {
+		//		if (!tags) {
+		//			return value.replace(rtag, '');
+		//		}
+		//
+		//		allowedTags = tags.split(' ');
+		//		result = value.replace(rtag, strip);
+		//		allowedTags = false;
+		//
+		//		return result;
+		//	};
+		//})(),
 
 		switch: function(value) {
 			if (typeof value === 'string') { value = parseInt(value, 10); }

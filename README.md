@@ -291,101 +291,233 @@ can also create your own. Sparky template filter syntax is similar to
 
     <p>{{ date|date:'d M Y' }}</p>
 
-Sparky has a subset of the Django filters:
-
 - add
 - capfirst
-- cut
+- cut: string – cuts matching string from a value
 - date
-- default
+- decibels – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale.
+- decimals: number – Alias of floatformat.
+- divide: number – Divides by number.
 - escape
-- first
-- floatformat: number
+- first –
+- floatformat: number –
+- floor
+- get: string – Takes an object and renders the named property.
+- greater-than: value, stringTrue, stringFalse
+- invert – Returns 1/property.
+- is: value, stringTrue, stringFalse – Compares property to value.
 - join
 - json
 - last
 - length
-- linebreaksbr
+- less-than: value, stringTrue, stringFalse
 - lower
+- lowercase – Alias of lower.
+- mod: number – Performs value % number.
 - multiply: number
 - parseint
-- pluralize:
+- percent: number – Takes a number and multiplies by 100 to render it as a percentage.
+- pluralize: stringSingular, stringPlural, lang –
+- postpad: number, string –
+- prepad: number, string –
 - random
 - replace
-- safe
+- round
 - slice
 - slugify
 - striptags
-- striptagsexcept
-- time
+- switch: string, &hellip; – Takes a number and returns the string at that index.
+- symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
 - truncatechars
-- unordered_list
+- type – Returns type of value
+- uppercase –
 - yesno
 
-And some of it's own:
 
-- decibels: number – Takes a number as a ratio of powers and performs 20log10(number) to render it on the decibel scale. Useful when working with WebAudio parameters.
-- decimals – Alias of floatformat.
-- get:'propertyName' – Takes an object and renders the named property.
-- lowercase – Alias of lower.
-- percent – Takes a number and multiplies by 100 to render it as a percentage.
-- prepad: n, 'character' –
-- postpad: n, 'character' –
-- symbolise – Converts common values to symbolic equivalents: JavaScript's number Infinity becomes '∞'.
+## Templates
 
-## Notes
+#### [data-scope]
 
-#### Using Sparky with Django
+The <code>data-scope</code> attribute is a path to an object to be used as
+scope to render the tags in this elements. Paths are written in dot notation.
 
-If you do happen to be using Django, Sparky's template tags will clash with
-Django's. To avoid Sparky templates being read by Django, wrap them in Django's
-<code>{% verbatim %}</code> tag:
+    <div data-scope="path.to.object">
+        <h1>{{title}}</h1>
+    </div>
 
-    {% verbatim %}
-    <h1 class="language-{{lang}}" data-scope="text">
-        {{title}}
-        <time>{{date|date:'d M Y'}}</time>
+This will look for the object in the current sparky's <code>sparky.data</code>
+object, or in the global data object <code>Sparky.data</code>. A tagged path
+makes Sparky look for an object in the current scope.
+
+    <div data-scope="{{path.to.object}}">
+        <h1>{{title}}</h1>
+    </div>
+
+If no object is found at <code>path.to.object</code>, the
+<code>&lt;div&gt;</code> is removed from the DOM. Sparky puts it back as soon
+as the path can be resolved to an object. Sparky even updates the DOM if any of
+the objects in the path are swapped for new objects.
+
+Object names can contain <code>-</code> characters, or be numbers.
+
+    {{path.0.my-object}}
+
+
+#### [data-fn]
+
+The <code>data-fn</code> attribute tells Sparky to run one or more functions
+when it wires up this element.
+
+    <form data-fn="submit-validate">...</form>
+
+Sparky looks for functions in the current sparky's <code>sparky.fn</code> store,
+or in the global function store <code>Sparky.fn</code>. Functions are powerful.
+They can modify or replace the scope, change and listen to the DOM, define new
+<code>data</code> and <code>fn</code> stores and so on. Sparky deliberately
+permits anything in a function so that you may organise your app as you please.
+
+More than one <code>fn</code> can be defined. They are run in order.
+
+    <form data-fn="my-app-scope validate-on-submit">...</form>
+
+The return value of each function is passed along the chain as the
+<code>scope</code> argument of the next.
+
+<a href="#define-a-controller-function">Define a ctrl function</a>.
+
+
+#### {{tag}}
+
+Sparky replaces template tags with data, and updates them when the data changes.
+
+    <h1 data-scope="object">{{ first-page.title }}</h1>
+
+The text in the <code>&lt;h1&gt;</code> is now updated whenever
+<code>object.first-page.title</code> changes.
+
+Sparky will find tags in text nodes, <code>class</code>, <code>href</code>, <code>title</code>, <code>id</code>, <code>style</code>, <code>src</code>,
+<code>alt</code>, <code>for</code>, <code>value</code>, <code>min</code>, <code>max</code> and <code>name</code> attributes. This list can be modified
+by pushing to <code>Sparky.attributes</code>.
+
+Sparky treats tags in the <code>class</code> attribute as individual tokens, so
+it is safe to modify the <code>class</code> attribute outside of Sparky. Sparky
+avoids overwriting any new classes that are added.
+
+
+#### {{tag|filter}}
+
+Modify scope values with filters:
+
+    <h1 data-scope="my-model" class="{{selected|yesno:'active','inactive'}}">
+        {{title|uppercase}}
     </h1>
-    {% endverbatim %}
+
+More about <a href="#sparky-template-filters">filters</a>.
+
+
+#### {{{tag}}}
+
+A triple bracket tag updates from the scope once only.
+
+    <h1 data-scope="my-model">{{{ title }}}</h1>
+
+These tags are updated once from the scope (in this case my-model), but they
+don't live bind to changes. If you know where you can do it, this can be good
+for performance.
+
+
+#### Input, select and textarea elements
+
+By putting a Sparky tag in the <code>name</code> attribute, inputs, selects and
+textareas are 2-way wired up to the corresponding data. When the scope changes,
+their values are updated, and when their values are changed, the scope is
+updated.
+
+    <form class="user-form {{valid|yesno:'bg-green'}}" data-scope="{{user}}">
+        <input type="text" name="{{name}}" placeholder="Sparky" />
+        <input type="number" name="{{age}}" />
+    </form>
+
+By default Sparky is strict about type in form elements. The first input above
+is <code>type="text"</code> and it will only get the <code>title</code>
+property if that property is a string. Other types will display as an empty.
+
+    model.title = 'Sparky loves you'; // input.value is 'Sparky loves you'
+    model.title = 3;                  // input.value is ''
+
+Similarly, <code>type="number"</code> and <code>type="range"</code> will only
+get and set numbers, and if the value attribute is not given
+<code>type="checkbox"</code> will only get and set <code>true</code> or
+<code>false</code>. (If the value attribute is given, the property must be a
+string matching the value attribute for the checkbox to be checked).
+
+
+#### [data-fn="value-int"]
+
+To get and set other types, give the element one of Sparky's value functions:
+
+- <code>value-string</code> gets and sets strings
+- <code>value-float</code> gets and sets numbers
+- <code>value-int</code> gets and sets integer numbers, rounding if necessary
+- <code>value-bool</code> gets and sets <code>true</code> or <code>false</code>
+- <code>value-any</code> gets any type, sets strings
+
+Here are some examples. Radio inputs that sets scope.property to number
+<code>1</code> or <code>2</code>:
+
+    <input type="radio" data-fn="value-int" name="{{property}}" value="1" />
+    <input type="radio" data-fn="value-int" name="{{property}}" value="2" />
+
+A select that sets scope.property to <code>true</code> or <code>false</code>:
+
+    <select data-fn="value-bool" name="{{property}}">
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+    </select>
+
+A checkbox that is checked when <code>scope.property === 3</code>:
+
+    <input type="checkbox" data-fn="value-int" name="{{property}}" value="3" />
+
+A range slider that sets scope.property as a string:
+
+    <input type="range" data-fn="value-string" name="{{property}}" min="0" max="1" step="any" />
+
+
+#### [data-fn="each"]
+
+The <code>each</code> function loops over a scope that is a collection or array,
+cloning a new node for each item in the collection. This...
+
+    <ul data-fn="sparky">
+        <li data-scope="{{contributors}}">
+            <a href="{{url}}">{{name}}</a>
+        </li>
+    </ul>
+
+    Sparky.fn.sparky = function(node) {
+        // Return a scope object
+        return {
+            contributors: Collection([
+                { name: "Sparky",   url: "http://github.com/cruncher/sparky" },
+                { name: "Cruncher", url: "http://cruncher.ch" }
+            ])
+        };
+    };
+
+...results in a DOM that looks like this:
+
+    <ul>
+        <li>
+            <a href="http://github.com/cruncher/sparky">Sparky</a>
+        </li>
+        <li>
+            <a href="http://cruncher.ch">Marco</a>
+        </li>
+    </ul>
+
+
 
 ## Sparky says thankwoo
 
 to Mariana Alt (<a href="http://www.alt-design.ch/">www.alt-design.ch</a>) for drawing me for my logo.
-
-
-<!--#### Sparky.observe(object, property, fn);
-
-Sparky.observe observes changes to the property of an object by
-reconfiguring it as a getter/setter. This is very fast but has a
-limitation or two.
-
-Sparky.observe can't listen for changes to the length of an array,
-as arrays don't allow the length property to be configured. But it
-can listen for changes to the length of a collection object:
-
-    var collection = Sparky.Collection(array);
-
-(Sparky can handle arrays, but uses dirty checking internally to observe
-the length. You get better performance from a collection object.)
-
-#### Sparky.unobserve(object, property, fn);
-
-Unbind an observer fn from the object property.
-
-#### Adapt Sparky to your data models
-
-If you want to use a different means of observing changes to data,
-overwrite Sparky.observe and Sparky.unobserve with your own functions.
-Say your models emit events, and you bind to them with .on() and .off()
-methods:
-
-   Sparky.observe = function(object, property, fn) {
-       object.on(property, fn);
-   };
-
-Don't forget the unobserver:
-
-   Sparky.unobserve = function(object, property, fn) {
-       object.off(property, fn);
-   }
--->
