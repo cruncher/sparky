@@ -54,6 +54,10 @@
 			margin-top: 3.75rem;
 		}
 
+		body > .grid-block + footer.grid-block {
+			margin-top: 5rem;
+		}
+
 		@media screen and (min-width: 65em) {
 			body > .grid-block,
 			.float-block > .grid-block,
@@ -268,6 +272,13 @@
 
 		footer {
 			color: #5F333D;
+		}
+
+		.tiny-thumb {
+			width: 1.625rem;
+			padding-top: 1.875rem;
+			vertical-align: -0.5625rem;
+			margin-right: 5px;
 		}
 
 		.text-2    { font-family: Helvetica, Arial, sans-serif; font-size: 1.25rem; font-weight: 400; }
@@ -698,12 +709,12 @@ Sparky.fn.cart = function(node) {
 		view-controllers.
 		</p>
 		<p>
-		Functions are run before the node's content and attributes are parsed
+		Functions are run before the node's content and attributes are scanned
 		and they watch for initialisation and changes using Sparky's lifecycle
 		events. They may modify or overwrite the instance's <code>fn</code> and
 		<code>data</code> objects, providing descendent content access to
 		'private' functions and data. They may also return an object to be
-		used as a scope (in which case changes to outer scopes are ignored).
+		used as a scope, in which case changes to the surrounding scope are ignored.
 		</p>
 
 		<pre><code class="" data-fn="template-text" data-template="function" id="function-code"></code></pre>
@@ -745,7 +756,10 @@ Sparky.fn['my-function'] = function(node) {
 
 <footer class="grid-block block">
 	<hr class="grid-1/1" />
-	<p class="block grid-1/2 text-10">Made at <a href="http://cruncher.ch">Cruncher</a></p>
+	<p class="block grid-1/2 text-10">
+		<span class="tiny-thumb thumb" style="background-image: url('images/cruncher-logo-26x30.png');"></span>
+		Made at <a href="http://cruncher.ch"><b>Cruncher</b></a>
+	</p>
 </footer>
 
 <!-- Clock -->
