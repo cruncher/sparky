@@ -9,7 +9,11 @@
 
 ## Setup
 
-Sparky has submodules. Clone the repo recursively:
+If you just want to clone the repo to use Sparky in a project:
+
+    git clone https://github.com/cruncher/sparky.git
+
+If you're going to develop it, Sparky has submodules. Clone the repo recursively:
 
     git clone https://github.com/cruncher/sparky.git --recursive
 

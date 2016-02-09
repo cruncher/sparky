@@ -4,3 +4,6 @@
 [submodule "modules/object.assign"]
 	path = modules/object.assign
 	url = https://github.com/cruncher/object.assign.git
+[submodule "modules/window.breakpoint"]
+	path = modules/window.breakpoint
+	url = https://github.com/stephband/window.breakpoint.git
