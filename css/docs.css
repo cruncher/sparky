@@ -165,6 +165,15 @@ label {
 	border-top: 1px solid #888888;
 }
 
+.side-block.fixed {
+	top: 40px;
+	width: 17.5rem;
+}
+
+.side-block.relative {
+	top: 1400px;
+}
+
 .clock-block {
 	position: relative;
 	width: 10rem;
@@ -318,4 +327,70 @@ svg { overflow: visible; }
 		max-height 300ms ease-in,
 		opacity 400ms linear,
 		visibility 400ms linear;
+}
+
+
+
+.cart {
+
+}
+
+.cart > p {
+	position: relative;
+	padding-top: 0.75rem;
+	margin-top: 1.5rem;
+	border-top: 1px solid currentcolor;
+}
+
+.cart > p > .price {
+	top: 0.75rem;
+}
+
+.product > img {
+	width: 3.75rem;
+	height: 3.75rem;
+}
+
+.product > h2 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.product > p {
+	position: relative;
+}
+
+.product > a {
+	font-size: 0.75rem;
+}
+
+.product > form {
+	position: relative;
+	display: block;
+	margin-top: 0.25rem;
+}
+
+.product > form > input {
+	display: inline-block;
+	vertical-align: baseline;
+	height: 2.25rem;
+	line-height: 2.125rem;
+	width: 4rem;
+}
+
+.product > form > .price {
+	line-height: 2.25rem;
+}
+
+.price {
+	position: absolute;
+	top: 0;
+	right: 0;
+	font-family: Courier, sans-serif;
+}
+
+.product + .product {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	/*border-top: 1px solid currentcolor;*/
 }

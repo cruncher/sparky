@@ -181,7 +181,7 @@
 
 		escape: (function() {
 			var pre = document.createElement('pre');
-			var text = document.createTextNode();
+			var text = document.createTextNode('');
 
 			pre.appendChild(text);
 

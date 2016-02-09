@@ -52,6 +52,7 @@
 
 <script src="modules/jquery/jquery-2.1.1.js"></script>
 <script src="modules/prettify/prettify.js"></script>
+<script src="modules/window.breakpoint/js/window.breakpoint.js"></script>
 
 <script src="modules/object.assign/object.assign.js"></script>
 <script src="modules/polyfills/number.isnan.js"></script>
@@ -83,18 +84,21 @@
 
 <div class="grid-block block active-{{step}}" id="cart-example" data-fn="example">
 	<h1 class="block grid-1/1">How it works</h1>
-	<div class="block grid-1/3" id="cart-html">
-<div data-fn="cart">
-  <ul data-scope="{{items}}" data-template="cart-items">
-    <li>
-      <h2>Rope</h2>
-      <p>Strong nylon rope.</p>
-      <p>Quantity: 3m</p>
-      <a href="cart/items/0/quantity">Change</a>
-      <a href="cart/items/0/remove">Remove</a>
+	<div class="block grid-1/3">
+		<div id="cart-html" data-fn="scroll-fix" class="side-block block">
+<div data-fn="cart" class="cart">
+  <ul data-scope="{{items}}" data-template="cart-items" class="index">
+    <li class="product">
+      <img src="images/product-cable-ties.png" />
+      <h2>Cable Ties</h2>
+      <p>1 x packet of 50 <span class="price">£2.49</span>
+      </p>
+      <a href="#path/to/product/change/form">Change</a>
     </li>
   </ul>
+  <p>Total <span class="price">£2.49</span></p>
 </div>
+		</div>
 	</div
 
 	><div class="block grid-2/3">
@@ -146,10 +150,11 @@
 		</p>
 
 		<pre class="step-0 step-1 step-2"><code class="js">cart.items = Collection([{
-  title: "Rope",
-  description: "Strong nylon rope.",
-  quantity: 3,
-  units: 'm'
+  title: "Cable Ties",
+  url: "images/product-cable-ties.png",
+  quantity: 1,
+  unit: 'packet of 50',
+  price: 2.49
 }]);</code></pre>
 
 		<button class="step-0" data-fn="click-step">Define <code>cart.items</code></button>
@@ -162,11 +167,12 @@
 		</p>
 
 		<pre class="step-1 step-2"><code class="js">cart.items.add({
-  title: "Gaffa Tape",
-  description: "Fixes anything.",
-  quantity: 2,
-  units: ''
-});</code></pre>
+			title: "Gaffa Tape",
+			url: "images/product-gaffa-tape.png",
+			quantity: 1,
+			unit: 'roll',
+			price: 3.19
+		});</code></pre>
 
 		<button data-fn="click-step" class="step-1">Add the item</button>
 
@@ -194,14 +200,19 @@
 	</div>
 
 <template id="cart-items">
-  <li data-fn="each">
+  <li data-fn="each" class="product">
+    <img src="{{url}}" />
     <h2>{{title}}</h2>
-    <p>{{description}}</p>
-    <form>
-      <label>Quantity <input type="number" name="{{quantity}}" min="1"/> {{units}}</label>
-      <button data-fn="click-to-destroy">Remove</button>
+    <form data-fn="prevent-submit">
+      <input type="number" name="{{quantity}}" min="1"/> x {{unit}}
+      <span class="price">{{price|decimals:2}}</span>
     </form>
+    <button data-fn="click-to-destroy">Remove</button>
   </li>
+</template>
+
+<template id="cart-total">
+  Total <span class="price">£{{total|decimals:2}}</span>
 </template>
 
 	<script id="cart-script-1">
@@ -213,11 +224,15 @@ Sparky.fn.cart = function(node) {
 </script>
 
 	<script>
+(function(window) {
+	"use strict";
+
 	var gaffa = {
 		title: "Gaffa Tape",
-		description: "Fixes anything.",
-		quantity: 2,
-		units: 'rolls'
+		url: "images/product-gaffa-tape.png",
+		quantity: 1,
+		unit: 'roll',
+		price: 3.99
 	};
 
 	Sparky.fn['click-to-run'] = function(node) {
@@ -238,11 +253,11 @@ Sparky.fn.cart = function(node) {
 			actions: [
 				function() {
 					cart.items = Collection([{
-						title: "Rope",
-						description: "Strong nylon rope.",
-						quantity: 3,
-						units: 'm',
-						price: 8.00
+						title: "Cable Ties",
+						url: "images/product-cable-ties.png",
+						quantity: 1,
+						unit: 'packet of 50',
+						price: 2.49
 					}]);
 				},
 
@@ -274,7 +289,44 @@ Sparky.fn.cart = function(node) {
 		return scope;
 	};
 
+	var top = 40;
+
+	function getOffsetTop(node, n) {
+		return node.offsetParent ?
+			getOffsetTop(node.offsetParent, node.offsetTop + (n || 0)) :
+			n || 0;
+	}
+
+	Sparky.fn['scroll-fix'] = function(node) {
+		var query1 = { maxScrollTop: 1800 };
+		var query2 = { minScrollTop: 1800 };
+
+		function update() {
+			query1.minScrollTop = getOffsetTop(node) - top;
+		}
+
+		window.breakpoint(query1, function enter() {
+			Sparky.dom.classes(node).add('fixed');
+		}, function exit() {
+			Sparky.dom.classes(node).remove('fixed');
+		});
+
+		window.breakpoint(query2, function enter() {
+			Sparky.dom.classes(node).add('relative');
+		}, function exit() {
+			Sparky.dom.classes(node).remove('relative');
+		});
+
+		window.addEventListener('resize', update);
+		update();
+
+		this.on('destroy', function() {
+			window.removeEventListener('resize', update);
+		});
+	};
+
 	Sparky('cart-example');
+})(this);
 	</script>
 </div>
 
