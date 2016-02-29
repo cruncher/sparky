@@ -331,7 +331,8 @@
 			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
-		Sparky.logVerbose('Sparky(', node, scope, fn && fn.name, ')');
+		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
+
 		//	typeof node === 'string' ? node :
 		//	Sparky.dom.isFragmentNode(node) ? node :
 		//	nodeToText(node), ',',
@@ -379,7 +380,9 @@
 				Sparky.dom.remove(this);
 			});
 
-			if (initscope) { this.scope(initscope); }
+			// Todo: We don't ALWAYS want to call .scope() here.
+			// if (initscope) { this.scope(initscope); }
+			this.scope(initscope);
 
 			init = false;
 			return;

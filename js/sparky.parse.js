@@ -18,7 +18,7 @@
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
 	// Matches a sparky template tag, capturing (path, filter)
-	var rtagstemplate = /({{0}})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
 	var rtags;
 
 	// Matches a simple sparky template tag, capturing (path)
@@ -63,11 +63,14 @@
 	// DOM
 
 	function setAttributeSVG(node, attribute, value) {
-		if (attribute = 'd') {
+		if (attribute === 'd' || attribute === "transform") {
 			node.setAttribute(attribute, value);
 		}
+		else if (attribute === "href") {
+			node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
+		}
 		else {
-			node.setAttributeNS(Sparky.xlink, attribute, value);
+			node.setAttributeNS(Sparky.svgNamespace, attribute, value);
 		}
 	}
 
@@ -107,7 +110,7 @@
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
-			var unbind = type === 'number' || type === 'range' ?
+			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
 			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
 			    // Checkboxes default to value "on" when the value attribute
@@ -117,7 +120,9 @@
 			    	// Only let strings set the value of other inputs
 			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
 
-			if (unbind) { unobservers.push(unbind); }
+			if (unbindName) { unobservers.push(unbindName); }
+
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		select: function(node, bind, unbind, get, set, create, unobservers) {
@@ -146,8 +151,12 @@
 		},
 
 		path: function(node, bind, unbind, get, set, create, unobservers) {
-			bindAttributes(node, bind, unbind, get, unobservers, ['d']);
-		}
+			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
+		},
+
+		use: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
+		},
 	};
 
 	function domNode(node, bind, unbind, get, set, create) {
@@ -307,7 +316,7 @@
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 		var value = alias ? alias : isSVG ?
-		    	node.getAttributeNS(Sparky.xlink, attribute) || node.getAttribute(attribute) :
+		    	node.getAttributeNS(Sparky.xlinkNamespace, attribute) || node.getAttribute(attribute) :
 		    	node.getAttribute(attribute) ;
 
 		if (!value) { return; }
@@ -426,19 +435,23 @@
 			unobservers.push(observeProperties2(bind, unbind, update, live));
 		}
 		else {
-			update();
+			// Scope is not available yet. We need to wait for it. Todo: This
+			// should be done inside the Sparky constructor.
+			window.requestAnimationFrame(function() {
+				update();
+			});
 		}
 	}
 
 	function observeProperties2(bind, unbind, update, properties) {
 		// Observe properties that are to be live updated
-		properties.forEach(function attach(property) {
+		properties.forEach(function(property) {
 			bind(property, update);
 		});
 
 		// Return a function that destroys live bindings
 		return function destroyBinding() {
-			properties.forEach(function detach(property) {
+			properties.forEach(function(property) {
 				// Unobserve properties
 				unbind(property, update);
 			});
@@ -650,22 +663,23 @@
 			return;
 		}
 
+		// Search name for tags. Data bind the first live tag and remove the tag
+		// parentheses to prevent this node from being name-value bound by other
+		// controllers.
+		// Todo: This is weird semantics: {{prop}} changes value, {{{prop}}}
+		// changes name. Think about this. Hard.
+		var tag, fn;
+
 		Sparky.rtags.lastIndex = 0;
-		var tag = (Sparky.rtags.exec(name) || empty);
-		var path = tag[2];
-
-		if (!path) { return; }
-
-		if (tag[3]) {
-			console.warn('Sparky: Sparky tags in name attributes do not accept filters. Ignoring name="' + name + '".');
-			return;
+		while (tag = Sparky.rtags.exec(node.name)) {
+			if (tag[1].length === 2) {
+				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
+				node.name = node.name.replace(tag[0], tag[2]);
+				break;
+			}
 		}
 
-		// Take the tag parentheses away from the name, preventing this node
-		// from being name-value bound by any other controllers.
-		node.name = name.replace(Sparky.rtags, path);
-
-		return bindValue(node, get, set, bind, unbind, path, to, from);
+		return fn;
 	}
 
 

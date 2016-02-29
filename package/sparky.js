@@ -884,8 +884,11 @@ if (!Math.log10) {
 			}
 		});
 
-		// Populate the collection
-		assign(collection, array);
+		// Populate the collection. Don't use Object.assign for this, as it
+		// doesn't get values from childNode dom collections.
+		var n = -1;
+		while (array[++n]) { collection[n] = array[n]; }
+
 		collection.length = array.length;
 
 		// Sort the collection
@@ -1531,7 +1534,8 @@ if (!Math.log10) {
 			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
-		Sparky.logVerbose('Sparky(', node, scope, fn && fn.name, ')');
+		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
+
 		//	typeof node === 'string' ? node :
 		//	Sparky.dom.isFragmentNode(node) ? node :
 		//	nodeToText(node), ',',
@@ -1579,7 +1583,9 @@ if (!Math.log10) {
 				Sparky.dom.remove(this);
 			});
 
-			if (initscope) { this.scope(initscope); }
+			// Todo: We don't ALWAYS want to call .scope() here.
+			// if (initscope) { this.scope(initscope); }
+			this.scope(initscope);
 
 			init = false;
 			return;
@@ -2546,7 +2552,7 @@ if (!Math.log10) {
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
 	// Matches a sparky template tag, capturing (path, filter)
-	var rtagstemplate = /({{0}})\s*([\w\-\.\[\]]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
 	var rtags;
 
 	// Matches a simple sparky template tag, capturing (path)
@@ -2591,11 +2597,14 @@ if (!Math.log10) {
 	// DOM
 
 	function setAttributeSVG(node, attribute, value) {
-		if (attribute = 'd') {
+		if (attribute === 'd' || attribute === "transform") {
 			node.setAttribute(attribute, value);
 		}
+		else if (attribute === "href") {
+			node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
+		}
 		else {
-			node.setAttributeNS(Sparky.xlink, attribute, value);
+			node.setAttributeNS(Sparky.svgNamespace, attribute, value);
 		}
 	}
 
@@ -2635,7 +2644,7 @@ if (!Math.log10) {
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
-			var unbind = type === 'number' || type === 'range' ?
+			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
 			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
 			    // Checkboxes default to value "on" when the value attribute
@@ -2645,7 +2654,9 @@ if (!Math.log10) {
 			    	// Only let strings set the value of other inputs
 			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
 
-			if (unbind) { unobservers.push(unbind); }
+			if (unbindName) { unobservers.push(unbindName); }
+
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		select: function(node, bind, unbind, get, set, create, unobservers) {
@@ -2674,8 +2685,12 @@ if (!Math.log10) {
 		},
 
 		path: function(node, bind, unbind, get, set, create, unobservers) {
-			bindAttributes(node, bind, unbind, get, unobservers, ['d']);
-		}
+			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
+		},
+
+		use: function(node, bind, unbind, get, set, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
+		},
 	};
 
 	function domNode(node, bind, unbind, get, set, create) {
@@ -2835,7 +2850,7 @@ if (!Math.log10) {
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 		var value = alias ? alias : isSVG ?
-		    	node.getAttributeNS(Sparky.xlink, attribute) || node.getAttribute(attribute) :
+		    	node.getAttributeNS(Sparky.xlinkNamespace, attribute) || node.getAttribute(attribute) :
 		    	node.getAttribute(attribute) ;
 
 		if (!value) { return; }
@@ -2954,19 +2969,23 @@ if (!Math.log10) {
 			unobservers.push(observeProperties2(bind, unbind, update, live));
 		}
 		else {
-			update();
+			// Scope is not available yet. We need to wait for it. Todo: This
+			// should be done inside the Sparky constructor.
+			window.requestAnimationFrame(function() {
+				update();
+			});
 		}
 	}
 
 	function observeProperties2(bind, unbind, update, properties) {
 		// Observe properties that are to be live updated
-		properties.forEach(function attach(property) {
+		properties.forEach(function(property) {
 			bind(property, update);
 		});
 
 		// Return a function that destroys live bindings
 		return function destroyBinding() {
-			properties.forEach(function detach(property) {
+			properties.forEach(function(property) {
 				// Unobserve properties
 				unbind(property, update);
 			});
@@ -3178,22 +3197,23 @@ if (!Math.log10) {
 			return;
 		}
 
+		// Search name for tags. Data bind the first live tag and remove the tag
+		// parentheses to prevent this node from being name-value bound by other
+		// controllers.
+		// Todo: This is weird semantics: {{prop}} changes value, {{{prop}}}
+		// changes name. Think about this. Hard.
+		var tag, fn;
+
 		Sparky.rtags.lastIndex = 0;
-		var tag = (Sparky.rtags.exec(name) || empty);
-		var path = tag[2];
-
-		if (!path) { return; }
-
-		if (tag[3]) {
-			console.warn('Sparky: Sparky tags in name attributes do not accept filters. Ignoring name="' + name + '".');
-			return;
+		while (tag = Sparky.rtags.exec(node.name)) {
+			if (tag[1].length === 2) {
+				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
+				node.name = node.name.replace(tag[0], tag[2]);
+				break;
+			}
 		}
 
-		// Take the tag parentheses away from the name, preventing this node
-		// from being name-value bound by any other controllers.
-		node.name = name.replace(Sparky.rtags, path);
-
-		return bindValue(node, get, set, bind, unbind, path, to, from);
+		return fn;
 	}
 
 
@@ -3405,7 +3425,7 @@ if (!Math.log10) {
 (function(window) {
 	"use strict";
 
-	var assing = Object.assign;
+	var assign = Object.assign;
 	var Sparky = window.Sparky;
 	var dom = Sparky.dom;
 
@@ -3486,7 +3506,7 @@ if (!Math.log10) {
 
 		function observeCollection() {
 			if (collection.on) {
-				collection.on('add remove', throttle);
+				collection.on('add remove sort', throttle);
 				throttle();
 			}
 			else {
@@ -3496,7 +3516,7 @@ if (!Math.log10) {
 
 		function unobserveCollection() {
 			if (collection.on) {
-				collection.off('add remove', throttle);
+				collection.off('add remove sort', throttle);
 			}
 			else {
 				Sparky.unobserve(collection, 'length', throttle);
@@ -3524,10 +3544,6 @@ if (!Math.log10) {
 			throttle.cancel();
 			unobserveCollection();
 		});
-
-		// Return false to stop the current sparky from binding.
-		// ??????? Do we? Dont we? Whazzappnin?
-		//return false;
 	};
 })(this);
 

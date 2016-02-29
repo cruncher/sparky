@@ -1,7 +1,7 @@
 (function(window) {
 	"use strict";
 
-	var assing = Object.assign;
+	var assign = Object.assign;
 	var Sparky = window.Sparky;
 	var dom = Sparky.dom;
 
@@ -82,7 +82,7 @@
 
 		function observeCollection() {
 			if (collection.on) {
-				collection.on('add remove', throttle);
+				collection.on('add remove sort', throttle);
 				throttle();
 			}
 			else {
@@ -92,7 +92,7 @@
 
 		function unobserveCollection() {
 			if (collection.on) {
-				collection.off('add remove', throttle);
+				collection.off('add remove sort', throttle);
 			}
 			else {
 				Sparky.unobserve(collection, 'length', throttle);
@@ -120,9 +120,5 @@
 			throttle.cancel();
 			unobserveCollection();
 		});
-
-		// Return false to stop the current sparky from binding.
-		// ??????? Do we? Dont we? Whazzappnin?
-		//return false;
 	};
 })(this);
