@@ -3262,12 +3262,16 @@ if (!Math.log10) {
 		var sparky = this;
 
 		function log(node, scope) {
+			console.log('scope change');
 			console.log('node ', node);
 			console.log('scope', scope);
 			console.log('data', sparky.data);
 		}
 
 		this.on('scope', log);
+
+		console.log('initialisation');
+		console.log('node ', node);
 	};
 })(this);
 
