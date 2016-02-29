@@ -18,16 +18,18 @@
 		var sparky = this;
 
 		function log(node, scope) {
-			console.log('scope change');
+			console.group('scope change');
 			console.log('node ', node);
 			console.log('scope', scope);
 			console.log('data', sparky.data);
+			console.groupEnd();
 		}
 
 		this.on('scope', log);
 
-		console.log('initialisation');
+		console.group('initialisation');
 		console.log('node ', node);
+		console.groupEnd();
 	};
 })(this);
 
