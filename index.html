@@ -96,7 +96,7 @@
       <a href="#path/to/product/change/form">Change</a>
     </li>
   </ul>
-  <p>Total <span class="price">£2.49</span></p>
+  <p data-scope="{{items}}" data-template="cart-total">Total <span class="price">£2.49</span></p>
 </div>
 		</div>
 	</div
@@ -108,7 +108,6 @@
 		</p>
 
 		<pre><code class="html" data-fn="template-text" data-template="cart-html"></code></pre>
-
 
 		<h3 class="text-4">data-fn</h3>
 		<p>
@@ -212,7 +211,7 @@
 </template>
 
 <template id="cart-total">
-  Total <span class="price">£{{total|decimals:2}}</span>
+  Total <span class="price" data-fn="cart-total">£{{total|decimals:2}}</span>
 </template>
 
 	<script id="cart-script-1">
@@ -235,6 +234,14 @@ Sparky.fn.cart = function(node) {
 		price: 3.99
 	};
 
+	function getPrice(object) {
+		return object.price;
+	}
+
+	function sum(a, b) {
+		return a + b;
+	}
+
 	Sparky.fn['click-to-run'] = function(node) {
 
 	};
@@ -245,6 +252,23 @@ Sparky.fn.cart = function(node) {
 
 	Sparky.fn['cart-gaffa'] = function(node) {
 		return gaffa;
+	};
+
+	Sparky.fn['cart-total'] = function(node) {
+		var scope = {};
+console.log('cart-total');
+		function updateTotal(items) {
+			scope.total = items.map(getPrice).reduce(sum, 0);
+		}
+
+		this.on('scope', function(sparky, items) {
+console.log('SCOPE', sparky, items);
+			if (!items.on) { return; }
+			items.on('add remove', updateTotal);
+			updateTotal(items);
+		});
+
+		return scope;
 	};
 
 	Sparky.fn.example = function() {
@@ -496,8 +520,9 @@ Sparky.fn['my-function'] = function(node) {
 		Sparky observes changes to muteable data structures.
 		The observation system uses getters and setters on object properties,
 		and comes with a <code>Collection([])</code> constructor for making observable array-like objects.
-		Arrays <i>can</i> be used, but as there is no sane way to observe them, they are observed by polling
-		(Sparky was disappointed when <a href="https://esdiscuss.org/topic/an-update-on-object-observe">Object.observe was dropped from ES7</a>).
+		Arrays <i>can</i> be used, but as there is no sane way to observe them, they are observed by polling.
+		Sparky was disappointed when <a href="https://esdiscuss.org/topic/an-update-on-object-observe">Object.observe was dropped from ES7</a>,
+		but he's getting ready for <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy#A_complete_traps_list_example">ES6 Proxies</a>.
 		</p>
 		<p>
 		If you don't like this observation mechanism you can entirely replace it to suit your own data by overwriting <code>Sparky.observe(object, property, fn)</code>.

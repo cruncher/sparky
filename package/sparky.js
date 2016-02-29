@@ -137,6 +137,503 @@ if (!Math.log10) {
 })(window);
 
 
+// mixin.listeners
+
+// .on(types, fn, [args...])
+// Binds a function to be called on events in types. The
+// callback fn is called with this object as the first
+// argument, followed by arguments passed to .trigger(),
+// followed by arguments passed to .on().
+
+// .on(object)
+// Registers object as a propagation target. Handlers bound
+// to the propagation target are called with 'this' set to
+// this object, and the target object as the first argument.
+
+// .off(types, fn)
+// Unbinds fn from given event types.
+
+// .off(types)
+// Unbinds all functions from given event types.
+
+// .off(fn)
+// Unbinds fn from all event types.
+
+// .off(object)
+// Stops propagation of all events to given object.
+
+// .off()
+// Unbinds all functions and removes all propagation targets.
+
+// .trigger(type, [args...])
+// Triggers event of type.
+
+(function(window) {
+	"use strict";
+
+	var mixin = window.mixin || (window.mixin = {});
+	var eventObject = {};
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
+				value: {}
+			});
+		}
+
+		return object.listeners;
+	}
+
+	function getDelegates(object) {
+		if (!object.delegates) {
+			Object.defineProperty(object, 'delegates', {
+				value: []
+			});
+		}
+
+		return object.delegates;
+	}
+
+	function setupPropagation(object1, object2) {
+		var delegates = getDelegates(object1);
+
+		// Make sure delegates stays unique
+		if (delegates.indexOf(object2) === -1) {
+			delegates.push(object2);
+		}
+	}
+
+	function teardownPropagation(object1, object2) {
+		var delegates = getDelegates(object1);
+
+		if (object2 === undefined) {
+			delegates.length = 0;
+			return;
+		}
+
+		var i = delegates.indexOf(object2);
+
+		if (i === -1) { return; }
+
+		delegates.splice(i, 1);
+	}
+
+	function triggerListeners(object, listeners, args) {
+		var i = -1;
+		var l = listeners.length;
+		var params, result;
+
+		while (++i < l && result !== false) {
+			params = args.concat(listeners[i][1]);
+			result = listeners[i][0].apply(object, params);
+		}
+
+		return result;
+	}
+
+
+	mixin.events = {
+		// .on(type, fn)
+		//
+		// Callback fn is called with this set to the current object
+		// and the arguments (target, triggerArgs..., onArgs...).
+		on: function(types, fn) {
+			// If types is an object with a trigger method, set it up so that
+			// events propagate from this object.
+			if (arguments.length === 1 && types.trigger) {
+				setupPropagation(this, types);
+				return this;
+			}
+
+			if (!fn) { throw new Error('Sparky: calling .on("' + types + '", fn) but fn is ' + typeof fn); }
+
+			var events = getListeners(this);
+			var type, item;
+
+			if (typeof types === 'string') {
+				types = types.trim().split(/\s+/);
+				item = [fn, slice(arguments, 2)];
+			}
+			else {
+				return this;
+			}
+
+			while (type = types.shift()) {
+				// If the event has no listener queue, create one using a copy
+				// of the all events listener array.
+				if (!events[type]) {
+					events[type] = [];
+				}
+
+				// Store the listener in the queue
+				events[type].push(item);
+			}
+
+			return this;
+		},
+
+		// Remove one or many callbacks. If `context` is null, removes all callbacks
+		// with that function. If `callback` is null, removes all callbacks for the
+		// event. If `events` is null, removes all bound callbacks for all events.
+		off: function(types, fn) {
+			var type, calls, list, listeners, n;
+
+			// If no arguments passed in, unbind everything.
+			if (arguments.length === 0) {
+				teardownPropagation(this);
+
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
+					}
+				}
+
+				return this;
+			}
+
+			// If types is an object with a trigger method, stop propagating
+			// events to it.
+			if (arguments.length === 1 && types.trigger) {
+				teardownPropagation(this, types);
+				return this;
+			}
+
+			// No events.
+			if (!this.listeners) { return this; }
+
+			if (typeof types === 'string') {
+				// .off(types, fn)
+				types = types.trim().split(/\s+/);
+			}
+			else {
+				// .off(fn)
+				fn = types;
+				types = Object.keys(this.listeners);
+			}
+
+			while (type = types.shift()) {
+				listeners = this.listeners[type];
+
+				if (!listeners) { continue; }
+
+				if (!fn) {
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
+					continue;
+				}
+
+				n = listeners.length;
+
+				// Go through listeners in reverse order to avoid
+				// mucking up the splice indexes.
+				while (n--) {
+					if (listeners[n][0] === fn) {
+						listeners.splice(n, 1);
+					}
+				}
+			}
+
+			return this;
+		},
+
+		trigger: function(e) {
+			var events = getListeners(this);
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = getDelegates(this).slice();
+			var args = slice(arguments);
+			var type, target, i, l, params, result;
+
+			if (typeof e === 'string') {
+				type = e;
+				target = this;
+			}
+			else {
+				type = e.type;
+				target = e.target;
+			}
+
+			if (events[type]) {
+				args[0] = target;
+
+				// Use a copy of the event list in case it gets mutated
+				// while we're triggering the callbacks. If a handler
+				// returns false stop the madness.
+				if (triggerListeners(this, events[type].slice(), args) === false) {
+					return this;
+				}
+			}
+
+			if (!delegates.length) { return this; }
+
+			i = -1;
+			l = delegates.length;
+			args[0] = eventObject;
+
+			if (typeof e === 'string') {
+				// Prepare the event object. It's ok to reuse a single object,
+				// as trigger calls are synchronous, and the object is internal,
+				// so it does not get exposed.
+				eventObject.type = type;
+				eventObject.target = target;
+			}
+
+			while (++i < l) {
+				delegates[i].trigger.apply(delegates[i], args);
+			}
+
+			// Return this for chaining
+			return this;
+		}
+	};
+})(this);
+
+
+// observe(object, [prop], fn)
+// unobserve(object, [prop], [fn])
+//
+// Observes object properties for changes by redefining
+// properties of the observable object with setters that
+// fire a callback function whenever the property changes.
+// I warn you, this is hairy stuff. But when it works, it
+// works beautifully.
+
+(function(window){
+	var debug = false;
+
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+	var toString = Function.prototype.call.bind(Object.prototype.toString);
+
+	function isFunction(object) {
+		toString(object) === '[object Function]';
+	}
+
+	function call(array) {
+		// Call observer with stored arguments
+		array[0].apply(null, array[1]);
+	}
+
+	function getDescriptor(object, property) {
+		return object && (
+			Object.getOwnPropertyDescriptor(object, property) ||
+			getDescriptor(Object.getPrototypeOf(object), property)
+		);
+	}
+
+	function notifyObservers(object, observers) {
+		// Copy observers in case it is modified.
+		observers = observers.slice();
+
+		var n = -1;
+		var params, scope;
+
+		// Notify this object, and any objects that have
+		// this object in their prototype chain.
+		while (observers[++n]) {
+			params = observers[n];
+			scope = params[1][0];
+
+// Why did I do this? Why? Pre-emptive 'watch out, mates'?
+//			if (scope === object || scope.isPrototypeOf(object)) {
+				call(params);
+//			}
+		}
+	}
+
+	function notify(object, property) {
+		var prototype = object;
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		notifyObservers(object, observers);
+	}
+
+	function createProperty(object, property, observers, descriptor) {
+		var value = object[property];
+
+		delete descriptor.writable;
+		delete descriptor.value;
+
+		descriptor.configurable = false;
+		descriptor.get = function() { return value; };
+		descriptor.set = function(v) {
+			if (v === value) { return; }
+			value = v;
+			// Copy the array in case an observer modifies it.
+			observers.slice().forEach(call);
+		};
+
+		// Store the observers on the getter. TODO: We may
+		// want to think about putting them in a weak map.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function replaceGetSetProperty(object, property, observers, descriptor) {
+		var set = descriptor.set;
+
+		if (set) {
+			descriptor.set = function(v) {
+				set.call(this, v);
+				notifyObservers(this, observers);
+			};
+		}
+
+		// Prevent anything losing these observers.
+		descriptor.configurable = false;
+
+		// Store the observers so that future observers can be added.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function observeProperty(object, property, fn) {
+		var args = slice(arguments, 0);
+
+		// Cut both prop and fn out of the args list
+		args.splice(1, 2);
+
+		var observer = [fn, args];
+		var prototype = object;
+		var descriptor;
+
+		// Find the nearest descriptor in the prototype chain.
+		while (
+			!(descriptor = Object.getOwnPropertyDescriptor(prototype, property)) &&
+			(prototype = Object.getPrototypeOf(prototype))
+		);
+
+		// If an observers list is already defined all we
+		// have to do is add our fn to the queue.
+		if (descriptor && descriptor.get && descriptor.get.observers) {
+			descriptor.get.observers.push(observer);
+			return;
+		}
+
+		var observers = [observer];
+
+		// If there is no descriptor, create a new property.
+		if (!descriptor) {
+			createProperty(object, property, observers, { enumerable: true });
+			return;
+		}
+
+		// If the property is not configurable we cannot
+		// overwrite the set function, so we're stuffed.
+		if (descriptor.configurable === false) {
+			// Although we can get away with observing
+			// get-only properties, as they don't replace
+			// the setter and they require an explicit call
+			// to notify().
+			if (descriptor.get && !descriptor.set) {
+				descriptor.get.observers = observers;
+			}
+			else {
+				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+				debug && console.trace();
+			}
+
+			return;
+		}
+
+		// If the property is writable, we're ok to overwrite
+		// it with a getter/setter. This has a side effect:
+		// normally a writable property in a prototype chain
+		// will be superseded by a property set on the object
+		// at the time of the set, but we're going to
+		// supersede it now. There is not a great deal that
+		// can be done to mitigate this.
+		if (descriptor.writable === true) {
+			createProperty(object, property, observers, descriptor);
+			return;
+		}
+
+		// If the property is not writable, we don't want to
+		// be replacing it with a getter/setter.
+		if (descriptor.writable === false) {
+			debug && console.warn('observe: Property .' + property + ' has { writable: false }. Shall not observe.', object);
+			return;
+		}
+
+		// If the property has no getter, what is the point
+		// even trying to observe it?
+		if (!descriptor.get) {
+			debug && console.warn('observe: Property .' + property + ' has a setter but no getter. Will not observe.', object);
+			return;
+		}
+
+		// Replace the getter/setter
+		replaceGetSetProperty(prototype, property, observers, descriptor);
+	}
+
+	function observe(object, property, fn) {
+		var args, key;
+
+		// Overload observe to handle observing all properties with
+		// the function signature observe(object, fn).
+		if (toString(property) === '[object Function]') {
+			fn = prop;
+			args = slice(arguments, 0);
+			args.splice(1, 0, null);
+
+			for (property in object) {
+				args[1] = property;
+				observeProperty.apply(null, args);
+			};
+
+			return;
+		}
+
+		observeProperty.apply(null, arguments);
+	}
+
+	function unobserve(object, property, fn) {
+		var index;
+
+		if (property instanceof Function) {
+			fn = property;
+
+			for (property in object) {
+				unobserve(data, key, fn);
+			};
+
+			return;
+		}
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		var n;
+
+		if (fn) {
+			n = observers.length;
+			while (n--) {
+				if (observers[n][0] === fn) {
+					observers.splice(n, 1);
+				}
+			}
+		}
+		else {
+			observers.length = 0;
+		}
+	}
+
+	window.observe = observe;
+	window.unobserve = unobserve;
+	window.notify = notify;
+})(window);
+
+
 // Collection()
 
 (function(window) {
@@ -1058,7 +1555,6 @@ if (!Math.log10) {
 		// Setup this as a Collection of nodes. Where node is a document
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
-
 
 		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
 		// accept scope as second parameter. Actually, no no no - the potential
@@ -2652,7 +3148,7 @@ if (!Math.log10) {
 
 		bind(path, update);
 
-		return function unbind() {
+		return function() {
 			node.removeEventListener('change', change);
 			node.removeEventListener('input', change);
 
@@ -3326,7 +3822,7 @@ if (!Math.log10) {
 
 		escape: (function() {
 			var pre = document.createElement('pre');
-			var text = document.createTextNode(this);
+			var text = document.createTextNode('');
 
 			pre.appendChild(text);
 
@@ -3335,10 +3831,6 @@ if (!Math.log10) {
 				return pre.innerHTML;
 			};
 		})(),
-
-		equals: function(value, val, string1, string2) {
-			return (value === val ? string1 : string2) || '';
-		},
 
 		first: function(value) {
 			return value[0];
@@ -3440,7 +3932,15 @@ if (!Math.log10) {
 				value === 1 ? str1 : str2 ;
 		},
 
-		//pprint
+		postpad: function(value, n) {
+			var string = isDefined(value) ? value.toString() : '' ;
+			var l = string.length;
+			var m = parseInt(n, 10);
+
+			return m === l ? value :
+				m > l ? string + spaces(m - l) :
+				string.substring(0, m) ;
+		},
 
 		prepad: function(value, n, char) {
 			var string = isDefined(value) ? value.toString() : '' ;
@@ -3455,22 +3955,9 @@ if (!Math.log10) {
 			return array.join(char || ' ');
 		},
 
-		postpad: function(value, n) {
-			var string = isDefined(value) ? value.toString() : '' ;
-			var l = string.length;
-			var m = parseInt(n, 10);
-
-			return m === l ? value :
-				m > l ? string + spaces(m - l) :
-				string.substring(0, m) ;
-		},
-
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
-
-		//raw
-		//removetags
 
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
@@ -3484,11 +3971,11 @@ if (!Math.log10) {
 
 		//reverse
 
-		safe: function(string) {
-			if (typeof string !== string) { return; }
-			// Actually, we can't do this here, because we cant return DOM nodes
-			return;
-		},
+		//safe: function(string) {
+		//	if (typeof string !== string) { return; }
+		//	// Actually, we can't do this here, because we cant return DOM nodes
+		//	return;
+		//},
 
 		//safeseq
 
@@ -3514,29 +4001,29 @@ if (!Math.log10) {
 			};
 		})(),
 
-		striptagsexcept: (function() {
-			var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
-			    allowedTags, result;
-
-			function strip($0, $1, $2) {
-				// Strip any attributes, letting the allowed tag name through.
-				return $2 && allowedTags.indexOf($2) !== -1 ?
-					'<' + ($1 || '') + $2 + '>' :
-					'' ;
-			}
-
-			return function(value, tags) {
-				if (!tags) {
-					return value.replace(rtag, '');
-				}
-
-				allowedTags = tags.split(' ');
-				result = value.replace(rtag, strip);
-				allowedTags = false;
-
-				return result;
-			};
-		})(),
+		//striptagsexcept: (function() {
+		//	var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
+		//	    allowedTags, result;
+		//
+		//	function strip($0, $1, $2) {
+		//		// Strip any attributes, letting the allowed tag name through.
+		//		return $2 && allowedTags.indexOf($2) !== -1 ?
+		//			'<' + ($1 || '') + $2 + '>' :
+		//			'' ;
+		//	}
+		//
+		//	return function(value, tags) {
+		//		if (!tags) {
+		//			return value.replace(rtag, '');
+		//		}
+		//
+		//		allowedTags = tags.split(' ');
+		//		result = value.replace(rtag, strip);
+		//		allowedTags = false;
+		//
+		//		return result;
+		//	};
+		//})(),
 
 		switch: function(value) {
 			if (typeof value === 'string') { value = parseInt(value, 10); }
