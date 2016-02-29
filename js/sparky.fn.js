@@ -11,6 +11,23 @@
 })(this);
 
 (function(window) {
+	var Sparky = window.Sparky;
+
+	// Logs nodes, scopes and data.
+	Sparky.fn.log = function(node) {
+		var sparky = this;
+
+		function log(node, scope) {
+			console.log('node ', node);
+			console.log('scope', scope);
+			console.log('data', sparky.data);
+		}
+
+		this.on('scope', log);
+	};
+})(this);
+
+(function(window) {
 	"use strict";
 
 	var assign = Object.assign;
