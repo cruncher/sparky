@@ -130,8 +130,10 @@
 			bindNodes(node, bind, unbind, get, set, create, unobservers);
 
 			// Only let strings set the value of selects
-			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
-			if (unbind) { unobservers.push(unbind); }
+			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbindName) { unobservers.push(unbindName); }
+
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		option: function(node, bind, unbind, get, set, create, unobservers) {
@@ -141,8 +143,9 @@
 
 		textarea: function(node, bind, unbind, get, set, create, unobservers) {
 			// Only let strings set the value of a textarea
-			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
-			if (unbind) { unobservers.push(unbind); }
+			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbindName) { unobservers.push(unbindName); }
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		time: function(node, bind, unbind, get, set, create, unobservers)  {
