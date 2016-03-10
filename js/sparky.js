@@ -244,7 +244,8 @@
 	function addNodes(sparky) {
 		if (!sparky.placeholders) {
 			// If nodes are already in the DOM trigger the event.
-			if (document.contains(sparky[0])) {
+			// Can't use document.contains - doesn't exist in IE9.
+			if (document.body.contains(sparky[0])) {
 				sparky.trigger('dom-add');
 			}
 
