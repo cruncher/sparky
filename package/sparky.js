@@ -884,11 +884,8 @@ if (!Math.log10) {
 			}
 		});
 
-		// Populate the collection. Don't use Object.assign for this, as it
-		// doesn't get values from childNode dom collections.
-		var n = -1;
-		while (array[++n]) { collection[n] = array[n]; }
-
+		// Populate the collection
+		assign(collection, array);
 		collection.length = array.length;
 
 		// Sort the collection
@@ -1447,7 +1444,8 @@ if (!Math.log10) {
 	function addNodes(sparky) {
 		if (!sparky.placeholders) {
 			// If nodes are already in the DOM trigger the event.
-			if (document.contains(sparky[0])) {
+			// Can't use document.contains - doesn't exist in IE9.
+			if (document.body.contains(sparky[0])) {
 				sparky.trigger('dom-add');
 			}
 
@@ -2664,8 +2662,10 @@ if (!Math.log10) {
 			bindNodes(node, bind, unbind, get, set, create, unobservers);
 
 			// Only let strings set the value of selects
-			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
-			if (unbind) { unobservers.push(unbind); }
+			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbindName) { unobservers.push(unbindName); }
+
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		option: function(node, bind, unbind, get, set, create, unobservers) {
@@ -2675,8 +2675,9 @@ if (!Math.log10) {
 
 		textarea: function(node, bind, unbind, get, set, create, unobservers) {
 			// Only let strings set the value of a textarea
-			var unbind = parseName(node, get, set, bind, unbind, returnArg, returnArg);
-			if (unbind) { unobservers.push(unbind); }
+			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			if (unbindName) { unobservers.push(unbindName); }
+			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		time: function(node, bind, unbind, get, set, create, unobservers)  {
