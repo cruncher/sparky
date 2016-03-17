@@ -228,9 +228,6 @@
 		setup(this, node, to, from);
 	};
 
-
-
-
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
 		'value-string':         valueString,
