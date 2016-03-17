@@ -4,7 +4,7 @@
 // If jQuery is present and when the DOM is ready, traverse it looking for
 // data-scope and data-fn attributes and use them to instantiate Sparky.
 
-(function(jQuery, Sparky) {
+(function(window) {
 	if (!jQuery) { return; }
 
 	var dom = Sparky.dom;
@@ -16,7 +16,7 @@
 		return isInTemplate(node.parentNode);
 	}
 
-	doc.ready(function docReady(){
+	Sparky.onContentLoaded = function onContentLoad(){
 		var start;
 
 		if (window.console) { start = Date.now(); }
@@ -68,5 +68,9 @@
 		});
 
 		if (window.console) { console.log('Sparky: DOM initialised in ' + (Date.now() - start) + 'ms'); }
+	}
+
+	document.addEventListener("DOMContentLoaded", function() {
+		Sparky.onContentLoaded();
 	});
-})(jQuery, Sparky);
+})(this);
