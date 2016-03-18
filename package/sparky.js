@@ -1432,6 +1432,23 @@ if (!Math.log10) {
 		}
 	}
 
+	function render(scope, bindings) {
+		var n = bindings.length;
+		var path, throttle;
+
+		while (n--) {
+			path = bindings[n][0];
+			throttle = bindings[n][2];
+
+			if (path) {
+				throttle(Sparky.get(scope, path));
+			}
+			else {
+				throttle();
+			}
+		}
+	}
+
 	function destroy(bindings) {
 		var n = bindings.length;
 		var throttle;
@@ -1631,6 +1648,11 @@ if (!Math.log10) {
 			}
 		);
 
+		// Define a function for edge cases when the dev wants to force a render.
+		this.render = function() {
+			render(scope, bindings);
+		};
+
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
 			this.placeholders && Sparky.dom.remove(this.placeholders);
@@ -1681,6 +1703,7 @@ if (!Math.log10) {
 		},
 
 		scope: returnThis,
+		render: returnThis,
 
 		interrupt: function interrupt() { return []; },
 
@@ -3780,9 +3803,6 @@ if (!Math.log10) {
 
 		setup(this, node, to, from);
 	};
-
-
-
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
