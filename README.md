@@ -433,40 +433,50 @@ for performance.
 #### Input, select and textarea elements
 
 By putting a Sparky tag in the <code>name</code> attribute, inputs, selects and
-textareas are 2-way wired up to the corresponding data. When the scope changes,
-their values are updated, and when their values are changed, the scope is
+textareas are 2-way bound to a scope property. When the scope changes, the
+input's values is updated, and when the input is changed the scope property is
 updated.
 
-    <form class="user-form {{valid|yesno:'bg-green'}}" data-scope="{{user}}">
-        <input type="text" name="{{name}}" placeholder="Sparky" />
+    <form class="user-form" data-scope="{{user}}">
+        <input type="text" name="{{username}}" placeholder="Sparky" />
         <input type="number" name="{{age}}" />
     </form>
 
 By default Sparky is strict about type in form elements. The first input above
-is <code>type="text"</code> and it will only get the <code>title</code>
-property if that property is a string. Other types will display as an empty.
+is <code>type="text"</code> and it will only display the <code>username</code>
+property if that property is a string. Other types will display as an empty value.
 
-    model.title = 'Sparky loves you'; // input.value is 'Sparky loves you'
-    model.title = 3;                  // input.value is ''
+    scope.username = 'Sparky';    // input.value === 'Sparky'
+    scope.username = 3;           // input.value === ''
 
-Similarly, <code>type="number"</code> and <code>type="range"</code> will only
-get and set numbers, and if the value attribute is not given
-<code>type="checkbox"</code> will only get and set <code>true</code> or
-<code>false</code>. (If the value attribute is given, the property must be a
-string matching the value attribute for the checkbox to be checked).
+The second input is <code>type="number"</code>. It will only display the
+<code>age</code> property if that property is a number.
 
+    scope.age = 'Fourteen';       // input.value === ''
+    scope.age = 32;               // input.value === '32'
 
-#### [data-fn="value-int"]
+Similarly, <code>type="range"</code> only gets and sets numbers, and
+<code>type="checkbox"</code> only gets and sets booleans unless the value
+attribute contains a string (in which case the property must be a string
+matching the value for the input to be checked). Other types get and set strings
+by default. To force the input to get and set a different type use one of
+Sparky's <code>value-<i>xxx</i></code> functions&hellips;
 
-To get and set other types, give the element one of Sparky's value functions:
+#### data-fn="value-<i>xxx</i>"
 
-- <code>value-string</code> gets and sets strings
-- <code>value-float</code> gets and sets numbers
-- <code>value-int</code> gets and sets integer numbers, rounding if necessary
-- <code>value-bool</code> gets and sets <code>true</code> or <code>false</code>
+To data-bind a specific type, give the element one of Sparky's value functions:
+
+- <code>value-string</code> sets a string
+- <code>value-float</code> sets a float
+- <code>value-float-log</code> sets a float with a <code>log x</code> transform
+- <code>value-float-pow-2</code> sets a float with a <code>x<sup>2</sup></code> transform
+- <code>value-float-pow-3</code> sets a float with a <code>x<sup>3</sup></code> transform
+- <code>value-int</code> sets an integer, rounding where necessary
+- <code>value-int-log</code> sets an integer with a log transform
+- <code>value-bool</code> sets <code>true</code> or <code>false</code>
 - <code>value-any</code> gets any type, sets strings
 
-Here are some examples. Radio inputs that sets scope.property to number
+Here are some examples. Radio inputs that sets scope.property to integers
 <code>1</code> or <code>2</code>:
 
     <input type="radio" data-fn="value-int" name="{{property}}" value="1" />
@@ -487,36 +497,36 @@ A range slider that sets scope.property as a string:
 
     <input type="range" data-fn="value-string" name="{{property}}" min="0" max="1" step="any" />
 
+A range slider that sets scope.property as a float, with a logarithmic transform
+across it's range from 1 to 10:
 
-#### [data-fn="each"]
+    <input type="range" data-fn="value-string" name="{{property}}" min="1" max="10" step="any" />
 
-The <code>each</code> function loops over a scope that is a collection or array,
-cloning a new node for each item in the collection. This...
+#### data-fn="each"
 
-    <ul data-fn="sparky">
-        <li data-scope="{{contributors}}">
+The <code>each</code> function loops over a scope that is a collection or array, cloning a new node for each item in the collection. This...
+
+    <ul id="list">
+        <li data-scope="{{contributors}}" data-fn="each">
             <a href="{{url}}">{{name}}</a>
         </li>
     </ul>
 
-    Sparky.fn.sparky = function(node) {
-        // Return a scope object
-        return {
-            contributors: Collection([
-                { name: "Sparky",   url: "http://github.com/cruncher/sparky" },
-                { name: "Cruncher", url: "http://cruncher.ch" }
-            ])
-        };
-    };
+    Sparky('list', {
+        contributors: Collection([
+            { name: "Sparky", url: "http://github.com/cruncher/sparky" },
+            { name: "Cruncher", url: "http://cruncher.ch" }
+        ])
+    });
 
 ...results in a DOM that looks like this:
 
-    <ul>
+    <ul id="list">
         <li>
             <a href="http://github.com/cruncher/sparky">Sparky</a>
         </li>
         <li>
-            <a href="http://cruncher.ch">Marco</a>
+            <a href="http://cruncher.ch">Cruncher</a>
         </li>
     </ul>
 

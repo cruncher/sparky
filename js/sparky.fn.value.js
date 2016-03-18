@@ -178,7 +178,7 @@
 			max = node.max ? parseFloat(node.max) : 10 ;
 
 			if (min <= 0) {
-				console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
+				console.warn('Sparky.fn["value-float-log"] cannot accept a min attribute of 0 or lower.', node);
 				return;
 			}
 		}
@@ -207,7 +207,7 @@
 			max = node.max ? parseFloat(node.max) : 10 ;
 
 			if (min <= 0) {
-				console.warn('Sparky: ctrl "value-number-log" cannot accept a min attribute of 0 or lower.', node);
+				console.warn('Sparky.fn["value-int-log"] cannot accept a min attribute of 0 or lower.', node);
 				return;
 			}
 		}
