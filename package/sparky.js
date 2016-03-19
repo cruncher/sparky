@@ -1452,7 +1452,12 @@ if (!Math.log10) {
 		}
 	}
 
-	function destroy(bindings) {
+	function destroy(parsed) {
+		parsed.setups.length = 0;
+		parsed.teardowns.forEach(call);
+		parsed.teardowns.length = 0;
+
+		var bindings = parsed.bindings;
 		var n = bindings.length;
 		var throttle;
 
@@ -1461,7 +1466,7 @@ if (!Math.log10) {
 			throttle.cancel();
 		}
 
-		bindings.length = 0;
+		parsed.bindings.length = 0;
 	}
 
 	function addNodes(sparky) {
@@ -1508,13 +1513,11 @@ if (!Math.log10) {
 		var init = true;
 		var initscope = scope;
 		var ctrlscope;
+		var parsed;
 
 		// Use scope variable as current scope.
 		scope = undefined;
 
-		var bindings = [];
-		var inits = [];
-		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
@@ -1526,17 +1529,17 @@ if (!Math.log10) {
 			if (scope === (ctrlscope || object)) { return; }
 
 			// If old scope exists, tear it down
-			if (scope) { teardown(scope, bindings); }
+			if (scope && parsed) { teardown(scope, parsed.bindings); }
 
 			// ctrlscope trumps new objects
 			scope = ctrlscope || object;
 
-			if (scope) {
+			if (scope && parsed) {
 				// Run initialiser fns, if any
-				if (inits.length) { initialise(inits, init); }
+				if (parsed.setups.length) { initialise(parsed.setups, init); }
 
 				// Assign and set up scope
-				setup(scope, bindings, init);
+				setup(scope, parsed.bindings, init);
 			}
 
 			// Trigger scope first, children assemble themselves
@@ -1618,69 +1621,36 @@ if (!Math.log10) {
 
 		// Define .render() for forcing tags to update.
 		this.render = function() {
-			render(scope, bindings, arguments);
+			render(scope, parsed.bindings, arguments);
 			this.trigger.apply(this, ['render'].concat(arguments));
 		};
 
-		// Parse the DOM nodes for Sparky tags. The parser returns an unparse
-		// function that kills it's throttles and so on. Not sure that's needed,
-		// actually. In fact it would maybe be better to make the parser return
-		// an object of results, which would get rid of the need for bind,
-		// unbind, initialise and create functions.
-		//
-		// var tokens = {
-		//	bindings: [],
-		//	initialisers: [],
-		//	nodes: []
-		// };
-
-		var unparse = Sparky.parse(sparky,
-			function get(path) {
-				return scope && Sparky.get(scope, path);
-			},
-
-			function set(property, value) {
-				scope && Sparky.set(scope, property, value);
-			},
-
-			function bind(path, fn) {
-				bindings.push([path, fn, Sparky.Throttle(fn)]);
-			},
-
-			function unbind(fn) {
-				var n = bindings.length;
-				while (n--) {
-					if (bindings[n][1] === fn) {
-						bindings.splice(n, 1);
-						return;
-					}
-				}
-			},
-
-			function initialise(fn) {
-				inits.push(fn);
-			},
-
-			function create(node) {
-				nodes.push(node);
-			}
-		);
-
+		// Register destroy on this sparky before creating child nodes, so that
+		// this gets destroyed before child sparkies do.
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
 			this.placeholders && Sparky.dom.remove(this.placeholders);
-			unparse();
 			unobserveScope();
-			teardown(scope, bindings);
-			inits.length = 0;
-			destroy(bindings);
+			teardown(scope, parsed.bindings);
+			destroy(parsed);
 		});
+
+		// Parse the DOM nodes for Sparky tags.
+		parsed = Sparky.parse(sparky, function get(path) {
+				return scope && Sparky.get(scope, path);
+			}, function set(property, value) {
+				scope && Sparky.set(scope, property, value);
+			}
+		);
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.
-		nodes.forEach(function(node) {
+		parsed.nodes.forEach(function(node) {
 			return sparky.create(node, scope);
 		});
+
+		// Don't keep nodes hanging around in memory
+		parsed.nodes.length = 0;
 
 		// If there is scope, set it up now
 		if (initscope || ctrlscope) { this.scope(initscope || ctrlscope); }
@@ -3212,22 +3182,42 @@ if (!Math.log10) {
 		};
 	}
 
-	function parse(nodes, get, set, bind, unbind, setup, create) {
-		// Todo: it may be better to make the parser return an object of info:
-		//
-		// {
-		//   bindings: [],
-		//   setuprs: [],
-		//   nodes: []
-		// }
+	function parse(nodes, get, set) {
+		var results = {
+			setups: [],
+			bindings: [],
+			nodes: []
+		};
 
-		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return parsers[node.nodeType](node, bind, unbind, get, set, setup, create);
+		// Todo: This is convoluted legacy crap. Sort it out.
+		results.teardowns = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return parsers[node.nodeType](
+				node,
+				function bind(path, fn) {
+					results.bindings.push([path, fn, Sparky.Throttle(fn)]);
+				},
+				function unbind(fn) {
+					var bindings = results.bindings;
+					var n = bindings.length;
+					while (n--) {
+						if (bindings[n][1] === fn) {
+							bindings.splice(n, 1);
+							return;
+						}
+					}
+				},
+				get,
+				set,
+				function setup(fn) {
+					results.setups.push(fn);
+				},
+				function create(node) {
+					results.nodes.push(node);
+				}
+			);
 		}));
 
-		return function unparse() {
-			unobservers.forEach(call);
-		};
+		return results;
 	}
 
 	function parseName(node, get, set, bind, unbind, to, from) {

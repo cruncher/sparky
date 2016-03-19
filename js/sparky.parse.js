@@ -637,22 +637,42 @@
 		};
 	}
 
-	function parse(nodes, get, set, bind, unbind, setup, create) {
-		// Todo: it may be better to make the parser return an object of info:
-		//
-		// {
-		//   bindings: [],
-		//   setuprs: [],
-		//   nodes: []
-		// }
+	function parse(nodes, get, set) {
+		var results = {
+			setups: [],
+			bindings: [],
+			nodes: []
+		};
 
-		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return parsers[node.nodeType](node, bind, unbind, get, set, setup, create);
+		// Todo: This is convoluted legacy crap. Sort it out.
+		results.teardowns = Array.prototype.concat.apply([], nodes.map(function(node) {
+			return parsers[node.nodeType](
+				node,
+				function bind(path, fn) {
+					results.bindings.push([path, fn, Sparky.Throttle(fn)]);
+				},
+				function unbind(fn) {
+					var bindings = results.bindings;
+					var n = bindings.length;
+					while (n--) {
+						if (bindings[n][1] === fn) {
+							bindings.splice(n, 1);
+							return;
+						}
+					}
+				},
+				get,
+				set,
+				function setup(fn) {
+					results.setups.push(fn);
+				},
+				function create(node) {
+					results.nodes.push(node);
+				}
+			);
 		}));
 
-		return function unparse() {
-			unobservers.forEach(call);
-		};
+		return results;
 	}
 
 	function parseName(node, get, set, bind, unbind, to, from) {
