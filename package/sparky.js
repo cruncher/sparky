@@ -1263,6 +1263,8 @@ if (!Math.log10) {
 		return n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
+	function call(fn) { fn(); }
+
 	function classOf(object) {
 		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
@@ -1397,6 +1399,16 @@ if (!Math.log10) {
 		Sparky.dom.remove(placeholder);
 	}
 
+	function initialise(inits, init) {
+		// On initial run we populate the DOM immediately, unthrottled.
+		if (init) { inits.forEach(call); }
+
+		// Otherwise we wait for the next frame.
+		else { inits.forEach(window.requestAnimationFrame); }
+
+		inits.length = 0;
+	}
+
 	function setup(scope, bindings, init) {
 		var n = bindings.length;
 		var path, fn, throttle;
@@ -1405,19 +1417,8 @@ if (!Math.log10) {
 			path = bindings[n][0];
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
-
-			if (path) {
-				// On initial run we populate the DOM immediately. The Sparky
-				// constructor is designed to be run inside requestAnimationFrame
-				// and we don't want to waiting for an extra frame.
-				Sparky.observePath(scope, path, throttle, !init);
-				if (init) {
-					fn(Sparky.get(scope, path));
-				}
-			}
-			else {
-				fn();
-			}
+			Sparky.observePath(scope, path, throttle, !init);
+			if (init) { fn(Sparky.get(scope, path)); }
 		}
 	}
 
@@ -1432,20 +1433,22 @@ if (!Math.log10) {
 		}
 	}
 
-	function render(scope, bindings) {
+	function render(scope, bindings, paths) {
 		var n = bindings.length;
 		var path, throttle;
+
+		// If paths are given, only render those paths
+		if (paths && paths.length) {
+			bindings = bindings.filter(function(binding) {
+				return paths.indexOf(binding[0]) > -1;
+			});
+		}
 
 		while (n--) {
 			path = bindings[n][0];
 			throttle = bindings[n][2];
-
-			if (path) {
-				throttle(Sparky.get(scope, path));
-			}
-			else {
-				throttle();
-			}
+			if (path) { throttle(Sparky.get(scope, path)); }
+			else { throttle(); }
 		}
 	}
 
@@ -1510,6 +1513,7 @@ if (!Math.log10) {
 		scope = undefined;
 
 		var bindings = [];
+		var inits = [];
 		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
@@ -1527,8 +1531,13 @@ if (!Math.log10) {
 			// ctrlscope trumps new objects
 			scope = ctrlscope || object;
 
-			// Assign and set up scope
-			if (scope) { setup(scope, bindings, init); }
+			if (scope) {
+				// Run initialiser fns, if any
+				if (inits.length) { initialise(inits, init); }
+
+				// Assign and set up scope
+				setup(scope, bindings, init);
+			}
 
 			// Trigger scope first, children assemble themselves
 			sparky.trigger('scope', scope);
@@ -1553,12 +1562,6 @@ if (!Math.log10) {
 		}
 
 		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
-
-		//	typeof node === 'string' ? node :
-		//	Sparky.dom.isFragmentNode(node) ? node :
-		//	nodeToText(node), ',',
-		//	(scope && '{}'), ',',
-		//	(fn && (fn.name || 'anonymous')), ')');
 
 		fn = resolveFn(node, fn, ctrl);
 
@@ -1613,8 +1616,24 @@ if (!Math.log10) {
 		// scope changes. There's probably a better way of expressing this.
 		if (ctrlscope === initscope) { ctrlscope = undefined; }
 
-		// Parse the DOM nodes for Sparky tags. The parser returns a function
-		// that kills it's throttles and so on.
+		// Define .render() for forcing tags to update.
+		this.render = function() {
+			render(scope, bindings, arguments);
+			this.trigger.apply(this, ['render'].concat(arguments));
+		};
+
+		// Parse the DOM nodes for Sparky tags. The parser returns an unparse
+		// function that kills it's throttles and so on. Not sure that's needed,
+		// actually. In fact it would maybe be better to make the parser return
+		// an object of results, which would get rid of the need for bind,
+		// unbind, initialise and create functions.
+		//
+		// var tokens = {
+		//	bindings: [],
+		//	initialisers: [],
+		//	nodes: []
+		// };
+
 		var unparse = Sparky.parse(sparky,
 			function get(path) {
 				return scope && Sparky.get(scope, path);
@@ -1625,11 +1644,6 @@ if (!Math.log10) {
 			},
 
 			function bind(path, fn) {
-				if (!fn) {
-					fn = path;
-					path = false;
-				}
-
 				bindings.push([path, fn, Sparky.Throttle(fn)]);
 			},
 
@@ -1643,15 +1657,14 @@ if (!Math.log10) {
 				}
 			},
 
+			function initialise(fn) {
+				inits.push(fn);
+			},
+
 			function create(node) {
 				nodes.push(node);
 			}
 		);
-
-		// Define a function for edge cases when the dev wants to force a render.
-		this.render = function() {
-			render(scope, bindings);
-		};
 
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
@@ -1659,6 +1672,7 @@ if (!Math.log10) {
 			unparse();
 			unobserveScope();
 			teardown(scope, bindings);
+			inits.length = 0;
 			destroy(bindings);
 		});
 
@@ -1682,18 +1696,21 @@ if (!Math.log10) {
 			var boss = this;
 			var sparky = Sparky(node, scope, fn, this);
 
-			function destroy() { sparky.destroy(); }
-			function updateScope(self, scope) { sparky.scope(scope); }
+			function delegateDestroy() { sparky.destroy(); }
+			function delegateScope(self, scope) { sparky.scope(scope); }
+			function delegateRender(self) { sparky.render(); }
 
 			// Bind events...
 			this
-			.on('destroy', destroy)
-			.on('scope', updateScope);
+			.on('destroy', delegateDestroy)
+			.on('scope', delegateScope)
+			.on('render', delegateRender);
 
 			return sparky.on('destroy', function() {
 				boss
-				.off('destroy', destroy)
-				.off('scope', updateScope);
+				.off('destroy', delegateDestroy)
+				.off('scope', delegateScope)
+				.off('render', delegateRender);
 			});
 		},
 
@@ -2649,19 +2666,13 @@ if (!Math.log10) {
 
 	// Binding system
 
-	var binders = {
-		1: domNode,
-		3: textNode,
-		11: fragmentNode
-	};
-
 	var tags = {
-		label: function(node, bind, unbind, get, set, create, unobservers) {
+		label: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'for', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		input: function(node, bind, unbind, get, set, create, unobservers) {
+		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
 			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -2683,9 +2694,9 @@ if (!Math.log10) {
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		select: function(node, bind, unbind, get, set, create, unobservers) {
+		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
@@ -2694,83 +2705,79 @@ if (!Math.log10) {
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		option: function(node, bind, unbind, get, set, create, unobservers) {
+		option: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		textarea: function(node, bind, unbind, get, set, create, unobservers) {
+		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
 			if (unbindName) { unobservers.push(unbindName); }
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		time: function(node, bind, unbind, get, set, create, unobservers)  {
+		time: function(node, bind, unbind, get, set, setup, create, unobservers)  {
 			bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		path: function(node, bind, unbind, get, set, create, unobservers) {
+		path: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
 
-		use: function(node, bind, unbind, get, set, create, unobservers) {
+		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
 	};
 
-	function domNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-		var tag = node.tagName.toLowerCase();
+	var parsers = {
+		1: function domNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+			var tag = node.tagName.toLowerCase();
 
-		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+			if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+			bindClasses(node, bind, unbind, get, unobservers);
+			bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
-		bindClasses(node, bind, unbind, get, unobservers);
-		bindAttributes(node, bind, unbind, get, unobservers, attributes);
+			// Set up special binding for certain elements like form inputs
+			if (tags[tag]) {
+				tags[tag](node, bind, unbind, get, set, setup, create, unobservers);
+			}
 
-		// Set up special binding for certain elements like form inputs
-		if (tags[tag]) {
-			tags[tag](node, bind, unbind, get, set, create, unobservers);
+			// Or sparkify the child nodes
+			else {
+				bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+			}
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
+		},
+
+		3: function textNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+
+			if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+			observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+				node.nodeValue = text;
+			}, unobservers);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
+		},
+
+		11: function fragmentNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+
+			if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
 		}
+	};
 
-		// Or sparkify the child nodes
-		else {
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
-		}
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function textNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
-
-		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
-			node.nodeValue = text;
-		}, unobservers);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function fragmentNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
-
-		bindNodes(node, bind, unbind, get, set, create, unobservers);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
+	function bindNodes(node, bind, unbind, get, set, setup, create, unobservers) {
 		// Document fragments do not have a getAttribute method.
 		var id = node.getAttribute && node.getAttribute('data-template');
 		var template, nodes;
@@ -2793,9 +2800,8 @@ if (!Math.log10) {
 			// this could throw a bug in the works: we're currently looping over
 			// bindings outside of the call to bind, and inside we call unbind,
 			// which modifies bindings... see? It won't bug just now, becuase
-			// negative loops, but if you change anything...
-			bind(function domify() {
-				unbind(domify);
+			// reverse loops, but if you change anything...
+			setup(function domify() {
 				Sparky.dom.empty(node);
 				Sparky.dom.append(node, template);
 			});
@@ -2823,8 +2829,8 @@ if (!Math.log10) {
 				create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));
 			}
-			else if (binders[child.nodeType]) {
-				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
+			else if (parsers[child.nodeType]) {
+				unobservers.push.apply(unobservers, parsers[child.nodeType](child, bind, unbind, get, set, setup, create));
 			}
 		}
 	}
@@ -3206,9 +3212,17 @@ if (!Math.log10) {
 		};
 	}
 
-	function parse(nodes, get, set, bind, unbind, create) {
+	function parse(nodes, get, set, bind, unbind, setup, create) {
+		// Todo: it may be better to make the parser return an object of info:
+		//
+		// {
+		//   bindings: [],
+		//   setuprs: [],
+		//   nodes: []
+		// }
+
 		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return binders[node.nodeType](node, bind, unbind, get, set, create);
+			return parsers[node.nodeType](node, bind, unbind, get, set, setup, create);
 		}));
 
 		return function unparse() {

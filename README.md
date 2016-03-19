@@ -73,12 +73,13 @@ and destroyed along with their parents.
 The nuke option. Destroys the data bindings, removes nodes from the DOM and
 removes any event handlers. Also destroys any child sparkies.
 
-#### .render()
+#### .render(path1, path2, ...)
 
-A convenience function that forces all tags to update with current values.
-Sparky handles updates automatically so this should rarely be needed, but it
-can be useful in cases where unobserved data changes and you need to give Sparky
-a nudge.
+Force all tags to update with current values. This should rarely be needed, as
+Sparky handles render updates automatically, but it can be useful in cases where
+unobserved data changes and you need to give Sparky a nudge to display it.
+
+If no path arguments are passed in then all tags are updated.
 
 #### .scope(object)
 
