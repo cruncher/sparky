@@ -399,15 +399,13 @@
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
 		if (ctrlscope === false) {
-			this
-			.on('destroy', function() {
+			this.on('destroy', function() {
 				Sparky.dom.remove(this);
 			});
 
 			// Todo: We don't ALWAYS want to call .scope() here.
 			// if (initscope) { this.scope(initscope); }
 			this.scope(initscope);
-
 			init = false;
 			return;
 		}
