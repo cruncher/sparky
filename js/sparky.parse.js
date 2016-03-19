@@ -91,19 +91,13 @@
 
 	// Binding system
 
-	var binders = {
-		1: domNode,
-		3: textNode,
-		11: fragmentNode
-	};
-
 	var tags = {
-		label: function(node, bind, unbind, get, set, create, unobservers) {
+		label: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'for', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		input: function(node, bind, unbind, get, set, create, unobservers) {
+		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
 			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
@@ -125,9 +119,9 @@
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		select: function(node, bind, unbind, get, set, create, unobservers) {
+		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
@@ -136,83 +130,79 @@
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		option: function(node, bind, unbind, get, set, create, unobservers) {
+		option: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		textarea: function(node, bind, unbind, get, set, create, unobservers) {
+		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
 			if (unbindName) { unobservers.push(unbindName); }
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
-		time: function(node, bind, unbind, get, set, create, unobservers)  {
+		time: function(node, bind, unbind, get, set, setup, create, unobservers)  {
 			bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
-		path: function(node, bind, unbind, get, set, create, unobservers) {
+		path: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
 
-		use: function(node, bind, unbind, get, set, create, unobservers) {
+		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
 	};
 
-	function domNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-		var tag = node.tagName.toLowerCase();
+	var parsers = {
+		1: function domNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+			var tag = node.tagName.toLowerCase();
 
-		if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+			if (Sparky.debug === 'verbose') { console.group('Sparky: dom node: ', node); }
+			bindClasses(node, bind, unbind, get, unobservers);
+			bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
-		bindClasses(node, bind, unbind, get, unobservers);
-		bindAttributes(node, bind, unbind, get, unobservers, attributes);
+			// Set up special binding for certain elements like form inputs
+			if (tags[tag]) {
+				tags[tag](node, bind, unbind, get, set, setup, create, unobservers);
+			}
 
-		// Set up special binding for certain elements like form inputs
-		if (tags[tag]) {
-			tags[tag](node, bind, unbind, get, set, create, unobservers);
+			// Or sparkify the child nodes
+			else {
+				bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+			}
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
+		},
+
+		3: function textNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+
+			if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
+			observeProperties(node.nodeValue, bind, unbind, get, function(text) {
+				node.nodeValue = text;
+			}, unobservers);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
+		},
+
+		11: function fragmentNode(node, bind, unbind, get, set, setup, create) {
+			var unobservers = [];
+
+			if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+
+			if (Sparky.debug === 'verbose') { console.groupEnd(); }
+			return unobservers;
 		}
+	};
 
-		// Or sparkify the child nodes
-		else {
-			bindNodes(node, bind, unbind, get, set, create, unobservers);
-		}
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function textNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: text node:', node); }
-
-		observeProperties(node.nodeValue, bind, unbind, get, function(text) {
-			node.nodeValue = text;
-		}, unobservers);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function fragmentNode(node, bind, unbind, get, set, create) {
-		var unobservers = [];
-
-		if (Sparky.debug === 'verbose') { console.group('Sparky: fragment: ', node); }
-
-		bindNodes(node, bind, unbind, get, set, create, unobservers);
-
-		if (Sparky.debug === 'verbose') { console.groupEnd(); }
-
-		return unobservers;
-	}
-
-	function bindNodes(node, bind, unbind, get, set, create, unobservers) {
+	function bindNodes(node, bind, unbind, get, set, setup, create, unobservers) {
 		// Document fragments do not have a getAttribute method.
 		var id = node.getAttribute && node.getAttribute('data-template');
 		var template, nodes;
@@ -235,9 +225,8 @@
 			// this could throw a bug in the works: we're currently looping over
 			// bindings outside of the call to bind, and inside we call unbind,
 			// which modifies bindings... see? It won't bug just now, becuase
-			// negative loops, but if you change anything...
-			bind(function domify() {
-				unbind(domify);
+			// reverse loops, but if you change anything...
+			setup(function domify() {
 				Sparky.dom.empty(node);
 				Sparky.dom.append(node, template);
 			});
@@ -265,8 +254,8 @@
 				create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));
 			}
-			else if (binders[child.nodeType]) {
-				unobservers.push.apply(unobservers, binders[child.nodeType](child, bind, unbind, get, set, create));
+			else if (parsers[child.nodeType]) {
+				unobservers.push.apply(unobservers, parsers[child.nodeType](child, bind, unbind, get, set, setup, create));
 			}
 		}
 	}
@@ -648,9 +637,17 @@
 		};
 	}
 
-	function parse(nodes, get, set, bind, unbind, create) {
+	function parse(nodes, get, set, bind, unbind, setup, create) {
+		// Todo: it may be better to make the parser return an object of info:
+		//
+		// {
+		//   bindings: [],
+		//   setuprs: [],
+		//   nodes: []
+		// }
+
 		var unobservers = Array.prototype.concat.apply([], nodes.map(function(node) {
-			return binders[node.nodeType](node, bind, unbind, get, set, create);
+			return parsers[node.nodeType](node, bind, unbind, get, set, setup, create);
 		}));
 
 		return function unparse() {

@@ -60,6 +60,8 @@
 		return n !== undefined && n !== null && !Number.isNaN(n);
 	}
 
+	function call(fn) { fn(); }
+
 	function classOf(object) {
 		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
 	}
@@ -194,6 +196,16 @@
 		Sparky.dom.remove(placeholder);
 	}
 
+	function initialise(inits, init) {
+		// On initial run we populate the DOM immediately, unthrottled.
+		if (init) { inits.forEach(call); }
+
+		// Otherwise we wait for the next frame.
+		else { inits.forEach(window.requestAnimationFrame); }
+
+		inits.length = 0;
+	}
+
 	function setup(scope, bindings, init) {
 		var n = bindings.length;
 		var path, fn, throttle;
@@ -202,19 +214,8 @@
 			path = bindings[n][0];
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
-
-			if (path) {
-				// On initial run we populate the DOM immediately. The Sparky
-				// constructor is designed to be run inside requestAnimationFrame
-				// and we don't want to waiting for an extra frame.
-				Sparky.observePath(scope, path, throttle, !init);
-				if (init) {
-					fn(Sparky.get(scope, path));
-				}
-			}
-			else {
-				fn();
-			}
+			Sparky.observePath(scope, path, throttle, !init);
+			if (init) { fn(Sparky.get(scope, path)); }
 		}
 	}
 
@@ -229,20 +230,22 @@
 		}
 	}
 
-	function render(scope, bindings) {
+	function render(scope, bindings, paths) {
 		var n = bindings.length;
 		var path, throttle;
+
+		// If paths are given, only render those paths
+		if (paths && paths.length) {
+			bindings = bindings.filter(function(binding) {
+				return paths.indexOf(binding[0]) > -1;
+			});
+		}
 
 		while (n--) {
 			path = bindings[n][0];
 			throttle = bindings[n][2];
-
-			if (path) {
-				throttle(Sparky.get(scope, path));
-			}
-			else {
-				throttle();
-			}
+			if (path) { throttle(Sparky.get(scope, path)); }
+			else { throttle(); }
 		}
 	}
 
@@ -307,6 +310,7 @@
 		scope = undefined;
 
 		var bindings = [];
+		var inits = [];
 		var nodes = [];
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
@@ -324,8 +328,13 @@
 			// ctrlscope trumps new objects
 			scope = ctrlscope || object;
 
-			// Assign and set up scope
-			if (scope) { setup(scope, bindings, init); }
+			if (scope) {
+				// Run initialiser fns, if any
+				if (inits.length) { initialise(inits, init); }
+
+				// Assign and set up scope
+				setup(scope, bindings, init);
+			}
 
 			// Trigger scope first, children assemble themselves
 			sparky.trigger('scope', scope);
@@ -350,12 +359,6 @@
 		}
 
 		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
-
-		//	typeof node === 'string' ? node :
-		//	Sparky.dom.isFragmentNode(node) ? node :
-		//	nodeToText(node), ',',
-		//	(scope && '{}'), ',',
-		//	(fn && (fn.name || 'anonymous')), ')');
 
 		fn = resolveFn(node, fn, ctrl);
 
@@ -410,8 +413,24 @@
 		// scope changes. There's probably a better way of expressing this.
 		if (ctrlscope === initscope) { ctrlscope = undefined; }
 
-		// Parse the DOM nodes for Sparky tags. The parser returns a function
-		// that kills it's throttles and so on.
+		// Define .render() for forcing tags to update.
+		this.render = function() {
+			render(scope, bindings, arguments);
+			this.trigger.apply(this, ['render'].concat(arguments));
+		};
+
+		// Parse the DOM nodes for Sparky tags. The parser returns an unparse
+		// function that kills it's throttles and so on. Not sure that's needed,
+		// actually. In fact it would maybe be better to make the parser return
+		// an object of results, which would get rid of the need for bind,
+		// unbind, initialise and create functions.
+		//
+		// var tokens = {
+		//	bindings: [],
+		//	initialisers: [],
+		//	nodes: []
+		// };
+
 		var unparse = Sparky.parse(sparky,
 			function get(path) {
 				return scope && Sparky.get(scope, path);
@@ -422,11 +441,6 @@
 			},
 
 			function bind(path, fn) {
-				if (!fn) {
-					fn = path;
-					path = false;
-				}
-
 				bindings.push([path, fn, Sparky.Throttle(fn)]);
 			},
 
@@ -440,15 +454,14 @@
 				}
 			},
 
+			function initialise(fn) {
+				inits.push(fn);
+			},
+
 			function create(node) {
 				nodes.push(node);
 			}
 		);
-
-		// Define a function for edge cases when the dev wants to force a render.
-		this.render = function() {
-			render(scope, bindings);
-		};
 
 		this.on('destroy', function() {
 			Sparky.dom.remove(this);
@@ -456,6 +469,7 @@
 			unparse();
 			unobserveScope();
 			teardown(scope, bindings);
+			inits.length = 0;
 			destroy(bindings);
 		});
 
@@ -479,18 +493,21 @@
 			var boss = this;
 			var sparky = Sparky(node, scope, fn, this);
 
-			function destroy() { sparky.destroy(); }
-			function updateScope(self, scope) { sparky.scope(scope); }
+			function delegateDestroy() { sparky.destroy(); }
+			function delegateScope(self, scope) { sparky.scope(scope); }
+			function delegateRender(self) { sparky.render(); }
 
 			// Bind events...
 			this
-			.on('destroy', destroy)
-			.on('scope', updateScope);
+			.on('destroy', delegateDestroy)
+			.on('scope', delegateScope)
+			.on('render', delegateRender);
 
 			return sparky.on('destroy', function() {
 				boss
-				.off('destroy', destroy)
-				.off('scope', updateScope);
+				.off('destroy', delegateDestroy)
+				.off('scope', delegateScope)
+				.off('render', delegateRender);
 			});
 		},
 
