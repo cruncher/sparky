@@ -72,21 +72,22 @@
 					console.log(i, inputs.eq(i)[0]);
 
 					node.addEventListener('keydown', function(e) {
-						e.preventDefault();
-
 						if (e.keyCode === 38) {
+							e.preventDefault();
 							console.log('UP');
 							inputs.eq(i).removeClass('focus');
 							i = wrap(i - 1, 0, inputs.length);
 							inputs.eq(i).addClass('focus');
 						}
 						else if (e.keyCode === 40) {
+							e.preventDefault();
 							console.log('DOWN');
 							inputs.eq(i).removeClass('focus');
 							i = wrap(i + 1, 0, inputs.length);
 							inputs.eq(i).addClass('focus');
 						}
 						else if (e.keyCode === 13) {
+							e.preventDefault();
 							console.log('RETURN');
 							inputs.eq(i)[0].checked = true;
 							Sparky.dom.trigger(inputs.eq(i)[0], 'valuechange');
