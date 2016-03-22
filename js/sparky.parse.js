@@ -643,6 +643,7 @@
 		};
 
 		// Todo: This is convoluted legacy crap. Sort it out.
+
 		results.teardowns = Array.prototype.concat.apply([], nodes.map(function(node) {
 			return parsers[node.nodeType](
 				node,

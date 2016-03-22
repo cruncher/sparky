@@ -1602,15 +1602,13 @@ if (!Math.log10) {
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
 		if (ctrlscope === false) {
-			this
-			.on('destroy', function() {
+			this.on('destroy', function() {
 				Sparky.dom.remove(this);
 			});
 
 			// Todo: We don't ALWAYS want to call .scope() here.
 			// if (initscope) { this.scope(initscope); }
 			this.scope(initscope);
-
 			init = false;
 			return;
 		}
@@ -1698,7 +1696,7 @@ if (!Math.log10) {
 		// is not present, returns undefined.
 		tojQuery: function() {
 			if (!window.jQuery) { return; }
-			return jQuery(this.filter(Sparky.dom.isElement));
+			return jQuery(this.filter(Sparky.dom.isElementNode));
 		}
 	});
 
@@ -2013,7 +2011,6 @@ if (!Math.log10) {
 
 	// Events
 
-	var events = {};
 	var eventOptions = { bubbles: true };
 
 	function createEvent(type) {
@@ -2040,8 +2037,9 @@ if (!Math.log10) {
 	}
 
 	function trigger(node, type) {
-		var event = events[type] || (events[type] = createEvent(type));
-		node.dispatchEvent(event);
+		// Don't cache events. It prevents you from triggering an an event of a
+		// type given type from inside the handler of another event of that type.
+		node.dispatchEvent(createEvent(type));
 	}
 
 	function on(node, type, fn) {
@@ -2590,8 +2588,6 @@ if (!Math.log10) {
 
 	var empty = [];
 
-	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
-
 	// Utility functions
 
 	var noop       = Sparky.noop;
@@ -2645,7 +2641,7 @@ if (!Math.log10) {
 		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
-			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -3065,12 +3061,12 @@ if (!Math.log10) {
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
 			setTimeout(function() {
-				node.dispatchEvent(changeEvent);
+				Sparky.dom.trigger(node, 'valuechange');
 				node.disabled = true;
 			}, 0);
 		}
 		else {
-			node.dispatchEvent(changeEvent);
+			Sparky.dom.trigger(node, 'valuechange');
 		}
 	}
 
@@ -3190,6 +3186,7 @@ if (!Math.log10) {
 		};
 
 		// Todo: This is convoluted legacy crap. Sort it out.
+
 		results.teardowns = Array.prototype.concat.apply([], nodes.map(function(node) {
 			return parsers[node.nodeType](
 				node,
@@ -3317,6 +3314,7 @@ if (!Math.log10) {
 			console.log('node ', node);
 			console.log('scope', scope);
 			console.log('data', sparky.data);
+			console.log('fn', sparky.fn);
 			console.groupEnd();
 		}
 
