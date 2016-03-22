@@ -283,7 +283,6 @@
 
 	// Events
 
-	var events = {};
 	var eventOptions = { bubbles: true };
 
 	function createEvent(type) {
@@ -310,8 +309,9 @@
 	}
 
 	function trigger(node, type) {
-		var event = events[type] || (events[type] = createEvent(type));
-		node.dispatchEvent(event);
+		// Don't cache events. It prevents you from triggering an an event of a
+		// type given type from inside the handler of another event of that type.
+		node.dispatchEvent(createEvent(type));
 	}
 
 	function on(node, type, fn) {

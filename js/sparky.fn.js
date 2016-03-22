@@ -22,6 +22,7 @@
 			console.log('node ', node);
 			console.log('scope', scope);
 			console.log('data', sparky.data);
+			console.log('fn', sparky.fn);
 			console.groupEnd();
 		}
 

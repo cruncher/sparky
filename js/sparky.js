@@ -493,7 +493,7 @@
 		// is not present, returns undefined.
 		tojQuery: function() {
 			if (!window.jQuery) { return; }
-			return jQuery(this.filter(Sparky.dom.isElement));
+			return jQuery(this.filter(Sparky.dom.isElementNode));
 		}
 	});
 

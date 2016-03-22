@@ -45,8 +45,6 @@
 
 	var empty = [];
 
-	var changeEvent = new CustomEvent('valuechange', { bubbles: true });
-
 	// Utility functions
 
 	var noop       = Sparky.noop;
@@ -100,7 +98,7 @@
 		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
-			//	bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 
@@ -520,12 +518,12 @@
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
 			setTimeout(function() {
-				node.dispatchEvent(changeEvent);
+				Sparky.dom.trigger(node, 'valuechange');
 				node.disabled = true;
 			}, 0);
 		}
 		else {
-			node.dispatchEvent(changeEvent);
+			Sparky.dom.trigger(node, 'valuechange');
 		}
 	}
 
