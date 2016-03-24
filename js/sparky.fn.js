@@ -1,5 +1,5 @@
 
-// Sparky.fns
+// Sparky.fn
 
 (function(window) {
 	var Sparky = window.Sparky;
@@ -52,7 +52,21 @@
 	});
 })(this);
 
+(function(window) {
+	"use strict";
 
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+
+	assign(Sparky.fn, {
+		"html": function(node) {
+			this.on('scope', function(sparky, html) {
+				console.log('html', html);
+				node.innerHTML = html;
+			});
+		}
+	});
+})(this);
 
 (function() {
 	"use strict";
