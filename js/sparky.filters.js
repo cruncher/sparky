@@ -416,7 +416,7 @@
 
 		truncatechars: function(value, n) {
 			return value.length > n ?
-				value.length.slice(0, n) + '&hellips;' :
+				value.slice(0, n) + '…' :
 				value ;
 		},
 
