@@ -3291,7 +3291,7 @@ if (!Math.log10) {
 })(this);
 
 
-// Sparky.fns
+// Sparky.fn
 
 (function(window) {
 	var Sparky = window.Sparky;
@@ -3344,7 +3344,20 @@ if (!Math.log10) {
 	});
 })(this);
 
+(function(window) {
+	"use strict";
 
+	var assign = Object.assign;
+	var Sparky = window.Sparky;
+
+	assign(Sparky.fn, {
+		html: function html(node) {
+			this.on('scope', function(sparky, html) {
+				node.innerHTML = html;
+			});
+		}
+	});
+})(this);
 
 (function() {
 	"use strict";
@@ -4239,7 +4252,7 @@ if (!Math.log10) {
 
 		truncatechars: function(value, n) {
 			return value.length > n ?
-				value.length.slice(0, n) + '&hellips;' :
+				value.slice(0, n) + '…' :
 				value ;
 		},
 
