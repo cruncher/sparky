@@ -17,6 +17,10 @@
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
+	var aliases = {
+		"viewbox": "viewBox"
+	};
+
 	// Matches a sparky template tag, capturing (path, filter)
 	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
 	var rtags;
@@ -61,7 +65,7 @@
 	// DOM
 
 	function setAttributeSVG(node, attribute, value) {
-		if (attribute === 'd' || attribute === "transform") {
+		if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
 			node.setAttribute(attribute, value);
 		}
 		else if (attribute === "href") {
@@ -142,6 +146,11 @@
 
 		time: function(node, bind, unbind, get, set, setup, create, unobservers)  {
 			bindAttributes(node, bind, unbind, get, unobservers, ['datetime']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
+		svg: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['viewbox']);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
@@ -305,17 +314,20 @@
 		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
-		var value = alias ? alias : isSVG ?
-		    	node.getAttributeNS(Sparky.xlinkNamespace, attribute) || node.getAttribute(attribute) :
-		    	node.getAttribute(attribute) ;
+
+		// SVG has case sensitive attributes.
+		var attr = aliases[attribute] || attribute ;
+		var value = alias ? alias :
+		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
+		    	node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
-		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
 		var update = isSVG ?
-		    	setAttributeSVG.bind(this, node, attribute) :
-		    	setAttributeHTML.bind(this, node, attribute) ;
+		    	setAttributeSVG.bind(this, node, attr) :
+		    	setAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
