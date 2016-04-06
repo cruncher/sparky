@@ -154,6 +154,11 @@
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
+		g: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['transform']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		path: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
