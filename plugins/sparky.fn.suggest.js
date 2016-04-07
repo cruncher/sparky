@@ -96,11 +96,16 @@
 
 		function listen(tip) {
 			function update(data) {
-				node.value = Sparky.render(value, data);
 				jQuery(tip).trigger('deactivate');
-				Sparky.dom.trigger(node, 'valuechange');
 
-				if (fn) { fn(node, scope, data); }
+				if (value) {
+					node.value = Sparky.render(value, data);
+					Sparky.dom.trigger(node, 'valuechange');
+				}
+
+				if (fn) {
+					fn(node, scope, data);
+				}
 
 				window.requestAnimationFrame(function() {
 					// Refocus the original input
