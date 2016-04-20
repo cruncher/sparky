@@ -110,7 +110,7 @@
 			});
 		},
 
-		"store-scope": function(node) {
+		"scope": function(node) {
 			this.on('scope', function(sparky, scope) {
 				Sparky.setScope(node, scope);
 			});

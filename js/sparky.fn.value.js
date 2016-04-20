@@ -233,7 +233,7 @@
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
-		'value-bool':           valueBoolean,
+		'value-boolean':        valueBoolean,
 		'value-int-log':        valueIntLog,
 		'value-float-log':      valueFloatLog,
 		'value-float-pow-2':    valueFloatPow2,
