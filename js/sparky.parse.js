@@ -167,7 +167,8 @@
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
 
-		template: Sparky.noop
+		template: Sparky.noop,
+		script: Sparky.noop
 	};
 
 	var parsers = {
