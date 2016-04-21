@@ -27,6 +27,45 @@
 		};
 	}
 
+	function activate(data, tip, node) {
+		if (!data || data.length === 0) { return; }
+
+		tip.scope(data);
+
+		var elem = tip.tojQuery();
+
+		window.requestAnimationFrame(function() {
+			elem.trigger({ type: 'activate', relatedTarget: node });
+
+			var buttons = elem.find('button');
+			var i = 0;
+
+			buttons.eq(i).addClass('focus');
+
+			node.addEventListener('keydown', function(e) {
+				if (e.keyCode === 38) {
+					e.preventDefault();
+					console.log('UP');
+					buttons.eq(i).removeClass('focus');
+					i = wrap(i - 1, 0, buttons.length);
+					buttons.eq(i).addClass('focus');
+				}
+				else if (e.keyCode === 40) {
+					e.preventDefault();
+					console.log('DOWN');
+					buttons.eq(i).removeClass('focus');
+					i = wrap(i + 1, 0, buttons.length);
+					buttons.eq(i).addClass('focus');
+				}
+				else if (e.keyCode === 13) {
+					e.preventDefault();
+					console.log('RETURN');
+					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+				}
+			});
+		});
+	}
+
 	var request = Throttle(function request(url, tip, node) {
 		jQuery
 		.ajax(url)
@@ -77,22 +116,40 @@
 			return;
 		}
 
+		var url   = node.getAttribute('data-suggest-data');
 		var id    = node.getAttribute('data-suggest-template');
-		var url   = node.getAttribute('data-suggest-url');
 		var value = node.getAttribute('data-suggest-value');
 		var fn    = node.getAttribute('data-suggest-fn');
-		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
-
-		fn = this.data[fn];
+		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
 
 		if (!id || !url) {
-			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-url.', node);
+			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
 			return;
 		}
 
+		// Look for a data-suggest attribute having a tag in it
+		Sparky.rsimpletags.lastIndex = 0;
+		var tag = Sparky.rsimpletags.exec(url);
+		var prop;
+
+		if (tag) {
+			if (url.length !== tag[0].length) {
+				console.warn('Sparky: There is not just a simple tag in this attribute.');
+				return;
+			}
+
+			prop = tag[1];
+		}
+
+		if (fn) { fn = this.data[fn]; }
+
 		var tip = Sparky(id);
+		Sparky.dom.append(document.body, tip);
 
 		var scope;
+		this.on('scope', function(sparky, newscope) {
+			scope = newscope;
+		});
 
 		function listen(tip) {
 			function update(data) {
@@ -100,7 +157,7 @@
 
 				if (value) {
 					node.value = Sparky.render(value, data);
-					Sparky.dom.trigger(node, 'valuechange');
+					Sparky.dom.trigger(node, 'change');
 				}
 
 				if (fn) {
@@ -113,16 +170,19 @@
 				});
 			}
 
-			function change(e) {
-				if (!e.target.checked) { return; }
+			function click(e) {
 				update(Sparky.getScope(e.target));
 			}
 
+			function change(e) {
+				if (e.target.checked) { return; }
+				update(Sparky.getScope(e.target));
+			}
+
+			tip.addEventListener('click', click);
 			tip.addEventListener('change', change);
 			tip.addEventListener('valuechange', change);
 		}
-
-		Sparky.dom.append(document.body, tip);
 
 		listen(tip.filter(Sparky.dom.isElementNode)[0]);
 
@@ -134,11 +194,12 @@
 				return;
 			}
 
-			request(url + text, tip, node);
-		});
-
-		this.on('scope', function(sparky, newscope) {
-			scope = newscope;
+			if (tag) {
+				activate(scope[prop], tip, node);
+			}
+			else {
+				request(url + text, tip, node);
+			}
 		});
 
 		node.addEventListener('blur', function(e) {
