@@ -247,6 +247,7 @@
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
 
 		var tag = dom.tag(node);
+
 		if (tag !== 'template' && tag !== 'script') { return; }
 
 		if (node.content) {
@@ -257,7 +258,7 @@
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
-			return fragmentFromContent(node);
+			return fragmentFromChildren(node);
 		}
 	}
 

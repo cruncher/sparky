@@ -166,6 +166,9 @@
 		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
+
+		template: Sparky.noop,
+		script: Sparky.noop
 	};
 
 	var parsers = {
