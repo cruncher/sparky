@@ -1,5 +1,4 @@
 (function(window) {
-	var assign = Object.assign;
 	var Sparky = window.Sparky;
 
 	function wrap(i, min, max) {
@@ -28,198 +27,221 @@
 		};
 	}
 
-	var request = Throttle(function request(url, tip, node) {
+	function activate(data, tip, node) {
+		if (!data || data.length === 0) { return; }
 
-		jQuery
-		.ajax(url, { cache: true })
-		.then(function(data) {
-			if (!data || data.length === 0) { return; }
-			tip.scope(Collection(data));
+		tip.scope(data);
 
-			var elem = tip.tojQuery();
+		var elem = tip.tojQuery();
 
-			window.requestAnimationFrame(function() {
-				elem.trigger({ type: 'activate', relatedTarget: node });
+		window.requestAnimationFrame(function() {
+			elem.trigger({ type: 'activate', relatedTarget: node });
 
-				var inputs = elem.find('input');
-				var i = 0;
+			var buttons = elem.find('button');
+			var i = 0;
 
-				inputs.eq(i).addClass('focus');
+			buttons.eq(i).addClass('focus');
 
-				node.addEventListener('keydown', function(e) {
-					if (e.keyCode === 38) {
-						e.preventDefault();
-						console.log('UP');
-						inputs.eq(i).removeClass('focus');
-						i = wrap(i - 1, 0, inputs.length);
-						inputs.eq(i).addClass('focus');
-					}
-					else if (e.keyCode === 40) {
-						e.preventDefault();
-						console.log('DOWN');
-						inputs.eq(i).removeClass('focus');
-						i = wrap(i + 1, 0, inputs.length);
-						inputs.eq(i).addClass('focus');
-					}
-					else if (e.keyCode === 13) {
-						e.preventDefault();
-						console.log('RETURN');
-						inputs.eq(i)[0].checked = true;
-						Sparky.dom.trigger(inputs.eq(i)[0], 'valuechange');
-					}
-				});
+			node.addEventListener('keydown', function(e) {
+				if (e.keyCode === 38) {
+					e.preventDefault();
+					console.log('UP');
+					buttons.eq(i).removeClass('focus');
+					i = wrap(i - 1, 0, buttons.length);
+					buttons.eq(i).addClass('focus');
+				}
+				else if (e.keyCode === 40) {
+					e.preventDefault();
+					console.log('DOWN');
+					buttons.eq(i).removeClass('focus');
+					i = wrap(i + 1, 0, buttons.length);
+					buttons.eq(i).addClass('focus');
+				}
+				else if (e.keyCode === 13) {
+					e.preventDefault();
+					console.log('RETURN');
+					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+				}
 			});
+		});
+	}
+
+	var request = Throttle(function request(url, tip, node) {
+		jQuery
+		.ajax(url)
+		.then(function(data) {
+			activate(data, tip, node);
 		});
 	}, 320);
 
-	assign(Sparky.fn, {
-		suggest: function(node) {
-			if (Sparky.dom.tag(node) !== 'input') {
-				console.warn('Sparky: data-fn="suggest" can only be applied to an <input>.');
+	Sparky.fn.suggest = function(node) {
+		if (Sparky.dom.tag(node) !== 'input') {
+			console.warn('Sparky: data-fn="suggest" can only be applied to an <input>.');
+			return;
+		}
+
+		var url   = node.getAttribute('data-suggest-list');
+		var id    = node.getAttribute('data-suggest-template');
+		var value = node.getAttribute('data-suggest-value');
+		var fn    = node.getAttribute('data-suggest-fn');
+		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
+
+		if (!id || !url) {
+			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
+			return;
+		}
+
+		// Look for a data-suggest-list attribute having a tag in it
+		Sparky.rsimpletags.lastIndex = 0;
+		var tag = Sparky.rsimpletags.exec(url);
+		var prop;
+
+		if (tag) {
+			if (url.length !== tag[0].length) {
+				console.warn('Sparky: There is not just a simple tag in this attribute.');
 				return;
 			}
 
-			var id    = node.getAttribute('data-suggest-template');
-			var url   = node.getAttribute('data-suggest-list');
-			var value = node.getAttribute('data-suggest-value');
-			var fn    = node.getAttribute('data-suggest-fn');
-			var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
+			prop = tag[1];
+		}
 
-			fn = this.data[fn];
+		if (fn) { fn = this.data[fn]; }
 
-			if (!id || !url) {
-				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
+		var tip = Sparky(id);
+		Sparky.dom.append(document.body, tip);
+
+		var scope;
+		this.on('scope', function(sparky, newscope) {
+			scope = newscope;
+		});
+
+		function listen(tip) {
+			function update(data) {
+				jQuery(tip).trigger('deactivate');
+
+				if (value) {
+					node.value = Sparky.render(value, data);
+					Sparky.dom.trigger(node, 'change');
+				}
+
+				if (fn) {
+					fn(node, scope, data);
+				}
+
+				window.requestAnimationFrame(function() {
+					// Refocus the original input
+					node.focus();
+				});
+			}
+
+			function click(e) {
+				update(Sparky.getScope(e.target));
+			}
+
+			function change(e) {
+				if (e.target.checked) { return; }
+				update(Sparky.getScope(e.target));
+			}
+
+			tip.addEventListener('click', click);
+			tip.addEventListener('change', change);
+			tip.addEventListener('valuechange', change);
+		}
+
+		listen(tip.filter(Sparky.dom.isElementNode)[0]);
+
+		node.addEventListener('input', function(e) {
+			var text = e.target.value;
+
+			if (text.length < minlength) {
+				jQuery(tip).trigger('deactivate');
 				return;
 			}
 
-			var tip = Sparky(id);
+			if (tag) {
+				activate(scope[prop], tip, node);
+			}
+			else {
+				request(url + text, tip, node);
+			}
+		});
 
-			var scope;
+		node.addEventListener('blur', function(e) {
+			jQuery(tip).trigger('deactivate');
+		});
+	};
 
-			function listen(tip) {
-				function update(data) {
-					jQuery(tip).trigger('deactivate');
 
-					if (value) {
-						node.value = Sparky.render(value, data);
-						Sparky.dom.trigger(node, 'valuechange');
-					}
+	Sparky.fn['click-suggest'] = function(node) {
+		var id    = node.getAttribute('data-suggest-template');
+		var url   = node.getAttribute('data-suggest-list');
+		var value = node.getAttribute('data-suggest-value');
+		var fn    = node.getAttribute('data-suggest-fn');
+		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
 
-					if (fn) {
-						fn(node, scope, data);
-					}
+		fn = this.data[fn];
 
-					window.requestAnimationFrame(function() {
-						// Refocus the original input
-						node.focus();
-					});
+		if (!id || !url) {
+			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
+			return;
+		}
+
+		var tip = Sparky(id);
+
+		var scope;
+
+		function listen(tip) {
+			function update(data) {
+				jQuery(tip).trigger('deactivate');
+
+				if (value) {
+					node.value = Sparky.render(value, data);
+					Sparky.dom.trigger(node, 'valuechange');
 				}
 
-				function change(e) {
-					if (!e.target.checked) { return; }
-					update(Sparky.getScope(e.target));
+				if (fn) {
+					fn(node, scope, data);
 				}
 
-				tip.addEventListener('change', change);
-				tip.addEventListener('valuechange', change);
+				window.requestAnimationFrame(function() {
+					// Refocus the original input
+					node.focus();
+				});
 			}
 
-			Sparky.dom.append(document.body, tip);
+			function change(e) {
+				if (!e.target.checked) { return; }
+				update(Sparky.getScope(e.target));
+			}
 
-			listen(tip.filter(Sparky.dom.isElementNode)[0]);
+			tip.addEventListener('change', change);
+			tip.addEventListener('valuechange', change);
+		}
 
-			node.addEventListener('input', function(e) {
-				var text = e.target.value;
+		Sparky.dom.append(document.body, tip);
 
-				if (text.length < minlength) {
-					jQuery(tip).trigger('deactivate');
-					return;
-				}
+		listen(tip.filter(Sparky.dom.isElementNode)[0]);
+
+		requestAnimationFrame(function functionName() {
+console.log('HEY', node);
+			node.addEventListener('click', function(e) {
+				var text = e.target.value || '';
+console.log('CLICK');
+				//if (text.length < minlength) {
+				//	jQuery(tip).trigger('deactivate');
+				//	return;
+				//}
 
 				request(url + text, tip, node);
 			});
+		});
 
-			this.on('scope', function(sparky, newscope) {
-				scope = newscope;
-			});
+		this.on('scope', function(sparky, newscope) {
+			scope = newscope;
+		});
 
-			node.addEventListener('blur', function(e) {
-				jQuery(tip).trigger('deactivate');
-			});
-		},
-
-		'click-suggest': function(node) {
-
-			var id    = node.getAttribute('data-suggest-template');
-			var url   = node.getAttribute('data-suggest-list');
-			var value = node.getAttribute('data-suggest-value');
-			var fn    = node.getAttribute('data-suggest-fn');
-			var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
-
-			fn = this.data[fn];
-
-			if (!id || !url) {
-				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
-				return;
-			}
-
-			var tip = Sparky(id);
-
-			var scope;
-
-			function listen(tip) {
-				function update(data) {
-					jQuery(tip).trigger('deactivate');
-
-					if (value) {
-						node.value = Sparky.render(value, data);
-						Sparky.dom.trigger(node, 'valuechange');
-					}
-
-					if (fn) {
-						fn(node, scope, data);
-					}
-
-					window.requestAnimationFrame(function() {
-						// Refocus the original input
-						node.focus();
-					});
-				}
-
-				function change(e) {
-					if (!e.target.checked) { return; }
-					update(Sparky.getScope(e.target));
-				}
-
-				tip.addEventListener('change', change);
-				tip.addEventListener('valuechange', change);
-			}
-
-			Sparky.dom.append(document.body, tip);
-
-			listen(tip.filter(Sparky.dom.isElementNode)[0]);
-
-			requestAnimationFrame(function functionName() {
-	console.log('HEY', node);
-				node.addEventListener('click', function(e) {
-					var text = e.target.value || '';
-	console.log('CLICK');
-					//if (text.length < minlength) {
-					//	jQuery(tip).trigger('deactivate');
-					//	return;
-					//}
-
-					request(url + text, tip, node);
-				});
-			});
-
-			this.on('scope', function(sparky, newscope) {
-				scope = newscope;
-			});
-
-			node.addEventListener('blur', function(e) {
-				jQuery(tip).trigger('deactivate');
-			});
-		}
-	});
+		node.addEventListener('blur', function(e) {
+			jQuery(tip).trigger('deactivate');
+		});
+	};
 })(this);
