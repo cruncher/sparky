@@ -70,7 +70,7 @@
 		jQuery
 		.ajax(url)
 		.then(function(data) {
-			activate(data, tip, node);
+			activate(Collection(data), tip, node);
 		});
 	}, 320);
 
@@ -81,6 +81,10 @@
 		}
 
 		var url   = node.getAttribute('data-suggest-list');
+		var type  = Fn.stringType(url);
+
+console.log('TYPE', type);
+
 		var id    = node.getAttribute('data-suggest-template');
 		var value = node.getAttribute('data-suggest-value');
 		var fn    = node.getAttribute('data-suggest-fn');
@@ -135,7 +139,9 @@
 			}
 
 			function click(e) {
-				update(Sparky.getScope(e.target));
+				var button = Sparky.dom.closest(e.target, '[data-fn~="scope"]', e.currentTarget);
+				var object = Sparky.getScope(button);
+				update(object);
 			}
 
 			function change(e) {
@@ -158,11 +164,11 @@
 				return;
 			}
 
-			if (tag) {
-				activate(scope[prop], tip, node);
+			if (type === 'url') {
+				request(url + text, tip, node);
 			}
 			else {
-				request(url + text, tip, node);
+				activate(scope[prop], tip, node);
 			}
 		});
 
@@ -223,10 +229,10 @@
 		listen(tip.filter(Sparky.dom.isElementNode)[0]);
 
 		requestAnimationFrame(function functionName() {
-console.log('HEY', node);
+			console.log('HEY', node);
 			node.addEventListener('click', function(e) {
 				var text = e.target.value || '';
-console.log('CLICK');
+				console.log('CLICK');
 				//if (text.length < minlength) {
 				//	jQuery(tip).trigger('deactivate');
 				//	return;
