@@ -80,7 +80,7 @@
 			}
 
 			var id    = node.getAttribute('data-suggest-template');
-			var url   = node.getAttribute('data-suggest-url');
+			var url   = node.getAttribute('data-suggest-list');
 			var value = node.getAttribute('data-suggest-value');
 			var fn    = node.getAttribute('data-suggest-fn');
 			var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
@@ -88,7 +88,7 @@
 			fn = this.data[fn];
 
 			if (!id || !url) {
-				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-url.', node);
+				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
 				return;
 			}
 
@@ -151,7 +151,7 @@
 		'click-suggest': function(node) {
 
 			var id    = node.getAttribute('data-suggest-template');
-			var url   = node.getAttribute('data-suggest-url');
+			var url   = node.getAttribute('data-suggest-list');
 			var value = node.getAttribute('data-suggest-value');
 			var fn    = node.getAttribute('data-suggest-fn');
 			var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
@@ -159,7 +159,7 @@
 			fn = this.data[fn];
 
 			if (!id || !url) {
-				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-url.', node);
+				console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
 				return;
 			}
 
