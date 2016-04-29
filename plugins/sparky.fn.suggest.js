@@ -66,6 +66,28 @@
 		});
 	}
 
+	function listen(node, fn) {
+		function update(data) {
+			jQuery(node).trigger('deactivate');
+			fn(data);
+		}
+
+		function click(e) {
+			var button = Sparky.dom.closest(e.target, '[data-fn~="scope"]', e.currentTarget);
+			var object = Sparky.getScope(button);
+			update(object);
+		}
+
+		function change(e) {
+			if (e.target.checked) { return; }
+			update(Sparky.getScope(e.target));
+		}
+
+		node.addEventListener('click', click);
+		node.addEventListener('change', change);
+		node.addEventListener('valuechange', change);
+	}
+
 	var request = Throttle(function request(url, tip, node) {
 		jQuery
 		.ajax(url)
@@ -80,24 +102,23 @@
 			return;
 		}
 
-		var url   = node.getAttribute('data-suggest-list');
-		var type  = Fn.stringType(url);
+		var listId     = node.getAttribute('data-suggest-list');
+		var type       = Fn.stringType(listId);
+		var templateId = node.getAttribute('data-suggest-template');
+		var format     = node.getAttribute('data-suggest-format');
+		var fn         = node.getAttribute('data-suggest-fn');
+		var minlength  = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
 
-console.log('TYPE', type);
+console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'minlength:', minlength);
 
-		var id    = node.getAttribute('data-suggest-template');
-		var value = node.getAttribute('data-suggest-value');
-		var fn    = node.getAttribute('data-suggest-fn');
-		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
-
-		if (!id || !url) {
+		if (!templateId || !listId) {
 			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
 			return;
 		}
 
 		// Look for a data-suggest-list attribute having a tag in it
 		Sparky.rsimpletags.lastIndex = 0;
-		var tag = Sparky.rsimpletags.exec(url);
+		var tag = Sparky.rsimpletags.exec(listId);
 		var prop;
 
 		if (tag) {
@@ -111,7 +132,7 @@ console.log('TYPE', type);
 
 		if (fn) { fn = this.data[fn]; }
 
-		var tip = Sparky(id);
+		var tip = Sparky(templateId);
 		Sparky.dom.append(document.body, tip);
 
 		var scope;
@@ -119,42 +140,21 @@ console.log('TYPE', type);
 			scope = newscope;
 		});
 
-		function listen(tip) {
-			function update(data) {
-				jQuery(tip).trigger('deactivate');
-
-				if (value) {
-					node.value = Sparky.render(value, data);
-					Sparky.dom.trigger(node, 'change');
-				}
-
-				if (fn) {
-					fn(node, scope, data);
-				}
-
-				window.requestAnimationFrame(function() {
-					// Refocus the original input
-					node.focus();
-				});
+		listen(tip.filter(Sparky.dom.isElementNode)[0], function(data) {
+			if (format) {
+				node.value = Sparky.render(format, data);
+				Sparky.dom.trigger(node, 'change');
 			}
 
-			function click(e) {
-				var button = Sparky.dom.closest(e.target, '[data-fn~="scope"]', e.currentTarget);
-				var object = Sparky.getScope(button);
-				update(object);
+			if (fn) {
+				fn(node, scope, data);
 			}
 
-			function change(e) {
-				if (e.target.checked) { return; }
-				update(Sparky.getScope(e.target));
-			}
-
-			tip.addEventListener('click', click);
-			tip.addEventListener('change', change);
-			tip.addEventListener('valuechange', change);
-		}
-
-		listen(tip.filter(Sparky.dom.isElementNode)[0]);
+			window.requestAnimationFrame(function() {
+				// Refocus the original input
+				node.focus();
+			});
+		});
 
 		node.addEventListener('input', function(e) {
 			var text = e.target.value;
@@ -165,7 +165,7 @@ console.log('TYPE', type);
 			}
 
 			if (type === 'url') {
-				request(url + text, tip, node);
+				request(listId + text, tip, node);
 			}
 			else {
 				activate(scope[prop], tip, node);
@@ -181,7 +181,7 @@ console.log('TYPE', type);
 	Sparky.fn['click-suggest'] = function(node) {
 		var id    = node.getAttribute('data-suggest-template');
 		var url   = node.getAttribute('data-suggest-list');
-		var value = node.getAttribute('data-suggest-value');
+		var value = node.getAttribute('data-suggest-format');
 		var fn    = node.getAttribute('data-suggest-fn');
 		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
 
