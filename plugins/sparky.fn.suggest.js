@@ -92,6 +92,7 @@
 		jQuery
 		.ajax(url)
 		.then(function(data) {
+console.log(data.length);
 			activate(Collection(data), tip, node);
 		});
 	}, 320);
@@ -107,9 +108,9 @@
 		var templateId = node.getAttribute('data-suggest-template');
 		var format     = node.getAttribute('data-suggest-format');
 		var fn         = node.getAttribute('data-suggest-fn');
-		var minlength  = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
+		var pattern    = node.getAttribute('data-suggest-pattern');
 
-console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'minlength:', minlength);
+		console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
 
 		if (!templateId || !listId) {
 			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
@@ -126,11 +127,12 @@ console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', temp
 				console.warn('Sparky: There is not just a simple tag in this attribute.');
 				return;
 			}
-
 			prop = tag[1];
 		}
 
 		if (fn) { fn = this.data[fn]; }
+
+		if (pattern) { pattern = RegExp(pattern); }
 
 		var tip = Sparky(templateId);
 		Sparky.dom.append(document.body, tip);
@@ -156,98 +158,46 @@ console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', temp
 			});
 		});
 
-		node.addEventListener('input', function(e) {
-			var text = e.target.value;
+		var tagName = Sparky.dom.tag(node);
 
-			if (text.length < minlength) {
-				jQuery(tip).trigger('deactivate');
-				return;
-			}
-
-			if (type === 'url') {
-				request(listId + text, tip, node);
-			}
-			else {
-				activate(scope[prop], tip, node);
-			}
-		});
-
-		node.addEventListener('blur', function(e) {
-			jQuery(tip).trigger('deactivate');
-		});
-	};
-
-
-	Sparky.fn['click-suggest'] = function(node) {
-		var id    = node.getAttribute('data-suggest-template');
-		var url   = node.getAttribute('data-suggest-list');
-		var value = node.getAttribute('data-suggest-format');
-		var fn    = node.getAttribute('data-suggest-fn');
-		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
-
-		fn = this.data[fn];
-
-		if (!id || !url) {
-			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
-			return;
-		}
-
-		var tip = Sparky(id);
-
-		var scope;
-
-		function listen(tip) {
-			function update(data) {
-				jQuery(tip).trigger('deactivate');
-
-				if (value) {
-					node.value = Sparky.render(value, data);
-					Sparky.dom.trigger(node, 'valuechange');
+		if (tagName === 'input') {
+			node.addEventListener('input', function(e) {
+				var text = e.target.value;
+console.log(pattern.test(text));
+				if (!pattern.test(text)) {
+					jQuery(tip).trigger('deactivate');
+					return;
 				}
 
-				if (fn) {
-					fn(node, scope, data);
+				if (type === 'url') {
+console.log('URL');
+					request(listId + text, tip, node);
 				}
-
-				window.requestAnimationFrame(function() {
-					// Refocus the original input
-					node.focus();
-				});
-			}
-
-			function change(e) {
-				if (!e.target.checked) { return; }
-				update(Sparky.getScope(e.target));
-			}
-
-			tip.addEventListener('change', change);
-			tip.addEventListener('valuechange', change);
-		}
-
-		Sparky.dom.append(document.body, tip);
-
-		listen(tip.filter(Sparky.dom.isElementNode)[0]);
-
-		requestAnimationFrame(function functionName() {
-			console.log('HEY', node);
-			node.addEventListener('click', function(e) {
-				var text = e.target.value || '';
-				console.log('CLICK');
-				//if (text.length < minlength) {
-				//	jQuery(tip).trigger('deactivate');
-				//	return;
-				//}
-
-				request(url + text, tip, node);
+				else {
+console.log('NOT URL');
+					activate(scope[prop], tip, node);
+				}
 			});
-		});
 
-		this.on('scope', function(sparky, newscope) {
-			scope = newscope;
-		});
+			node.addEventListener('blur', function(e) {
+				jQuery(tip).trigger('deactivate');
+			});
+		}
+		else {
+			requestAnimationFrame(function() {
+				console.log('YEP');
+				node.addEventListener('click', function(e) {
+					var text = e.target.value || '';
+					console.log('CLICK');
 
-		node.addEventListener('blur', function(e) {
-			jQuery(tip).trigger('deactivate');
-		});
+					if (type === 'url') {
+						request(listId + text, tip, node);
+					}
+					else {
+						activate(scope[prop], tip, node);
+					}
+				});
+			});
+		}
 	};
 })(this);
