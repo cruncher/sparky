@@ -42,7 +42,7 @@
 
 			buttons.eq(i).addClass('focus');
 
-			node.addEventListener('keydown', function(e) {
+			node.addEventListener('keydown', function key(e) {
 				if (e.keyCode === 38) {
 					e.preventDefault();
 					console.log('UP');
@@ -57,10 +57,16 @@
 					i = wrap(i + 1, 0, buttons.length);
 					buttons.eq(i).addClass('focus');
 				}
+				else if (e.keyCode === 9) {
+					console.log('TAB');
+					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+					node.removeEventListener('keydown', key);
+				}
 				else if (e.keyCode === 13) {
 					e.preventDefault();
 					console.log('RETURN');
 					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+					node.removeEventListener('keydown', key);
 				}
 			});
 		});
@@ -92,7 +98,6 @@
 		jQuery
 		.ajax(url)
 		.then(function(data) {
-console.log(data.length);
 			activate(Collection(data), tip, node);
 		});
 	}, 320);
@@ -110,7 +115,7 @@ console.log(data.length);
 		var fn         = node.getAttribute('data-suggest-fn');
 		var pattern    = node.getAttribute('data-suggest-pattern');
 
-		console.log('Sparky.fn.suggest: list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
+		console.log('Sparky.fn.suggest: node', node, 'list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
 
 		if (!templateId || !listId) {
 			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
@@ -158,46 +163,24 @@ console.log(data.length);
 			});
 		});
 
-		var tagName = Sparky.dom.tag(node);
+		node.addEventListener('input', function(e) {
+			var text = e.target.value;
 
-		if (tagName === 'input') {
-			node.addEventListener('input', function(e) {
-				var text = e.target.value;
-console.log(pattern.test(text));
-				if (!pattern.test(text)) {
-					jQuery(tip).trigger('deactivate');
-					return;
-				}
-
-				if (type === 'url') {
-console.log('URL');
-					request(listId + text, tip, node);
-				}
-				else {
-console.log('NOT URL');
-					activate(scope[prop], tip, node);
-				}
-			});
-
-			node.addEventListener('blur', function(e) {
+			if (pattern && !pattern.test(text)) {
 				jQuery(tip).trigger('deactivate');
-			});
-		}
-		else {
-			requestAnimationFrame(function() {
-				console.log('YEP');
-				node.addEventListener('click', function(e) {
-					var text = e.target.value || '';
-					console.log('CLICK');
+				return;
+			}
 
-					if (type === 'url') {
-						request(listId + text, tip, node);
-					}
-					else {
-						activate(scope[prop], tip, node);
-					}
-				});
-			});
-		}
+			if (type === 'url') {
+				request(listId + text, tip, node);
+			}
+			else {
+				activate(scope[prop], tip, node);
+			}
+		});
+
+		node.addEventListener('blur', function(e) {
+			jQuery(tip).trigger('deactivate');
+		});
 	};
 })(this);
