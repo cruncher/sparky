@@ -115,7 +115,7 @@
 		var fn         = node.getAttribute('data-suggest-fn');
 		var pattern    = node.getAttribute('data-suggest-pattern');
 
-		console.log('Sparky.fn.suggest: node', node, 'list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
+		//console.log('Sparky.fn.suggest: node', node, 'list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
 
 		if (!templateId || !listId) {
 			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
