@@ -73,31 +73,58 @@
 		});
 	}
 
-	function valueAny(node, model) {
+	function valueAny(node) {
 		// Coerce any defined value to string so that any values pass the type checker
 		setup(this, node, definedToString, returnArg);
 	}
 
-	function valueString(node, model) {
+	function valueString(node) {
 		// Don't coerce so that only strings pass the type checker
 		setup(this, node, returnArg, returnArg);
 	}
 
-	function valueNumber(node, model) {
+	function valueNumber(node) {
 		setup(this, node, floatToString, stringToFloat);
 	}
 
-	function valueInteger(node, model) {
+	function valueInteger(node) {
 		setup(this, node, floatToString, stringToInt);
 	}
 
-	function valueBoolean(node, model) {
+	function valueBoolean(node) {
 		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
 			setup(this, node, boolToStringOn, stringOnToBool);
 		}
 		else {
 			setup(this, node, boolToString, stringToBool);
 		}
+	}
+
+	function valueArray(node) {
+		var array = [];
+
+		function to(array) {
+			console.log('to', value, array.join());
+			var i = array.indexOf(node.value);
+			return i > -1 ? node.value : '' ;
+		}
+
+		function from(value) {
+			console.log('from', value, array.join());
+
+			if (value === undefined) {
+				var i = array.indexOf(node.value);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			if (array.indexOf(value) === -1) {
+				array.push(value);
+			}
+
+			return array;
+		}
+
+		setup(this, node, to, from);
 	}
 
 //	function valueBooleanInvert(node, model) {
@@ -230,6 +257,7 @@
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
+		'value-array':          valueArray,
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
