@@ -101,23 +101,25 @@
 	}
 
 	function valueArray(node) {
-		var array = [];
+		var array;
 
-		function to(array) {
-			console.log('to', value, array.join());
+		function to(arr) {
+			if (arr === undefined) { return ''; }
+
+			array = arr;
 			var i = array.indexOf(node.value);
+
 			return i > -1 ? node.value : '' ;
 		}
 
 		function from(value) {
-			console.log('from', value, array.join());
+			if (array === undefined) { array = Collection(); }
 
 			if (value === undefined) {
 				var i = array.indexOf(node.value);
 				if (i !== -1) { array.splice(i, 1); }
 			}
-
-			if (array.indexOf(value) === -1) {
+			else if (array.indexOf(value) === -1) {
 				array.push(value);
 			}
 
@@ -126,28 +128,6 @@
 
 		setup(this, node, to, from);
 	}
-
-//	function valueBooleanInvert(node, model) {
-//		var type = node.type;
-//		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-//		    	Sparky.parseName(node, model, boolToStringOnInverted, stringOnToBoolInverted) :
-//		    	Sparky.parseName(node, model, boolToStringInverted, stringToBoolInverted);
-//		if (unbind) { this.on('destroy', unbind); }
-//	}
-
-//	function valueNumberInvert(node, model) {
-//		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-//		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
-
-//		bindName(this, node, function to(value) {
-//			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
-//		}, function from(value) {
-//			var n = parseFloat(value);
-//			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
-//		});
-
-//		if (unbind) { this.on('destroy', unbind); }
-//	};
 
 	function valueFloatPow2(node, model) {
 		var min, max;
