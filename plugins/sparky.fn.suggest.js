@@ -82,7 +82,7 @@
 
 		var url   = node.getAttribute('data-suggest-list');
 		var id    = node.getAttribute('data-suggest-template');
-		var value = node.getAttribute('data-suggest-value');
+		var value = node.getAttribute('data-suggest-format');
 		var fn    = node.getAttribute('data-suggest-fn');
 		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 1, 10);
 
@@ -175,7 +175,7 @@
 	Sparky.fn['click-suggest'] = function(node) {
 		var id    = node.getAttribute('data-suggest-template');
 		var url   = node.getAttribute('data-suggest-list');
-		var value = node.getAttribute('data-suggest-value');
+		var value = node.getAttribute('data-suggest-format');
 		var fn    = node.getAttribute('data-suggest-fn');
 		var minlength = parseInt(node.getAttribute('data-suggest-minlength') || 3, 10);
 
