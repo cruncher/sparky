@@ -1975,6 +1975,7 @@ if (!Math.log10) {
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
 
 		var tag = dom.tag(node);
+
 		if (tag !== 'template' && tag !== 'script') { return; }
 
 		if (node.content) {
@@ -1985,7 +1986,7 @@ if (!Math.log10) {
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
-			return fragmentFromContent(node);
+			return fragmentFromChildren(node);
 		}
 	}
 
@@ -2560,6 +2561,10 @@ if (!Math.log10) {
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
+	var aliases = {
+		"viewbox": "viewBox"
+	};
+
 	// Matches a sparky template tag, capturing (path, filter)
 	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
 	var rtags;
@@ -2604,7 +2609,7 @@ if (!Math.log10) {
 	// DOM
 
 	function setAttributeSVG(node, attribute, value) {
-		if (attribute === 'd' || attribute === "transform") {
+		if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
 			node.setAttribute(attribute, value);
 		}
 		else if (attribute === "href") {
@@ -2688,6 +2693,16 @@ if (!Math.log10) {
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
+		svg: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['viewbox']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
+		g: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['transform']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		path: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
@@ -2695,6 +2710,9 @@ if (!Math.log10) {
 		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
+
+		template: Sparky.noop,
+		script: Sparky.noop
 	};
 
 	var parsers = {
@@ -2848,17 +2866,20 @@ if (!Math.log10) {
 		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
-		var value = alias ? alias : isSVG ?
-		    	node.getAttributeNS(Sparky.xlinkNamespace, attribute) || node.getAttribute(attribute) :
-		    	node.getAttribute(attribute) ;
+
+		// SVG has case sensitive attributes.
+		var attr = aliases[attribute] || attribute ;
+		var value = alias ? alias :
+		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
+		    	node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
-		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attribute + '="' + value + '"'); }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
 		var update = isSVG ?
-		    	setAttributeSVG.bind(this, node, attribute) :
-		    	setAttributeHTML.bind(this, node, attribute) ;
+		    	setAttributeSVG.bind(this, node, attr) :
+		    	setAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
@@ -3402,7 +3423,7 @@ if (!Math.log10) {
 			});
 		},
 
-		"store-scope": function(node) {
+		"scope": function(node) {
 			this.on('scope', function(sparky, scope) {
 				Sparky.setScope(node, scope);
 			});
@@ -3664,31 +3685,58 @@ if (!Math.log10) {
 		});
 	}
 
-	function valueAny(node, model) {
+	function valueAny(node) {
 		// Coerce any defined value to string so that any values pass the type checker
 		setup(this, node, definedToString, returnArg);
 	}
 
-	function valueString(node, model) {
+	function valueString(node) {
 		// Don't coerce so that only strings pass the type checker
 		setup(this, node, returnArg, returnArg);
 	}
 
-	function valueNumber(node, model) {
+	function valueNumber(node) {
 		setup(this, node, floatToString, stringToFloat);
 	}
 
-	function valueInteger(node, model) {
+	function valueInteger(node) {
 		setup(this, node, floatToString, stringToInt);
 	}
 
-	function valueBoolean(node, model) {
+	function valueBoolean(node) {
 		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
 			setup(this, node, boolToStringOn, stringOnToBool);
 		}
 		else {
 			setup(this, node, boolToString, stringToBool);
 		}
+	}
+
+	function valueArray(node) {
+		var array = [];
+
+		function to(array) {
+			console.log('to', value, array.join());
+			var i = array.indexOf(node.value);
+			return i > -1 ? node.value : '' ;
+		}
+
+		function from(value) {
+			console.log('from', value, array.join());
+
+			if (value === undefined) {
+				var i = array.indexOf(node.value);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			if (array.indexOf(value) === -1) {
+				array.push(value);
+			}
+
+			return array;
+		}
+
+		setup(this, node, to, from);
 	}
 
 //	function valueBooleanInvert(node, model) {
@@ -3821,10 +3869,11 @@ if (!Math.log10) {
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
+		'value-array':          valueArray,
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
-		'value-bool':           valueBoolean,
+		'value-boolean':        valueBoolean,
 		'value-int-log':        valueIntLog,
 		'value-float-log':      valueFloatLog,
 		'value-float-pow-2':    valueFloatPow2,
