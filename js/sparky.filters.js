@@ -214,7 +214,9 @@
 		},
 
 		invert: function(value) {
-			return 1 / value;
+			return typeof value === 'boolean' ? !value :
+				typeof value === 'number' ? 1 / value :
+				!value ;
 		},
 
 		is: function(value, val, string1, string2) {

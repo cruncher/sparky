@@ -80,6 +80,21 @@
 		node.setAttribute(attribute, value);
 	}
 
+	function toggleAttributeSVG(node, attribute, value) {
+		if (value) { setAttributeSVG(node, attribute, value); }
+		else { node.removeAttribute(attribute); }
+	}
+
+	function toggleAttributeHTML(node, attribute, value) {
+console.log('TOG', attribute, value, typeof value);
+		if (value) {
+console.log('ADD', attribute, node);
+			setAttributeHTML(node, attribute, attribute); }
+		else {
+console.log('REMOVE', node);
+			node.removeAttribute(attribute); }
+	}
+
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
 		classList.add.apply(classList, classes);
@@ -99,12 +114,18 @@
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
+		button: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
@@ -123,6 +144,7 @@
 
 		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
@@ -134,10 +156,13 @@
 
 		option: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
 		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
 			if (unbindName) { unobservers.push(unbindName); }
@@ -336,6 +361,31 @@
 		var update = isSVG ?
 		    	setAttributeSVG.bind(this, node, attr) :
 		    	setAttributeHTML.bind(this, node, attr) ;
+
+		observeProperties(value, bind, unbind, get, update, unobservers);
+	}
+
+	function bindBooleanAttribute(node, attribute, bind, unbind, get, unobservers) {
+		var isSVG = node instanceof SVGElement;
+
+		// Look for data- aliased attributes before attributes. This is
+		// particularly important for the style attribute in IE, as it does not
+		// return invalid CSS text content, so Sparky can't read tags in it.
+		var alias = node.getAttribute('data-' + attribute) ;
+
+		// SVG has case sensitive attributes.
+		var attr = aliases[attribute] || attribute ;
+		var value = alias ? alias :
+		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
+		    	node.getAttribute(attr) ;
+
+		if (!value) { return; }
+		if (alias) { node.removeAttribute('data-' + attribute); }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
+
+		var update = isSVG ?
+		    	toggleAttributeSVG.bind(this, node, attr) :
+		    	toggleAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
