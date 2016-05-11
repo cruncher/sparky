@@ -86,13 +86,8 @@
 	}
 
 	function toggleAttributeHTML(node, attribute, value) {
-console.log('TOG', attribute, value, typeof value);
-		if (value) {
-console.log('ADD', attribute, node);
-			setAttributeHTML(node, attribute, attribute); }
-		else {
-console.log('REMOVE', node);
-			node.removeAttribute(attribute); }
+		if (value) { setAttributeHTML(node, attribute, attribute); }
+		else { node.removeAttribute(attribute); }
 	}
 
 	function addClasses(classList, text) {
