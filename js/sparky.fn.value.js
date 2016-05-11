@@ -73,25 +73,25 @@
 		});
 	}
 
-	function valueAny(node, model) {
+	function valueAny(node) {
 		// Coerce any defined value to string so that any values pass the type checker
 		setup(this, node, definedToString, returnArg);
 	}
 
-	function valueString(node, model) {
+	function valueString(node) {
 		// Don't coerce so that only strings pass the type checker
 		setup(this, node, returnArg, returnArg);
 	}
 
-	function valueNumber(node, model) {
+	function valueNumber(node) {
 		setup(this, node, floatToString, stringToFloat);
 	}
 
-	function valueInteger(node, model) {
+	function valueInteger(node) {
 		setup(this, node, floatToString, stringToInt);
 	}
 
-	function valueBoolean(node, model) {
+	function valueBoolean(node) {
 		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
 			setup(this, node, boolToStringOn, stringOnToBool);
 		}
@@ -100,27 +100,34 @@
 		}
 	}
 
-//	function valueBooleanInvert(node, model) {
-//		var type = node.type;
-//		var unbind = type === 'checkbox' && !isDefined(node.getAttribute('value')) ?
-//		    	Sparky.parseName(node, model, boolToStringOnInverted, stringOnToBoolInverted) :
-//		    	Sparky.parseName(node, model, boolToStringInverted, stringToBoolInverted);
-//		if (unbind) { this.on('destroy', unbind); }
-//	}
+	function valueArray(node) {
+		var array;
 
-//	function valueNumberInvert(node, model) {
-//		var min = node.min ? parseFloat(node.min) : (node.min = 0) ;
-//		var max = mode.max ? parseFloat(node.max) : (node.max = 1) ;
+		function to(arr) {
+			if (arr === undefined) { return ''; }
 
-//		bindName(this, node, function to(value) {
-//			return typeof value !== 'number' ? '' : ('' + ((max - value) + min));
-//		}, function from(value) {
-//			var n = parseFloat(value);
-//			return Number.isNaN(n) ? undefined : ((max - value) + min) ;
-//		});
+			array = arr;
+			var i = array.indexOf(node.value);
 
-//		if (unbind) { this.on('destroy', unbind); }
-//	};
+			return i > -1 ? node.value : '' ;
+		}
+
+		function from(value) {
+			if (array === undefined) { array = Collection(); }
+
+			if (value === undefined) {
+				var i = array.indexOf(node.value);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+			else if (array.indexOf(value) === -1) {
+				array.push(value);
+			}
+
+			return array;
+		}
+
+		setup(this, node, to, from);
+	}
 
 	function valueFloatPow2(node, model) {
 		var min, max;
@@ -230,6 +237,7 @@
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
+		'value-array':          valueArray,
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
