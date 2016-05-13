@@ -93,16 +93,13 @@
 			return update(scope);
 		}
 
-		// data-scope="http://*.json"
+		// data-scope="/path/to/data.json"
 		rurljson.lastIndex = 0;
-		var url = rurljson.test(path);
-		if (url) {
-			jQuery.ajax({
-				url: url,
-				type: 'json'
-			})
+		var isURL = rurljson.test(path);
+
+		if (isURL) {
+			jQuery.get(path)
 			.then(function(res) {
-console.log('RES', res);
 				update(res);
 			});
 
