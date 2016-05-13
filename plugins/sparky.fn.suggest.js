@@ -37,38 +37,49 @@
 		window.requestAnimationFrame(function() {
 			elem.trigger({ type: 'activate', relatedTarget: node });
 
-			var buttons = elem.find('button');
+			var buttons = elem.find('[data-fn~="scope"]');
 			var i = 0;
 
-			buttons.eq(i).addClass('focus');
+			function mouseenter(e) {
+				buttons.eq(i).removeClass('focus');
+				i = buttons.index(e.currentTarget);
+				buttons.eq(i).addClass('focus');
+			}
 
-			node.addEventListener('keydown', function key(e) {
+			function keydown(e) {
 				if (e.keyCode === 38) {
 					e.preventDefault();
-					console.log('UP');
 					buttons.eq(i).removeClass('focus');
 					i = wrap(i - 1, 0, buttons.length);
 					buttons.eq(i).addClass('focus');
 				}
 				else if (e.keyCode === 40) {
 					e.preventDefault();
-					console.log('DOWN');
 					buttons.eq(i).removeClass('focus');
 					i = wrap(i + 1, 0, buttons.length);
 					buttons.eq(i).addClass('focus');
 				}
 				else if (e.keyCode === 9) {
-					console.log('TAB');
 					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
-					node.removeEventListener('keydown', key);
 				}
 				else if (e.keyCode === 13) {
 					e.preventDefault();
-					console.log('RETURN');
 					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
-					node.removeEventListener('keydown', key);
 				}
-			});
+			}
+
+			function deactivate(e) {
+				buttons.eq(i).removeClass('focus');
+				elem.off('deactivate', deactivate);
+				elem.off('mouseenter', mouseenter);
+				node.removeEventListener('keydown', keydown);
+			}
+
+			buttons.eq(i).addClass('focus');
+			node.addEventListener('keydown', keydown);
+			elem
+			.on('mouseenter', '[data-fn~="scope"]', mouseenter)
+			.on('deactivate', deactivate);
 		});
 	}
 
@@ -84,14 +95,7 @@
 			update(object);
 		}
 
-		function change(e) {
-			if (e.target.checked) { return; }
-			update(Sparky.getScope(e.target));
-		}
-
 		node.addEventListener('click', click);
-		node.addEventListener('change', change);
-		node.addEventListener('valuechange', change);
 	}
 
 	var request = Throttle(function request(url, tip, node) {
@@ -148,19 +152,18 @@
 		});
 
 		listen(tip.filter(Sparky.dom.isElementNode)[0], function(data) {
-			if (format) {
-				node.value = Sparky.render(format, data);
-				Sparky.dom.trigger(node, 'change');
-			}
+			node.value = format ? Sparky.render(format, data) : data ;
+			Sparky.dom.trigger(node, 'change');
+
+			// Focus the next tabbable node
+			var next = jQuery(node).nextAll('input:not([disabled]):not([hidden]):not([tabindex^="-"])').first();
+			window.requestAnimationFrame(function functionName() {
+				next.focus();
+			});
 
 			if (fn) {
 				fn(node, scope, data);
 			}
-
-			window.requestAnimationFrame(function() {
-				// Refocus the original input
-				node.focus();
-			});
 		});
 
 		node.addEventListener('input', function(e) {
