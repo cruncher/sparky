@@ -366,30 +366,6 @@
 			};
 		})(),
 
-		//striptagsexcept: (function() {
-		//	var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
-		//	    allowedTags, result;
-		//
-		//	function strip($0, $1, $2) {
-		//		// Strip any attributes, letting the allowed tag name through.
-		//		return $2 && allowedTags.indexOf($2) !== -1 ?
-		//			'<' + ($1 || '') + $2 + '>' :
-		//			'' ;
-		//	}
-		//
-		//	return function(value, tags) {
-		//		if (!tags) {
-		//			return value.replace(rtag, '');
-		//		}
-		//
-		//		allowedTags = tags.split(' ');
-		//		result = value.replace(rtag, strip);
-		//		allowedTags = false;
-		//
-		//		return result;
-		//	};
-		//})(),
-
 		switch: function(value) {
 			if (typeof value === 'string') { value = parseInt(value, 10); }
 			if (typeof value !== 'number' || Number.isNaN(value)) { return; }
