@@ -213,6 +213,10 @@
 			return value1 > value2 ? str1 : str2 ;
 		},
 
+		has: function(array, value) {
+			return (array && array.indexOf(value) > -1);
+		},
+
 		invert: function(value) {
 			return typeof value === 'boolean' ? !value :
 				typeof value === 'number' ? 1 / value :
