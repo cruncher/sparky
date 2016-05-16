@@ -100,7 +100,7 @@
 		}
 	}
 
-	function valueArray(node) {
+	function valueInArray(node) {
 		var array;
 
 		function to(arr) {
@@ -237,7 +237,6 @@
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
-		'value-array':          valueArray,
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
@@ -245,7 +244,8 @@
 		'value-int-log':        valueIntLog,
 		'value-float-log':      valueFloatLog,
 		'value-float-pow-2':    valueFloatPow2,
-		'value-float-pow-3':    valueFloatPow3
+		'value-float-pow-3':    valueFloatPow3,
+		'value-in-array':       valueInArray,
 		//'value-number-invert':  valueNumberInvert,
 		//'value-boolean-invert': valueBooleanInvert
 	});
