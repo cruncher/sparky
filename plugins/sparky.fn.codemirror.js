@@ -21,7 +21,8 @@
 			var codemirror = CodeMirror.fromTextArea(node, {
 				scrollbarStyle: "null",
 				maxHighlightLength: 1024,
-				mode: "htmlmixed"
+				mode: "htmlmixed",
+				theme: "cruncher"
 			});
 
 			// Set up editor element
