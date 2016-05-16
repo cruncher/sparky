@@ -361,26 +361,20 @@
 	}
 
 	function bindBooleanAttribute(node, attribute, bind, unbind, get, unobservers) {
-		var isSVG = node instanceof SVGElement;
-
 		// Look for data- aliased attributes before attributes. This is
 		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
 		var alias = node.getAttribute('data-' + attribute) ;
 
 		// SVG has case sensitive attributes.
-		var attr = aliases[attribute] || attribute ;
-		var value = alias ? alias :
-		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
-		    	node.getAttribute(attr) ;
+		var attr = attribute ;
+		var value = alias ? alias : node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = isSVG ?
-		    	toggleAttributeSVG.bind(this, node, attr) :
-		    	toggleAttributeHTML.bind(this, node, attr) ;
+		var update = toggleAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}

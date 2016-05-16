@@ -12,6 +12,8 @@
 
 	var assign = Object.assign;
 
+	var rurljson = /\/\S*\.json$/;
+
 	var errors = {
 		"node-not-found": "Sparky: Sparky(node) called, node not found: #{{$0}}"
 	}
@@ -89,6 +91,19 @@
 		// No data-scope attribute, use current scope.
 		if (!isDefined(path)) {
 			return update(scope);
+		}
+
+		// data-scope="/path/to/data.json"
+		rurljson.lastIndex = 0;
+		var isURL = rurljson.test(path);
+
+		if (isURL) {
+			jQuery.get(path)
+			.then(function(res) {
+				update(res);
+			});
+
+			return;
 		}
 
 		// data-scope="{{path.to.data}}", find new scope in current scope.
