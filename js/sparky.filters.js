@@ -213,7 +213,7 @@
 			return value1 > value2 ? str1 : str2 ;
 		},
 
-		has: function(array, value) {
+		contains: function(array, value) {
 			return (array && array.indexOf(value) > -1);
 		},
 
