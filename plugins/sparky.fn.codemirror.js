@@ -4,21 +4,47 @@
 	var Sparky = window.Sparky;
 	var assign = Object.assign;
 
+	// Define an extended mixed-mode that understands vbscript and
+	// leaves mustache/handlebars embedded templates in html mode
+	var mixedMode = {
+	  name: "htmlmixed",
+	  scriptTypes: [
+		  { matches: /\/javascript/i, mode: "javascript" }
+	  ]
+	};
+
 	// Note: was "midi-scope"
 	assign(Sparky.fn, {
 		codemirror: function(node) {
+			//var fns = this.interrupt();
+
 			var codemirror = CodeMirror.fromTextArea(node, {
-				scrollbarStyle: "null"
+				scrollbarStyle: "null",
+				maxHighlightLength: 1024,
+				mode: "htmlmixed"
 			});
 
+			// Set up editor element
 			var code = codemirror.getWrapperElement();
-			var classes = Sparky.dom.classes(code);
+			code.className += ' ' + node.className;
 
-			classes.add('text-layer');
-			classes.add('layer');
+			// Update textarea whenever codemirror changes
+			var changing = false;
 
-console.log(code === node, node, code);
-console.log(code);
+			codemirror.on("changes", function() {
+				if (changing) { return; }
+				node.value = codemirror.getValue();
+				changing = true;
+				Sparky.dom.trigger(node, "change");
+				changing = false;
+			});
+
+			node.addEventListener('valuechange', function(e) {
+				if (changing) { return; }
+				changing = true;
+				codemirror.setValue(node.value);
+				changing = false;
+			});
 		}
 	});
 })(this);
