@@ -122,7 +122,7 @@
 		//console.log('Sparky.fn.suggest: node', node, 'list:', listId, 'type:', type, 'template:', templateId, 'format:', format, 'fn:', fn, 'pattern:', pattern);
 
 		if (!templateId || !listId) {
-			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-data.', node);
+			console.warn('Sparky: data-fn="suggest" requires attributes data-suggest-template and data-suggest-list.', node);
 			return;
 		}
 
@@ -132,7 +132,7 @@
 		var prop;
 
 		if (tag) {
-			if (url.length !== tag[0].length) {
+			if (listId.length !== tag[0].length) {
 				console.warn('Sparky: There is not just a simple tag in this attribute.');
 				return;
 			}
