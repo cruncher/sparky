@@ -229,6 +229,7 @@
 	// Templates
 
 	var templates = {};
+	var rcomment = /\{\s*\/\*\s*([\s\S]*)\s*\*\/\s*\}$/;
 
 	function fragmentFromChildren(node) {
 		var children = slice(node.childNodes);
@@ -267,7 +268,20 @@
 		return template && template.cloneNode(true);
 	}
 
+	function multiline(fn) {
+		if (typeof fn !== 'function') { throw new TypeError('multiline(fn) expects a function.'); }
+		var match = rcomment.exec(fn.toString());
+		if (!match) { throw new TypeError('Multiline comment missing.'); }
+		return match[1];
+	}
+
 	function registerTemplate(id, node) {
+		if (typeof node === 'function') {
+			var template = dom.create('template');
+			template.innerHTML = multiline(node);
+			node = fragmentFromContent(template);
+		}
+
 		templates[id] = node;
 	}
 
