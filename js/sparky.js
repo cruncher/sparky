@@ -2,7 +2,7 @@
 	if (!window.console || !window.console.log) { return; }
 
 	console.log('Sparky');
-	console.log('http://github.com/cruncher/sparky');
+	console.log('https://labs.cruncher.ch/sparky');
 	console.log('_________________________________');
 })(this);
 
