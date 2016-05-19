@@ -135,19 +135,18 @@
 		function to(arr) {
 			if (arr === undefined) { return ''; }
 
-			var value = floatToString(node.value);
-
+			var value = stringToInt(node.value);
 			array = arr;
 			var i = array.indexOf(value);
 
-			return i > -1 ? value : '' ;
+			return i > -1 ? floatToString(value) : '' ;
 		}
 
 		function from(value) {
 			if (array === undefined) { array = Collection(); }
 
 			if (value === undefined) {
-				var i = array.indexOf(node.value);
+				var i = array.indexOf(stringToInt(node.value));
 				if (i !== -1) { array.splice(i, 1); }
 			}
 			else if (array.indexOf(value) === -1) {
