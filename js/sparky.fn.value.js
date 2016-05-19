@@ -129,6 +129,37 @@
 		setup(this, node, to, from);
 	}
 
+	function valueIntInArray(node) {
+		var array;
+
+		function to(arr) {
+			if (arr === undefined) { return ''; }
+
+			var value = floatToString(node.value);
+
+			array = arr;
+			var i = array.indexOf(value);
+
+			return i > -1 ? value : '' ;
+		}
+
+		function from(value) {
+			if (array === undefined) { array = Collection(); }
+
+			if (value === undefined) {
+				var i = array.indexOf(node.value);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+			else if (array.indexOf(value) === -1) {
+				array.push(value);
+			}
+
+			return array;
+		}
+
+		setup(this, node, to, Fn.compose(from, stringToInt));
+	}
+
 	function valueFloatPow2(node, model) {
 		var min, max;
 
@@ -246,6 +277,7 @@
 		'value-float-pow-2':    valueFloatPow2,
 		'value-float-pow-3':    valueFloatPow3,
 		'value-in-array':       valueInArray,
+		'value-int-in-array':       valueIntInArray,
 		//'value-number-invert':  valueNumberInvert,
 		//'value-boolean-invert': valueBooleanInvert
 	});
