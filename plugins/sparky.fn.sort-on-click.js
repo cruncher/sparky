@@ -43,6 +43,10 @@
 					} ;
 
 				collection.sort();
+
+				// Make button lose focus (we gained focus via click so it's
+				// unlikely its important to keep it).
+				node.blur();
 			};
 
 			node.addEventListener('click', click);
