@@ -206,7 +206,7 @@
 		},
 
 		get: function(value, name) {
-			return value[name];
+			return value ? value[name] : undefined ;
 		},
 
 		"greater-than": function(value1, value2, str1, str2) {
