@@ -295,6 +295,10 @@
 		};
 	} : function(Sparky) {
 		Sparky.observe = function(object, property, fn, immediate) {
+			if (!object) {
+				throw new Error('Sparky: Sparky.observe requires an object!', object, property);
+			}
+
 			// AudioParams objects must be polled, as they cannot be reconfigured
 			// to getters/setters, nor can they be Object.observed. And they fail
 			// to do both of those completely silently. So we test the scope to see
