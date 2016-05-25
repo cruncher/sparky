@@ -267,6 +267,10 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
+		map: function(array, path) {
+			return array && array.map(Fn.get(path));
+		},
+
 		mod: function(value, n) {
 			if (typeof value !== 'number') { return; }
 			return value % n;
@@ -323,6 +327,14 @@
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
+
+		reduce: (function(processes) {
+			return function(array, name, initialValue) {
+				return array && array.reduce(processes[name], initialValue || 0);
+			};
+		})({
+			sum: function(a, b) { return a + b; }
+		}),
 
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
