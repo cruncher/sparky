@@ -2,13 +2,16 @@
 // Sparky.observe()
 // Sparky.unobserve()
 
-(function(Sparky) {
+(function(window) {
 	"use strict";
+
+	var Sparky = window.Sparky;
 
 	// Handle paths
 
-	var rpathtrimmer = /^\[|]$/g;
-	var rpathsplitter = /\]?\.|\[/g;
+	var rpathtrimmer = /^\[|\]$/g;
+	var rpathsplitter = /\]?(?:\.|\[)/g;
+	var rpropselector = /(\w+)\=(\w+)/;
 	var map = [];
 
 	function noop() {}
@@ -21,13 +24,32 @@
 			.split(rpathsplitter);
 	}
 
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
+	function get(object, key) {
+		var selection = rpropselector.exec(key);
 
-		return array.length === 0 ? val :
-			isDefined(val) ? objFrom(val, array) :
-			val ;
+		return selection ?
+			findByProperty(object, selection[1], JSON.parse(selection[2])) :
+			object[key] ;
+	}
+
+	function findByProperty(array, name, value) {
+		// Find first matching object in array
+		var n = -1;
+
+		while (++n < array.length) {
+			if (array[n] && array[n][name] === value) {
+				return array[n];
+			}
+		}
+	}
+
+	function objFrom(object, array) {
+		var key = array.shift();
+		var value = get(object, key);
+
+		return array.length === 0 ? value :
+			isDefined(value) ? objFrom(value, array) :
+			value ;
 	}
 
 	function objTo(root, array, obj) {
@@ -53,10 +75,9 @@
 
 	function observePath2(root, prop, array, fn, notify) {
 		var destroy = noop;
+		var object;
 
 		function update() {
-			var object = root[prop];
-
 			destroy();
 
 			if (typeof object !== 'object' && typeof object !== 'function') {
@@ -66,15 +87,44 @@
 			else {
 				destroy = observePath1(object, array.slice(), fn, notify) ;
 			}
-		};
+		}
 
-		Sparky.observe(root, prop, update, true);
-		notify = true;
+		function updateSelection() {
+			var obj = findByProperty(root, selection[1], JSON.parse(selection[2]));
+			// Check that object has changed
+			if (obj === object) { return; }
+			object = o;
+			update();
+		}
 
-		return function unobserve() {
-			destroy();
-			Sparky.unobserve(root, prop, update);
-		};
+		function updateProperty() {
+			object = root[prop];
+			update();
+		}
+
+		var selection = rpropselector.exec(prop);
+
+		if (selection) {
+			if (!root.on) {
+				throw new Error('Sparky: Sparky.observe trying to observe with property selector on a non-collection.')
+			}
+
+			root.on('add remove update', updateSelection);
+			updateSelection();
+			notify = true;
+			return function unobserve() {
+				destroy();
+				root.off('add remove update', updateSelection);
+			};
+		}
+		else {
+			Sparky.observe(root, prop, updateProperty, true);
+			notify = true;
+			return function unobserve() {
+				destroy();
+				Sparky.unobserve(root, prop, updateProperty);
+			};
+		}
 	}
 
 	function observePath1(root, array, fn, notify) {
@@ -227,116 +277,48 @@
 		return object;
 	}
 
-	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
-
-		var map = new WeakMap();
-		var names = [];
-		var types = ["add", "update", "delete"];
-
-		function call(fn) {
-			fn(this);
+	Sparky.observe = function(object, property, fn, immediate) {
+		if (!object) {
+			throw new Error('Sparky: Sparky.observe requires an object!', object, property);
 		}
 
-		function trigger(change) {
-			var properties = this;
-			var name = change.name;
-			var object = change.object;
-
-			// If this property is in the properties being watched, and we
-			// have not already called changes on it, do that now.
-			if (properties[name] && names.indexOf(name) === -1) {
-				names.push(name);
-				fns = properties[name];
-				fns.forEach(call, object);
-			}
+		// AudioParams objects must be polled, as they cannot be reconfigured
+		// to getters/setters, nor can they be Object.observed. And they fail
+		// to do both of those completely silently. So we test the scope to see
+		// if it is an AudioParam and set the observe and unobserve functions
+		// to poll.
+		if (isAudioParam(object)) {
+			return poll(object, property, fn);
 		}
 
-		function triggerAll(changes) {
-			names.length = 0;
-			changes.forEach(trigger, map[object]);
-		}
+		if (property === 'length') {
+			// Observe length and update the DOM on next
+			// animation frame if it changes.
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
 
-		function setup(object) {
-			var properties = map[object] = {};
-			Object.observe(object, triggerAll, types);
-			return properties;
-		}
-
-		function teardown(object) {
-			Object.unobserve(object, triggerAll);
-		}
-
-		Sparky.observe = function(object, property, fn) {
-			var properties = map[object] || setup(object);
-			var fns = properties[property] || (properties[property] = []);
-			fns.push(fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (!map[object]) { return; }
-
-			var properties = map[object];
-			var fns = properties[property];
-
-			if (!fns) { return; }
-
-			var n = fns.length;
-
-			while (n--) { fns.splice(n, 1); }
-
-			if (fns.length === 0) {
-				delete properties[property];
-
-				if (Object.keys[properties].length === 0) {
-					teardown(object);
-				}
-			}
-		};
-	} : function(Sparky) {
-		Sparky.observe = function(object, property, fn, immediate) {
-			if (!object) {
-				throw new Error('Sparky: Sparky.observe requires an object!', object, property);
-			}
-
-			// AudioParams objects must be polled, as they cannot be reconfigured
-			// to getters/setters, nor can they be Object.observed. And they fail
-			// to do both of those completely silently. So we test the scope to see
-			// if it is an AudioParam and set the observe and unobserve functions
-			// to poll.
-			if (isAudioParam(object)) {
+			if (!descriptor.get && !descriptor.configurable) {
+				console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
+				console.trace && console.trace();
 				return poll(object, property, fn);
 			}
+		}
 
-			if (property === 'length') {
-				// Observe length and update the DOM on next
-				// animation frame if it changes.
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+		observe(object, property, fn);
+		if (immediate) { fn(object); }
+	};
 
-				if (!descriptor.get && !descriptor.configurable) {
-					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
-					console.trace && console.trace();
-					return poll(object, property, fn);
-				}
-			}
+	Sparky.unobserve = function(object, property, fn) {
+		if (isAudioParam(object)) {
+			return unpoll(object, property, fn);
+		}
 
-			observe(object, property, fn);
-			if (immediate) { fn(object); }
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (isAudioParam(object)) {
+		if (property === 'length') {
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			if (!descriptor.get && !descriptor.configurable) {
 				return unpoll(object, property, fn);
 			}
+		}
 
-			if (property === 'length') {
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-				if (!descriptor.get && !descriptor.configurable) {
-					return unpoll(object, property, fn);
-				}
-			}
-
-			return unobserve(object, property, fn);
-		};
-	})(Sparky)
-})(Sparky);
+		return unobserve(object, property, fn);
+	};
+})(this);
