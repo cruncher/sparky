@@ -35,6 +35,7 @@
 
 	function log() {
 		if (!Sparky.debug) { return; }
+		if (Sparky.debug === 'errors') { return; }
 		var array = ['Sparky:'];
 		Array.prototype.push.apply(array, arguments);
 		console.log.apply(console, array);
@@ -46,7 +47,6 @@
 		Array.prototype.push.apply(array, arguments);
 		console.log.apply(console, array);
 	}
-
 
 	// Utility functions
 
@@ -518,6 +518,19 @@
 		debug: false,
 		log: log,
 		logVerbose: logVerbose,
+
+		try: function(fn, createMessage) {
+			return function catchError() {
+				// If Sparky is in debug mode call fn inside a try-catch
+				if (Sparky.debug) {
+					try { return fn.apply(this, arguments); }
+					catch(e) { throw new Error(createMessage.apply(this, arguments)); }
+				}
+
+				// Otherwise just call fn
+				return fn.apply(this, arguments);
+			};
+		},
 
 		noop:       noop,
 		returnThis: returnThis,

@@ -24,7 +24,7 @@
 			.split(rpathsplitter);
 	}
 
-	function get(object, key) {
+	function select(object, key) {
 		var selection = rpropselector.exec(key);
 
 		return selection ?
@@ -45,7 +45,7 @@
 
 	function objFrom(object, array) {
 		var key = array.shift();
-		var value = get(object, key);
+		var value = select(object, key);
 
 		return array.length === 0 ? value :
 			isDefined(value) ? objFrom(value, array) :
@@ -138,6 +138,13 @@
 	}
 
 	function observePath(root, path, fn, immediate) {
+		// If path refers to root object no observation is possible, but where
+		// immediate is defined we should call fn with root.
+		if (path === '.') {
+			if (immediate) { fn(root); }
+			return;
+		}
+
 		var array = splitPath(path);
 
 		// Observe path without logs.
@@ -161,9 +168,9 @@
 		// Hack around the fact that the first call to destroy()
 		// is not ready yet, becuase at the point update has been
 		// called by the observe recursers, the destroy fn has
-		// not been returned yet. TODO: we should make direct returns
-		// async to get around this - they would be async if they were
-		// using Object.observe after all...
+		// not been returned yet. TODO: Perhaps make direct returns
+		// async to get around this (they would be async if they were
+		// using Object.observe).
 		var hasRun = false;
 
 		function update(value) {
@@ -218,7 +225,11 @@
 
 	Sparky.get = getPath;
 	Sparky.set = setPath;
-	Sparky.observePath = observePath;
+
+	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
+		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
+	});
+
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
 
