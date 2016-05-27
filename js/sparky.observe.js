@@ -109,12 +109,12 @@
 				throw new Error('Sparky: Sparky.observe trying to observe with property selector on a non-collection.')
 			}
 
-			root.on('add remove update', updateSelection);
+			root.on('add remove sort', updateSelection);
 			updateSelection();
 			notify = true;
 			return function unobserve() {
 				destroy();
-				root.off('add remove update', updateSelection);
+				root.off('add remove sort', updateSelection);
 			};
 		}
 		else {

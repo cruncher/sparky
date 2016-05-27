@@ -1,10 +1,12 @@
 
 // Sparky.filters
 
-(function(Sparky) {
+(function(window) {
 	"use strict";
 
-	var settings = (Sparky.settings = Sparky.settings || {});
+	var Sparky    = window.Sparky;
+	var isDefined = Sparky.isDefined;
+	var settings  = (Sparky.settings = Sparky.settings || {});
 
 	// A reuseable array.
 	var array = [];
@@ -52,10 +54,6 @@
 		var s = '';
 		while (n--) { s += ' '; }
 		return s;
-	}
-
-	function isDefined(val) {
-		return !!val || val !== undefined && val !== null && !Number.isNaN(val);
 	}
 
 	Sparky.filters = {
@@ -190,6 +188,12 @@
 				return pre.innerHTML;
 			};
 		})(),
+
+		'find-in': function(id, path) {
+			if (!isDefined(id)) { return; }
+			var collection = Sparky.get(Sparky.data, path);
+			return collection && collection.find(id);
+		},
 
 		first: function(value) {
 			return value[0];
@@ -437,4 +441,4 @@
 			return value ? truthy : falsy ;
 		}
 	};
-})(window.Sparky || require('sparky'));
+})(this);

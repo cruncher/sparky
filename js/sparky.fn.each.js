@@ -3,9 +3,28 @@
 
 	var assign = Object.assign;
 	var Sparky = window.Sparky;
-	var dom = Sparky.dom;
+	var DOM = Sparky.dom;
 
 	function call(fn) { fn(); }
+
+	function create(boss, node, scope, fn) {
+		// Create a dependent sparky without delegating scope
+		var sparky = Sparky(node, scope, fn, this);
+
+		function delegateDestroy() { sparky.destroy(); }
+		function delegateRender(self) { sparky.render(); }
+
+		// Bind events
+		boss
+		.on('destroy', delegateDestroy)
+		.on('render', delegateRender);
+
+		return sparky.on('destroy', function() {
+			boss
+			.off('destroy', delegateDestroy)
+			.off('render', delegateRender);
+		});
+	}
 
 	Sparky.fn.each = function setupCollection(node) {
 		// todo: somehow get the remaining ctrls and call child sparkies with
@@ -24,12 +43,12 @@
 		if (Sparky.debug) {
 			attrScope = node.getAttribute('data-scope');
 			attrCtrl = node.getAttribute('data-fn');
-			placeholder = dom.create('comment',
+			placeholder = DOM.create('comment',
 				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
 				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 		}
 		else {
-			placeholder = dom.create('text', '');
+			placeholder = DOM.create('text', '');
 		}
 
 		function update() {
@@ -58,6 +77,9 @@
 
 			// Loop through the collection, recaching objects and creating
 			// sparkies where needed.
+			// Todo: Instead of creating new instances, keep existing sparkies
+			// and swap their scopes. This would require a bit of scope
+			// management, but less DOM management.
 			while(++n < l) {
 				cache[n] = collection[n];
 
@@ -67,11 +89,11 @@
 				}
 				else {
 					nodes[n]    = clone.cloneNode(true);
-					sparkies[n] = sparky.create(nodes[n], collection[n], fns);
+					sparkies[n] = create(sparky, nodes[n], collection[n], fns);
 				}
 
-				// We are in a frame. Go ahead and manipulate the DOM.
-				dom.before(placeholder, nodes[n]);
+				// We are in an animation frame. Go ahead and manipulate the DOM.
+				DOM.before(placeholder, nodes[n]);
 			}
 
 			Sparky.log(
@@ -104,11 +126,11 @@
 		clone.removeAttribute('data-fn');
 
 		// Put the placeholder in place and remove the node
-		dom.before(node, placeholder);
-		dom.remove(node);
+		DOM.before(node, placeholder);
+		DOM.remove(node);
 
 		this
-		.on('scope', function(source, scope){
+		.on('scope', function(source, scope) {
 			if (this !== source) { return; }
 			if (scope === collection) { return; }
 			if (collection) { unobserveCollection(); }
