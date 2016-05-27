@@ -59,15 +59,15 @@
 			fn = f;
 		}, noop, to, from);
 
-		sparky.on('scope', function update(sparky, newscope) {
+		sparky
+		.on('scope', function update(sparky, newscope) {
 			// Ignore events not from this sparky
-			if (this !== sparky) { return; }
+			// if (this !== sparky) { return; }
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 			scope = newscope;
 			if (scope) { Sparky.observePath(scope, path, fn, true); }
-		});
-
-		sparky.on('destroy', function() {
+		})
+		.on('destroy', function() {
 			unbind();
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 		});
