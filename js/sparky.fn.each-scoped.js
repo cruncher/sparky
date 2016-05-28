@@ -4,12 +4,7 @@
 	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var DOM = Sparky.dom;
-
-	// We maintain a list of sparkies that are scheduled for destruction. This
-	// time determines how long we wait during periods of inactivity before
-	// destroying those sparkies.
-	var destroyDelay = 12000;
+	var DOM    = Sparky.dom;
 
 	function call(fn) { fn(); }
 
@@ -44,83 +39,53 @@
 	}
 
 	Sparky.fn.each = function setupCollection(node) {
-		var sparky   = this;
+		// todo: somehow get the remaining ctrls and call child sparkies with
+		// them.
+
+		var sparky = this;
 		var sparkies = [];
-		var cache    = [];
-		var rejects  = new WeakMap();
-		var scheduled = [];
-		var clone    = node.cloneNode(true);
-		var fns      = this.interrupt();
+		var clone  = node.cloneNode(true);
+		var throttle = Sparky.Throttle(update);
+		var fns = this.interrupt();
 		var placeholder = createPlaceholder(node);
 		var collection;
 
-		var throttle = Sparky.Throttle(function update() {
+		function update() {
 			var n = -1;
-			var l = cache.length;
 			var map = {};
-			var i, object, t;
+			var node, object, t;
 
 			if (Sparky.debug) { t = window.performance.now(); }
 
-			// Compare the cached version of the collection against the
-			// collection and construct a map of found object positions.
-			while (l--) {
-				object = cache[l];
-				i = collection.indexOf(object);
+			while(collection[++n] !== undefined) {
+				object = collection[n];
 
-				if (i === -1) {
-					DOM.remove(sparkies[l][0]);
-					rejects.set(object, sparkies[l]);
-					scheduled.push(object);
+				// If a sparky exists, set it's scope (.scope(object) does
+				// nothing if object is unchanged).
+				if (sparkies[n]) {
+					sparkies[n].scope(object);
+					continue;
 				}
-				else {
-					map[i] = sparkies[l];
-				}
-			}
 
-			l = sparkies.length = cache.length = collection.length;
-
-			// Ignore any objects at the start of the collection that have
-			// not changed position. Optimises for case where we're pushing
-			// things on the end of a list.
-			while(cache[++n] && cache[n] === collection[n]);
-			--n;
-
-			// Loop through the collection, recaching objects and creating
-			// sparkies where needed.
-			while(++n < l) {
-				object = cache[n] = collection[n];
-				removeScheduled(object);
-				sparkies[n] = map[n] || rejects.get(object) || create(sparky, clone.cloneNode(true), object, fns);
+				node = clone.cloneNode(true);
+				sparkies[n] = create(sparky, node, object, fns);
 
 				// We are in an animation frame. Go ahead and manipulate the DOM.
-				DOM.before(placeholder, sparkies[n][0]);
+				DOM.before(placeholder, node);
+			}
+
+			if (sparkies.length > collection.length) {
+				sparkies
+				.slice(collection.length)
+				.forEach(Fn.invoke('destroy'));
+
+				sparkies.length = collection.length;
 			}
 
 			Sparky.log(
 				'collection rendered (length: ' + collection.length +
 				', time: ' + (window.performance.now() - t) + 'ms)'
 			);
-
-			reschedule();
-		});
-
-		var timer;
-
-		function reschedule() {
-			clearTimeout(timer);
-			timer = setTimeout(function() {
-				scheduled.forEach(function(object) {
-					rejects.get(object).destroy();
-					rejects.delete(object);
-				});
-			}, destroyDelay);
-		}
-
-		function removeScheduled(object) {
-			var i = scheduled.indexOf(object);
-			if (i === -1) { return; }
-			scheduled.splice(i, 1);
 		}
 
 		function observeCollection() {
