@@ -736,7 +736,7 @@
 	function parseName(node, get, set, bind, unbind, to, from) {
 		var name = node.name;
 
-		if (Sparky.debug && !node.name) {
+		if (Sparky.debug === "verbose" && !node.name) {
 			console.warn('Sparky: Cannot bind value of node with empty name.', node);
 			return;
 		}
