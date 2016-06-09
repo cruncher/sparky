@@ -47,7 +47,10 @@
 		var sparky   = this;
 		var sparkies = [];
 		var cache    = [];
-		var rejects  = new WeakMap();
+
+		// We cannot use a WeakMap here: WeakMaps do not primitives as keys,
+		// and a Sparky scope may be a number or a string.
+		var rejects  = new Map();
 		var scheduled = [];
 		var clone    = node.cloneNode(true);
 		var fns      = this.interrupt();
