@@ -262,9 +262,9 @@ module('Test 2 way binding for value-bool true...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-fn="value-bool" />
-<input type="radio" name="{{property}}" data-fn="value-bool" value="true" />
-<input type="checkbox" name="{{property}}" data-fn="value-bool" value="true" />
+<input type="text" name="{{property}}" data-fn="value-boolean" />
+<input type="radio" name="{{property}}" data-fn="value-boolean" value="true" />
+<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="true" />
 
 */});
 
@@ -313,9 +313,9 @@ module('Test 2 way binding for value-bool false...', function(fixture) {
 	});
 }, function() {/*
 
-<input type="text" name="{{property}}" data-fn="value-bool" />
-<input type="radio" name="{{property}}" data-fn="value-bool" value="false" />
-<input type="checkbox" name="{{property}}" data-fn="value-bool" value="false" />
+<input type="text" name="{{property}}" data-fn="value-boolean" />
+<input type="radio" name="{{property}}" data-fn="value-boolean" value="false" />
+<input type="checkbox" name="{{property}}" data-fn="value-boolean" value="false" />
 
 */});
 
