@@ -879,8 +879,10 @@ if (!Math.log10) {
 				value: function sort(fn) {
 					// Collections get sorted by index by default, or by a function
 					// passed into options, or passed into the .sort(fn) call.
-					return Array.prototype.sort.call(this, fn || options.sort || byIndex);
-				}
+					Array.prototype.sort.call(this, fn || options.sort || byIndex);
+					return this.trigger('sort');
+				},
+				writable: true
 			}
 		});
 
@@ -1173,7 +1175,7 @@ if (!Math.log10) {
 			.on('remove', subsetRemove);
 		}
 
-		subset.destroy = function() {
+		this.destroy = function() {
 			// Lots of unbinding
 			destroy(collection);
 
@@ -1188,7 +1190,8 @@ if (!Math.log10) {
 		this.synchronise = function() {
 			// Force a sync from code that only has access
 			// to the subset.
-			this.forEach(update);
+			collection.forEach(update);
+			return this;
 		};
 	}
 
@@ -1205,7 +1208,7 @@ if (!Math.log10) {
 	if (!window.console || !window.console.log) { return; }
 
 	console.log('Sparky');
-	console.log('http://github.com/cruncher/sparky');
+	console.log('https://labs.cruncher.ch/sparky');
 	console.log('_________________________________');
 })(this);
 
@@ -1214,6 +1217,8 @@ if (!Math.log10) {
 	"use strict";
 
 	var assign = Object.assign;
+
+	var rurljson = /\/\S*\.json$/;
 
 	var errors = {
 		"node-not-found": "Sparky: Sparky(node) called, node not found: #{{$0}}"
@@ -1236,6 +1241,7 @@ if (!Math.log10) {
 
 	function log() {
 		if (!Sparky.debug) { return; }
+		if (Sparky.debug === 'errors') { return; }
 		var array = ['Sparky:'];
 		Array.prototype.push.apply(array, arguments);
 		console.log.apply(console, array);
@@ -1247,7 +1253,6 @@ if (!Math.log10) {
 		Array.prototype.push.apply(array, arguments);
 		console.log.apply(console, array);
 	}
-
 
 	// Utility functions
 
@@ -1292,6 +1297,19 @@ if (!Math.log10) {
 		// No data-scope attribute, use current scope.
 		if (!isDefined(path)) {
 			return update(scope);
+		}
+
+		// data-scope="/path/to/data.json"
+		rurljson.lastIndex = 0;
+		var isURL = rurljson.test(path);
+
+		if (isURL) {
+			jQuery.get(path)
+			.then(function(res) {
+				update(res);
+			});
+
+			return;
 		}
 
 		// data-scope="{{path.to.data}}", find new scope in current scope.
@@ -1707,6 +1725,19 @@ if (!Math.log10) {
 		log: log,
 		logVerbose: logVerbose,
 
+		try: function(fn, createMessage) {
+			return function catchError() {
+				// If Sparky is in debug mode call fn inside a try-catch
+				if (Sparky.debug) {
+					try { return fn.apply(this, arguments); }
+					catch(e) { throw new Error(createMessage.apply(this, arguments)); }
+				}
+
+				// Otherwise just call fn
+				return fn.apply(this, arguments);
+			};
+		},
+
 		noop:       noop,
 		returnThis: returnThis,
 		returnArg:  returnArg,
@@ -1957,6 +1988,7 @@ if (!Math.log10) {
 	// Templates
 
 	var templates = {};
+	var rcomment = /\{\s*\/\*\s*([\s\S]*)\s*\*\/\s*\}$/;
 
 	function fragmentFromChildren(node) {
 		var children = slice(node.childNodes);
@@ -1995,7 +2027,20 @@ if (!Math.log10) {
 		return template && template.cloneNode(true);
 	}
 
+	function multiline(fn) {
+		if (typeof fn !== 'function') { throw new TypeError('multiline(fn) expects a function.'); }
+		var match = rcomment.exec(fn.toString());
+		if (!match) { throw new TypeError('Multiline comment missing.'); }
+		return match[1];
+	}
+
 	function registerTemplate(id, node) {
+		if (typeof node === 'function') {
+			var template = dom.create('template');
+			template.innerHTML = multiline(node);
+			node = fragmentFromContent(template);
+		}
+
 		templates[id] = node;
 	}
 
@@ -2099,13 +2144,16 @@ if (!Math.log10) {
 // Sparky.observe()
 // Sparky.unobserve()
 
-(function(Sparky) {
+(function(window) {
 	"use strict";
+
+	var Sparky = window.Sparky;
 
 	// Handle paths
 
-	var rpathtrimmer = /^\[|]$/g;
-	var rpathsplitter = /\]?\.|\[/g;
+	var rpathtrimmer = /^\[|\]$/g;
+	var rpathsplitter = /\]?(?:\.|\[)/g;
+	var rpropselector = /(\w+)\=(\w+)/;
 	var map = [];
 
 	function noop() {}
@@ -2118,13 +2166,32 @@ if (!Math.log10) {
 			.split(rpathsplitter);
 	}
 
-	function objFrom(obj, array) {
-		var key = array.shift();
-		var val = obj[key];
+	function select(object, key) {
+		var selection = rpropselector.exec(key);
 
-		return array.length === 0 ? val :
-			isDefined(val) ? objFrom(val, array) :
-			val ;
+		return selection ?
+			findByProperty(object, selection[1], JSON.parse(selection[2])) :
+			object[key] ;
+	}
+
+	function findByProperty(array, name, value) {
+		// Find first matching object in array
+		var n = -1;
+
+		while (++n < array.length) {
+			if (array[n] && array[n][name] === value) {
+				return array[n];
+			}
+		}
+	}
+
+	function objFrom(object, array) {
+		var key = array.shift();
+		var value = select(object, key);
+
+		return array.length === 0 ? value :
+			isDefined(value) ? objFrom(value, array) :
+			value ;
 	}
 
 	function objTo(root, array, obj) {
@@ -2150,10 +2217,9 @@ if (!Math.log10) {
 
 	function observePath2(root, prop, array, fn, notify) {
 		var destroy = noop;
+		var object;
 
 		function update() {
-			var object = root[prop];
-
 			destroy();
 
 			if (typeof object !== 'object' && typeof object !== 'function') {
@@ -2163,15 +2229,44 @@ if (!Math.log10) {
 			else {
 				destroy = observePath1(object, array.slice(), fn, notify) ;
 			}
-		};
+		}
 
-		Sparky.observe(root, prop, update, true);
-		notify = true;
+		function updateSelection() {
+			var obj = findByProperty(root, selection[1], JSON.parse(selection[2]));
+			// Check that object has changed
+			if (obj === object) { return; }
+			object = o;
+			update();
+		}
 
-		return function unobserve() {
-			destroy();
-			Sparky.unobserve(root, prop, update);
-		};
+		function updateProperty() {
+			object = root[prop];
+			update();
+		}
+
+		var selection = rpropselector.exec(prop);
+
+		if (selection) {
+			if (!root.on) {
+				throw new Error('Sparky: Sparky.observe trying to observe with property selector on a non-collection.')
+			}
+
+			root.on('add remove sort', updateSelection);
+			updateSelection();
+			notify = true;
+			return function unobserve() {
+				destroy();
+				root.off('add remove sort', updateSelection);
+			};
+		}
+		else {
+			Sparky.observe(root, prop, updateProperty, true);
+			notify = true;
+			return function unobserve() {
+				destroy();
+				Sparky.unobserve(root, prop, updateProperty);
+			};
+		}
 	}
 
 	function observePath1(root, array, fn, notify) {
@@ -2185,6 +2280,13 @@ if (!Math.log10) {
 	}
 
 	function observePath(root, path, fn, immediate) {
+		// If path refers to root object no observation is possible, but where
+		// immediate is defined we should call fn with root.
+		if (path === '.') {
+			if (immediate) { fn(root); }
+			return;
+		}
+
 		var array = splitPath(path);
 
 		// Observe path without logs.
@@ -2208,9 +2310,9 @@ if (!Math.log10) {
 		// Hack around the fact that the first call to destroy()
 		// is not ready yet, becuase at the point update has been
 		// called by the observe recursers, the destroy fn has
-		// not been returned yet. TODO: we should make direct returns
-		// async to get around this - they would be async if they were
-		// using Object.observe after all...
+		// not been returned yet. TODO: Perhaps make direct returns
+		// async to get around this (they would be async if they were
+		// using Object.observe).
 		var hasRun = false;
 
 		function update(value) {
@@ -2265,7 +2367,11 @@ if (!Math.log10) {
 
 	Sparky.get = getPath;
 	Sparky.set = setPath;
-	Sparky.observePath = observePath;
+
+	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
+		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
+	});
+
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
 
@@ -2324,115 +2430,51 @@ if (!Math.log10) {
 		return object;
 	}
 
-	(false && Object.observe && window.WeakMap ? function(Sparky) {
-		if (Sparky.debug) { console.log('Sparky: Ooo. Lucky you, using Object.observe and WeakMap.'); }
-
-		var map = new WeakMap();
-		var names = [];
-		var types = ["add", "update", "delete"];
-
-		function call(fn) {
-			fn(this);
+	Sparky.observe = function(object, property, fn, immediate) {
+		if (!object) {
+			throw new Error('Sparky: Sparky.observe requires an object!', object, property);
 		}
 
-		function trigger(change) {
-			var properties = this;
-			var name = change.name;
-			var object = change.object;
-
-			// If this property is in the properties being watched, and we
-			// have not already called changes on it, do that now.
-			if (properties[name] && names.indexOf(name) === -1) {
-				names.push(name);
-				fns = properties[name];
-				fns.forEach(call, object);
-			}
+		// AudioParams objects must be polled, as they cannot be reconfigured
+		// to getters/setters, nor can they be Object.observed. And they fail
+		// to do both of those completely silently. So we test the scope to see
+		// if it is an AudioParam and set the observe and unobserve functions
+		// to poll.
+		if (isAudioParam(object)) {
+			return poll(object, property, fn);
 		}
 
-		function triggerAll(changes) {
-			names.length = 0;
-			changes.forEach(trigger, map[object]);
-		}
+		if (property === 'length') {
+			// Observe length and update the DOM on next
+			// animation frame if it changes.
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
 
-		function setup(object) {
-			var properties = map[object] = {};
-			Object.observe(object, triggerAll, types);
-			return properties;
-		}
-
-		function teardown(object) {
-			Object.unobserve(object, triggerAll);
-		}
-
-		Sparky.observe = function(object, property, fn) {
-			var properties = map[object] || setup(object);
-			var fns = properties[property] || (properties[property] = []);
-			fns.push(fn);
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (!map[object]) { return; }
-
-			var properties = map[object];
-			var fns = properties[property];
-
-			if (!fns) { return; }
-
-			var n = fns.length;
-
-			while (n--) { fns.splice(n, 1); }
-
-			if (fns.length === 0) {
-				delete properties[property];
-
-				if (Object.keys[properties].length === 0) {
-					teardown(object);
-				}
-			}
-		};
-	} : function(Sparky) {
-		Sparky.observe = function(object, property, fn, immediate) {
-			// AudioParams objects must be polled, as they cannot be reconfigured
-			// to getters/setters, nor can they be Object.observed. And they fail
-			// to do both of those completely silently. So we test the scope to see
-			// if it is an AudioParam and set the observe and unobserve functions
-			// to poll.
-			if (isAudioParam(object)) {
+			if (!descriptor.get && !descriptor.configurable) {
+				console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
+				console.trace && console.trace();
 				return poll(object, property, fn);
 			}
+		}
 
-			if (property === 'length') {
-				// Observe length and update the DOM on next
-				// animation frame if it changes.
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
+		observe(object, property, fn);
+		if (immediate) { fn(object); }
+	};
 
-				if (!descriptor.get && !descriptor.configurable) {
-					console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
-					console.trace && console.trace();
-					return poll(object, property, fn);
-				}
-			}
+	Sparky.unobserve = function(object, property, fn) {
+		if (isAudioParam(object)) {
+			return unpoll(object, property, fn);
+		}
 
-			observe(object, property, fn);
-			if (immediate) { fn(object); }
-		};
-
-		Sparky.unobserve = function(object, property, fn) {
-			if (isAudioParam(object)) {
+		if (property === 'length') {
+			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			if (!descriptor.get && !descriptor.configurable) {
 				return unpoll(object, property, fn);
 			}
+		}
 
-			if (property === 'length') {
-				var descriptor = Object.getOwnPropertyDescriptor(object, property);
-				if (!descriptor.get && !descriptor.configurable) {
-					return unpoll(object, property, fn);
-				}
-			}
-
-			return unobserve(object, property, fn);
-		};
-	})(Sparky)
-})(Sparky);
+		return unobserve(object, property, fn);
+	};
+})(this);
 
 
 // Sparky.Throttle(fn)
@@ -2624,6 +2666,16 @@ if (!Math.log10) {
 		node.setAttribute(attribute, value);
 	}
 
+	function toggleAttributeSVG(node, attribute, value) {
+		if (value) { setAttributeSVG(node, attribute, value); }
+		else { node.removeAttribute(attribute); }
+	}
+
+	function toggleAttributeHTML(node, attribute, value) {
+		if (value) { setAttributeHTML(node, attribute, attribute); }
+		else { node.removeAttribute(attribute); }
+	}
+
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);
 		classList.add.apply(classList, classes);
@@ -2643,12 +2695,18 @@ if (!Math.log10) {
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
+		button: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
@@ -2667,6 +2725,7 @@ if (!Math.log10) {
 
 		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
@@ -2678,10 +2737,13 @@ if (!Math.log10) {
 
 		option: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 		},
 
 		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
 			if (unbindName) { unobservers.push(unbindName); }
@@ -2880,6 +2942,25 @@ if (!Math.log10) {
 		var update = isSVG ?
 		    	setAttributeSVG.bind(this, node, attr) :
 		    	setAttributeHTML.bind(this, node, attr) ;
+
+		observeProperties(value, bind, unbind, get, update, unobservers);
+	}
+
+	function bindBooleanAttribute(node, attribute, bind, unbind, get, unobservers) {
+		// Look for data- aliased attributes before attributes. This is
+		// particularly important for the style attribute in IE, as it does not
+		// return invalid CSS text content, so Sparky can't read tags in it.
+		var alias = node.getAttribute('data-' + attribute) ;
+
+		// SVG has case sensitive attributes.
+		var attr = attribute ;
+		var value = alias ? alias : node.getAttribute(attr) ;
+
+		if (!value) { return; }
+		if (alias) { node.removeAttribute('data-' + attribute); }
+		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
+
+		var update = toggleAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
@@ -3241,7 +3322,7 @@ if (!Math.log10) {
 	function parseName(node, get, set, bind, unbind, to, from) {
 		var name = node.name;
 
-		if (!node.name) {
+		if (Sparky.debug === "verbose" && !node.name) {
 			console.warn('Sparky: Cannot bind value of node with empty name.', node);
 			return;
 		}
@@ -3489,82 +3570,128 @@ if (!Math.log10) {
 	"use strict";
 
 	var assign = Object.assign;
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var dom = Sparky.dom;
+	var DOM = Sparky.dom;
+
+	// We maintain a list of sparkies that are scheduled for destruction. This
+	// time determines how long we wait during periods of inactivity before
+	// destroying those sparkies.
+	var destroyDelay = 12000;
 
 	function call(fn) { fn(); }
 
+	function create(boss, node, scope, fn) {
+		// Create a dependent sparky without delegating scope
+		var sparky = Sparky(node, scope, fn, this);
+
+		function delegateDestroy() { sparky.destroy(); }
+		function delegateRender(self) { sparky.render(); }
+
+		// Bind events
+		boss
+		.on('destroy', delegateDestroy)
+		.on('render', delegateRender);
+
+		return sparky.on('destroy', function() {
+			boss
+			.off('destroy', delegateDestroy)
+			.off('render', delegateRender);
+		});
+	}
+
+	function createPlaceholder(node) {
+		if (!Sparky.debug) { return DOM.create('text', ''); }
+
+		var attrScope = node.getAttribute('data-scope');
+		var attrCtrl = node.getAttribute('data-fn');
+
+		return DOM.create('comment',
+			(attrScope ? ' data-scope="' + attrScope + '"' : '') +
+			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
+	}
+
 	Sparky.fn.each = function setupCollection(node) {
-		// todo: somehow get the remaining ctrls and call child sparkies with
-		// them.
-
-		var sparky = this;
-		var nodes  = [];
+		var sparky   = this;
 		var sparkies = [];
-		var cache  = [];
-		var tasks  = [];
-		var clone  = node.cloneNode(true);
-		var throttle = Sparky.Throttle(update);
-		var fns = this.interrupt();
-		var collection, placeholder, attrScope, attrCtrl;
+		var cache    = [];
 
-		if (Sparky.debug) {
-			attrScope = node.getAttribute('data-scope');
-			attrCtrl = node.getAttribute('data-fn');
-			placeholder = dom.create('comment',
-				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
-				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
-		}
-		else {
-			placeholder = dom.create('text', '');
-		}
+		// We cannot use a WeakMap here: WeakMaps do not primitives as keys,
+		// and a Sparky scope may be a number or a string.
+		var rejects  = new Map();
+		var scheduled = [];
+		var clone    = node.cloneNode(true);
+		var fns      = this.interrupt();
+		var placeholder = createPlaceholder(node);
+		var collection;
 
-		function update() {
+		var throttle = Sparky.Throttle(function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};
-			var i, obj, t;
+			var i, object, t;
 
 			if (Sparky.debug) { t = window.performance.now(); }
 
 			// Compare the cached version of the collection against the
 			// collection and construct a map of found object positions.
 			while (l--) {
-				obj = cache[l];
-				i = collection.indexOf(obj);
+				object = cache[l];
+				i = collection.indexOf(object);
 
 				if (i === -1) {
-					sparkies[l].destroy();
+					DOM.remove(sparkies[l][0]);
+					rejects.set(object, sparkies[l]);
+					scheduled.push(object);
 				}
-				else if (nodes[l] && sparkies[l]) {
-					map[i] = [nodes[l], sparkies[l]];
+				else {
+					map[i] = sparkies[l];
 				}
 			}
 
-			l = nodes.length = sparkies.length = cache.length = collection.length;
+			l = sparkies.length = cache.length = collection.length;
+
+			// Ignore any objects at the start of the collection that have
+			// not changed position. Optimises for case where we're pushing
+			// things on the end of a list.
+			while(cache[++n] && cache[n] === collection[n]);
+			--n;
 
 			// Loop through the collection, recaching objects and creating
 			// sparkies where needed.
 			while(++n < l) {
-				cache[n] = collection[n];
+				object = cache[n] = collection[n];
+				removeScheduled(object);
+				sparkies[n] = map[n] || rejects.get(object) || create(sparky, clone.cloneNode(true), object, fns);
 
-				if (map[n]) {
-					nodes[n]    = map[n][0];
-					sparkies[n] = map[n][1];
-				}
-				else {
-					nodes[n]    = clone.cloneNode(true);
-					sparkies[n] = sparky.create(nodes[n], collection[n], fns);
-				}
-
-				// We are in a frame. Go ahead and manipulate the DOM.
-				dom.before(placeholder, nodes[n]);
+				// We are in an animation frame. Go ahead and manipulate the DOM.
+				DOM.before(placeholder, sparkies[n][0]);
 			}
 
 			Sparky.log(
 				'collection rendered (length: ' + collection.length +
 				', time: ' + (window.performance.now() - t) + 'ms)'
 			);
+
+			reschedule();
+		});
+
+		var timer;
+
+		function reschedule() {
+			clearTimeout(timer);
+			timer = setTimeout(function() {
+				scheduled.forEach(function(object) {
+					rejects.get(object).destroy();
+					rejects.delete(object);
+				});
+			}, destroyDelay);
+		}
+
+		function removeScheduled(object) {
+			var i = scheduled.indexOf(object);
+			if (i === -1) { return; }
+			scheduled.splice(i, 1);
 		}
 
 		function observeCollection() {
@@ -3591,11 +3718,11 @@ if (!Math.log10) {
 		clone.removeAttribute('data-fn');
 
 		// Put the placeholder in place and remove the node
-		dom.before(node, placeholder);
-		dom.remove(node);
+		DOM.before(node, placeholder);
+		DOM.remove(node);
 
 		this
-		.on('scope', function(source, scope){
+		.on('scope', function(source, scope) {
 			if (this !== source) { return; }
 			if (scope === collection) { return; }
 			if (collection) { unobserveCollection(); }
@@ -3671,15 +3798,15 @@ if (!Math.log10) {
 			fn = f;
 		}, noop, to, from);
 
-		sparky.on('scope', function update(sparky, newscope) {
+		sparky
+		.on('scope', function update(sparky, newscope) {
 			// Ignore events not from this sparky
-			if (this !== sparky) { return; }
+			// if (this !== sparky) { return; }
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 			scope = newscope;
 			if (scope) { Sparky.observePath(scope, path, fn, true); }
-		});
-
-		sparky.on('destroy', function() {
+		})
+		.on('destroy', function() {
 			unbind();
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 		});
@@ -3712,7 +3839,7 @@ if (!Math.log10) {
 		}
 	}
 
-	function valueArray(node) {
+	function valueInArray(node) {
 		var array;
 
 		function to(arr) {
@@ -3739,6 +3866,36 @@ if (!Math.log10) {
 		}
 
 		setup(this, node, to, from);
+	}
+
+	function valueIntInArray(node) {
+		var array;
+
+		function to(arr) {
+			if (arr === undefined) { return ''; }
+
+			var value = stringToInt(node.value);
+			array = arr;
+			var i = array.indexOf(value);
+
+			return i > -1 ? floatToString(value) : '' ;
+		}
+
+		function from(value) {
+			if (array === undefined) { array = Collection(); }
+
+			if (value === undefined) {
+				var i = array.indexOf(stringToInt(node.value));
+				if (i !== -1) { array.splice(i, 1); }
+			}
+			else if (array.indexOf(value) === -1) {
+				array.push(value);
+			}
+
+			return array;
+		}
+
+		setup(this, node, to, Fn.compose(from, stringToInt));
 	}
 
 	function valueFloatPow2(node, model) {
@@ -3849,7 +4006,6 @@ if (!Math.log10) {
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
-		'value-array':          valueArray,
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
@@ -3857,7 +4013,9 @@ if (!Math.log10) {
 		'value-int-log':        valueIntLog,
 		'value-float-log':      valueFloatLog,
 		'value-float-pow-2':    valueFloatPow2,
-		'value-float-pow-3':    valueFloatPow3
+		'value-float-pow-3':    valueFloatPow3,
+		'value-in-array':       valueInArray,
+		'value-int-in-array':       valueIntInArray,
 		//'value-number-invert':  valueNumberInvert,
 		//'value-boolean-invert': valueBooleanInvert
 	});
@@ -3866,10 +4024,12 @@ if (!Math.log10) {
 
 // Sparky.filters
 
-(function(Sparky) {
+(function(window) {
 	"use strict";
 
-	var settings = (Sparky.settings = Sparky.settings || {});
+	var Sparky    = window.Sparky;
+	var isDefined = Sparky.isDefined;
+	var settings  = (Sparky.settings = Sparky.settings || {});
 
 	// A reuseable array.
 	var array = [];
@@ -3917,10 +4077,6 @@ if (!Math.log10) {
 		var s = '';
 		while (n--) { s += ' '; }
 		return s;
-	}
-
-	function isDefined(val) {
-		return !!val || val !== undefined && val !== null && !Number.isNaN(val);
 	}
 
 	Sparky.filters = {
@@ -4056,6 +4212,12 @@ if (!Math.log10) {
 			};
 		})(),
 
+		'find-in': function(id, path) {
+			if (!isDefined(id)) { return; }
+			var collection = Sparky.get(Sparky.data, path);
+			return collection && collection.find(id);
+		},
+
 		first: function(value) {
 			return value[0];
 		},
@@ -4071,15 +4233,21 @@ if (!Math.log10) {
 		},
 
 		get: function(value, name) {
-			return value[name];
+			return value ? value[name] : undefined ;
 		},
 
 		"greater-than": function(value1, value2, str1, str2) {
 			return value1 > value2 ? str1 : str2 ;
 		},
 
+		contains: function(array, value) {
+			return (array && array.indexOf(value) > -1);
+		},
+
 		invert: function(value) {
-			return 1 / value;
+			return typeof value === 'boolean' ? !value :
+				typeof value === 'number' ? 1 / value :
+				!value ;
 		},
 
 		is: function(value, val, string1, string2) {
@@ -4124,6 +4292,10 @@ if (!Math.log10) {
 		lowercase: function(value) {
 			if (typeof value !== 'string') { return; }
 			return String.prototype.toLowerCase.apply(value);
+		},
+
+		map: function(array, path) {
+			return array && array.map(Fn.get(path));
 		},
 
 		mod: function(value, n) {
@@ -4183,6 +4355,14 @@ if (!Math.log10) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
 
+		reduce: (function(processes) {
+			return function(array, name, initialValue) {
+				return array && array.reduce(processes[name], initialValue || 0);
+			};
+		})({
+			sum: function(a, b) { return a + b; }
+		}),
+
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
 			return value.replace(RegExp(str1, 'g'), str2);
@@ -4224,30 +4404,6 @@ if (!Math.log10) {
 				return value.replace(rtag, '');
 			};
 		})(),
-
-		//striptagsexcept: (function() {
-		//	var rtag = /<(\/)?(\w*)(?:[^>'"]|"[^"]*"|'[^']*')*>/g,
-		//	    allowedTags, result;
-		//
-		//	function strip($0, $1, $2) {
-		//		// Strip any attributes, letting the allowed tag name through.
-		//		return $2 && allowedTags.indexOf($2) !== -1 ?
-		//			'<' + ($1 || '') + $2 + '>' :
-		//			'' ;
-		//	}
-		//
-		//	return function(value, tags) {
-		//		if (!tags) {
-		//			return value.replace(rtag, '');
-		//		}
-		//
-		//		allowedTags = tags.split(' ');
-		//		result = value.replace(rtag, strip);
-		//		allowedTags = false;
-		//
-		//		return result;
-		//	};
-		//})(),
 
 		switch: function(value) {
 			if (typeof value === 'string') { value = parseInt(value, 10); }
@@ -4308,7 +4464,7 @@ if (!Math.log10) {
 			return value ? truthy : falsy ;
 		}
 	};
-})(window.Sparky || require('sparky'));
+})(this);
 
 
 // Sparky ready
