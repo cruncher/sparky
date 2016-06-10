@@ -71,12 +71,16 @@
 
 	// Sparky
 
-	function resolveNode(node) {
+	function resolveNode(selector) {
 		// If node is a string assume it is a selector. Sparky does not yet
 		// support node collections, so we just use querySelector to get
 		// one node.
-		if (typeof node === 'string') {
-			node = document.querySelector(node);
+		var node = typeof selector === 'string' ?
+			document.querySelector(selector) :
+			selector ;
+
+		if (!node) {
+			throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
 		}
 
 		// If node is a template use a copy of it's content.
