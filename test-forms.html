@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="author" content="" />
+	<meta name="description" content="" />
+
+	<title>Sparky</title>
+
+	<script>document.documentElement.className = 'js loading';</script>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+	<!-- Force latest IE rendering engine & Chrome Frame -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<!-- Make IE recognise HTML5 elements for styling -->
+	<!--[if lte IE 8]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<noscript>
+		<strong>Warning!</strong>
+		Your browser does not support HTML5 so some elements on this page are simulated using JScript. Unfortunately your browser has JScript disabled. Please enable it in order to display this page.
+	</noscript>
+	<![endif]-->
+
+	<link rel="icon" type="image/png" href="images/favicon.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+	<link rel="stylesheet" href="/bolt/package/css/bolt-0.9.8.css" />
+	<link rel="stylesheet" href="css/grid.css" />
+
+	<style>
+		html {
+			background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 20rem, #E0DBD9 25rem, #D2CAC8 100%), radial-gradient(#4A311E 22%, rgba(255,255,255,0) 70%), radial-gradient(#462129 22%, rgba(255,255,255,0) 70%), radial-gradient(#354767 22%, rgba(255,255,255,0) 70%), linear-gradient(to bottom, #3E242A 0, #313C4E 20rem, rgba(0, 0, 0, 0) 20rem);
+			background-size: 100% 100%, 100% 40rem, 100% 43rem, 100% 40rem, 100% 100%;
+			background-position: 0 0, -55vw 5rem,63vw 1rem,0 7rem, 0 0;
+			background-repeat: no-repeat;
+			background-color: #C8CACC;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			padding-bottom: 7.5rem;
+			color: #333A3E;
+		}
+
+		label {
+			display: block;
+		}
+
+		.checked {
+			color: green;
+			background-color: red;
+		}
+
+		.hello {
+			color: white;
+			background-color: black;
+		}
+
+		.inline-block {
+			display: inline-block;
+			height: 12rem;
+			/* We use line-height: 1px; to get identical rendering across
+			   FF/Chrome. line-height: 0; Does not render the same. */
+			line-height: 1px;
+			font-size: 0;
+
+			/* Compensate for border. */
+			vertical-align: -12rem;
+			/*border: 2px solid grey;*/
+			width: 100%;
+			margin-right: -100%;
+			box-sizing: border-box;
+			background-color: grey;
+			overflow: hidden;
+			position: relative;
+			font-family: Helvetica, sans-serif;
+		}
+
+		.inline-block + h1 {
+			display: inline-block;
+			width: 100%;
+			font-weight: 300;
+			font-size: 3.75rem;
+			color: rgba(0,0,0,0.5);
+		}
+
+		.inline-block > .float-block {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			line-height: 30px;
+			padding: 11px;
+			padding-top: 3rem;
+			background-image: linear-gradient(to bottom, #6D6360 0%, #ABA7A6 21%, #D0CECD 46%, #E0DBD9 100%);
+		}
+
+		.inline-h1 {
+			display: inline-block;
+			width: 100%;
+			font-weight: 300;
+			font-size: 3.875rem;
+			line-height: 2.4375rem;
+			color: rgba(0,0,0,0.5);
+			font-family: Helvetica, sans-serif;
+			letter-spacing: -0.033333333em;
+			color:  #F1ECE0;
+			z-index: 1;
+			margin-top: 0;
+			position: relative;
+			letter-spacing: -1px;
+			box-sizing: border-box;
+			padding-left: 10px;
+			/* It flickers when other things animate. */
+			/*text-shadow: 0 0 100px #402F20;*/
+			/*letter-spacing: -1px;
+			opacity: 1;
+			transition:
+				opacity 2000ms linear,
+				letter-spacing 2600ms cubic-bezier(0, 0, 0, 1);
+			*/
+		}
+
+		/*
+		.loading .inline-h1 {
+			opacity: 0.76;
+			letter-spacing: -6px;
+		}
+		*/
+
+		.inline-h1 + .inline-block {
+			margin-left: -100%;
+			margin-right: 0;
+		}
+
+		.inline-h1 > img {
+			display: inline-block;
+			vertical-align: -20px;
+			width: 152px;
+			height: auto;
+			margin-top: 30px;
+			margin-left: calc(45% - 220px);
+		}
+
+		.test-block {
+			display: inline-block;
+			width: 46%;
+			padding-top: 0.5rem;
+			padding-bottom: 0.5rem;
+			min-height: 8rem;
+			margin-left: 2%;
+			margin-right: 2%;
+			vertical-align: top;
+		}
+
+		.test-block + .test-block + .test-block {
+			border-top: 1px solid #888888;
+		}
+
+		.clock-block {
+			position: relative;
+			width: 10rem;
+			height: 10rem;
+			background-color: white;
+			border: 2px solid #777777;
+			border-radius: 50%;
+		}
+
+		.clock-block::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 6%;
+			height: 6%;
+			margin-top: -3%;
+			margin-left: -3%;
+			background-color: white;
+			border-radius: 50%;
+		}
+
+		.clock-block > .hand {
+			position: absolute;
+			top: 0;
+			left: 50%;
+			height: 50%;
+			transition: transform 120ms cubic-bezier(0.82, 2.11, 0.07, 0.23);
+		}
+
+		.clock-block > .hour-hand {
+			top: 10%;
+			height: 40%;
+		}
+
+		.clock-block > .min-hand {
+			top: 2%;
+			height: 48%;
+			transition: transform 100ms cubic-bezier(0.6, 2.18, 0.63, 0.54);
+		}
+
+		.clock-block > .sec-hand {
+			top: 2%;
+			height: 48%;
+		}
+
+		.hour-hand {
+			margin-left: -2px;
+			border-left: 4px solid black;
+		}
+
+		.min-hand {
+			margin-left: -2px;
+			border-left: 4px solid black;
+		}
+
+		.sec-hand {
+			color: red;
+			margin-left: -1px;
+			border-left: 1px solid currentcolor;
+			border-right: 1px solid currentcolor;
+		}
+
+		.sec-hand::after {
+			content: '';
+			position: absolute;
+			top: -1px;
+			left: 0;
+			width: 14px;
+			height: 14px;
+			margin-top: 0;
+			margin-left: -7px;
+			background-color: currentcolor;
+			border-radius: 50%;
+		}
+
+		.text-2    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 1.25rem; font-weight: 400; }
+		.text-9    { font-family: Fira, Helvetica, Arial, sans-serif; font-size: 0.75rem; font-weight: 300; }
+
+		.test-button {
+			font-family: Fira, Helvetica, Arial, sans-serif;
+			font-size: 12px;
+			text-transform: uppercase;
+			color: white;
+			line-height: 40px;
+			padding-left: 12px;
+			padding-right: 12px;
+			border-radius: 0.375rem;
+		}
+
+		.red-bg    { background-color: #FF001A; }
+		.orange-bg { background-color: #DD5827; }
+		.blue-bg   { background-color: #1A83B7; }
+
+		svg { overflow: visible; }
+
+		.red-stroke-color    { stroke-width: 3px; stroke: #FF001A; fill: #691C24; }
+		.orange-stroke-color { stroke-width: 3px; stroke: #DD5827; fill: #E6E7E8; }
+		.blue-stroke-color   { stroke-width: 3px; stroke: #1A83B7; fill: #E6E7E8; }
+	</style>
+</head>
+
+<body>
+
+<div class="site-wrap wrap">
+	<h1 class="inline-h1">Sparky<img src="images/sparky-logo-218x333.png" /></h1
+
+	><div class="inline-block block">
+		&nbsp;
+		<div class="float-block block text-2">
+			Sparky is a live data binding template/view layer for HTML/SVG and JS.
+			It enhances the document with tags and scopes and composeable templates,
+			observes changes to data and applies them to the DOM at the browser frame rate.
+		</div>
+	</div>
+</div>
+
+<form data-fn="test" class="test-block block">
+	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
+	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2">
+		<option value="true">true</option>
+		<option value="false">false</option>
+		<option value="other">other (should fail)</option>
+	</select>
+</form>
+
+<script src="modules/jquery/jquery-2.1.1.js"></script>
+<script src="modules/object.assign/object.assign.js"></script>
+<script src="modules/polyfills/number.isnan.js"></script>
+<script src="modules/polyfills/math.log10.js"></script>
+<script src="modules/polyfills/window.console.group.js"></script>
+<script src="modules/polyfills/window.customevent.js"></script>
+<script src="modules/polyfills/window.requestanimationframe.js"></script>
+<script src="modules/collection/js/observe.js"></script>
+<script src="modules/collection/js/mixin.events.js"></script>
+<script src="modules/collection/js/collection.js"></script>
+
+<script src="js/sparky.js"></script>
+<script src="js/sparky.dom.js"></script>
+<script src="js/sparky.observe.js"></script>
+<script src="js/sparky.throttle.js"></script>
+<script src="js/sparky.render.js"></script>
+<script src="js/sparky.parse.js"></script>
+<script src="js/sparky.fn.js"></script>
+<script src="js/sparky.fn.each.js"></script>
+<script src="js/sparky.fn.value.js"></script>
+<script src="js/sparky.filters.js"></script>
+<script src="js/sparky.ready.js"></script>
+
+<script>
+
+Sparky.debug = false;
+
+var data = {
+	object: undefined
+};
+
+Sparky.fn.test = function(node) {
+	this.on('destroy', function(){
+		console.log('DESTROY');
+	});
+
+	this.data = data;
+	return data;
+};
+
+var node = document.getElementById('select-2');
+
+function logEvent(e) {
+	console.log(e.type, e.target);
+}
+
+node.addEventListener('valuechange', logEvent);
+node.addEventListener('change', logEvent);
+
+</script>
+
+</body>
+</html>
