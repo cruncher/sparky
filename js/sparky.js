@@ -3,7 +3,7 @@
 
 	console.log('Sparky');
 	console.log('https://labs.cruncher.ch/sparky');
-	console.log('_________________________________');
+	console.log('_______________________________');
 })(this);
 
 
@@ -56,13 +56,24 @@
 
 	// Sparky
 
-	function resolveNode(node) {
-		// If node is a string, assume it is the id of a template,
-		// and if it is not a template, assume it is the id of a
-		// node in the DOM.
-		return typeof node === 'string' ?
-			(Sparky.template(node) || document.getElementById(node)) :
-			node ;
+	function resolveNode(selector) {
+		// If node is a string assume it is a selector. Sparky does not yet
+		// support node collections, so we just use querySelector to get
+		// one node.
+		var node = typeof selector === 'string' ?
+			document.querySelector(selector) :
+			selector ;
+
+		if (!node) {
+			throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+		}
+
+		// If node is a template use a copy of it's content.
+		if (Sparky.dom.tag(node) === 'template') {
+			node = Sparky.template(node.id);
+		}
+
+		return node;
 	}
 
 	function resolveScope(node, scope, data, observe, update) {

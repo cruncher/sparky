@@ -48,8 +48,8 @@
 		var sparkies = [];
 		var cache    = [];
 
-		// We cannot use a WeakMap here: WeakMaps do not primitives as keys,
-		// and a Sparky scope may be a number or a string.
+		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
+		// keys, and a Sparky scope may be a number or a string.
 		var rejects  = new Map();
 		var scheduled = [];
 		var clone    = node.cloneNode(true);
@@ -85,7 +85,7 @@
 
 			// Ignore any objects at the start of the collection that have
 			// not changed position. Optimises for case where we're pushing
-			// things on the end of a list.
+			// things on the end.
 			while(cache[++n] && cache[n] === collection[n]);
 			--n;
 
