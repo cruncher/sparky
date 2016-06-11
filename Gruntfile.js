@@ -7,7 +7,8 @@ module.exports = function(grunt) {
 				'modules/polyfills/math.log10.js',
 				'modules/polyfills/window.customevent.js',
 				'modules/polyfills/window.requestanimationframe.js',
-				'modules/collection/js/mixin.events.js',
+				'modules/fn/js/fn.js',
+				'modules/fn/js/events.js',
 				'modules/collection/js/observe.js',
 				'modules/collection/js/collection.js',
 				'js/sparky.js',
@@ -20,8 +21,7 @@ module.exports = function(grunt) {
 				'js/sparky.fn.each.js',
 				'js/sparky.fn.value.js',
 				'js/sparky.filters.js',
-				'js/sparky.ready.js',
-				'build-settings.js'
+				'config-package.js'
 			]
 		},
 
