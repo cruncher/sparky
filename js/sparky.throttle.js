@@ -1,10 +1,17 @@
 
 // Sparky.Throttle(fn)
 
-(function() {
+(function(window) {
 	"use strict";
 
-	function noop() {}
+	// Import
+
+	var Fn     = window.Fn;
+	var Sparky = window.Sparky;
+
+	// Utility functions
+
+	var noop = Fn.noop;
 
 	function Throttle(fn) {
 		var queued, context, args;
@@ -50,4 +57,4 @@
 	}
 
 	Sparky.Throttle = Throttle;
-})(Sparky);
+})(this);

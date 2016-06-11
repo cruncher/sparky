@@ -1,11 +1,10 @@
 (function(window) {
-	var A      = Array.prototype;
-	var Sparky = window.Sparky;
-	var Fn     = window.Fn;
 
-	function byGreater(a, b) {
-		return a === b ? 0 : a > b ? 1 : -1 ;
-	}
+	// Import
+
+	var Fn     = window.Fn;
+	var Sparky = window.Sparky;
+	var A      = Array.prototype;
 
 	function negate(fn) {
 		return function(a, b) { return -fn(a, b); }
@@ -13,7 +12,7 @@
 
 	Sparky.fn['sort-on-click'] = function sortOnClick(node) {
 		var property = node.getAttribute('data-sort-by');
-		var byAscending  = property ? Fn.by(property) : byGreater;
+		var byAscending  = property ? Fn.by(property) : Fn.byGreater;
 		var byDescending = negate(byAscending);
 		var click;
 

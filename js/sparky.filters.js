@@ -4,8 +4,9 @@
 (function(window) {
 	"use strict";
 
+	var Fn        = window.Fn;
 	var Sparky    = window.Sparky;
-	var isDefined = Sparky.isDefined;
+	var isDefined = Fn.isDefined;
 	var settings  = (Sparky.settings = Sparky.settings || {});
 
 	// A reuseable array.

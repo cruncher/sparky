@@ -5,7 +5,15 @@
 (function(window) {
 	"use strict";
 
+	// Import
+
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
+
+	// Utility functions
+
+	var noop = Fn.noop;
+	var isDefined = Fn.isDefined;
 
 	// Handle paths
 
@@ -14,8 +22,6 @@
 	var rpropselector = /(\w+)\=(\w+)/;
 	var map = [];
 
-	function noop() {}
-	function isDefined(val) { return val !== undefined && val !== null; }
 	function isObject(obj) { return obj instanceof Object; }
 
 	function splitPath(path) {

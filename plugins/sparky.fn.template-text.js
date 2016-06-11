@@ -1,6 +1,11 @@
 (function(window) {
+
+	// Import
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var isDefined = Sparky.isDefined;
+
+	// Utilities
+	var isDefined = Fn.isDefined;
 
 	function escapeHTML(html) {
 		return html

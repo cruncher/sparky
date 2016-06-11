@@ -12,6 +12,7 @@
 	"use strict";
 
 	var assign = Object.assign;
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
 	var dom    = Sparky.dom;
 
@@ -51,16 +52,13 @@
 
 	// Utility functions
 
-	var noop       = Sparky.noop;
-	var returnArg  = Sparky.returnArg;
-	var returnThis = Sparky.returnThis;
-	var isDefined  = Sparky.isDefined;
-	var classOf    = Sparky.classOf;
+	var noop      = Fn.noop;
+	var identity  = Fn.id;
+	var call      = Fn.call;
+	var isDefined = Fn.isDefined;
+	var classOf   = Fn.classOf;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
-
-	function call(fn) { fn(); }
-
 
 	// DOM
 
@@ -130,7 +128,7 @@
 			    (type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
 			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
 			    	// Only let strings set the value of other inputs
-			    	parseName(node, get, set, bind, unbind, returnArg, returnArg) ;
+			    	parseName(node, get, set, bind, unbind, identity, identity) ;
 
 			if (unbindName) { unobservers.push(unbindName); }
 
@@ -143,7 +141,7 @@
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
-			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
 			if (unbindName) { unobservers.push(unbindName); }
 
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
@@ -159,7 +157,7 @@
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 
 			// Only let strings set the value of a textarea
-			var unbindName = parseName(node, get, set, bind, unbind, returnArg, returnArg);
+			var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
 			if (unbindName) { unobservers.push(unbindName); }
 			bindAttribute(node, 'name', bind, unbind, get, unobservers);
 		},

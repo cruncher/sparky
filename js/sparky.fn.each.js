@@ -4,14 +4,14 @@
 	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var DOM = Sparky.dom;
+	var DOM    = Sparky.dom;
 
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
 	// destroying those sparkies.
 	var destroyDelay = 12000;
 
-	function call(fn) { fn(); }
+	var call = Fn.call;
 
 	function create(boss, node, scope, fn) {
 		// Create a dependent sparky without delegating scope

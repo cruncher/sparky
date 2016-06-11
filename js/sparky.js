@@ -50,23 +50,14 @@
 
 	// Utility functions
 
-	function noop() {}
+	var noop      = Fn.noop;
+	var isDefined = Fn.isDefined;
+	var id        = Fn.id;
+	var call      = Fn.call;
 
 	function returnNoop() {}
 
 	function returnThis() { return this; }
-
-	function returnArg(arg) { return arg; }
-
-	function isDefined(n) {
-		return n !== undefined && n !== null && !Number.isNaN(n);
-	}
-
-	function call(fn) { fn(); }
-
-	function classOf(object) {
-		return (/\[object\s(\w+)\]/.exec(Object.prototype.toString.apply(object)) || [])[1];
-	}
 
 
 	// Sparky
@@ -532,10 +523,7 @@
 			};
 		},
 
-		noop:       noop,
 		returnThis: returnThis,
-		returnArg:  returnArg,
-		isDefined:  isDefined,
 		classOf:    classOf,
 
 		svgNamespace:   "http://www.w3.org/2000/svg",

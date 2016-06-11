@@ -2,10 +2,9 @@
 	"use strict";
 
 	var assign = Object.assign;
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var isDefined = Sparky.isDefined;
 	var parseName = Sparky.parseName;
-	var returnArg = Sparky.returnArg;
 	var stringToInt = Sparky.stringToInt;
 	var stringToFloat = Sparky.stringToFloat;
 	var stringToBool = Sparky.stringToBool ;
@@ -75,12 +74,12 @@
 
 	function valueAny(node) {
 		// Coerce any defined value to string so that any values pass the type checker
-		setup(this, node, definedToString, returnArg);
+		setup(this, node, definedToString, Fn.id);
 	}
 
 	function valueString(node) {
 		// Don't coerce so that only strings pass the type checker
-		setup(this, node, returnArg, returnArg);
+		setup(this, node, Fn.id, Fn.id);
 	}
 
 	function valueNumber(node) {
@@ -92,7 +91,7 @@
 	}
 
 	function valueBoolean(node) {
-		if (node.type === 'checkbox' && !isDefined(node.getAttribute('value'))) {
+		if (node.type === 'checkbox' && !Fn.isDefined(node.getAttribute('value'))) {
 			setup(this, node, boolToStringOn, stringOnToBool);
 		}
 		else {
