@@ -14,9 +14,14 @@
 
 	var rurljson = /\/\S*\.json$/;
 
-	var errors = {
-		"node-not-found": "Sparky: Sparky(node) called, node not found: #{{$0}}"
-	}
+	// Utility functions
+
+	var noop      = Fn.noop;
+	var isDefined = Fn.isDefined;
+	var id        = Fn.id;
+	var call      = Fn.call;
+
+	function returnThis() { return this; }
 
 	// Debug
 
@@ -47,15 +52,6 @@
 		Array.prototype.push.apply(array, arguments);
 		console.log.apply(console, array);
 	}
-
-	// Utility functions
-
-	var noop      = Fn.noop;
-	var isDefined = Fn.isDefined;
-	var id        = Fn.id;
-	var call      = Fn.call;
-
-	function returnThis() { return this; }
 
 
 	// Sparky
