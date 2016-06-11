@@ -60,8 +60,9 @@
 <script src="modules/polyfills/window.console.group.js"></script>
 <script src="modules/polyfills/window.customevent.js"></script>
 <script src="modules/polyfills/window.requestanimationframe.js"></script>
+<script src="modules/fn/js/fn.js"></script>
+<script src="modules/fn/js/events.js"></script>
 <script src="modules/collection/js/observe.js"></script>
-<script src="modules/collection/js/mixin.events.js"></script>
 <script src="modules/collection/js/collection.js"></script>
 
 <script src="js/sparky.js"></script>
@@ -349,7 +350,7 @@ console.log('SCOPE', sparky, items);
 		});
 	};
 
-	Sparky('cart-example');
+	Sparky('#cart-example');
 })(this);
 	</script>
 </div>
@@ -494,7 +495,7 @@ Sparky.fn['my-function'] = function(node) {
 </template>
 
 		<script>
-		Sparky('function-code');
+		Sparky('#function-code');
 		</script>
 	</div>
 </div>

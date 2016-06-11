@@ -81,6 +81,7 @@ module('Live tags', function(fixture) {
 //
 //*/});
 
+
 module('Child sparky', function(fixture) {
 	asyncTest('Children instantiated with correct controllers and models', function(assert) {
 		expect(6);
@@ -255,6 +256,7 @@ module('Child sparky', function(fixture) {
 </div>
 
 */});
+
 
 module('Test tags in class attributes...', function(fixture) {
 	console.log('Test tags in class attributes...');

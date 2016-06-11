@@ -262,6 +262,7 @@
 
 	function destroy(parsed) {
 		parsed.setups.length = 0;
+console.log(parsed);
 		parsed.teardowns.forEach(call);
 		parsed.teardowns.length = 0;
 

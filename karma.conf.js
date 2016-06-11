@@ -14,13 +14,14 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'modules/jquery/jquery-2.1.1.js',
-      'modules/object.assing/object.assign.js',
+      'modules/object.assign/object.assign.js',
       'modules/polyfills/number.isnan.js',
       'modules/polyfills/math.log10.js',
       'modules/polyfills/window.customevent.js',
       'modules/polyfills/window.requestanimationframe.js',
+      'modules/fn/js/fn.js',
+      'modules/fn/js/events.js',
       'modules/collection/js/observe.js',
-      'modules/collection/js/mixin.events.js',
       'modules/collection/js/collection.js',
       'js/sparky.js',
       'js/sparky.dom.js',
