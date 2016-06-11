@@ -280,6 +280,7 @@ if (!Math.log10) {
 	Object.assign(Fn, {
 		noop:     noop,
 		id:       id,
+		call:     call,
 		curry:    curry,
 		compose:  compose,
 		pipe:     pipe,
@@ -308,13 +309,13 @@ if (!Math.log10) {
 			return Fn.byGreater(a[property], b[property]);
 		}),
 
-		byGreater: function byGreater(a, b) {
+		byGreater: curry(function byGreater(a, b) {
 			return a === b ? 0 : a > b ? 1 : -1 ;
-		},
+		}),
 
-		byAlphabet: function byAlphabet(a, b) {
+		byAlphabet: curry(function byAlphabet(a, b) {
 			return S.localeCompare.call(a, b);
-		},
+		}),
 
 		assign: curry(function assign(obj2, obj1) {
 			return Object.assign(obj1, obj2);
@@ -337,10 +338,6 @@ if (!Math.log10) {
 		invoke: curry(function invoke(name, object) {
 			return object[name]();
 		}),
-
-		run: function run(fn) {
-			return fn();
-		},
 
 		concat:      curry(function concat(array2, array1) { return A.concat.call(array1, array2); }),
 		each:        curry(function each(fn, object) { return A.forEach.call(object, fn); }),
@@ -392,7 +389,9 @@ if (!Math.log10) {
 		// Types
 
 		isDefined: function isDefined(value) {
-			return value !== undefined && value !== null;
+			// !!value is a fast out for non-zero numbers, non-empty strings
+			// and other objects, the rest checks for 0, '', etc.
+			return !!value || (value !== undefined && value !== null);
 		},
 
 		typeOf: function typeOf(object) {
@@ -2404,6 +2403,7 @@ if (!Math.log10) {
 
 	function destroy(parsed) {
 		parsed.setups.length = 0;
+console.log(parsed);
 		parsed.teardowns.forEach(call);
 		parsed.teardowns.length = 0;
 
