@@ -55,8 +55,6 @@
 	var id        = Fn.id;
 	var call      = Fn.call;
 
-	function returnNoop() {}
-
 	function returnThis() { return this; }
 
 
@@ -522,9 +520,6 @@
 				return fn.apply(this, arguments);
 			};
 		},
-
-		returnThis: returnThis,
-		classOf:    classOf,
 
 		svgNamespace:   "http://www.w3.org/2000/svg",
 		xlinkNamespace: "http://www.w3.org/1999/xlink",
