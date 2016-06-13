@@ -181,6 +181,19 @@
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
 
+		line: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x1', 'x2', 'y1', 'y2', 'transform']);
+		},
+
+		rect: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform']);
+		},
+
+		text: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x', 'y', 'dx', 'dy', 'text-anchor']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
@@ -344,15 +357,15 @@
 		// SVG has case sensitive attributes.
 		var attr = aliases[attribute] || attribute ;
 		var value = alias ? alias :
-		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
+		//    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
 		    	node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = isSVG ?
-		    	setAttributeSVG.bind(this, node, attr) :
+		var update = //isSVG ?
+		//    	setAttributeSVG.bind(this, node, attr) :
 		    	setAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
