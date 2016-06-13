@@ -57,7 +57,7 @@
 		var placeholder = createPlaceholder(node);
 		var collection;
 
-		var throttle = Sparky.Throttle(function update() {
+		var throttle = Fn.Throttle(function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};

@@ -45,7 +45,7 @@
 		var sparky = this;
 		var sparkies = [];
 		var clone  = node.cloneNode(true);
-		var throttle = Sparky.Throttle(update);
+		var throttle = Fn.Throttle(update);
 		var fns = this.interrupt();
 		var placeholder = createPlaceholder(node);
 		var collection;

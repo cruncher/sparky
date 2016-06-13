@@ -705,7 +705,7 @@
 			return parsers[node.nodeType](
 				node,
 				function bind(path, fn) {
-					results.bindings.push([path, fn, Sparky.Throttle(fn)]);
+					results.bindings.push([path, fn, Fn.Throttle(fn)]);
 				},
 				function unbind(fn) {
 					var bindings = results.bindings;

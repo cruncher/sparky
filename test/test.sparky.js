@@ -61,6 +61,28 @@ module('Live tags', function(fixture) {
 
 */});
 
+module('Live tags, delayed data', function(fixture) {
+	asyncTest("{{tag}} is replaced with model property", function(assert) {
+		var node = fixture.querySelector('div');
+
+		expect(1);
+
+		Sparky(node);
+
+		window.requestAnimationFrame(function() {
+			Sparky.data['test-model'] = { property: 'juice' };
+			window.requestAnimationFrame(function() {
+				ok(node.innerHTML === 'juice');
+				QUnit.start();
+			});
+		});
+	});
+}, function() {/*
+
+<div data-scope="test-model">{{property}}</div>
+
+*/});
+
 //module('Static tags', function(fixture) {
 //	asyncTest("{{{tag}}} is replaced with model property", function() {
 //		expect(1);

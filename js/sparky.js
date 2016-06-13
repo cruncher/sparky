@@ -330,8 +330,8 @@ console.log(parsed);
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
-		var addThrottle = Sparky.Throttle(addNodes);
-		var removeThrottle = Sparky.Throttle(removeNodes);
+		var addThrottle = Fn.Throttle(addNodes);
+		var removeThrottle = Fn.Throttle(removeNodes);
 
 		function updateScope(object) {
 			// If scope is unchanged, do nothing.
