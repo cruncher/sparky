@@ -28,14 +28,16 @@
 				node.setAttribute('d', collectionToPath(collection, x, y));
 			}
 
+			var throttle = Fn.Throttle(update);
+
 			function observe(collection, object) {
-				Sparky.observe(object, x, update);
-				Sparky.observe(object, y, update);
+				Sparky.observe(object, x, throttle);
+				Sparky.observe(object, y, throttle);
 			}
 
 			function unobserve(collection, object) {
-				Sparky.unobserve(object, x, update);
-				Sparky.unobserve(object, y, update);
+				Sparky.unobserve(object, x, throttle);
+				Sparky.unobserve(object, y, throttle);
 			}
 
 			this.on('scope', function(sparky, scope) {
@@ -56,7 +58,7 @@
 					observe(collection, object);
 				});
 
-				update();
+				throttle();
 			});
 		},
 
@@ -147,7 +149,7 @@
 		}
 	};
 
-	Sparky.fn['line-chart'] = function(node) {
+	Sparky.fn['series-chart'] = function(node) {
 		var x = 'x';
 		var y = 'y';
 
