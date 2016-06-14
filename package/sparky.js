@@ -486,6 +486,8 @@ if (!Math.log10) {
 		multiply:    curry(function multiply(a, b) { return b * a; }),
 		mod:         curry(function mod(a, b) { return b % a; }),
 		pow:         curry(function pow(a, b) { return Math.pow(b, a); }),
+		min:         curry(function min(a, b) { return a > b ? b : a ; }),
+		max:         curry(function max(a, b) { return a < b ? b : a ; }),
 		normalise:   curry(function normalise(min, max, value) { return (value - min) / (max - min); }),
 		denormalise: curry(function denormalise(min, max, value) { return value * (max - min) + min; }),
 		toFixed:     curry(function toFixed(n, value) { return N.toFixed.call(value, n); }),
@@ -2547,7 +2549,6 @@ if (!Math.log10) {
 
 	function destroy(parsed) {
 		parsed.setups.length = 0;
-console.log(parsed);
 		parsed.teardowns.forEach(call);
 		parsed.teardowns.length = 0;
 
@@ -3552,18 +3553,6 @@ console.log(parsed);
 	};
 })(this);
 
-
-// Sparky.Throttle(fn)
-
-(function(window) {
-	"use strict";
-
-	// Import
-	window.Sparky.Throttle = window.Fn.Throttle;
-
-	console.log('sparky.throttle.js is deprecated (replaced with Fn.throttle()).');
-})(this);
-
 (function(window) {
 
 	var Sparky = window.Sparky;
@@ -3801,6 +3790,19 @@ console.log(parsed);
 			bindAttributes(node, bind, unbind, get, unobservers, ['d', 'transform']);
 		},
 
+		line: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x1', 'x2', 'y1', 'y2', 'transform']);
+		},
+
+		rect: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform']);
+		},
+
+		text: function(node, bind, unbind, get, set, setup, create, unobservers) {
+			bindAttributes(node, bind, unbind, get, unobservers, ['x', 'y', 'dx', 'dy', 'text-anchor']);
+			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
 		use: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttributes(node, bind, unbind, get, unobservers, ['href', 'transform']);
 		},
@@ -3964,15 +3966,15 @@ console.log(parsed);
 		// SVG has case sensitive attributes.
 		var attr = aliases[attribute] || attribute ;
 		var value = alias ? alias :
-		    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
+		//    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
 		    	node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = isSVG ?
-		    	setAttributeSVG.bind(this, node, attr) :
+		var update = //isSVG ?
+		//    	setAttributeSVG.bind(this, node, attr) :
 		    	setAttributeHTML.bind(this, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
