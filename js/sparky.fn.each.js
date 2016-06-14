@@ -45,6 +45,7 @@
 
 	Sparky.fn.each = function setupCollection(node) {
 		var sparky   = this;
+		var data     = this.data;
 		var sparkies = [];
 		var cache    = [];
 
@@ -56,6 +57,10 @@
 		var fns      = this.interrupt();
 		var placeholder = createPlaceholder(node);
 		var collection;
+
+		fns.unshift(function(node) {
+			this.data = Object.create(data);
+		});
 
 		var throttle = Fn.Throttle(function update() {
 			var n = -1;
