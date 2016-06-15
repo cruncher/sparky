@@ -5,22 +5,56 @@
 	var Sparky    = window.Sparky;
 	var isDefined = Fn.isDefined;
 
+	function groupBy(name, array) {
+		return array.reduce(function(groups, object) {
+			var group = groups[groups.length - 1];
+
+			if (!group) {
+				groups.push([object]);
+				return groups;
+			}
+
+			var prev = group[group.length - 1];
+
+			if (object[name] === prev[name]) {
+				group.push(object);
+			}
+			else {
+				groups.push([object]);
+			}
+
+			return groups;
+		}, []);
+	}
+
 	function collectionToPath(collection, x, y, textToX) {
 		var state = 0;
 
-		return collection
-		.sort(Fn.by(x))
-		.reduce(function(string, object) {
-			if (!isDefined(object[x]) || !isDefined(object[y])) {
-				state = 0;
-				return string;
-			}
+		collection.sort(Fn.by(x));
 
-			var xpos = typeof object[x] === 'string' ?
-				textToX(object[x]) :
-				object[x] ;
+		var groups = groupBy(x, collection);
+console.log('G', groups);
+		return groups.reduce(function(string, group) {
+			var agregate = group.reduce(function(agregate, object) {
+				agregate[y] = (agregate[y] || 0) + object[y];
+				agregate[x] = object[x];
+				return agregate;
+			}, {});
 
-			return string + ((state++ === 0) ? 'M' : 'L') + xpos + ',' + object[y];
+console.log(agregate, x, y);
+
+			//if (!isDefined(object[x]) || !isDefined(object[y])) {
+			//	state = 0;
+			//	return string;
+			//}
+
+			var xpos = typeof agregate[x] === 'string' ?
+				textToX(agregate[x]) :
+				agregate[x] ;
+
+			var ypos = agregate[y];
+
+			return string + ((state++ === 0) ? 'M' : 'L') + xpos + ',' + ypos;
 		}, '');
 	}
 
@@ -50,9 +84,8 @@
 			var x    = data.x || 'x';
 			var y    = data.y || 'y';
 			var collection;
-
+console.log(data);
 			function update() {
-
 				node.setAttribute('d', collectionToPath(collection, x, y, function textToX(text) {
 					var index = data['x-labels'].map(Fn.get('text')).indexOf(text);
 					var label = data['x-labels'][index];
@@ -211,8 +244,7 @@
 
 	Sparky.fn['series-chart'] = function(node) {
 		var x = node.getAttribute('data-chart-x') || 'x';
-		var xType = node.getAttribute('data-chart-x-type') || 'number';
-		var y = 'y';
+		var y = node.getAttribute('data-chart-y') || 'y';
 		var data = this.data = {
 			'x': x,
 			'x-min': 0,
@@ -220,6 +252,7 @@
 			'x-label-step': 10,
 			'x-line-step': 10,
 			'x-tick-step': 10,
+			'y': y,
 			'y-min': 0,
 			'y-range': 50,
 			'y-label-step': 10,
@@ -230,7 +263,8 @@
 
 		Object.assign(this.fn, fns);
 
-		var series = data['series-1'] = Sparky.data.series1;
+		var series = Sparky.data.stats;
+		data.series = series;
 
 window.s = series;
 window.d = data;
@@ -278,8 +312,8 @@ window.d = data;
 				data['x-range'] = scaleX(data['x-labels'].length);
 			}
 
-			//data['y-min'] = data['series-1'].map(Fn.get(y)).reduce(Fn.min, Infinity);
-			data['y-range'] = data['series-1'].map(Fn.get(y)).reduce(Fn.max, 0) - data['y-min'] + data['y-headroom'];
+			//data['y-min'] = series.map(Fn.get(y)).reduce(Fn.min, Infinity);
+			data['y-range'] = series.map(Fn.get(y)).reduce(Fn.max, 0) - data['y-min'] + data['y-headroom'];
 		}
 
 		function observe(collection, object) {
