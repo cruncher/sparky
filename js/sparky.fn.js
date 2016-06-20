@@ -110,6 +110,41 @@
 			});
 		},
 
+		"ajax-on-submit": function(node) {
+			var method = node.getAttribute('method') || 'POST';
+			var url = node.getAttribute('action');
+
+			if (!Fn.isDefined(url)) {
+				throw new Error('Sparky: fn ajax-on-submit requires an action="url" attribute.');
+			}
+
+			var submit;
+
+			node.addEventListener('submit', preventDefault);
+
+			this
+			.on('scope', function(sparky, scope) {
+				console.log('SCOPE');
+				if (submit) { node.removeEventListener(submit); }
+				submit = function(e) {
+					console.log('SUBMIT', scope);
+					jQuery.ajax({
+						type: method.toLowerCase(),
+						url:  url,
+						data: JSON.stringify(scope),
+						dataType: 'json'
+					})
+					.then(function(value) {
+						console.log(value);
+					});
+				};
+				node.addEventListener('submit', submit);
+			})
+			.on('destroy', function() {
+				node.removeEventListener('submit', submit);
+			});
+		},
+
 		"scope": function(node) {
 			this.on('scope', function(sparky, scope) {
 				Sparky.setScope(node, scope);
