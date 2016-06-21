@@ -37,14 +37,6 @@
 			undefined ;
 	}
 
-	function normalise(value, min, max) {
-		return (value - min) / (max - min);
-	}
-
-	function denormalise(value, min, max) {
-		return value * (max - min) + min;
-	}
-
 	// Controllers
 
 	function setup(sparky, node, to, from) {
@@ -159,59 +151,65 @@
 	}
 
 	function valueFloatPow2(node, model) {
-		var min, max;
+		var normalise, denormalise;
 
 		function updateMinMax() {
-			min = node.min ? parseFloat(node.min) : 0 ;
-			max = node.max ? parseFloat(node.max) : 1 ;
+			var min = node.min ? parseFloat(node.min) : 0 ;
+			var max = node.max ? parseFloat(node.max) : 1 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(value, min, max), 1/2), min, max) + '';
+			return denormalise(Math.pow(normalise(value), 1/2)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(n, min, max), 2), min, max);
+			return denormalise(Math.pow(normalise(n), 2));
 		}
 
 		setup(this, node, to, from);
 	};
 
 	function valueFloatPow3(node, model) {
-		var min, max;
+		var normalise, denormalise;
 
 		function updateMinMax() {
-			min = node.min ? parseFloat(node.min) : 0 ;
-			max = node.max ? parseFloat(node.max) : 1 ;
+			var min = node.min ? parseFloat(node.min) : 0 ;
+			var max = node.max ? parseFloat(node.max) : 1 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(value, min, max), 1/3), min, max) + '';
+			return denormalise(Math.pow(normalise(value), 1/3)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(n, min, max), 3), min, max);
+			return denormalise(Math.pow(normalise(n), 3));
 		}
 
 		setup(this, node, to, from);
 	};
 
 	function valueFloatLog(node, model) {
-		var min, max;
+		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
 			min = node.min ? parseFloat(node.min) : 1 ;
 			max = node.max ? parseFloat(node.max) : 10 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 
 			if (min <= 0) {
 				console.warn('Sparky.fn["value-float-log"] cannot accept a min attribute of 0 or lower.', node);
@@ -222,25 +220,27 @@
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.log(value / min) / Math.log(max / min), min, max) + '';
+			return denormalise(Math.log(value / min) / Math.log(max / min)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return min * Math.pow(max / min, normalise(n, min, max));
+			return min * Math.pow(max / min, normalise(n));
 		}
 
 		setup(this, node, to, from);
 	};
 
 	function valueIntLog(node, model) {
-		var min, max;
+		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
 			min = node.min ? parseFloat(node.min) : 1 ;
 			max = node.max ? parseFloat(node.max) : 10 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 
 			if (min <= 0) {
 				console.warn('Sparky.fn["value-int-log"] cannot accept a min attribute of 0 or lower.', node);
@@ -251,14 +251,14 @@
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.log(Math.round(value) / min) / Math.log(max / min), min, max) + '';
+			return denormalise(Math.log(Math.round(value) / min) / Math.log(max / min)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return Math.round(min * Math.pow(max / min, normalise(n, min, max)));
+			return Math.round(min * Math.pow(max / min, normalise(n)));
 		}
 
 		setup(this, node, to, from);
@@ -275,8 +275,6 @@
 		'value-float-pow-2':    valueFloatPow2,
 		'value-float-pow-3':    valueFloatPow3,
 		'value-in-array':       valueInArray,
-		'value-int-in-array':       valueIntInArray,
-		//'value-number-invert':  valueNumberInvert,
-		//'value-boolean-invert': valueBooleanInvert
+		'value-int-in-array':   valueIntInArray
 	});
 })(this);

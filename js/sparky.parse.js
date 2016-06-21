@@ -56,7 +56,7 @@
 	var identity  = Fn.id;
 	var call      = Fn.call;
 	var isDefined = Fn.isDefined;
-	var classOf   = Fn.classOf;
+	var toClass   = Fn.toClass;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
 
@@ -464,7 +464,7 @@
 				// Beautify the .toString() result of functions
 				typeof value2 === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
 				// Use just the Class string in '[object Class]'
-				classOf(value2) ;
+				toClass(value2) ;
 		}
 	}
 
@@ -800,6 +800,7 @@
 	assign(Sparky, {
 		parse: parse,
 		parseName: parseName,
+		bindValue: bindValue,
 		attributes: attributes,
 
 		stringToInt:     stringToInt,
