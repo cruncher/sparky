@@ -286,7 +286,7 @@ A Regular expression matching tags of the form
 <code>{{ path.to.property|filter:'param' }}</code>. The opening brackets, the path
 and the filter string are stored in capturing groups 1,2 and 3.
 
-### Sparky.filters
+### Sparky.filter
 
 An object containing template filters.
 

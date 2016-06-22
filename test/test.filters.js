@@ -1,4 +1,4 @@
-module('Sparky.filters', function(fixture) {
+module('Sparky.filter', function(fixture) {
 	var key, filter;
 	var expected = {
 		add: { '': undefined, '5.5, 3.5': 9},
@@ -8,41 +8,41 @@ module('Sparky.filters', function(fixture) {
 	console.log('Test filters...');
 
 	for (key in expected) {
-		filter = Sparky.filters[key];
+		filter = Sparky.filter[key];
 
 		(function(key, result, expect) {
-			test("Sparky.filters." + key + "()", function() {
+			test("Sparky.filter." + key + "()", function() {
 				ok(result === expect, "Returns '" + result + "', expected '" + expect + "'");
 			});
 		})(key, filter(), expected[key]['']);
 	}
 
-	test("Sparky.filters.add", function() {
-		ok(Sparky.filters.add('5.5', 3.5) === 9);
+	test("Sparky.filter.add", function() {
+		ok(Sparky.filter.add('5.5', 3.5) === 9);
 	});
 
-	test("Sparky.filters.slugify", function() {
-		ok(Sparky.filters.slugify('Pardon Me sir') === 'pardon-me-sir');
+	test("Sparky.filter.slugify", function() {
+		ok(Sparky.filter.slugify('Pardon Me sir') === 'pardon-me-sir');
 	});
 
-	test("Sparky.filters.yesno", function() {
-		ok(Sparky.filters.yesno(true, '1', '2') === '1');
-		ok(Sparky.filters.yesno({}, '1', '2') === '1');
-		ok(Sparky.filters.yesno(false, '1', '2') === '2');
-		ok(Sparky.filters.yesno(undefined, '1', '2') === '2');
-		ok(Sparky.filters.yesno(null, '1', '2') === '2');
+	test("Sparky.filter.yesno", function() {
+		ok(Sparky.filter.yesno(true, '1', '2') === '1');
+		ok(Sparky.filter.yesno({}, '1', '2') === '1');
+		ok(Sparky.filter.yesno(false, '1', '2') === '2');
+		ok(Sparky.filter.yesno(undefined, '1', '2') === '2');
+		ok(Sparky.filter.yesno(null, '1', '2') === '2');
 	});
 
-	test("Sparky.filters.prepad", function() {
-		ok(Sparky.filters.prepad('barf', '9') === '     barf');
+	test("Sparky.filter.prepad", function() {
+		ok(Sparky.filter.prepad('barf', '9') === '     barf');
 		// TODO: This is failing - FIX in filter fn!
-		//ok(Sparky.filters.prepad('barf', '2') === 'barf');
+		//ok(Sparky.filter.prepad('barf', '2') === 'barf');
 	});
 
-	test("Sparky.filters.postpad", function() {
-		ok(Sparky.filters.postpad('barf', '9') === 'barf     ');
-		ok(Sparky.filters.postpad('barf', '4') === 'barf');
-		ok(Sparky.filters.postpad('barf', '2') === 'ba');
+	test("Sparky.filter.postpad", function() {
+		ok(Sparky.filter.postpad('barf', '9') === 'barf     ');
+		ok(Sparky.filter.postpad('barf', '4') === 'barf');
+		ok(Sparky.filter.postpad('barf', '2') === 'ba');
 	});
 });
 
@@ -53,14 +53,14 @@ module('Sparky.filters', function(fixture) {
 //	postpad
 //	date
 //	decimals: Number.prototype.toFixed,
-//	
+//
 //	// .default() can't work, because Sparky does not send undefined or null
-//	// values to be filtered. 
+//	// values to be filtered.
 //	//'default'
 //	//dictsort
 //	//dictsortreversed
 //	//divisibleby
-//	
+//
 //	escape
 //	first
 //	floatformat
@@ -76,7 +76,7 @@ module('Sparky.filters', function(fixture) {
 //	//linenumbers
 //	lower
 //	lowercase
-//	//make_list 
+//	//make_list
 //	multiply
 //	parseint
 //	//phone2numeric
@@ -109,5 +109,3 @@ module('Sparky.filters', function(fixture) {
 //	//urlizetrunc
 //	//wordcount
 //	//wordwrap
-
-

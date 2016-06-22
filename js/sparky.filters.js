@@ -1,5 +1,5 @@
 
-// Sparky.filters
+// Sparky.filter
 
 (function(window) {
 	"use strict";
@@ -57,7 +57,7 @@
 		return s;
 	}
 
-	Sparky.filters = {
+	Sparky.filter = {
 		add: function(value, n) {
 			var result = parseFloat(value) + n ;
 			if (Number.isNaN(result)) { return; }
@@ -69,7 +69,7 @@
 		},
 
 		cut: function(value, string) {
-			return Sparky.filters.replace(value, string, '');
+			return Sparky.filter.replace(value, string, '');
 		},
 
 		date: (function(settings) {

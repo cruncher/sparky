@@ -395,7 +395,7 @@
 
 		return {
 			name: parts[1],
-			fn: Sparky.filters[parts[1]],
+			fn: Sparky.filter[parts[1]],
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
@@ -413,7 +413,7 @@
 
 		while (++n < l) {
 			if (!filters[n].fn) {
-				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filters');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filter');
 			}
 
 			if (Sparky.debug === 'filter') {
