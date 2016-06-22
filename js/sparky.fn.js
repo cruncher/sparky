@@ -17,19 +17,18 @@
 	Sparky.fn.log = function(node) {
 		var sparky = this;
 
-		function log(node, scope) {
-			console.group('scope change');
-			console.log('node ', node);
-			console.log('scope', scope);
+		function log(sparky, scope) {
+			console.group('Sparky: scope', Sparky.nodeToString(node));
 			console.log('data', sparky.data);
+			console.log('scope', scope);
 			console.log('fn', sparky.fn);
 			console.groupEnd();
 		}
 
 		this.on('scope', log);
 
-		console.group('initialisation');
-		console.log('node ', node);
+		console.group('Sparky: fn', Sparky.nodeToString(node));
+		console.log('data ', sparky.data);
 		console.groupEnd();
 	};
 })(this);
@@ -124,7 +123,6 @@
 
 			this
 			.on('scope', function(sparky, scope) {
-				console.log('SCOPE');
 				if (submit) { node.removeEventListener(submit); }
 				submit = function(e) {
 					console.log('SUBMIT', scope);

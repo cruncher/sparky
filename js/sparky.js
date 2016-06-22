@@ -25,7 +25,7 @@
 
 	// Debug
 
-	function nodeToText(node) {
+	function nodeToString(node) {
 		return [
 			'<',
 			Sparky.dom.tag(node),
@@ -514,6 +514,7 @@
 		debug: false,
 		log: log,
 		logVerbose: logVerbose,
+		nodeToString: nodeToString,
 
 		try: function(fn, createMessage) {
 			return function catchError() {
