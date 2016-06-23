@@ -50,6 +50,7 @@
 
 	var empty = [];
 
+
 	// Utility functions
 
 	var noop      = Fn.noop;
@@ -59,6 +60,7 @@
 	var toClass   = Fn.toClass;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
+
 
 	// DOM
 
@@ -386,7 +388,6 @@
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
 		var update = toggleAttributeHTML.bind(this, node, attr) ;
-
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
 

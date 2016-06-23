@@ -278,7 +278,7 @@
 
 <form data-fn="test" class="test-block block">
 	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
-	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2">
+	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{enabled|yesno:'','disabled'}}">
 		<option value="true">true</option>
 		<option value="false">false</option>
 		<option value="other">other (should fail)</option>
@@ -292,14 +292,14 @@
 <script src="modules/polyfills/window.console.group.js"></script>
 <script src="modules/polyfills/window.customevent.js"></script>
 <script src="modules/polyfills/window.requestanimationframe.js"></script>
+<script src="modules/fn/js/fn.js"></script>
+<script src="modules/fn/js/events.js"></script>
 <script src="modules/collection/js/observe.js"></script>
-<script src="modules/collection/js/mixin.events.js"></script>
 <script src="modules/collection/js/collection.js"></script>
 
 <script src="js/sparky.js"></script>
 <script src="js/sparky.dom.js"></script>
 <script src="js/sparky.observe.js"></script>
-<script src="js/sparky.throttle.js"></script>
 <script src="js/sparky.render.js"></script>
 <script src="js/sparky.parse.js"></script>
 <script src="js/sparky.fn.js"></script>
@@ -313,7 +313,8 @@
 Sparky.debug = false;
 
 var data = {
-	object: undefined
+	object: undefined,
+	enabled: false
 };
 
 Sparky.fn.test = function(node) {
