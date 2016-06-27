@@ -84,7 +84,7 @@ console.log(agregate, x, y);
 			var x    = data.x || 'x';
 			var y    = data.y || 'y';
 			var collection;
-console.log(data);
+
 			function update() {
 				node.setAttribute('d', collectionToPath(collection, x, y, function textToX(text) {
 					var index = data['x-labels'].map(Fn.get('text')).indexOf(text);
@@ -263,8 +263,8 @@ console.log(data);
 
 		Object.assign(this.fn, fns);
 
-		var series = Sparky.data.stats;
-		data.series = series;
+		var series;// = Sparky.data.stats;
+		//data.series = series;
 
 window.s = series;
 window.d = data;
@@ -326,19 +326,27 @@ window.d = data;
 			Sparky.unobserve(object, y, update);
 		}
 
-		series
-		.on('add', observe)
-		.on('remove', unobserve)
-		.forEach(function(object, i, collection) {
-			observe(collection, object);
-		});
+		this
+		.on('scope', function(sparky, scope) {
+			series = scope;
 
-		this.on('destroy', function() {
+			if (!series) { return; }
+console.log('SERIES', series);
+			series
+			.on('add', observe)
+			.on('remove', unobserve)
+			.forEach(function(object, i, collection) {
+				observe(collection, object);
+			});
+
+			data.series = series;
+			update();
+		})
+		.on('destroy', function() {
 			Sparky.unobserve(data, 'x-range', updateXMax);
 			Sparky.unobserve(data, 'y-range', updateYMax);
 			Sparky.unobserve(data, 'x-min',   updateXMax);
 			Sparky.unobserve(data, 'y-min',   updateYMax);
-
 			Sparky.unobserve(data, 'x-range', updateXAxis);
 			Sparky.unobserve(data, 'y-range', updateYAxis);
 			Sparky.unobserve(data, 'x-min',   updateXAxis);
@@ -351,8 +359,6 @@ window.d = data;
 		});
 
 		// Initilise the data
-		update();
-
-		return data;
+		//update();
 	};
 })(this);
