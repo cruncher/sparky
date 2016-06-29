@@ -4,6 +4,25 @@
 	var Fn        = window.Fn;
 	var Sparky    = window.Sparky;
 	var isDefined = Fn.isDefined;
+	var Functor   = Fn.Functor;
+
+	var defaults  = {
+		'x': 'x',
+		'x-min': 0,
+		'x-max': 100,
+		'x-labels': Fn.empty,
+		'x-label-step': 10,
+		'x-line-step': 10,
+		'x-tick-step': 10,
+		'y': 'y',
+		'y-min': 0,
+		'y-max': 50,
+		'y-labels': Fn.empty,
+		'y-label-step': 10,
+		'y-line-step': 10,
+		'y-tick-step': 10,
+		'y-headroom': 10
+	};
 
 	function groupBy(name, array) {
 		return array.reduce(function(groups, object) {
@@ -153,8 +172,6 @@ console.log(agregate, x, y);
 
 		'x-axis': function(node) {
 			var data = this.data;
-			var x    = data.x || 'x';
-			var y    = data.y || 'y';
 			var axis = {
 				labels: Collection(),
 				ticks:  Collection(),
@@ -162,27 +179,19 @@ console.log(agregate, x, y);
 			};
 
 			function update() {
-				if (data['x-labels']) {
-					axis.labels = data['x-labels'];
-					return;
-				}
-
 				axis.labels.length = 0;
-
-				var min    = data['x-min'];
-				var range  = data['x-range'];
-				var step   = data['x-label-step'];
-				var max    = min + range;
-				var x      = Math.ceil(min / step) * step;
-
-				while (x <= max) {
-					axis.labels.push({ x: x,  text: '' + x });
-					x += step;
-				}
+				axis.labels.push.apply(axis.labels,
+					data['x-labels'].map(function(text) {
+						console.log(data.xPos(text), text);
+						return {
+							x: data.xPos(text),
+							text: text
+						};
+					})
+				);
 			}
 
-			Sparky.observe(data, 'x-range', update);
-			Sparky.observe(data, 'x-min',   update);
+			Sparky.observe(data, 'x-labels', update);
 			update();
 			return axis;
 		},
@@ -193,8 +202,8 @@ console.log(agregate, x, y);
 			var y    = data.y || 'y';
 			var axis = {
 				labels: Collection(),
-				ticks: Collection(),
-				lines: Collection()
+				ticks:  Collection(),
+				lines:  Collection()
 			};
 
 			function update() {
@@ -235,103 +244,122 @@ console.log(agregate, x, y);
 				}
 			}
 
-			Sparky.observe(data, 'y-range', update);
+			// THIS IS CRASHING CHROME... WHY WHY HWY????
+			//Sparky.observe(data, 'y-range', update);
 			Sparky.observe(data, 'y-min',   update);
 			update();
 			return axis;
 		}
 	};
 
+	function getOptions(node) {
+		var object = {};
+
+		var x = node.getAttribute('data-chart-x');
+		if (x) { object.x = x; }
+
+		var y = node.getAttribute('data-chart-y');
+		if (y) { object.y = y; }
+	}
+
 	Sparky.fn['series-chart'] = function(node) {
-		var x = node.getAttribute('data-chart-x') || 'x';
-		var y = node.getAttribute('data-chart-y') || 'y';
-		var data = this.data = {
-			'x': x,
-			'x-min': 0,
-			'x-range': 100,
-			'x-label-step': 10,
-			'x-line-step': 10,
-			'x-tick-step': 10,
-			'y': y,
-			'y-min': 0,
-			'y-range': 50,
-			'y-label-step': 10,
-			'y-line-step': 10,
-			'y-tick-step': 10,
-			'y-headroom': 10
-		};
+		var data = this.data = Object.assign({}, defaults, getOptions(node));
+		var series;
 
 		Object.assign(this.fn, fns);
 
-		var series;// = Sparky.data.stats;
-		//data.series = series;
-
-window.s = series;
-window.d = data;
-
-		//data['series-2'] = Sparky.data.series2;
-
 		// Propogate changes to min and range to child datas
 
-		function updateXMax() {
-			var xMax = data['x-min'] + data['x-range'];
-			data['x-max'] = xMax;
+		function updateXRange() {
+			data['x-range'] = data['x-max'] - data['x-min'] ;
 		}
 
-		function updateYMax() {
-			var yMax = data['y-min'] + data['y-range'];
-			data['y-max'] = yMax;
+		function updateYRange() {
+			data['y-range'] = data['y-max'] - data['y-min'] ;
 		}
 
-		Sparky.observe(data, 'x-range', updateXMax);
-		Sparky.observe(data, 'y-range', updateYMax);
-		Sparky.observe(data, 'x-min',   updateXMax);
-		//Sparky.observe(data, 'y-min',   updateYMax);
+		Sparky.observe(data, 'x-min', updateXRange);
+		Sparky.observe(data, 'x-max', updateXRange);
+		Sparky.observe(data, 'y-min', updateYRange);
+		Sparky.observe(data, 'y-max', updateYRange);
 
-		var scaleX = Fn.multiply(8);
+		var scaleX = Fn.multiply(1);
+		data.scaleX = scaleX;
+
+		data.xPos = function(text) {
+			var i = data['x-labels'].indexOf(text);
+			return i > -1 ? scaleX(i / data['x-labels'].length) : undefined ;
+		};
+
+		function scaleX(xRatio) {
+			var min = data['x-min'];
+			var max = data['x-max'];
+			return xRatio * (max - min) + min ;
+		}
 
 		function update() {
-			var xType = series.map(Fn.compose(Fn.toStringType, Fn.get(x))).reduce(same) || 'string';
+			if (series.length === 0) { return; }
+
+			// Sort by x
+			series.sort(Fn.by(data.x));
+
+			var xType = series.map(Fn.compose(Fn.toStringType, Fn.get(data.x))).reduce(same) || 'string';
 
 			if (xType === 'number') {
-				data['x-min']   = series.map(Fn.get(x)).reduce(Fn.min, Infinity);
-				data['x-range'] = series.map(Fn.get(x)).reduce(Fn.max, 0) - data['x-min'];
+				//data['x-min']    = series.map(Fn.get(data.x)).reduce(Fn.min, Infinity);
+				//data['x-range']  = series.map(Fn.get(data.x)).reduce(Fn.max, 0) - data['x-min'];
 			}
 			else if (xType === 'date') {
-				data['x-labels'] = Collection(series.map(Fn.get(x)).reduce(unique, []).sort(Fn.byGreater).map(function createLabel(text, i) {
-					return { x: scaleX(i), text: text } ;
-				}));
-				data['x-min'] = scaleX(0);
-				data['x-range'] = scaleX(data['x-labels'].length);
+				data['x-type'] = 'date';
+
+				var time = Time(series[0][data.x]);
+				var max = Time(series[series.length - 1][data.x]).add('0000-00-01').date;
+
+				data['x-labels'] = Functor(function() {
+					var date = time.date;
+					if (date >= max) { return; }
+					time = time.add('0000-00-01');
+					return date;
+				})
+				.map(function(date) {
+					return date;
+				})
+				.toArray();
+console.log(1);
+				data['x-min']    = 0;
+				data['x-max']    = 100;
 			}
 			else {
-				data['x-labels'] = Collection(series.map(Fn.get(x)).reduce(unique, []).sort(Fn.byAlphabet).map(function createLabel(text, i) {
-					return { x: scaleX(i), text: text } ;
-				}));
-				data['x-min'] = scaleX(0);
-				data['x-range'] = scaleX(data['x-labels'].length);
+				//data['x-labels'] = Collection(series.map(Fn.get(data.x)).reduce(unique, []).sort(Fn.byAlphabet).map(function createLabel(text, i) {
+				//	return { x: scaleX(i), text: text } ;
+				//}));
+				//data['x-min']    = scaleX(0);
+				//data['x-range']  = scaleX(data['x-labels'].length);
 			}
 
-			//data['y-min'] = series.map(Fn.get(y)).reduce(Fn.min, Infinity);
-			data['y-range'] = series.map(Fn.get(y)).reduce(Fn.max, 0) - data['y-min'] + data['y-headroom'];
+			data['y-min'] = series.map(Fn.get(data.y)).reduce(Fn.min, Infinity);
+			data['y-max'] = series.map(Fn.get(data.y)).reduce(Fn.max, 0) + data['y-headroom'];
+
+			console.log(data);
 		}
 
 		function observe(collection, object) {
-			Sparky.observe(object, x, update);
-			Sparky.observe(object, y, update);
+			Sparky.observe(object, data.x, update);
+			Sparky.observe(object, data.y, update);
+			update();
 		}
 
 		function unobserve(collection, object) {
-			Sparky.unobserve(object, x, update);
-			Sparky.unobserve(object, y, update);
+			Sparky.unobserve(object, data.x, update);
+			Sparky.unobserve(object, data.y, update);
 		}
 
 		this
 		.on('scope', function(sparky, scope) {
-			series = scope;
+			if (!scope) { return; }
 
-			if (!series) { return; }
-console.log('SERIES', series);
+			series = scope[0].series;
+
 			series
 			.on('add', observe)
 			.on('remove', unobserve)
@@ -360,5 +388,7 @@ console.log('SERIES', series);
 
 		// Initilise the data
 		//update();
+
+		//return data;
 	};
 })(this);
