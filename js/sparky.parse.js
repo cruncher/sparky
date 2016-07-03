@@ -388,7 +388,33 @@
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
 		var update = toggleAttributeHTML.bind(this, node, attr) ;
-		observeProperties(value, bind, unbind, get, update, unobservers);
+		observeBoolean(value.trim(), bind, unbind, get, update, unobservers);
+	}
+
+	function observeBoolean(text, bind, unbind, get, fn, unobservers) {
+		Sparky.rtags.lastIndex = 0;
+		var tokens = Sparky.rtags.exec(text);
+
+		if (!tokens) { return; }
+		var replace = makeReplaceText(get);
+		var oldValue;
+
+		function update() {
+			Sparky.rtags.lastIndex = 0;
+			var value = replace.apply(null, tokens);
+			fn(value);
+		}
+
+		// Live tag
+		if (tokens[1].length === 2) {
+			unobservers.push(observeProperties2(bind, unbind, update, [tokens[2]]));
+		}
+		// Dead tag
+		else {
+			// Scope is not available yet. We need to wait for it. Todo: This
+			// should be done inside the Sparky constructor.
+			window.requestAnimationFrame(update);
+		}
 	}
 
 	function toFilter(filter) {
@@ -458,12 +484,14 @@
 		return function replaceText($0, $1, $2, $3) {
 			var value1 = get($2);
 			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
+			var type = typeof value2;
+
 			return !isDefined(value2) ? '' :
-				typeof value2 === 'string' ? value2 :
-				typeof value2 === 'number' ? value2 :
-				typeof value2 === 'boolean' ? value2 :
+				type === 'string' ? value2 :
+				type === 'number' ? value2 :
+				type === 'boolean' ? value2 :
 				// Beautify the .toString() result of functions
-				typeof value2 === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
+				type === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
 				// Use just the Class string in '[object Class]'
 				toClass(value2) ;
 		}
@@ -498,9 +526,7 @@
 		else {
 			// Scope is not available yet. We need to wait for it. Todo: This
 			// should be done inside the Sparky constructor.
-			window.requestAnimationFrame(function() {
-				update();
-			});
+			window.requestAnimationFrame(update);
 		}
 	}
 

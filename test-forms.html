@@ -278,7 +278,7 @@
 
 <form data-fn="test" class="test-block block">
 	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
-	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{enabled|yesno:'','disabled'}}">
+	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{disabled}}">
 		<option value="true">true</option>
 		<option value="false">false</option>
 		<option value="other">other (should fail)</option>
@@ -314,7 +314,7 @@ Sparky.debug = false;
 
 var data = {
 	object: undefined,
-	enabled: false
+	disabled: false
 };
 
 Sparky.fn.test = function(node) {
