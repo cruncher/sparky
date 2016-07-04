@@ -130,7 +130,7 @@
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 
-			var rletter = /(sec|[YMDdHhms]{2,4}|[a-zA-Z])/g;
+			var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
 			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
 			var rnonzeronumbers = /[1-9]/;
 
