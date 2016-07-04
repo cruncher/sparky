@@ -285,7 +285,7 @@
 			return value * n;
 		},
 
-		not: function(value) { return !value; },
+		not: Fn.not,
 
 		parseint: function(value) {
 			return parseInt(value, 10);

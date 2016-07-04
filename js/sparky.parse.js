@@ -123,6 +123,7 @@
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
@@ -142,6 +143,7 @@
 		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
@@ -159,6 +161,7 @@
 
 		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
@@ -215,7 +218,7 @@
 			bindClasses(node, bind, unbind, get, unobservers);
 			bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
-			// Set up special binding for certain elements like form inputs
+			// Set up special bindings for certain tags, like form inputs
 			if (tags[tag]) {
 				tags[tag](node, bind, unbind, get, set, setup, create, unobservers);
 			}
