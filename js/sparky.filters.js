@@ -77,11 +77,18 @@
 				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
 				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
 				MM:   function(date) { return ('0' + (date.getMonth() + 1)).slice(-2); },
+				MMM:  function(date) { return this.MMMM(date).slice(0,3); },
+				MMMM: function(date) { return settings[lang].months[date.getMonth()]; },
 				DD:   function(date) { return ('0' + date.getDate()).slice(-2); },
-				hh:   function(date) { return ('0' + date.getHours()).slice(-2); },
+				d:    function(date) { return '' + date.getDay(); },
+				dd:   function(date) { return ('0' + date.getDay()).slice(-2); },
+				ddd:  function(date) { return this.dddd(date).slice(0,3); },
+				dddd: function(date) { return settings[lang].days[date.getDay()]; },
+				HH:   function(date) { return ('0' + date.getHours()).slice(-2); },
 				mm:   function(date) { return ('0' + date.getMinutes()).slice(-2); },
 				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
-				sec:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
 				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
@@ -123,7 +130,7 @@
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 
-			var rletter = /(sec|Y{4}|[YMDhms]{2}|[a-zA-Z])/g;
+			var rletter = /(sec|[YMDdHhms]{2,4}|[a-zA-Z])/g;
 			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
 			var rnonzeronumbers = /[1-9]/;
 
