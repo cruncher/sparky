@@ -81,12 +81,14 @@
 	}
 
 	function toggleAttributeSVG(node, attribute, value) {
-		if (value) { setAttributeSVG(node, attribute, value); }
+		if (isDefined(node[attribute])) { node[attribute] = !!value; }
+		else if (value) { setAttributeSVG(node, attribute, value); }
 		else { node.removeAttribute(attribute); }
 	}
 
 	function toggleAttributeHTML(node, attribute, value) {
-		if (value) { setAttributeHTML(node, attribute, attribute); }
+		if (isDefined(node[attribute])) { node[attribute] = !!value; }
+		else if (value) { setAttributeHTML(node, attribute, attribute); }
 		else { node.removeAttribute(attribute); }
 	}
 

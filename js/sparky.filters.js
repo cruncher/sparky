@@ -74,6 +74,14 @@
 
 		date: (function(settings) {
 			var formatters = {
+				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
+				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
+				MM:   function(date) { return ('0' + (date.getMonth() + 1)).slice(-2); },
+				DD:   function(date) { return ('0' + date.getDate()).slice(-2); },
+				hh:   function(date) { return ('0' + date.getHours()).slice(-2); },
+				mm:   function(date) { return ('0' + date.getMinutes()).slice(-2); },
+				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
+				sec:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
 				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
@@ -115,7 +123,7 @@
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 
-			var rletter = /([a-zA-Z])/g;
+			var rletter = /(sec|Y{4}|[YMDhms]{2}|[a-zA-Z])/g;
 			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
 			var rnonzeronumbers = /[1-9]/;
 
@@ -152,7 +160,7 @@
 				lang = lang || settings.lang;
 
 				return format.replace(rletter, function($0, $1) {
-					return formatters[$1](date, lang);
+					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
 				});
 			};
 		})(settings),
@@ -211,7 +219,7 @@
 		},
 
 		get: function(value, name) {
-			return value ? value[name] : undefined ;
+			return isDefined(value) ? Fn.get(name, value) : undefined ;
 		},
 
 		"greater-than": function(value1, value2, str1, str2) {
@@ -223,14 +231,10 @@
 		},
 
 		invert: function(value) {
-			return typeof value === 'boolean' ? !value :
-				typeof value === 'number' ? 1 / value :
-				!value ;
+			return typeof value === 'number' ? 1 / value : !value ;
 		},
 
-		is: function(value, val, string1, string2) {
-			return (value === val ? string1 : string2) || '';
-		},
+		is: Fn.is,
 
 		join: function(value, string) {
 			return Array.prototype.join.call(value, string);
@@ -263,17 +267,13 @@
 		//	};
 		//})(),
 
-		lower: function(value) {
-			String.prototype.toLowerCase.apply(value);
-		},
-
 		lowercase: function(value) {
 			if (typeof value !== 'string') { return; }
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: function(array, path) {
-			return array && array.map(Fn.get(path));
+		map: function(array, method, path) {
+			return array && array.map(Fn[method](path));
 		},
 
 		mod: function(value, n) {
@@ -284,6 +284,8 @@
 		multiply: function(value, n) {
 			return value * n;
 		},
+
+		not: function(value) { return !value; },
 
 		parseint: function(value) {
 			return parseInt(value, 10);
@@ -333,13 +335,9 @@
 			return value[Math.floor(Math.random() * value.length)];
 		},
 
-		reduce: (function(processes) {
-			return function(array, name, initialValue) {
-				return array && array.reduce(processes[name], initialValue || 0);
-			};
-		})({
-			sum: function(a, b) { return a + b; }
-		}),
+		reduce: function(array, name, initialValue) {
+			return array && array.reduce(Fn[name], initialValue || 0);
+		},
 
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
