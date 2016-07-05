@@ -326,6 +326,14 @@
 		// Use scope variable as current scope.
 		scope = undefined;
 
+//		var scopestream = Fn.Stream(function setup(notify) {
+//			return {
+//				shift: function() {
+//
+//				}
+//			};
+//		});
+
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
