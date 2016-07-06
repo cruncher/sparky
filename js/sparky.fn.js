@@ -14,10 +14,10 @@
 	var Sparky = window.Sparky;
 
 	// Logs nodes, scopes and data.
-	Sparky.fn.log = function(node) {
+	Sparky.fn.log = function(node, scopes) {
 		var sparky = this;
 
-		function log(sparky, scope) {
+		function log(scope) {
 			console.group('Sparky: scope', Sparky.nodeToString(node));
 			console.log('data', sparky.data);
 			console.log('scope', scope);
@@ -25,7 +25,7 @@
 			console.groupEnd();
 		}
 
-		this.on('scope', log);
+		scopes.tap(log);
 
 		console.group('Sparky: fn', Sparky.nodeToString(node));
 		console.log('data ', sparky.data);
@@ -41,8 +41,8 @@
 	var dom    = Sparky.dom;
 
 	assign(Sparky.fn, {
-		"remove-hidden": function onReadyUnhide(node) {
-			this.on('scope', function() {
+		"remove-hidden": function(node, scopes) {
+			scopes.tap(function() {
 				window.requestAnimationFrame(function() {
 					dom.classes(node).remove('hidden');
 				});
@@ -58,8 +58,8 @@
 	var Sparky = window.Sparky;
 
 	assign(Sparky.fn, {
-		html: function html(node) {
-			this.on('scope', function(sparky, html) {
+		html: function html(node, scopes) {
+			scopes.tap(function(html) {
 				node.innerHTML = html;
 			});
 		}
@@ -109,7 +109,7 @@
 			});
 		},
 
-		"ajax-on-submit": function(node) {
+		"ajax-on-submit": function(node, scopes) {
 			var method = node.getAttribute('method') || 'POST';
 			var url = node.getAttribute('action');
 
@@ -121,11 +121,9 @@
 
 			node.addEventListener('submit', preventDefault);
 
-			this
-			.on('scope', function(sparky, scope) {
+			scopes.tap(function(scope) {
 				if (submit) { node.removeEventListener(submit); }
 				submit = function(e) {
-					console.log('SUBMIT', scope);
 					jQuery.ajax({
 						type: method.toLowerCase(),
 						url:  url,
@@ -138,13 +136,15 @@
 				};
 				node.addEventListener('submit', submit);
 			})
+
+			this
 			.on('destroy', function() {
 				node.removeEventListener('submit', submit);
 			});
 		},
 
-		"scope": function(node) {
-			this.on('scope', function(sparky, scope) {
+		"scope": function(node, scopes) {
+			scopes.tap(function(scope) {
 				Sparky.setScope(node, scope);
 			});
 		}

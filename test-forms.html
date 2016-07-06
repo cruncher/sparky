@@ -276,7 +276,7 @@
 	</div>
 </div>
 
-<form data-fn="test" class="test-block block">
+<form data-fn="test" class="test-block block" id="test-form">
 	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
 	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{enabled|not}}">
 		<option value="true">true</option>
@@ -308,7 +308,6 @@
 <script src="js/sparky.fn.each.js"></script>
 <script src="js/sparky.fn.value.js"></script>
 <script src="js/sparky.filters.js"></script>
-<script src="js/sparky.ready.js"></script>
 
 <script>
 
@@ -326,7 +325,7 @@ Sparky.fn.test = function(node, scopes) {
 
 	this.data = data;
 
-	return new Fn.BufferStream([data]);
+	//return new Fn.BufferStream([data]);
 
 	return scopes.map(function(value) {
 		console.log('MAP SCOPE', value);
@@ -340,8 +339,10 @@ function logEvent(e) {
 	console.log(e.type, e.target);
 }
 
-node.addEventListener('valuechange', logEvent);
-node.addEventListener('change', logEvent);
+//node.addEventListener('valuechange', logEvent);
+//node.addEventListener('change', logEvent);
+
+window.sparky = Sparky(document.body, {});
 
 </script>
 

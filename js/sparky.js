@@ -312,7 +312,7 @@
 	function Sparky(node, initscope, fn, parent) {
 		// Allow calling the constructor with or without 'new'.
 		if (!(this instanceof Sparky)) {
-			return new Sparky(node, scope, fn, parent);
+			return new Sparky(node, initscope, fn, parent);
 		}
 
 		var sparky = this;
@@ -329,6 +329,9 @@
 		var removeThrottle = Fn.Throttle(removeNodes);
 
 		function updateScope(object) {
+			// If scope has not changed, bye bye.
+			if (object === scope) { return; }
+
 			// If old scope exists, tear it down
 			if (scope && parsed) { teardown(scope, parsed.bindings); }
 
@@ -375,6 +378,9 @@
 		});
 
 		this.scope = function(object) {
+			// If we are already using this object as rootscope, bye bye.
+			if (object === rootscope) { return; }
+			rootscope = object;
 			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
 			return this;
 		};
@@ -434,7 +440,7 @@
 		outstream
 		.dedup()
 		.pull(function(scope) {
-console.log('STREAM PULL', scope);
+console.log('STREAM PULL', node, scope);
 			// Trigger children
 			sparky.trigger('scope', scope);
 
@@ -443,6 +449,7 @@ console.log('STREAM PULL', scope);
 		});
 
 		// If there is scope, set it up now
+console.log('STREAM PUSH', node, initscope);
 		this.scope(initscope || null);
 		init = false;
 	}

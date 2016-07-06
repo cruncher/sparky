@@ -43,7 +43,7 @@
 			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 	}
 
-	Sparky.fn.each = function setupCollection(node) {
+	Sparky.fn.each = function setupCollection(node, scopes) {
 		var sparky   = this;
 		var data     = this.data;
 		var sparkies = [];
@@ -158,15 +158,15 @@
 		DOM.before(node, placeholder);
 		DOM.remove(node);
 
-		this
-		.on('scope', function(source, scope) {
+		scopes.tap(function(scope) {
 			if (this !== source) { return; }
 			if (scope === collection) { return; }
 			if (collection) { unobserveCollection(); }
 			collection = scope;
-			if (scope === undefined) { return; }
-			observeCollection();
-		})
+			if (collection) { observeCollection(); }
+		});
+
+		this
 		.on('destroy', function destroy() {
 			throttle.cancel();
 			unobserveCollection();

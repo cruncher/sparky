@@ -39,7 +39,7 @@
 
 	// Controllers
 
-	function setup(sparky, node, to, from) {
+	function setup(sparky, node, scopes, to, from) {
 		var scope, path, fn;
 		var unbind = Sparky.parseName(node, function get(name) {
 			return Sparky.get(scope, name);
@@ -51,47 +51,46 @@
 		}, noop, to, from);
 
 		sparky
-		.on('scope', function update(sparky, newscope) {
-			// Ignore events not from this sparky
-			// if (this !== sparky) { return; }
-			if (scope) { Sparky.unobservePath(scope, path, fn); }
-			scope = newscope;
-			if (scope) { Sparky.observePath(scope, path, fn, true); }
-		})
 		.on('destroy', function() {
 			unbind();
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 		});
+
+		return scopes.tap(function update(object) {
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+			scope = object;
+			if (scope) { Sparky.observePath(scope, path, fn, true); }
+		});
 	}
 
-	function valueAny(node) {
+	function valueAny(node, scopes) {
 		// Coerce any defined value to string so that any values pass the type checker
-		setup(this, node, definedToString, Fn.id);
+		setup(this, node, scopes, definedToString, Fn.id);
 	}
 
-	function valueString(node) {
+	function valueString(node, scopes) {
 		// Don't coerce so that only strings pass the type checker
-		setup(this, node, Fn.id, Fn.id);
+		setup(this, node, scopes, Fn.id, Fn.id);
 	}
 
-	function valueNumber(node) {
-		setup(this, node, floatToString, stringToFloat);
+	function valueNumber(node, scopes) {
+		setup(this, node, scopes, floatToString, stringToFloat);
 	}
 
-	function valueInteger(node) {
-		setup(this, node, floatToString, stringToInt);
+	function valueInteger(node, scopes) {
+		setup(this, node, scopes, floatToString, stringToInt);
 	}
 
-	function valueBoolean(node) {
+	function valueBoolean(node, scopes) {
 		if (node.type === 'checkbox' && !Fn.isDefined(node.getAttribute('value'))) {
-			setup(this, node, boolToStringOn, stringOnToBool);
+			setup(this, node, scopes, boolToStringOn, stringOnToBool);
 		}
 		else {
-			setup(this, node, boolToString, stringToBool);
+			setup(this, node, scopes, boolToString, stringToBool);
 		}
 	}
 
-	function valueInArray(node) {
+	function valueInArray(node, scopes) {
 		var array;
 
 		function to(arr) {
@@ -117,10 +116,10 @@
 			return array;
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	}
 
-	function valueIntInArray(node) {
+	function valueIntInArray(node, scopes) {
 		var array;
 
 		function to(arr) {
@@ -147,10 +146,10 @@
 			return array;
 		}
 
-		setup(this, node, to, Fn.compose(from, stringToInt));
+		setup(this, node, scopes, to, Fn.compose(from, stringToInt));
 	}
 
-	function valueFloatPow2(node, model) {
+	function valueFloatPow2(node, scopes) {
 		var normalise, denormalise;
 
 		function updateMinMax() {
@@ -173,10 +172,10 @@
 			return denormalise(Math.pow(normalise(n), 2));
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	};
 
-	function valueFloatPow3(node, model) {
+	function valueFloatPow3(node, scopes) {
 		var normalise, denormalise;
 
 		function updateMinMax() {
@@ -199,10 +198,10 @@
 			return denormalise(Math.pow(normalise(n), 3));
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	};
 
-	function valueFloatLog(node, model) {
+	function valueFloatLog(node, scopes) {
 		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
@@ -230,10 +229,10 @@
 			return min * Math.pow(max / min, normalise(n));
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	};
 
-	function valueIntLog(node, model) {
+	function valueIntLog(node, scopes) {
 		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
@@ -261,7 +260,7 @@
 			return Math.round(min * Math.pow(max / min, normalise(n)));
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	};
 
 	assign(Sparky.fn, {
