@@ -321,17 +321,9 @@
 		var scope;
 		var parsed;
 
-		var instream = Fn.ValueStream().dedup();
-		var data = parent ? parent.data : Sparky.data;
-		var ctrl = parent ? parent.fn : Sparky.fn;
-		var unobserveScope = noop;
-		var addThrottle = Fn.Throttle(addNodes);
-		var removeThrottle = Fn.Throttle(removeNodes);
-
-		function updateScope(object) {
-			// If scope has not changed, bye bye.
-			if (object === scope) { return; }
-
+		var instream = Fn.ValueStream()
+		.dedup()
+		.map(function init(object) {
 			// If old scope exists, tear it down
 			if (scope && parsed) { teardown(scope, parsed.bindings); }
 
@@ -345,11 +337,17 @@
 				setup(scope, parsed.bindings, init);
 			}
 
-			// Trigger scope first, children assemble themselves
-			instream.push(scope);
+			return scope;
+		});
 
-			// Then update this node
-			init = false;
+		var data = parent ? parent.data : Sparky.data;
+		var ctrl = parent ? parent.fn : Sparky.fn;
+		var unobserveScope = noop;
+		var addThrottle = Fn.Throttle(addNodes);
+		var removeThrottle = Fn.Throttle(removeNodes);
+
+		function updateScope(object) {
+			instream.push(object);
 		}
 
 		function observeScope(scope, path) {
@@ -440,16 +438,17 @@
 		outstream
 		.dedup()
 		.pull(function(scope) {
-console.log('STREAM PULL', node, scope);
 			// Trigger children
 			sparky.trigger('scope', scope);
 
 			// Update DOM insertion of this sparky's nodes
 			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
+
+			// Then update this node
+			init = false;
 		});
 
 		// If there is scope, set it up now
-console.log('STREAM PUSH', node, initscope);
 		this.scope(initscope || null);
 		init = false;
 	}
