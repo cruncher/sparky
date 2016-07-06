@@ -130,7 +130,7 @@ module('Sparky:collections', function(fixture) {
 
 module('Sparky:collections', function(fixture) {
 	asyncTest("Detach collection items", function(assert) {
-		expect(5);
+		expect(4);
 
 		var collection = Collection([{ property: 1 }, { property: 2 }]);
 
@@ -162,7 +162,12 @@ module('Sparky:collections', function(fixture) {
 				assert.ok(li && li.innerHTML === '2', 'li content is still 2');
 
 				window.requestAnimationFrame(function() {
-					assert.ok(li && li.innerHTML === '2', 'li content is still 2');
+					// This is a moot point.
+					// In the new, optimised fn.each references are left
+					// attached in case they are called for again, and destroyed
+					// a little later.
+
+					//assert.ok(li && li.innerHTML === '2', 'li content is still 2');
 					QUnit.start();
 				});
 			});

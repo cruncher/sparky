@@ -276,15 +276,6 @@
 	</div>
 </div>
 
-<form data-fn="test" class="test-block block" id="test-form">
-	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
-	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{enabled|not}}">
-		<option value="true">true</option>
-		<option value="false">false</option>
-		<option value="other">other (should fail)</option>
-	</select>
-</form>
-
 <script src="modules/jquery/jquery-2.1.1.js"></script>
 <script src="modules/object.assign/object.assign.js"></script>
 <script src="modules/polyfills/number.isnan.js"></script>
@@ -294,8 +285,6 @@
 <script src="modules/polyfills/window.requestanimationframe.js"></script>
 <script src="modules/fn/js/fn.js"></script>
 <script src="modules/fn/js/events.js"></script>
-<script src="../fn/js/fn.js"></script>
-<script src="../fn/js/events.js"></script>
 <script src="modules/collection/js/observe.js"></script>
 <script src="modules/collection/js/collection.js"></script>
 
@@ -309,8 +298,16 @@
 <script src="js/sparky.fn.value.js"></script>
 <script src="js/sparky.filters.js"></script>
 
-<script>
+<!--form data-fn="test" class="test-block block" id="test-form">
+	<h2><code>data-fn="value-boolean"</code> <small class="text-9">13</small></h2>
+	<select class="select-2" name="{{property13}}" data-fn="value-boolean" id="select-2" disabled="{{enabled|not}}">
+		<option value="true">true</option>
+		<option value="false">false</option>
+		<option value="other">other (should fail)</option>
+	</select>
+</form-->
 
+<!--script>
 Sparky.debug = false;
 
 var data = {
@@ -342,9 +339,76 @@ function logEvent(e) {
 //node.addEventListener('valuechange', logEvent);
 //node.addEventListener('change', logEvent);
 
-window.sparky = Sparky(document.body, {});
+//window.sparky = Sparky(document.body, {});
+</script-->
 
+
+
+
+<!--div data-scope="model" id="test-3">
+	<p data-fn="ctrl-1">{{property}}</p>
+</div>
+
+<script>
+	var object1 = { n: 1 };
+	var object2 = { n: 2 };
+	var object3 = { n: 3 };
+
+	Sparky.data.model = { n: 0 };
+
+	Sparky.fn['ctrl-1'] = function(node, scopes) {
+		return scopes.map(function(scope) {
+			console.log(1, scope);
+			console.log(scope === null, scope);
+			return object1;
+		});
+	};
+
+	Sparky.fn['ctrl-2'] = function(node, scopes) {
+		return scopes.map(function(scope) {
+			console.log(2, scope);
+			console.log(scope === object1, scope);
+			return object2;
+		});
+	};
+
+	Sparky.fn['ctrl-3'] = function(node, scopes) {
+		return scopes.map(function(scope) {
+			console.log(3, scope);
+			console.log(scope === object2, scope);
+			return object3;
+		});
+	};
+
+	Sparky('#test-3');
+</script-->
+
+
+
+
+
+<ul data-fn="test-ctrl" id="ul">
+	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+</ul>
+
+<script>
+	var collection = Collection([{ property: 1 }, { property: 2 }]);
+
+	Sparky.fn['test-ctrl'] = function(node, model) {
+		return {
+			collection: collection
+		};
+	};
+
+	Sparky('#ul');
+
+	window.requestAnimationFrame(function() {
+		console.log('>>', jQuery('#ul').children('li').length);
+	});
 </script>
+
+
+
 
 </body>
 </html>

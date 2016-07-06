@@ -9,7 +9,7 @@
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
 	// destroying those sparkies.
-	var destroyDelay = 12000;
+	var destroyDelay = 8000;
 
 	var call = Fn.call;
 
@@ -158,9 +158,9 @@
 		DOM.before(node, placeholder);
 		DOM.remove(node);
 
-		scopes.tap(function(scope) {
-			if (this !== source) { return; }
-			if (scope === collection) { return; }
+		scopes
+		.dedup()
+		.each(function(scope) {
 			if (collection) { unobserveCollection(); }
 			collection = scope;
 			if (collection) { observeCollection(); }
