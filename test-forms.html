@@ -294,6 +294,8 @@
 <script src="modules/polyfills/window.requestanimationframe.js"></script>
 <script src="modules/fn/js/fn.js"></script>
 <script src="modules/fn/js/events.js"></script>
+<script src="../fn/js/fn.js"></script>
+<script src="../fn/js/events.js"></script>
 <script src="modules/collection/js/observe.js"></script>
 <script src="modules/collection/js/collection.js"></script>
 
@@ -314,16 +316,22 @@ Sparky.debug = false;
 
 var data = {
 	object: undefined,
-	disabled: false
+	enabled: true
 };
 
-Sparky.fn.test = function(node) {
+Sparky.fn.test = function(node, scopes) {
 	this.on('destroy', function(){
 		console.log('DESTROY');
 	});
 
 	this.data = data;
-	return data;
+
+	return new Fn.BufferStream([data]);
+
+	return scopes.map(function(value) {
+		console.log('MAP SCOPE', value);
+		return data;
+	});
 };
 
 var node = document.getElementById('select-2');

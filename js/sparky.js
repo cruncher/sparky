@@ -119,31 +119,29 @@
 			update(scope);
 	}
 
-	function resolveFn(node, fn, ctrl) {
+	function resolveFn(node, fn, ctrl, instream) {
 		// The ctrl list can be a space-separated string of ctrl paths,
-		return typeof fn === 'string' ? makeFn(fn, ctrl) :
+		return typeof fn === 'string' ? makeFn(fn, ctrl, instream) :
 			// a function,
-			typeof fn === 'function' ? makeDistributeFn([fn]) :
+			typeof fn === 'function' ? makeDistributeFn([fn], instream) :
 			// an array of functions,
-			typeof fn === 'object' ? makeDistributeFn(fn) :
+			typeof fn === 'object' ? makeDistributeFn(fn, instream) :
 			// or defined in the data-fn attribute
-			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl) ;
+			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, instream) ;
 	}
 
-	function makeDistributeFn(list) {
-		return function distributeFn(node, model) {
+	function makeDistributeFn(list, instream) {
+		return function distributeFn(node) {
 			// Distributor controller
 			var l = list.length;
 			var n = -1;
-			var scope = model;
 			var result;
+			var flag = false;
 
 			// TODO: This is exposes solely so that ctrl
 			// 'observe-selected' can function in sound.io.
 			// Really naff. Find a better way.
 			this.ctrls = list;
-
-			var flag = false;
 
 			this.interrupt = function interrupt() {
 				flag = true;
@@ -152,21 +150,21 @@
 
 			while (++n < l) {
 				// Call the list of ctrls, in order.
-				result = list[n].call(this, node, scope);
+				result = list[n].call(this, node, instream);
 
 				// Returning false interrupts the fn calls.
 				if (flag) { return false; }
 
 				// Returning an object sets that object to
 				// be used as scope.
-				if (result !== undefined) { scope = result; }
+				if (result !== undefined) { instream = result; }
 			}
 
-			return scope;
+			return instream;
 		};
 	}
 
-	function makeDistributeFnFromPaths(paths, ctrls) {
+	function makeDistributeFnFromPaths(paths, ctrls, instream) {
 		var list = [];
 		var l = paths.length;
 		var n = -1;
@@ -182,13 +180,13 @@
 			list.push(ctrl);
 		}
 
-		return makeDistributeFn(list);
+		return makeDistributeFn(list, instream);
 	}
 
-	function makeFn(string, ctrls) {
+	function makeFn(string, ctrls, instream) {
 		if (!isDefined(string)) { return; }
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeFnFromPaths(paths, ctrls);
+		return makeDistributeFnFromPaths(paths, ctrls, instream);
 	}
 
 	function replaceWithComment(node, i, sparky) {
@@ -311,7 +309,7 @@
 		}
 	}
 
-	function Sparky(node, scope, fn, parent) {
+	function Sparky(node, initscope, fn, parent) {
 		// Allow calling the constructor with or without 'new'.
 		if (!(this instanceof Sparky)) {
 			return new Sparky(node, scope, fn, parent);
@@ -319,21 +317,11 @@
 
 		var sparky = this;
 		var init = true;
-		var initscope = scope;
-		var ctrlscope;
+		var rootscope;
+		var scope;
 		var parsed;
 
-		// Use scope variable as current scope.
-		scope = undefined;
-
-//		var scopestream = Fn.Stream(function setup(notify) {
-//			return {
-//				shift: function() {
-//
-//				}
-//			};
-//		});
-
+		var instream = Fn.ValueStream().dedup();
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
@@ -341,14 +329,10 @@
 		var removeThrottle = Fn.Throttle(removeNodes);
 
 		function updateScope(object) {
-			// If scope is unchanged, do nothing.
-			if (scope === (ctrlscope || object)) { return; }
-
 			// If old scope exists, tear it down
 			if (scope && parsed) { teardown(scope, parsed.bindings); }
 
-			// ctrlscope trumps new objects
-			scope = ctrlscope || object;
+			scope = object;
 
 			if (scope && parsed) {
 				// Run initialiser fns, if any
@@ -359,10 +343,9 @@
 			}
 
 			// Trigger scope first, children assemble themselves
-			sparky.trigger('scope', scope);
+			instream.push(scope);
 
 			// Then update this node
-			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
 			init = false;
 		}
 
@@ -382,7 +365,7 @@
 
 		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
 
-		fn = resolveFn(node, fn, ctrl);
+		fn = resolveFn(node, fn, ctrl, instream);
 
 		// Define data and ctrl inheritance
 		Object.defineProperties(this, {
@@ -400,38 +383,20 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
-		// accept scope as second parameter. Actually, no no no - the potential
-		// scope must be passed to the fn, as the fn may return a different
-		// scope and has no access to this one otherwise.
-		resolveScope(node, initscope, parent ? parent.data : Sparky.data, function(basescope, path) {
-			ctrlscope = Sparky.get(basescope, path);
-		}, function(object) {
-			ctrlscope = object;
-		});
-
 		// If fn is to be called and a scope is returned, we use that.
-		if (fn) {
-			ctrlscope = fn.call(sparky, node, ctrlscope) ;
-		}
+		var outstream = fn ? fn.call(sparky, node, instream) : instream ;
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
-		if (ctrlscope === false) {
+		if (outstream === false) {
 			this.on('destroy', function() {
 				Sparky.dom.remove(this);
 			});
 
-			// Todo: We don't ALWAYS want to call .scope() here.
-			// if (initscope) { this.scope(initscope); }
 			this.scope(initscope);
 			init = false;
 			return;
 		}
-
-		// If ctrlscope is unchanged from scope, ctrlscope should not override
-		// scope changes. There's probably a better way of expressing this.
-		if (ctrlscope === initscope) { ctrlscope = undefined; }
 
 		// Define .render() for forcing tags to update.
 		this.render = function() {
@@ -466,9 +431,19 @@
 		// Don't keep nodes hanging around in memory
 		parsed.nodes.length = 0;
 
-		// If there is scope, set it up now
-		if (initscope || ctrlscope) { this.scope(initscope || ctrlscope); }
+		outstream
+		.dedup()
+		.pull(function(scope) {
+console.log('STREAM PULL', scope);
+			// Trigger children
+			sparky.trigger('scope', scope);
 
+			// Update DOM insertion of this sparky's nodes
+			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
+		});
+
+		// If there is scope, set it up now
+		this.scope(initscope || null);
 		init = false;
 	}
 
