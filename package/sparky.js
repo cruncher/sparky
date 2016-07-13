@@ -4488,7 +4488,7 @@ if (!Math.log10) {
 
 	assign(Sparky.fn, {
 		html: function html(node) {
-			this.on('scope', function(sparky, html) {
+			scopes.tap(function(html) {
 				node.innerHTML = html;
 			});
 		}
@@ -4539,7 +4539,7 @@ if (!Math.log10) {
 		},
 
 		"scope": function(node) {
-			this.on('scope', function(sparky, scope) {
+			scopes.tap(function(scope) {
 				Sparky.setScope(node, scope);
 			});
 		}

@@ -106,7 +106,7 @@
 		});
 	}, 320);
 
-	Sparky.fn.suggest = function(node) {
+	Sparky.fn.suggest = function(node, scopes) {
 		if (Sparky.dom.tag(node) !== 'input') {
 			console.warn('Sparky: data-fn="suggest" can only be applied to an <input>.');
 			return;
@@ -147,7 +147,7 @@
 		Sparky.dom.append(document.body, tip);
 
 		var scope;
-		this.on('scope', function(sparky, newscope) {
+		scopes.tap(function(newscope) {
 			scope = newscope;
 		});
 

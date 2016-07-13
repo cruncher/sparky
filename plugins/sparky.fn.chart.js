@@ -124,7 +124,7 @@ console.log(agregate, x, y);
 				Sparky.unobserve(object, y, throttle);
 			}
 
-			this.on('scope', function(sparky, scope) {
+			scopes.tap(function(scope) {
 				if (!scope) { return; }
 
 				if (collection) {
@@ -163,7 +163,7 @@ console.log(agregate, x, y);
 
 			var throttle = Fn.Throttle(update);
 
-			this.on('scope', function(sparky, scope) {
+			scopes.tap(function(scope) {
 				if (!scope) { return; }
 				point = scope;
 				throttle();
@@ -262,7 +262,7 @@ console.log(agregate, x, y);
 		if (y) { object.y = y; }
 	}
 
-	Sparky.fn['series-chart'] = function(node) {
+	Sparky.fn['series-chart'] = function(node, scopes) {
 		var data = this.data = Object.assign({}, defaults, getOptions(node));
 		var series;
 

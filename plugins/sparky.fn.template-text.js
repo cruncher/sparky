@@ -15,7 +15,7 @@
 		//.replace(/\>/g, '&gt;');
 	}
 
-	Sparky.fn['template-text'] = function(node) {
+	Sparky.fn['template-text'] = function(node, scopes) {
 		var sparky = this;
 		var id = node.getAttribute('data-template');
 		var text, template, code;

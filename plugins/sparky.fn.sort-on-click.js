@@ -16,7 +16,7 @@
 		var byDescending = negate(byAscending);
 		var click;
 
-		this.on('scope', function(sparky, collection) {
+		scopes.tap(function(collection) {
 			var order = false;
 
 			if (click) {
