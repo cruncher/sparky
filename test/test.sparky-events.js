@@ -6,11 +6,12 @@ module('Test Sparky events... 1', function(fixture) {
 		var n = 0;
 		var sparky;
 
-		Sparky.fn['fn-1'] = function(node, model) {
-			this
-			.on('scope', function() {
+		Sparky.fn['fn-1'] = function(node, scopes) {
+			scopes.tap(function() {
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
-			})
+			});
+
+			this
 			.on('dom-add', function() {
 				ok(++n === 2, 'This event should be called 2nd. Actually: ' + n);
 			});
@@ -44,19 +45,19 @@ module('Test Sparky events... 2', function(fixture) {
 		var n = 0;
 		var sparky;
 
-		Sparky.fn['fn-1'] = function(node, model) {
-			this
-			.on('scope', function() {
+		Sparky.fn['fn-1'] = function(node, scopes) {
+			scopes.tap(function() {
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
 			})
+
+			this
 			.on('dom-add', function() {
 				ok(++n === 3, 'This event should be called 2nd. Actually: ' + n);
 			});
 		};
 
-		Sparky.fn['fn-2'] = function() {
-			this
-			.on('scope', function() {
+		Sparky.fn['fn-2'] = function(node, scopes) {
+			scopes.tap(function() {
 				ok(++n === 2, 'This event should be called 3rd. Actually: ' + n);
 			});
 		};
@@ -88,16 +89,14 @@ module('Test Sparky events... 2', function(fixture) {
 		var n = 0;
 		var sparky;
 
-		Sparky.fn['fn-1'] = function(node, model) {
-			this
-			.on('scope', function() {
+		Sparky.fn['fn-1'] = function(node, scopes) {
+			scopes.tap(function() {
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
 			});
 		};
 
-		Sparky.fn['fn-2'] = function() {
-			this
-			.on('scope', function() {
+		Sparky.fn['fn-2'] = function(node, scopes) {
+			scopes.tap(function() {
 				ok(++n === 2, 'This event should be called 3rd. Actually: ' + n);
 			});
 		};

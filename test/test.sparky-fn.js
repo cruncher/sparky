@@ -10,27 +10,26 @@ module('Multiple controllers', function(fixture) {
 
 		expect(9);
 
-		Sparky.fn['ctrl-1'] = function(node) {
+		Sparky.fn['ctrl-1'] = function(node, scopes) {
 			sparky = this;
 			ok(node === p, 'Function should be called with node');
-			this.on('scope', function(sparky, object) {
+			scopes.tap(function(object) {
 				ok(scope === object, 'Should recieve scope from ctrl-2');
 			});
 		};
 
-		Sparky.fn['ctrl-2'] = function(node) {
+		Sparky.fn['ctrl-2'] = function(node, scopes) {
 			ok(this === sparky, 'Functions should share sparky *this* context.');
 			ok(Sparky.data.isPrototypeOf(this.data), 'data should inherit from Sparky.data');
 			ok(Sparky.fn.isPrototypeOf(this.fn), 'fn should inherit from Sparky.fn');
-			this.on('scope', function(sparky, object) {
+			return scopes.tap(function(object) {
 				ok(scope === object, 'Should recieve scope from ctrl-2');
 			});
-			return scope;
 		};
 
-		Sparky.fn['ctrl-3'] = function(node) {
+		Sparky.fn['ctrl-3'] = function(node, scopes) {
 			ok(this === sparky, 'Functions should share sparky *this* context.');
-			this.on('scope', function(sparky, object) {
+			scopes.tap(function(object) {
 				ok(scope === object, 'Should recieve scope from ctrl-2');
 			});
 		};
