@@ -4,11 +4,10 @@ module('Controller', function(fixture) {
 	asyncTest("ctrl found in Sparky.fn and {{tag}} replaced with scope property", function(assert) {
 		var node = fixture.querySelector('div');
 
-		expect(2);
+		expect(1);
 
-		Sparky.fn['test-ctrl'] = function(node, model) {
-			ok(model === undefined, model);
-			return { property: 'peas' };
+		Sparky.fn['test-ctrl'] = function(node, scopes) {
+			return new Fn.BufferStream([{ property: 'peas' }]);
 		};
 
 		Sparky(node);
@@ -22,11 +21,10 @@ module('Controller', function(fixture) {
 	asyncTest("ctrl passed in as fn parameter and {{tag}} replaced with scope property", function(assert) {
 		var node = fixture.querySelector('div');
 
-		expect(2);
+		expect(1);
 
-		Sparky(node, undefined, function(node, model, sparky) {
-			ok(model === undefined, model);
-			return { property: 'peas' };
+		Sparky(node, undefined, function(node, scopes, sparky) {
+			return new Fn.BufferStream([{ property: 'peas' }]);
 		});
 
 		window.requestAnimationFrame(function functionName() {
@@ -108,19 +106,19 @@ module('Child sparky', function(fixture) {
 	asyncTest('Children instantiated with correct controllers and models', function(assert) {
 		expect(6);
 
-		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
-			return {
+		Sparky.fn['test-ctrl'] = function(node, scopes) {
+			return Fn.BufferStream([{
 				'sub-model-1': { property: 'sub-1' },
 				'sub-model-2': { property: 'sub-2' }
-			};
+			}]);
 		};
 
-		Sparky.fn['test-ctrl-1'] = function(node, model, sparky) {
-			return { property: 'value-1' };
+		Sparky.fn['test-ctrl-1'] = function(node, scopes) {
+			return Fn.BufferStream([{ property: 'value-1' }]);
 		};
 
-		Sparky.fn['test-ctrl-2'] = function(node, model, sparky) {
-			return { property: 'value-2' };
+		Sparky.fn['test-ctrl-2'] = function(node, scopes) {
+			return Fn.BufferStream([{ property: 'value-2' }]);
 		};
 
 		Sparky.data['test-model-1'] = {

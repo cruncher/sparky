@@ -10,12 +10,21 @@
 (function(window) {
 	"use strict";
 
+
+	// Imports
+
+	var Fn     = window.Fn;
 	var assign = Object.assign;
+
+
+	// Variables
 
 	var rurljson = /\/\S*\.json$/;
 
-	// Utility functions
 
+	// Utilities
+
+	var Functor   = Fn.Functor;
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
 	var id        = Fn.id;
@@ -157,7 +166,7 @@
 
 				// Returning an object sets that object to
 				// be used as scope.
-				if (result !== undefined) { instream = result; }
+				if (result !== undefined) { instream = result.each ? result : Functor.of(result) ; }
 			}
 
 			return instream;
@@ -309,10 +318,10 @@
 		}
 	}
 
-	function Sparky(node, initscope, fn, parent) {
+	function Sparky(node, rootscope, fn, parent) {
 		// Allow calling the constructor with or without 'new'.
 		if (!(this instanceof Sparky)) {
-			return new Sparky(node, initscope, fn, parent);
+			return new Sparky(node, rootscope, fn, parent);
 		}
 
 		var sparky = this;
@@ -322,6 +331,7 @@
 		var parsed;
 
 		var instream = Fn.ValueStream().dedup();
+
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
@@ -329,27 +339,7 @@
 		var removeThrottle = Fn.Throttle(removeNodes);
 
 		function updateScope(object) {
-			// If scope has not changed, bye bye.
-			if (object === scope) { return; }
-
-			// If old scope exists, tear it down
-			if (scope && parsed) { teardown(scope, parsed.bindings); }
-
-			scope = object;
-
-			if (scope && parsed) {
-				// Run initialiser fns, if any
-				if (parsed.setups.length) { initialise(parsed.setups, init); }
-
-				// Assign and set up scope
-				setup(scope, parsed.bindings, init);
-			}
-
-			// Trigger scope first, children assemble themselves
-			instream.push(scope);
-
-			// Then update this node
-			init = false;
+			instream.push(object);
 		}
 
 		function observeScope(scope, path) {
@@ -366,7 +356,7 @@
 			throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
-		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
+		Sparky.logVerbose('Sparky(', node, rootscope, fn && (fn.call ? fn.name : fn), ')');
 
 		fn = resolveFn(node, fn, ctrl, instream);
 
@@ -399,7 +389,7 @@
 				Sparky.dom.remove(this);
 			});
 
-			this.scope(initscope);
+			this.scope(rootscope);
 			init = false;
 			return;
 		}
@@ -439,18 +429,35 @@
 
 		outstream
 		.dedup()
-		.pull(function(scope) {
-console.log('STREAM PULL', node, scope);
+		.each(function(object) {
+			// If old scope exists, tear it down
+			if (scope && parsed) { teardown(scope, parsed.bindings); }
+
+			scope = object;
+
+			if (scope && parsed) {
+				// Run initialiser fns, if any
+				if (parsed.setups.length) { initialise(parsed.setups, init); }
+
+				// Assign and set up scope
+				setup(scope, parsed.bindings, init);
+			}
+
+			if (Sparky.debug) { console.log('Sparky: scope change', node, scope); }
+
 			// Trigger children
 			sparky.trigger('scope', scope);
 
 			// Update DOM insertion of this sparky's nodes
 			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
+
+			// Then update this node
+			init = false;
 		});
 
 		// If there is scope, set it up now
-console.log('STREAM PUSH', node, initscope);
-		this.scope(initscope || null);
+		resolveScope(node, rootscope, parent ? parent.data : Sparky.data, observeScope, updateScope);
+
 		init = false;
 	}
 

@@ -7,7 +7,8 @@ module('Test Sparky events... 1', function(fixture) {
 		var sparky;
 
 		Sparky.fn['fn-1'] = function(node, scopes) {
-			scopes.tap(function() {
+			scopes
+			.tap(function() {
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
 			});
 
@@ -48,10 +49,9 @@ module('Test Sparky events... 2', function(fixture) {
 		Sparky.fn['fn-1'] = function(node, scopes) {
 			scopes.tap(function() {
 				ok(++n === 1, 'This event should be called 1st. Actually: ' + n);
-			})
+			});
 
-			this
-			.on('dom-add', function() {
+			this.on('dom-add', function() {
 				ok(++n === 3, 'This event should be called 2nd. Actually: ' + n);
 			});
 		};
