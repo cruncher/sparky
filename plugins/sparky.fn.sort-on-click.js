@@ -10,7 +10,7 @@
 		return function(a, b) { return -fn(a, b); }
 	}
 
-	Sparky.fn['sort-on-click'] = function sortOnClick(node) {
+	Sparky.fn['sort-on-click'] = function sortOnClick(node, scopes) {
 		var property = node.getAttribute('data-sort-by');
 		var byAscending  = property ? Fn.by(property) : Fn.byGreater;
 		var byDescending = negate(byAscending);
