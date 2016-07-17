@@ -38,7 +38,7 @@
 			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 	}
 
-	Sparky.fn.each = function setupCollection(node) {
+	Sparky.fn.each = function setupCollection(node, scopes) {
 		// todo: somehow get the remaining ctrls and call child sparkies with
 		// them.
 
@@ -115,15 +115,15 @@
 		DOM.before(node, placeholder);
 		DOM.remove(node);
 
-		this
-		.on('scope', function(source, scope) {
-			if (this !== source) { return; }
+		scopes.tap(function(scope) {
 			if (scope === collection) { return; }
 			if (collection) { unobserveCollection(); }
 			collection = scope;
 			if (scope === undefined) { return; }
 			observeCollection();
-		})
+		});
+
+		this
 		.on('destroy', function destroy() {
 			throttle.cancel();
 			unobserveCollection();

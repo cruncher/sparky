@@ -379,7 +379,7 @@
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-		// If fn is to be called and a scope is returned, we use that.
+		// If fn is to be called and a stream is returned, we use that.
 		var outstream = fn ? fn.call(sparky, node, instream) : instream ;
 
 		// A controller returning false is telling us not to do data
@@ -393,6 +393,14 @@
 			init = false;
 			return;
 		}
+
+		var create = this.create;
+
+		this.create = function(node, scope, fn) {
+			var sparky = create.apply(this, arguments);
+			outstream.tap(sparky.scope);
+			return sparky;
+		};
 
 		// Define .render() for forcing tags to update.
 		this.render = function() {
@@ -446,7 +454,7 @@
 			if (Sparky.debug) { console.log('Sparky: scope change', node, scope); }
 
 			// Trigger children
-			sparky.trigger('scope', scope);
+			//sparky.trigger('scope', scope);
 
 			// Update DOM insertion of this sparky's nodes
 			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
@@ -464,25 +472,22 @@
 	Sparky.prototype = Object.create(Collection.prototype);
 
 	assign(Sparky.prototype, {
-		// Create a child Sparky dependent upon this one.
-		create: function(node, scope, fn) {
-			var boss = this;
+		// Create dependent Sparky
+		create: function create(node, scope, fn) {
+			var boss   = this;
 			var sparky = Sparky(node, scope, fn, this);
 
 			function delegateDestroy() { sparky.destroy(); }
-			function delegateScope(self, scope) { sparky.scope(scope); }
 			function delegateRender(self) { sparky.render(); }
 
 			// Bind events...
 			this
 			.on('destroy', delegateDestroy)
-			.on('scope', delegateScope)
 			.on('render', delegateRender);
 
 			return sparky.on('destroy', function() {
 				boss
 				.off('destroy', delegateDestroy)
-				.off('scope', delegateScope)
 				.off('render', delegateRender);
 			});
 		},
