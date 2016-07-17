@@ -180,8 +180,7 @@
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = Sparky.get(ctrls, paths[n]);
-
+			ctrl = Fn.getPath(paths[n], ctrls);
 			if (!ctrl) {
 				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
 			}
@@ -233,7 +232,7 @@
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 			Sparky.observePath(scope, path, throttle, !init);
-			if (init) { fn(Sparky.get(scope, path)); }
+			if (init) { fn(Fn.getPath(path, scope)); }
 		}
 	}
 
@@ -262,7 +261,7 @@
 		while (n--) {
 			path = bindings[n][0];
 			throttle = bindings[n][2];
-			if (path) { throttle(Sparky.get(scope, path)); }
+			if (path) { throttle(Fn.getPath(path, scope)); }
 			else { throttle(); }
 		}
 	}
@@ -420,9 +419,9 @@
 
 		// Parse the DOM nodes for Sparky tags.
 		parsed = Sparky.parse(sparky, function get(path) {
-				return scope && Sparky.get(scope, path);
+				return scope && Fn.getPath(path, scope);
 			}, function set(property, value) {
-				scope && Sparky.set(scope, property, value);
+				scope && Fn.setPath(property, value, scope);
 			}
 		);
 

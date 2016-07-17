@@ -42,9 +42,9 @@
 	function setup(sparky, node, scopes, to, from) {
 		var scope, path, fn;
 		var unbind = Sparky.parseName(node, function get(name) {
-			return Sparky.get(scope, name);
+			return Fn.getPath(name, scope);
 		}, function set(name, value) {
-			return scope && Sparky.set(scope, name, value);
+			return scope && Fn.setPath(name, value, scope);
 		}, function bind(p, f) {
 			path = p;
 			fn = f;

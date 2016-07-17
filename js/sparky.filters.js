@@ -207,7 +207,7 @@
 
 		'find-in': function(id, path) {
 			if (!isDefined(id)) { return; }
-			var collection = Sparky.get(Sparky.data, path);
+			var collection = Fn.getPath(path, Sparky.data);
 			return collection && collection.find(id);
 		},
 

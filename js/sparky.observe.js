@@ -22,20 +22,10 @@
 	var rpropselector = /(\w+)\=(\w+)/;
 	var map = [];
 
-	function isObject(obj) { return obj instanceof Object; }
-
 	function splitPath(path) {
 		return path
 			.replace(rpathtrimmer, '')
 			.split(rpathsplitter);
-	}
-
-	function select(object, key) {
-		var selection = rpropselector.exec(key);
-
-		return selection ?
-			findByProperty(object, selection[1], JSON.parse(selection[2])) :
-			object[key] ;
 	}
 
 	function findByProperty(array, name, value) {
@@ -47,23 +37,6 @@
 				return array[n];
 			}
 		}
-	}
-
-	function objFrom(object, array) {
-		var key = array.shift();
-		var value = select(object, key);
-
-		return array.length === 0 ? value :
-			isDefined(value) ? objFrom(value, array) :
-			value ;
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
 	}
 
 	function observePath3(root, prop, array, fn, notify) {
@@ -214,23 +187,6 @@
 			}
 		}
 	}
-
-	function getPath(obj, path) {
-		return obj && (path === '.' ?
-			obj :
-			objFrom(obj, splitPath(path)));
-	}
-
-	function setPath(root, path, obj) {
-		var array = splitPath(path);
-
-		return array.length === 1 ?
-			(root[path] = obj) :
-			objTo(root, array, obj);
-	}
-
-	Sparky.get = getPath;
-	Sparky.set = setPath;
 
 	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
 		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
