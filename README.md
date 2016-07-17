@@ -31,11 +31,11 @@ Install node modules for building and testing:
 To bind a node call <code>Sparky</code> with a node or id, a scope
 object and/or a function.
 
-<code>node   </code>node | document fragment | string
+<code>node   </code>node | document fragment | selector
 
-Required parameter. If it is a DOM node, Sparky parses it for tags. If it is a
-string Sparky looks for a DOM node with that id, and if that DOM node is a <code>&lt;template&gt;</code> Sparky extracts the template contents and parses
-those.
+Required parameter. If it is a DOM node or document fragment, Sparky parses it
+for tags. If it is a selector string Sparky selects a node (only `#id`
+selectors currently supported) and parses that for tags.
 
 <code>scope  </code>object | string | undefined
 
