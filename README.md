@@ -60,7 +60,7 @@ interacting with the template.
 
 #### .create()
 
-Creates a new sparky that is a child of the current sparky.
+Create a new sparky as a dependent of the current sparky.
 
     var child = sparky.create(node, scope, fn);
 
@@ -129,18 +129,6 @@ the node removed from the DOM.
 
 ### Sparky
 
-#### Sparky.Throttle(fn)
-
-Takes one function and returns a function that throttles calls to the browser
-frame rate.
-
-    var throttle = Sparky.Throttle(fn);
-
-Calling <code>throttle()</code> causes <code>fn</code> to be called on the next
-browser frame. Multiple calls to <code>throttle()</code> result in just one call
-to <code>fn</code> on the next frame. <code>fn</code> is called with the
-arguments from the latest call to <code>throttle(arg1, arg2, ...)</code>.
-
 #### Sparky.render(template, object)
 
 Where <code>template</code> is a string, replaces the Sparky tags in the string
@@ -174,14 +162,18 @@ a template string.
 
     // -> 'Sparky loves wooo!'
 
-This is a nice hacky technique for writing multiline templates in JS, although now superseded by ES6 multiline strings.
+This is a nice hacky technique for writing multiline templates in JS, although
+now superseded by ES6 multiline strings.
 
 Note that <code>Sparky.render</code> is not used by Sparky to update the DOM.
-Sparky does not treat the DOM as strings, it treats the DOM as the DOM, keeping an internal map of node attributes and text node content bound directly to data changes.
+Sparky does not treat the DOM as strings, it treats the DOM as the DOM, keeping
+an internal map of node attributes and text node content bound directly to data
+changes.
 
 #### Sparky.tags(ropen, rclose)
 
-Change the opening and closing template tag brackets. <code>ropen</code> and <code>rclose</code> must be regexps.
+Change the opening and closing template tag brackets. <code>ropen</code> and
+<code>rclose</code> must be regular expressions.
 
     Sparky.tags(/\{{2,3}/, /\{{2,3}/)
 
@@ -199,17 +191,6 @@ read-only properties.
 #### Sparky.observePathOnce(object, path, fn)
 
 #### Sparky.unobservePath(object, path, fn)
-
-#### Sparky.get(object, path)
-
-Gets value from <code>'path.to.value'</code> inside <code>object</code>.
-
-    var object = { path: { to: { value: 3 }}};
-    var value = Sparky.getPath(object, 'path.to.value')  // Returns 3
-
-If any object in the path does not exist, <code>getPath</code> returns <code>undefined</code>
-
-#### Sparky.set(object, path, value)
 
 #### Sparky.template(id)
 
@@ -275,6 +256,12 @@ For labels, inputs, selects and textareas Sparky also looks in:
 - <code>max</code>
 - <code>min</code>
 
+Boolean properties are set on an element according to the truthiness of a
+single Sparky tag found in their attributes:
+
+- <code>required="{{object.required}}"</code>
+- <code>disabled="{{object.enabled|yesno:false,true}}"</code>
+
 ### Sparky.rsimpletags
 
 A Regular expression matching tags of the form <code>{{ path.to.property }}</code>.
@@ -311,13 +298,15 @@ can also create your own. Sparky template filter syntax is similar to
 - decimals: number – Alias of floatformat.
 - divide: number – Divides by number.
 - escape
+- find-in: `path` - finds an object in a collection at `path` by it's indexed key (usually `id`).
 - first –
 - floatformat: number –
 - floor
 - get: string – Takes an object and renders the named property.
 - greater-than: value, stringTrue, stringFalse
 - invert – Returns 1/property.
-- is: value, stringTrue, stringFalse – Compares property to value.
+- is: value – Strictly compares property to value, returns a boolean.
+- equals: value - Deeply compares property to value, returns a boolean.
 - join
 - json
 - last
@@ -464,11 +453,12 @@ The second input is <code>type="number"</code>. It will only display the
     scope.age = 32;               // input.value === '32'
 
 Similarly, <code>type="range"</code> only gets and sets numbers, and
-<code>type="checkbox"</code> only gets and sets booleans unless the value
+<code>type="checkbox"</code> only gets and sets booleans, unless the value
 attribute contains a string (in which case the property must be a string
-matching the value for the input to be checked). Other types get and set strings
-by default. To force the input to get and set a different type use one of
-Sparky's <code>value-<i>xxx</i></code> functions&hellips;
+matching the value for the input to be checked).
+
+Other types get and set strings by default. To force the input to get and set a
+different type use one of Sparky's <code>value-<i>xxx</i></code> functions&hellips;
 
 #### data-fn="value-<i>xxx</i>"
 

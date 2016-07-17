@@ -142,11 +142,11 @@
 				var date = new Date(value);
 				var json = date.toJSON();
 				var gmt =
-					// It's GMT if the string matches the same length of
-					// characters from it's JSONified version...
+					// It's GMT if the first characters of the json match
+					// the value...
 					json.slice(0, value.length) === value &&
 
-					// ...and if all remaining numbers are 0.
+					// ...and if all remaining numbers in the json are 0.
 					!json.slice(value.length).match(rnonzeronumbers) ;
 
 				return typeof value !== 'string' ? new Date(value) :
@@ -242,6 +242,7 @@
 		},
 
 		is: Fn.is,
+		equals: Fn.equals,
 
 		join: function(value, string) {
 			return Array.prototype.join.call(value, string);
@@ -399,14 +400,8 @@
 			var string = value + '';
 			var infinity = Infinity + '';
 
-			if (string === infinity) {
-				return '∞';
-			}
-
-			if (string === ('-' + infinity)) {
-				return '-∞';
-			}
-
+			if (string === infinity) { return '∞'; }
+			if (string === ('-' + infinity)) { return '-∞'; }
 			return value;
 		},
 
