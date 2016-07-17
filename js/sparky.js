@@ -450,7 +450,7 @@
 				setup(scope, parsed.bindings, init);
 			}
 
-			if (Sparky.debug) { console.log('Sparky: scope change', node, scope); }
+			Sparky.log('Sparky: scope change', node, scope);
 
 			// Trigger children
 			//sparky.trigger('scope', scope);
