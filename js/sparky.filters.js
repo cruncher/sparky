@@ -182,12 +182,6 @@
 			return Number.prototype.toFixed.call(value, n);
 		},
 
-		// .default() can't work, because Sparky does not send undefined or null
-		// values to be filtered.
-		//'default': function(value) {
-		//	return (this === '' || this === undefined || this === null) ? value : this ;
-		//},
-
 		divide: function(value, n) {
 			if (typeof value !== 'number') { return; }
 			return value / n;

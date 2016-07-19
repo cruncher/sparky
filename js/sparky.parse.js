@@ -443,18 +443,22 @@
 		var n = -1;
 		var args;
 
+		// Todo: replace this mechanism with a functor.
+
 		while (++n < l) {
+			if (!isDefined(word)) { break; }
+
 			if (!filters[n].fn) {
 				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filter');
 			}
 
-			if (Sparky.debug === 'filter') {
+			if (Sparky.debug === 'verbose') {
 				console.log('Sparky: filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 
 			args = filters[n].args;
 			args[0] = word;
-			word = filters[n].fn.apply(Sparky, args);
+			word = filters[n].fn.apply(null, args);
 		}
 
 		return word;
@@ -487,18 +491,17 @@
 
 	function makeReplaceText(get) {
 		return function replaceText($0, $1, $2, $3) {
-			var value1 = get($2);
-			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
-			var type = typeof value2;
+			var value = $3 ? applyFilters(get($2), $3) : get($2) ;
+			var type = typeof value;
 
-			return !isDefined(value2) ? '' :
-				type === 'string' ? value2 :
-				type === 'number' ? value2 :
-				type === 'boolean' ? value2 :
+			return !isDefined(value) ? '' :
+				type === 'string' ? value :
+				type === 'number' ? value :
+				type === 'boolean' ? value :
 				// Beautify the .toString() result of functions
-				type === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
+				type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
 				// Use just the Class string in '[object Class]'
-				toClass(value2) ;
+				toClass(value) ;
 		}
 	}
 
