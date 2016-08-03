@@ -13,24 +13,24 @@
 
 	var call = Fn.call;
 
-	function create(boss, node, scope, fn) {
-		// Create a dependent sparky without delegating scope
-		var sparky = Sparky(node, scope, fn, this);
-
-		function delegateDestroy() { sparky.destroy(); }
-		function delegateRender(self) { sparky.render(); }
-
-		// Bind events
-		boss
-		.on('destroy', delegateDestroy)
-		.on('render', delegateRender);
-
-		return sparky.on('destroy', function() {
-			boss
-			.off('destroy', delegateDestroy)
-			.off('render', delegateRender);
-		});
-	}
+	//function create(boss, node, scope, fn) {
+	//	// Create a dependent sparky without delegating scope
+	//	var sparky = Sparky(node, scope, fn, this);
+	//
+	//	function delegateDestroy() { sparky.destroy(); }
+	//	function delegateRender(self) { sparky.render(); }
+	//
+	//	// Bind events
+	//	boss
+	//	.on('destroy', delegateDestroy)
+	//	.on('render', delegateRender);
+	//
+	//	return sparky.on('destroy', function() {
+	//		boss
+	//		.off('destroy', delegateDestroy)
+	//		.off('render', delegateRender);
+	//	});
+	//}
 
 	function createPlaceholder(node) {
 		if (!Sparky.debug) { return DOM.create('text', ''); }
@@ -50,7 +50,8 @@
 		var cache    = [];
 
 		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
-		// keys, and a Sparky scope may be a number or a string.
+		// keys, and a Sparky scope may be a number or a string, although that
+		// is unusual and perhaps we should ban it.
 		var rejects  = new Map();
 		var scheduled = [];
 		var clone    = node.cloneNode(true);
@@ -99,7 +100,18 @@
 			while(++n < l) {
 				object = cache[n] = collection[n];
 				removeScheduled(object);
-				sparkies[n] = map[n] || rejects.get(object) || create(sparky, clone.cloneNode(true), object, fns);
+
+				// KEEP AN EYE ON THIS!!!
+				// It used to be that we created a standalone sparky, not a child
+				// sparky. As in:
+				//
+				// create(sparky, clone.cloneNode(true), object, fns);
+				//
+				// This seems to have changed when we converted to streams.
+				// I'm no longer clear why...
+
+				sparkies[n] = map[n] || rejects.get(object) || sparky.create(clone.cloneNode(true), object, fns);
+
 
 				// We are in an animation frame. Go ahead and manipulate the DOM.
 				DOM.before(placeholder, sparkies[n][0]);
