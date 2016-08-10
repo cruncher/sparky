@@ -223,8 +223,8 @@
 			return isDefined(value) ? Fn.get(name, value) : undefined ;
 		},
 
-		"greater-than": function(value1, value2, str1, str2) {
-			return value1 > value2 ? str1 : str2 ;
+		"greater-than": function(value1, value2) {
+			return value1 > value2;
 		},
 
 		contains: function(array, value) {
