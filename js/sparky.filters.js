@@ -269,6 +269,19 @@
 		//	};
 		//})(),
 
+		localise: function(value, digits) {
+			var locale = document.documentElement.lang;
+			var options = {};
+
+			if (isDefined(digits)) {
+				options.minimumFractionDigits = digits;
+				options.maximumFractionDigits = digits;
+			}
+
+			// Todo: localise value where toLocaleString not supported
+			return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
+		},
+
 		lowercase: function(value) {
 			if (typeof value !== 'string') { return; }
 			return String.prototype.toLowerCase.apply(value);
@@ -297,7 +310,7 @@
 			return value * 100;
 		},
 
-		pluralize: function(value, str1, str2, lang) {
+		pluralise: function(value, str1, str2, lang) {
 			if (typeof value !== 'number') { return; }
 
 			str1 = str1 || '';
