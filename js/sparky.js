@@ -24,7 +24,6 @@
 
 	// Utilities
 
-	var Functor   = Fn.Functor;
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
 	var id        = Fn.id;
@@ -166,7 +165,7 @@
 
 				// Returning an object sets that object to
 				// be used as scope.
-				if (result !== undefined) { instream = result.each ? result : Functor.of(result) ; }
+				if (result !== undefined) { instream = result.each ? result : Fn.of(result) ; }
 			}
 
 			return instream;
