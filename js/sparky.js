@@ -73,7 +73,9 @@
 			selector ;
 
 		if (!node) {
-			throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+			console.warn('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+			return;
+			//throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
 		}
 
 		// If node is a template use a copy of it's content.
@@ -351,7 +353,9 @@
 		node = resolveNode(node);
 
 		if (!node) {
-			throw new Error("Sparky: Sparky(node) – node not found: " + node);
+			console.warn("Sparky: Sparky(node) – node not found: " + node);
+			return;
+			//throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
 		Sparky.logVerbose('Sparky(', node, rootscope, fn && (fn.call ? fn.name : fn), ')');

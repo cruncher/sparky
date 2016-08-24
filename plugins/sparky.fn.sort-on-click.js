@@ -34,10 +34,12 @@
 				collection.sort = order ?
 					function ascending() {
 						A.sort.call(this, byAscending);
+						this['sort-order'] = property + '-ascending';
 						return this.trigger('sort');
 					} :
 					function descending() {
 						A.sort.call(this, byDescending);
+						this['sort-order'] = property + '-descending';
 						return this.trigger('sort');
 					} ;
 
