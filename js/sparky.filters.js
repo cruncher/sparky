@@ -422,9 +422,20 @@
 
 		trans: function(value) {
 			var translations = Sparky.data.translations;
+
+			if (!translations) {
+				console.warn('Sparky: You need to provide Sparky.data.translations');
+				return value;
+			}
+
 			var text = translations[value] ;
-			if (!text) { console.warn('procsea: You need to provide a translation for "' + value + '"'); }
-			return text || value ;
+
+			if (!text) {
+				console.warn('procsea: You need to provide a translation for "' + value + '"');
+				return value;
+			}
+
+			return text ;
 		},
 
 		truncatechars: function(value, n) {
