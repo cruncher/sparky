@@ -396,12 +396,27 @@
 			return;
 		}
 
-		var create = this.create;
+		var children = [];
 
-		this.create = function(node, scope, fn) {
-			var sparky = create.apply(this, arguments);
-			outstream.tap(sparky.scope);
-			return sparky;
+		this.create = function(node, scope1, fn) {
+			var sparky = Sparky.prototype.create.apply(this, arguments);
+
+			// If scope is already set, apply it immediately, handling the
+			// case where a sparky instance is created after a parent sparky
+			// has been initialised.
+			if (isDefined(scope)) { sparky.scope(scope); }
+
+			// We can't .tap() the outstream here. If a sparky instance is
+			// created after a parent sparky is instantiated outstream.tap()
+			// will follow the outstream's .each() and it will never receive
+			// anything. So push child scope() calls into an array and deal
+			// with that inside outstream.each();
+			children.push(sparky.scope);
+
+			return sparky.on('destroy', function() {
+				var i = children.indexOf(sparky.scope);
+				if (i > -1) { children.splice(i, 1); }
+			});
 		};
 
 		// Define .render() for forcing tags to update.
@@ -439,7 +454,7 @@
 
 		outstream
 		.dedup()
-		.each(function(object) {
+		.map(function(object) {
 			// If old scope exists, tear it down
 			if (scope && parsed) { teardown(scope, parsed.bindings); }
 
@@ -463,6 +478,13 @@
 
 			// Then update this node
 			init = false;
+
+			return scope;
+		})
+		.each(function(scope) {
+			children.forEach(function(fn) {
+				fn(scope);
+			});
 		});
 
 		// If there is scope, set it up now
