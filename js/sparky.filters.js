@@ -420,6 +420,12 @@
 		//timeuntil
 		//title
 
+		trans: function(value) {
+			var text = translations[value] ;
+			if (!text) { console.warn('procsea: You need to provide a translation for "' + value + '"'); }
+			return text || value ;
+		},
+
 		truncatechars: function(value, n) {
 			return value.length > n ?
 				value.slice(0, n) + '…' :
