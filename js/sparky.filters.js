@@ -421,6 +421,7 @@
 		//title
 
 		trans: function(value) {
+			var translations = Sparky.data.translations;
 			var text = translations[value] ;
 			if (!text) { console.warn('procsea: You need to provide a translation for "' + value + '"'); }
 			return text || value ;
