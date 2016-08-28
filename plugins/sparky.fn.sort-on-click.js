@@ -10,9 +10,48 @@
 		return function(a, b) { return -fn(a, b); }
 	}
 
+
+	// Todo: Needs a review. Code belongs in Procsea.
+	// This is a hacky bit of crud to give us sorting by values in other
+	// objects. Perhaps the best way to do this would be to allow
+	// data-sort-by="calibre|find-in-calibres|get:'mass'". Perhaps.
+	var fns = {
+		calibre: function(name) {
+			var calibre = Sparky.data.calibres.find(name);
+			return calibre ? calibre.mass : Infinity ;
+		},
+
+		port:    function(pk) {
+			if (!Fn.isDefined(pk)) { return 'zzzzzzzz'; }
+			var port = Sparky.data.ports.find(pk);
+			return port ? Fn.toPlainText(port.name) : 'zzzzzzzz' ;
+		},
+
+		seller:  function(pk) {
+			var seller = Sparky.data.sellers.find(pk);
+			return seller ? Fn.toPlainText(seller.name) : 'zzzzzzzz';
+		}
+	};
+	// ---------------------------------------------------------
+
+
 	Sparky.fn['sort-on-click'] = function sortOnClick(node, scopes) {
 		var property = node.getAttribute('data-sort-by');
-		var byAscending  = property ? Fn.by(property) : Fn.byGreater;
+
+
+		// Todo: Needs a review. Code belongs in Procsea.
+		// This is a hacky bit of crud to give us sorting by values in other
+		// objects. Perhaps the best way to do this would be to allow
+		// data-sort-by="calibre|find-in-calibres|get:'mass'". Perhaps.
+		var fn = fns[property] ? fns[property] : Fn.id;
+		// ---------------------------------------------------------
+
+
+
+		var byAscending  = property ? function(a, b) {
+				return Fn.byGreater(fn(a[property]), fn(b[property]));
+			} : Fn.byGreater;
+
 		var byDescending = negate(byAscending);
 		var click;
 
