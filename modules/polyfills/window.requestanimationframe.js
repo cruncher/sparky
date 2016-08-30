@@ -11,6 +11,8 @@
 	}
 
 	if (!window.requestAnimationFrame) {
+		if (window.console) { console.log('Polyfill: requestAnimationFrame()'); }
+
 		window.requestAnimationFrame = function(callback, element) {
 			var currTime = +new Date();
 			var nextTime = frameDuration - (currTime % frameDuration);

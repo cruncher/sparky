@@ -3,6 +3,7 @@
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
+	if (window.console) { console.log('Polyfill: CustomEvent'); }
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };

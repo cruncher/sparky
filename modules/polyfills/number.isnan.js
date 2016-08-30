@@ -2,6 +2,8 @@
 // Number.isNaN(n) polyfill
 
 if (!Number.isNaN) {
+	if (window.console) { console.log('Polyfill: Number.isNaN()'); }
+
 	(function(globalIsNaN) {
 		"use strict";
 	

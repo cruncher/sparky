@@ -93,7 +93,7 @@
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
 				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
 				c: function(date) { return date.toISOString(); },
-				d: function(date) { return date.getDate(); },
+				//d: function(date) { return date.getDate(); },
 				D: function(date, lang) { return settings[lang].days[date.getDay()].slice(0,3); },
 				//e: function(date) { return ; },
 				//E: function(date) { return ; },
