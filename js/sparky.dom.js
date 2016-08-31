@@ -242,7 +242,12 @@
 		node.innerHTML = html;
 
 		if (node.innerHTML !== html) {
-			console.warn('Sparky: template html has been transformed by .innerHTML parsing – not good.');
+			console.warn('Sparky: HTML has been transformed by innerHTML parsing while creating fragment.');
+			console.groupCollapsed('Sparky: Compare before and after');
+				console.log('This transform may be completely harmless: SVG content or unusual whitespace in tags is transformed without changing DOM structure.');
+				console.log(html);
+				console.log(node.innerHTML);
+			console.groupEnd();
 		}
 
 		Fn(node.childNodes).each(dom.append(fragment));
