@@ -13,23 +13,30 @@
 (function(window) {
 	var Sparky = window.Sparky;
 
+	// Detect IE
+	var isIE = !!(document.all && document.compatMode || window.navigator.msPointerEnabled);
+
 	// Logs nodes, scopes and data.
 	Sparky.fn.log = function(node, scopes) {
 		var sparky = this;
 
+		// In IE11 and probably below, and possibly Edge, who knows,
+		// console.groups can arrive in really weird orders. They are not at all
+		// useful for debugging as a result. Rely on console.log.
+
 		function log(scope) {
-			console.group('Sparky: scope', Sparky.nodeToString(node));
-			console.log('data', sparky.data);
+			console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
+			console.log('data ', sparky.data);
 			console.log('scope', scope);
-			console.log('fn', sparky.fn);
-			console.groupEnd();
+			console.log('fn   ', sparky.fn);
+			console[isIE ? 'log' : 'groupEnd']('---');
 		}
 
-		scopes.tap(log);
-
-		console.group('Sparky: fn', Sparky.nodeToString(node));
+		console[isIE ? 'log' : 'group']('Sparky: run   ' + Sparky.nodeToString(node));
 		console.log('data ', sparky.data);
-		console.groupEnd();
+		console[isIE ? 'log' : 'groupEnd']('---');
+
+		return scopes.tap(log);
 	};
 })(this);
 

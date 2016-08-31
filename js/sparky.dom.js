@@ -3,7 +3,6 @@
 
 	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
-	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
 	var dom = {};
 
 	// Utility functions
@@ -191,7 +190,7 @@
 		tag:       tagName,
 		create:    createNode,
 
-		append: function(node1, node2) {
+		append: Fn.curry(function(node1, node2) {
 			if (Node.prototype.isPrototypeOf(node2)) {
 				append(node1, node2);
 			}
@@ -200,7 +199,7 @@
 					append(node1, node);
 				});
 			}
-		},
+		}),
 
 		after:     insertAfter,
 		before:    insertBefore,
@@ -232,9 +231,22 @@
 	var rcomment = /\{\s*\/\*\s*([\s\S]*)\s*\*\/\s*\}$/;
 
 	function fragmentFromChildren(node) {
-		var children = slice(node.childNodes);
 		var fragment = document.createDocumentFragment();
-		return reduce(children, append, fragment);
+		Fn(node.childNodes).each(dom.append(fragment));
+		return fragment;
+	}
+
+	function fragmentFromHTML(html, tag) {
+		var fragment = document.createDocumentFragment();
+		var node     = document.createElement(tag || 'div');
+		node.innerHTML = html;
+
+		if (node.innerHTML !== html) {
+			console.warn('Sparky: template html has been transformed by .innerHTML parsing – not good.');
+		}
+
+		Fn(node.childNodes).each(dom.append(fragment));
+		return fragment;
 	}
 
 	function fragmentFromContent(node) {
@@ -247,20 +259,24 @@
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
 
-		var tag = dom.tag(node);
-
-		if (tag !== 'template' && tag !== 'script') { return; }
-
 		if (node.content) {
-			return fragmentFromContent(node);
+			return node.content;
 		}
-		else {
-			// In browsers where templates are not inert, ids used inside them
-			// conflict with ids in any rendered result. To go some way to
-			// tackling this, remove the node from the DOM.
-			remove(node);
-			return fragmentFromChildren(node);
+
+		if (dom.tag(node) === 'script') {
+			// Data parent is a workaround for browsers that don't support inert
+			// templates. Allows the author to specify a context inside which
+			// the template is parsed. Where a template has top level <td>s, for
+			// example, it should have data-parent="tr", or the <td>s will be
+			// removed by the browser.
+			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent'));
 		}
+
+		// In browsers where templates are not inert, ids used inside them
+		// conflict with ids in any rendered result. To go some way to
+		// tackling this, remove the node from the DOM.
+		remove(node);
+		return fragmentFromChildren(node);
 	}
 
 	function cloneTemplate(id) {

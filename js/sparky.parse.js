@@ -261,16 +261,17 @@
 		var template, nodes;
 
 		if (isDefined(id)) {
+			// Node has a data-template attribute
 			template = Sparky.template(id);
 
-			// If the template does not exist, do nothing.
+			// If the template does not exist, do nothing
 			if (!template) {
 				Sparky.log('template "' + id + '" not found in DOM.');
 				return;
 			}
 
 			// childNodes is a live list, and we don't want that because we may
-			// be about to modify the DOM.
+			// be about to modify the DOM
 			nodes = slice(template.childNodes);
 
 			// Wait for scope to become available with a self-unbinding function
@@ -303,7 +304,6 @@
 				isDefined(child.getAttribute('data-fn')) ||
 				isDefined(child.getAttribute('data-scope'))
 			)) {
-				//create(child);
 				create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));
 			}

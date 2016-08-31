@@ -37,10 +37,11 @@
 		return [
 			'<',
 			Sparky.dom.tag(node),
-			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
+			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
+			(node.getAttribute('data-template') ? ' data-template="' + node.getAttribute('data-template') + '"' : ''),
+			(node.className ? ' class="' + node.className + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
 		].join('');
