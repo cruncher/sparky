@@ -234,7 +234,9 @@
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 			Sparky.observePath(scope, path, throttle, !init);
-			if (init) { fn(Fn.getPath(path, scope)); }
+			if (init) {
+				fn(Fn.getPath(path, scope));
+			}
 		}
 	}
 
@@ -438,11 +440,10 @@
 
 		// Parse the DOM nodes for Sparky tags.
 		parsed = Sparky.parse(sparky, function get(path) {
-				return scope && Fn.getPath(path, scope);
-			}, function set(property, value) {
-				scope && Fn.setPath(property, value, scope);
-			}
-		);
+			return scope && Fn.getPath(path, scope);
+		}, function set(property, value) {
+			scope && Fn.setPath(property, value, scope);
+		});
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.

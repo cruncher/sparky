@@ -122,6 +122,7 @@
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
+			bindAttribute(node, 'step', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
@@ -680,10 +681,10 @@
 					// string causes the cursor to jump in inputs, and we dont
 					// want to send a change event where nothing changed.
 					if (node.value === value) { return; }
-
 					node.value = value;
 				}
 				else {
+					// Be strict about setting strings on inputs
 					node.value = '';
 				}
 
