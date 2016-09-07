@@ -18,7 +18,7 @@
 	var fns = {
 		calibre: function(name) {
 			var calibre = Sparky.data.calibres.find(name);
-			return calibre ? calibre.mass : Infinity ;
+			return calibre && calibre.mass ? calibre.mass : Infinity ;
 		},
 
 		port:    function(pk) {
