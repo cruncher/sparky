@@ -7,8 +7,10 @@
 
 	// Import
 
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
+	var Fn        = window.Fn;
+	var Sparky    = window.Sparky;
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
 
 	// Utility functions
 
@@ -19,7 +21,7 @@
 
 	var rpathtrimmer = /^\[|\]$/g;
 	var rpathsplitter = /\]?(?:\.|\[)/g;
-	var rpropselector = /(\w+)\=(\w+)/;
+	var rpropselector = /(\w+)=(\w+)/;
 	var map = [];
 
 	function splitPath(path) {
@@ -47,7 +49,7 @@
 
 		Sparky.observe(root, prop, update, notify);
 
-		return function unobserve() {
+		return function() {
 			Sparky.unobserve(root, prop, update);
 		};
 	}
@@ -72,7 +74,7 @@
 			var obj = findByProperty(root, selection[1], JSON.parse(selection[2]));
 			// Check that object has changed
 			if (obj === object) { return; }
-			object = o;
+			object = obj;
 			update();
 		}
 
@@ -91,19 +93,18 @@
 			root.on('add remove sort', updateSelection);
 			updateSelection();
 			notify = true;
-			return function unobserve() {
+			return function() {
 				destroy();
 				root.off('add remove sort', updateSelection);
 			};
 		}
-		else {
-			Sparky.observe(root, prop, updateProperty, true);
-			notify = true;
-			return function unobserve() {
-				destroy();
-				Sparky.unobserve(root, prop, updateProperty);
-			};
-		}
+			
+		Sparky.observe(root, prop, updateProperty, true);
+		notify = true;
+		return function() {
+			destroy();
+			Sparky.unobserve(root, prop, updateProperty);
+		};
 	}
 
 	function observePath1(root, array, fn, notify) {
@@ -134,14 +135,14 @@
 	}
 
 	function observePathOnce(root, path, fn) {
-		var array = splitPath(path);
-		var value = objFrom(root, array.slice());
+		var value = Fn.getPath(path, root);
 
 		if (isDefined(value)) {
 			fn(value);
 			return;
 		}
 
+		var array   = splitPath(path);
 		var destroy = observePath1(root, array, update, false);
 
 		// Hack around the fact that the first call to destroy()
@@ -216,7 +217,7 @@
 			if (!active) { return; }
 
 			window.requestAnimationFrame(frame);
-		};
+		}
 
 		function cancel() {
 			active = false;
@@ -264,10 +265,12 @@
 			return poll(object, property, fn);
 		}
 
+		var descriptor;
+
 		if (property === 'length') {
 			// Observe length and update the DOM on next
 			// animation frame if it changes.
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			descriptor = Object.getOwnPropertyDescriptor(object, property);
 
 			if (!descriptor.get && !descriptor.configurable) {
 				console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
@@ -285,8 +288,10 @@
 			return unpoll(object, property, fn);
 		}
 
+		var descriptor;
+
 		if (property === 'length') {
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			descriptor = Object.getOwnPropertyDescriptor(object, property);
 			if (!descriptor.get && !descriptor.configurable) {
 				return unpoll(object, property, fn);
 			}

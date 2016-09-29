@@ -9,9 +9,6 @@
 	var isDefined = Fn.isDefined;
 	var settings  = (Sparky.settings = Sparky.settings || {});
 
-	// A reuseable array.
-	var array = [];
-
 	function createList(ordinals) {
 		var array = [], n = 0;
 
@@ -131,7 +128,7 @@
 			};
 
 			var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
-			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
+			//var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
 			var rnonzeronumbers = /[1-9]/;
 
 			function createDate(value) {
@@ -336,6 +333,7 @@
 		prepad: function(value, n, char) {
 			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
+			var array = [];
 
 			// String is longer then padding: let it through unprocessed
 			if (n - l < 1) { return value; }

@@ -1,7 +1,6 @@
 (function(window) {
 	"use strict";
 
-	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
 	var DOM    = Sparky.dom;
@@ -10,8 +9,6 @@
 	// time determines how long we wait during periods of inactivity before
 	// destroying those sparkies.
 	var destroyDelay = 8000;
-
-	var call = Fn.call;
 
 	//function create(boss, node, scope, fn) {
 	//	// Create a dependent sparky without delegating scope
@@ -59,7 +56,7 @@
 		var placeholder = createPlaceholder(node);
 		var collection;
 
-		fns.unshift(function(node) {
+		fns.unshift(function() {
 			this.data = Object.create(data);
 		});
 
