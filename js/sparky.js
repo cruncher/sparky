@@ -27,7 +27,8 @@
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
 	var id        = Fn.id;
-	var call      = Fn.call;
+
+	function call(fn) { fn(); }
 
 	function returnThis() { return this; }
 
