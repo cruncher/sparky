@@ -26,7 +26,6 @@
 
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
-	var id        = Fn.id;
 
 	function call(fn) { fn(); }
 
@@ -331,7 +330,6 @@
 
 		var sparky = this;
 		var init = true;
-		var rootscope;
 		var scope;
 		var parsed;
 

@@ -1,24 +1,12 @@
-(function(Sparky) {
+(function(window) {
 	"use strict";
+
+	var Fn     = window.Fn;
+	var Sparky = window.Sparky;
 
 	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var dom = {};
-
-	// Utility functions
-
-	function noop() {}
-
-	function isDefined(val) { return val !== undefined && val !== null; }
-
-	function all(fn) {
-		return function(node, collection) {
-			var n = -1;
-			var length = collection.length;
-			while (++n < length) { fn(node, collection[n]); }
-			return node;
-		};
-	}
 
 	// Selection, traversal and mutation
 
@@ -301,8 +289,10 @@
 	}
 
 	function registerTemplate(id, node) {
+		var template;
+
 		if (typeof node === 'function') {
-			var template = dom.create('template');
+			template = dom.create('template');
 			template.innerHTML = multiline(node);
 			node = fragmentFromContent(template);
 		}
@@ -404,4 +394,4 @@
 
 	// Export
 	Sparky.dom = dom;
-})(window.Sparky);
+})(this);
