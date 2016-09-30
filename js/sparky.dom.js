@@ -268,7 +268,9 @@
 			return node.content;
 		}
 
-		if (dom.tag(node) === 'script') {
+		var tag = dom.tag(node);
+
+		if (tag === 'script') {
 			// Data parent is a workaround for browsers that don't support inert
 			// templates. Allows the author to specify a context inside which
 			// the template is parsed. Where a template has top level <td>s, for
@@ -276,11 +278,13 @@
 			// removed by the browser.
 			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent'));
 		}
+		else if (tag === 'template') {
+			// In browsers where templates are not inert, ids used inside them
+			// conflict with ids in any rendered result. To go some way to
+			// tackling this, remove the node from the DOM.
+			remove(node);
+		}
 
-		// In browsers where templates are not inert, ids used inside them
-		// conflict with ids in any rendered result. To go some way to
-		// tackling this, remove the node from the DOM.
-		remove(node);
 		return fragmentFromChildren(node);
 	}
 

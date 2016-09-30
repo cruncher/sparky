@@ -81,7 +81,8 @@
 		}
 
 		// If node is a template use a copy of it's content.
-		if (Sparky.dom.tag(node) === 'template') {
+		var tag = Sparky.dom.tag(node);
+		if (tag === 'template' || tag === 'script') {
 			node = Sparky.template(node.id);
 		}
 
