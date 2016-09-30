@@ -131,6 +131,7 @@
 					rejects.get(object).destroy();
 					rejects.delete(object);
 				});
+				scheduled.length = 0;
 			}, destroyDelay);
 		}
 
