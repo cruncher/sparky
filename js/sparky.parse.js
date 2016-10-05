@@ -77,14 +77,14 @@
 	}
 
 	function toggleAttributeSVG(node, attribute, value) {
-		if (isDefined(node[attribute])) { node[attribute] = !!value; }
+		if (attribute in node) { node[attribute] = !!value; }
 		else if (value) { setAttributeSVG(node, attribute, value); }
 		else { node.removeAttribute(attribute); }
 	}
 
 	function toggleAttributeHTML(node, attribute, value) {
-		if (isDefined(node[attribute])) { node[attribute] = !!value; }
-		else if (value) { setAttributeHTML(node, attribute, attribute); }
+		if (attribute in node) { node[attribute] = !!value; }
+		else if (value) { node.setAttribute(attribute, attribute); }
 		else { node.removeAttribute(attribute); }
 	}
 
@@ -423,7 +423,7 @@
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/'/g, '"') + ']') || []
 		};
 	}
 
@@ -614,10 +614,10 @@
 
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
-			setTimeout(function() {
+			Fn.requestTick(function() {
 				Sparky.dom.trigger(node, 'valuechange');
 				node.disabled = true;
-			}, 0);
+			});
 		}
 		else {
 			Sparky.dom.trigger(node, 'valuechange');
@@ -662,7 +662,10 @@
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will be
 						// called and the scope updated from the default value.
-						dispatchInputChangeEvent(node);
+						
+						// Avoid sending to selects, as we do not rely on Bolt
+						// for setting state on select labels anymore...
+						if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
@@ -679,7 +682,9 @@
 					node.value = '';
 				}
 
-				dispatchInputChangeEvent(node);
+				// Avoid sending to selects, as we do not rely on Bolt
+				// for setting state on select labels anymore...
+				if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
