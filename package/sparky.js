@@ -1,3 +1,71 @@
+// Object.assign polyfill
+//
+// Object.assign(target, source1, source2, ...)
+//
+// All own enumerable properties are copied from the source
+// objects to the target object.
+
+(Object.assign || (function(Object) {
+	"use strict";
+
+	function isDefined(val) {
+		return val !== undefined && val !== null;
+	}
+
+	function ownPropertyKeys(object) {
+		var keys = Object.keys(object);
+		var symbols, n, descriptor;
+
+		if (Object.getOwnPropertySymbols) {
+			symbols = Object.getOwnPropertySymbols(object);
+			n = symbols.length;
+
+			while (n--) {
+				descriptor = Object.getOwnPropertyDescriptor(object, symbols[n]);
+
+				if (descriptor.enumerable) {
+					keys.push(symbol);
+				}
+			}
+		}
+
+		return keys;
+	}
+
+	Object.defineProperty(Object, 'assign', {
+		value: function (target) {
+			if (!isDefined(target)) {
+				throw new TypeError('Object.assign: First argument ' + target + ' cannot be converted to object.');
+			}
+
+			var object = Object(target);
+			var n, source, keys, key, k;
+
+			for (n = 1; n < arguments.length; n++) {
+				source = arguments[n];
+
+				// Ignore any undefined sources
+				if (!isDefined(source)) { continue; }
+
+				// Get own enumerable keys and symbols
+				keys = ownPropertyKeys(Object(source));
+				k = keys.length;
+
+				// Copy key/values to target object
+				while (k--) {
+					key = keys[k];
+					object[key] = source[key];
+				}
+			}
+
+			return object;
+		},
+
+		configurable: true,
+		writable: true
+	});
+})(Object));
+
 
 // Number.isNaN(n) polyfill
 
@@ -74,6 +142,2449 @@ if (!Math.log10) {
 		};
 	}
 })(window);
+
+(function(window) {
+	if (!window.console || !window.console.log) { return; }
+
+	console.log('Fn');
+	console.log('https://github.com/cruncher/fn');
+	console.log('______________________________');
+})(this);
+
+(function(window) {
+	"use strict";
+
+	var debug = true;
+
+
+	// Import
+
+	var Symbol = window.Symbol;
+	var A = Array.prototype;
+	var F = Function.prototype;
+	var N = Number.prototype;
+	var O = Object.prototype;
+	var S = String.prototype;
+
+
+	// Polyfill
+
+	if (!Math.log10) {
+		Math.log10 = function log10(n) {
+			return Math.log(n) / Math.LN10;
+		};
+	}
+
+
+	// Define
+
+	var empty = Object.freeze(Object.defineProperties([], {
+		shift: { value: noop }
+	}));
+
+
+	// Feature test
+
+	var isFunctionLengthDefineable = (function() {
+		var fn = function() {};
+
+		try {
+			// Can't do this on Safari - length non configurable :(
+			Object.defineProperty(fn, 'length', { value: 2 });
+		}
+		catch(e) {
+			return false;
+		}
+
+		return fn.length === 2;
+	})();
+
+
+	// Functional functions
+
+	function noop() {}
+
+	function id(object) { return object; }
+
+	function call(fn) {
+		return fn();
+	}
+
+	function compose(fn1, fn2) {
+		return function composed(n) { return fn1(fn2(n)); }
+	}
+
+	function pipe() {
+		var a = arguments;
+		return function pipe(n) { return A.reduce.call(a, call, n); }
+	}
+
+	function memoize(fn) {
+		var map = new Map();
+
+		return function memoized(object) {
+			if (arguments.length !== 1) {
+				throw new Error('Fn: Memoized function called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+			}
+
+			if (map.has(object)) {
+				return map.get(object);
+			}
+
+			var result = fn(object);
+			map.set(object, result);
+			return result;
+		};
+	}
+
+	function curry(fn, parity) {
+		parity = parity || fn.length;
+
+		if (parity < 2) { return fn; }
+
+		var curried = function curried() {
+			var a = arguments;
+			return a.length >= parity ?
+				// If there are enough arguments, call fn.
+				fn.apply(this, a) :
+				// Otherwise create a new function. And curry that. The param is
+				// declared so that partial has length 1.
+				curry(function partial(param) {
+					var params = A.slice.apply(a);
+					A.push.apply(params, arguments);
+					return fn.apply(this, params);
+				}, parity - a.length) ;
+		};
+
+		// For debugging
+		// Make the string representation of this function equivalent to fn
+		if (debug) {
+			//curried.toString = function() { return fn.toString(); };
+
+		 	// Where possible, define length so that curried functions show how
+		 	// many arguments they are yet expecting
+			if (isFunctionLengthDefineable) {
+				Object.defineProperty(curried, 'length', { value: parity });
+			}
+		}
+
+		return curried;
+	}
+
+//	function curry(fn, parity) {
+//		// A slightly stricter version of .curry() that caches curried results
+//		parity = parity || fn.length;
+//
+//		if (parity < 2) { return memoize(fn); }
+//
+//		var memo = memoize(function partial(object) {
+//			return curry(function() {
+//				var params = [object];
+//				A.push.apply(params, arguments);
+//				return fn.apply(null, params);
+//			}, parity - 1) ;
+//		});
+//
+//		// For convenience, allow curried functions to be called as:
+//		// fn(a, b, c)
+//		// fn(a)(b)(c)
+//		// fn(a, b)(c)
+//		return function curried() {
+//			return arguments.length > 1 ?
+//				memo(arguments[0]).apply(null, A.slice.call(arguments, 1)) :
+//				memo(arguments[0]) ;
+//		};
+//	}
+
+
+	// Get and set paths
+
+	var rpathtrimmer = /^\[|\]$/g;
+	var rpathsplitter = /\]?(?:\.|\[)/g;
+	var rpropselector = /(\w+)\=(\w+)/;
+	var map = [];
+
+	function isObject(obj) { return obj instanceof Object; }
+
+	function splitPath(path) {
+		return path
+			.replace(rpathtrimmer, '')
+			.split(rpathsplitter);
+	}
+
+	function select(object, selector) {
+		var selection = rpropselector.exec(selector);
+
+		return selection ?
+			findByProperty(object, selection[1], JSON.parse(selection[2])) :
+			Fn.get(selector, object) ;
+	}
+
+	function findByProperty(array, name, value) {
+		// Find first matching object in array
+		var n = -1;
+
+		while (++n < array.length) {
+			if (array[n] && array[n][name] === value) {
+				return array[n];
+			}
+		}
+	}
+
+	function objFrom(object, array) {
+		var key = array.shift();
+		var value = select(object, key);
+
+		return array.length === 0 ? value :
+			Fn.isDefined(value) ? objFrom(value, array) :
+			value ;
+	}
+
+	function objTo(root, array, value) {
+		var key = array.shift();
+		var object;
+
+		if (array.length === 0) {
+			Fn.set(key, value, root);
+			return value;
+		}
+
+		var object = Fn.get(key, root);
+		if (!isObject(object)) { object = {}; }
+
+		Fn.set(key, object, root);
+		return objTo(object, array, value) ;
+	}
+
+
+	// String types
+
+	var regex = {
+		url:       /^(?:\/|https?\:\/\/)(?:[!#$&-;=?-~\[\]\w]|%[0-9a-fA-F]{2})+$/,
+		//url:       /^([a-z][\w\.\-\+]*\:\/\/)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,6}/,
+		email:     /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i,
+		date:      /^\d{4}-(?:0[1-9]|1[012])-(?:0[1-9]|[12][0-9]|3[01])$/,
+		hexColor:  /^(#)?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+		hslColor:  /^(?:(hsl)(\())?\s?(\d{1,3}(?:\.\d+)?)\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?(\))?$/,
+		rgbColor:  /^(?:(rgb)(\())?\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?(\d{1,3})\s?(\))?$/,
+		hslaColor: /^(?:(hsla)(\())?\s?(\d{1,3}(?:\.\d+)?)\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?([01](?:\.\d+)?)\s?(\))?$/,
+		rgbaColor: /^(?:(rgba)(\())?\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?([01](?:\.\d+)?)\s?(\))?$/,
+		cssValue:  /^(\-?\d+(?:\.\d+)?)(px|%|em|ex|pt|in|cm|mm|pt|pc)?$/,
+		cssAngle:  /^(\-?\d+(?:\.\d+)?)(deg)?$/,
+		image:     /(?:\.png|\.gif|\.jpeg|\.jpg)$/,
+		float:     /^(\-?\d+(?:\.\d+)?)$/,
+		int:       /^(\-?\d+)$/
+	};
+
+
+	// Throttle
+
+	var requestAnimationFrame = window.requestAnimationFrame;
+
+	var now = window.performance.now ? function now() {
+			return window.performance.now();
+		} : function now() {
+			return +new Date();
+		} ;
+
+	function createRequestTimerFrame(time) {
+		var timer = false;
+		var t = 0;
+		var fns = [];
+
+		function timed() {
+			timer = false;
+			t = now();
+			fns.forEach(Fn.run([now()]));
+			fns.length = 0;
+		}
+
+		return function requestTimerFrame(fn) {
+			// Add fn to queue
+			if (timer) {
+				fns.push(fn);
+				return;
+			}
+
+			var n = now();
+
+			// Set the timer
+			if (t + time > n) {
+				fns.push(fn);
+				timer = setTimeout(timed, time + t - n);
+				return;
+			}
+
+			t = n;
+			fn(t);
+			return;
+		};
+	}
+
+	function Throttle(fn, time) {
+		var request = time ?
+			createRequestTimerFrame(time) :
+			requestAnimationFrame ;
+
+		var queued, context, a;
+
+		function update() {
+			queued = false;
+			fn.apply(context, a);
+		}
+
+		function cancel() {
+			// Don't permit further changes to be queued
+			queue = noop;
+
+			// If there is an update queued apply it now
+			if (queued) { update(); }
+
+			// Make the queued update do nothing
+			fn = noop;
+		}
+
+		function queue() {
+			// Don't queue update if it's already queued
+			if (queued) { return; }
+			queued = true;
+
+			// Queue update
+			request(update);
+		}
+
+		function throttle() {
+			// Store the latest context and arguments
+			context = this;
+			a = arguments;
+
+			// Queue the update
+			queue();
+		}
+
+		throttle.cancel = cancel;
+		return throttle;
+	}
+
+
+	// Fn
+
+	function Fn(fn) {
+		if (!this || !Fn.prototype.isPrototypeOf(this)) {
+			return new Fn(fn);
+		}
+
+		var source = this;
+
+		if (!fn) {
+			fn = noop;
+		}
+
+		// fn is an iterator
+		else if (typeof fn.next === "function") {
+			fn = function shift() {
+				var result = iterator.next();
+				if (result.done) { source.status = 'done'; }
+				return result.value;
+			};
+		}
+
+		// fn is an array or array-like object
+		else {
+			var buffer = A.slice.apply(fn);
+			fn = function shift() {
+				return buffer.shift();
+			};
+		}
+
+		this.shift = fn;
+	}
+
+	Object.assign(Fn.prototype, {
+		// Input
+
+		create: function(fn) {
+			var functor = Object.create(this);
+			functor.shift = fn;
+			return functor;
+		},
+
+		of: function() {
+			// Delegate to the constructor's .of()
+			return this.constructor.of.apply(this.constructor, arguments);
+		},
+
+
+		// Transform
+
+		ap: function ap(object) {
+			var fn = this.shift();
+			if (value === undefined) { return; }
+			return object.map(fn);
+		},
+
+		map: function(fn) {
+			return this.create(Fn.compose(function map(object) {
+				return object !== undefined ? fn(object) : undefined ;
+			}, this.shift));
+		},
+
+		filter: function(fn) {
+			var source = this;
+
+			return this.create(function filter() {
+				var value;
+				while ((value = source.shift()) !== undefined && !fn(value));
+				return value;
+			});
+		},
+
+		dedup: function() {
+			var value;
+			return this.filter(function(newValue) {
+				var oldValue = value;
+				value = newValue;
+				return oldValue !== newValue;
+			});
+		},
+
+		join: function() {
+			var source = this;
+			var buffer = empty;
+
+			return this.create(function join(object) {
+				var value = buffer.shift();
+				if (value !== undefined) { return value; }
+				buffer = source.shift();
+				if (buffer !== undefined) { return join(object); }
+				buffer = empty;
+			});
+		},
+
+		chain: function(fn) {
+			return this.map(fn).join();
+		},
+
+		concat: function(object) {
+			var source = this;
+			return this.create(function concat() {
+				var value = source.shift();
+
+				if (value === undefined) {
+					value = object.shift();
+				};
+
+				return value;
+			});
+		},
+
+		sort: function(fn) {
+			var source = this;
+			var array = empty;
+
+			fn = fn || Fn.byGreater ;
+
+			// Todo: this will fail in a Stream if values are pushed.
+			return this.create(function sort() {
+				if (array.length === 0) {
+					array = source.toArray().sort(fn);
+				}
+
+				return array.shift();
+			});
+		},
+
+		head: function() {
+			var source = this;
+			var i = 0;
+
+			return this.create(function head() {
+				if (i++ === 0) {
+					source.status = 'done';
+					return source.shift();
+				}
+			});
+		},
+
+		tail: function() {
+			var source = this;
+			var i = 0;
+
+			return this.create(function tail() {
+				if (i++ === 0) { source.shift(); }
+				return source.shift();
+			});
+		},
+
+		slice: function(n, m) {
+			var source = this;
+			var i = -1;
+
+			return this.create(function slice() {
+				while (++i < n) {
+					source.shift();
+				}
+
+				if (i < m) {
+					if (i === m - 1) { this.status = 'done'; }
+					return source.shift();
+				}
+			});
+		},
+
+		split: function(fn) {
+			var source = this;
+			var buffer = [];
+
+			return this.create(function split() {
+				var value = source.shift();
+				var b;
+
+				if (value === undefined) { return; }
+
+				if (fn(value)) {
+					b = buffer;
+					buffer = [];
+					return b;
+				}
+
+				buffer.push(value);
+
+				if (source.status === 'done') {
+					b = buffer;
+					buffer = [];
+					return b;
+				}
+
+				return split();
+			});
+		},
+
+		batch: function(n) {
+			var source = this;
+			var buffer = [];
+
+			return this.create(n ?
+				// If n is defined batch into arrays of length n.
+				function nextBatchN() {
+					var value;
+
+					while (buffer.length < n) {
+						value = source.shift();
+						if (value === undefined) { return; }
+						buffer.push(value);
+					}
+
+					if (buffer.length >= n) {
+						var _buffer = buffer;
+						buffer = [];
+						return Fn.of.apply(Fn, _buffer);
+					}
+				} :
+
+				// If n is undefined or 0, batch all values into an array.
+				function nextBatch() {
+					buffer = source.toArray();
+					// An empty array is equivalent to undefined
+					return buffer.length ? buffer : undefined ;
+				});
+		},
+
+		group: function(fn) {
+			var source = this;
+			var buffer = [];
+			var streams = new Map();
+
+			fn = fn || Fn.id;
+
+			function create() {
+				var stream = new BufferStream();
+				buffer.push(stream);
+				return stream.on('pull', function() {
+					// Pull until a new value is added to the current stream
+					pullUntil(Fn.is(stream));
+				});
+			}
+
+			function pullUntil(check) {
+				var value = source.shift();
+				if (value === undefined) { return; }
+				var key = fn(value);
+				var stream = streams.get(key);
+
+				if (stream === undefined) {
+					stream = create();
+					streams.set(key, stream);
+				}
+
+				stream.push(value);
+				return check(stream) || pullUntil(check);
+			}
+
+			function isBuffered() {
+				return !!buffer.length;
+			}
+
+			return this.create(function group() {
+				// Pull until a new stream is available
+				pullUntil(isBuffered);
+				return buffer.shift();
+			});
+		},
+
+		groupTo: function(fn, object) {
+			var source = this;
+
+			function create() {
+				var stream = new BufferStream();
+				return stream.on('pull', pullAll);
+			}
+
+			function pullAll() {
+				var value = source.shift();
+				if (value === undefined) { return; }
+				var key = fn(value);
+				var stream = Fn.get(key, object);
+
+				if (stream === undefined) {
+					stream = create();
+					Fn.set(key, stream, object);
+				}
+
+				stream.push(value);
+				return pullAll();
+			}
+
+			return this.create(function group() {
+				if (source.status === 'done') { return; }
+				source.status = 'done';
+				pullAll();
+				return object;
+			});
+		},
+
+		scan: function(fn) {
+			var i = 0, total = 0;
+			return this.map(function scan(value) {
+				return (total = fn(total, value, i++));
+			});
+		},
+
+		unique: function() {
+			var source = this;
+			var values = [];
+
+			return this.create(function unique() {
+				var value = source.shift();
+				if (value === undefined) { return; }
+
+				if (values.indexOf(value) === -1) {
+					values.push(value);
+					return value;
+				}
+
+				return unique();
+			});
+		},
+
+		assign: function(object) { return this.map(Fn.assign(object)); },
+
+		parse: function() { return this.map(JSON.parse); },
+
+		stringify: function() { return this.map(Fn.stringify); },
+
+
+		// Output
+
+		// Fn is an iterator
+		next: function() {
+			return {
+				done: this.status === 'done',
+				value: this.shift()
+			};
+		},
+
+		pipe: function(stream) {
+			if (!stream || !stream.on) {
+				throw new Error('Fn: Fn.pipe(object) object must be a pushable stream. (' + stream + ')');
+			}
+
+			var source = this;
+
+			stream.on('pull', function() {
+				stream.push(source.shift());
+			});
+
+			return stream;
+		},
+
+		tap: function(fn) {
+			// Overwrite next to copy values to tap fn
+			this.shift = Fn.compose(function(value) {
+				if (value !== undefined) { fn(value); }
+				return value;
+			}, this.shift);
+
+			return this;
+		},
+
+		each: function(fn) {
+			var value;
+
+			while ((value = this.shift()) !== undefined) {
+				fn(value);
+			}
+		},
+
+		reduce: function(fn, value) {
+			var output = Fn.isDefined(value) ? value : 0 ;
+
+			while ((value = this.shift()) !== undefined) {
+				output = fn(output, value);
+			}
+
+			return output;
+		},
+
+		find: function(fn) {
+			return this.filter(fn).head().shift();
+		},
+
+		toJSON: function() {
+			return this.reduce(function(t, v) {
+				t.push(v);
+				return t;
+			}, []);
+		},
+
+		toFunction: function() {
+			var source = this;
+			return function fn() {
+				if (arguments.length) {
+					this.push.apply(this, arguments);
+				}
+				return source.shift();
+			};
+		},
+
+		log: function() {
+			var a = arguments;
+
+			return this.tap(function(object) {
+				console.log.apply(console, Fn.push(object, A.slice.apply(a)));
+			});
+		}
+	});
+
+	if (Symbol) {
+		Fn.prototype[Symbol.iterator] = function() {
+			return this;
+		};
+	}
+
+	Fn.prototype.toArray = Fn.prototype.toJSON;
+
+	Object.assign(Fn, {
+		of: function of() {
+			var a = arguments;
+			return new this(arguments);
+		},
+
+		empty:    empty,
+		noop:     noop,
+		id:       id,
+		call:     call,
+		memoize:  memoize,
+		curry:    curry,
+		compose:  compose,
+		pipe:     pipe,
+
+		is: curry(function is(a, b) {
+			return a === b;
+		}),
+
+		equals: curry(function equals(a, b) {
+			// Fast out if references are for the same object.
+			if (a === b) { return true; }
+
+			if (typeof a !== 'object' || typeof b !== 'object') { return false; }
+
+			var akeys = Object.keys(a);
+			var bkeys = Object.keys(b);
+
+			if (akeys.length !== bkeys.length) { return false; }
+
+			var n = akeys.length;
+
+			while (n--) {
+				if (!equals(a[akeys[n]], b[akeys[n]])) {
+					return false;
+				}
+			}
+
+			return true;
+		}),
+
+		by: curry(function by(property, a, b) {
+			return Fn.byGreater(a[property], b[property]);
+		}),
+
+		byGreater: curry(function byGreater(a, b) {
+			return a === b ? 0 : a > b ? 1 : -1 ;
+		}),
+
+		byAlphabet: curry(function byAlphabet(a, b) {
+			return S.localeCompare.call(a, b);
+		}),
+
+		assign: curry(function assign(obj1, obj2) {
+			return Object.assign(obj1, obj2);
+		}),
+
+		get: curry(function get(key, object) {
+			return typeof object.get === "function" ?
+				object.get(key) :
+				object[key] ;
+		}),
+
+		set: curry(function set(key, value, object) {
+			return typeof object.set === "function" ?
+				object.set(key, value) :
+				(object[key] = value) ;
+		}),
+
+		getPath: curry(function get(path, object) {
+			return object.get ? object.get(path) :
+				typeof path === 'number' ? object[path] :
+				path === '' || path === '.' ? object :
+				objFrom(object, splitPath(path)) ;
+		}),
+
+		setPath: curry(function set(path, value, object) {
+			if (object.set) { object.set(path, value); }
+			if (typeof path === 'number') { return object[path] = value; }
+			var array = splitPath(path);
+			return array.length === 1 ?
+				(object[path] = value) :
+				objTo(object, array, value);
+		}),
+
+		invoke: curry(function invoke(name, args, object) {
+			return object[name].apply(object, args);
+		}),
+
+		run: curry(function apply(values, fn) {
+			return fn.apply(null, values);
+		}),
+
+		map: curry(function map(fn, object) {
+			return object.map ? object.map(fn) : A.map.call(object, fn);
+		}),
+
+		find: curry(function find(fn, object) {
+			return object.find ? object.find(fn) : A.find.call(object, fn);
+		}),
+
+		throttle: function(time, fn) {
+			// Overload the call signature to support Fn.throttle(fn)
+			if (fn === undefined && time.apply) {
+				fn = time;
+				time = undefined;
+			}
+
+			function throttle(fn) {
+				return Throttle(fn, time);
+			}
+
+			// Where fn not given return a partially applied throttle
+			return fn ? throttle(fn) : throttle ;
+		},
+
+		entries: function(object){
+			return typeof object.entries === 'function' ?
+				object.entries() :
+				A.entries.apply(object) ;
+		},
+
+		keys: function(object){
+			return typeof object.keys === 'function' ?
+				object.keys() :
+				/* Don't use Object.keys(), it returns an array,
+				   not an iterator. */
+				A.keys.apply(object) ;
+		},
+
+		values: function(object){
+			return typeof object.values === 'function' ?
+				object.values() :
+				A.values.apply(object) ;
+		},
+
+		each: curry(function each(fn, object) {
+			return object && (
+				object.each ? object.each(fn) :
+				object.forEach ? object.forEach(function(item) { fn(item); }) :
+				A.forEach.call(object, function(item) { fn(item); })
+			);
+		}),
+
+		concat:      curry(function concat(array2, array1) { return array1.concat ? array1.concat(array2) : A.concat.call(array1, array2); }),
+		filter:      curry(function filter(fn, object) { return object.filter ? object.filter(fn) : A.filter.call(object, fn); }),
+		reduce:      curry(function reduce(fn, n, object) { return object.reduce ? object.reduce(fn, n) : A.reduce.call(object, fn, n); }),
+		slice:       curry(function slice(n, m, object) { return object.slice ? object.slice(n, m) : A.slice.call(object, n, m); }),
+		sort:        curry(function sort(fn, object) { return object.sort ? object.sort(fn) : A.sort.call(object, fn); }),
+
+		push: curry(function push(value, object) {
+			(object.push || A.push).call(object, value);
+			return object;
+		}),
+
+		add:         curry(function add(a, b) { return b + a; }),
+		multiply:    curry(function multiply(a, b) { return b * a; }),
+		mod:         curry(function mod(a, b) { return b % a; }),
+		pow:         curry(function pow(a, b) { return Math.pow(b, a); }),
+		min:         curry(function min(a, b) { return a > b ? b : a ; }),
+		max:         curry(function max(a, b) { return a < b ? b : a ; }),
+		normalise:   curry(function normalise(min, max, value) { return (value - min) / (max - min); }),
+		denormalise: curry(function denormalise(min, max, value) { return value * (max - min) + min; }),
+		toFixed:     curry(function toFixed(n, value) { return N.toFixed.call(value, n); }),
+
+		rangeLog: curry(function rangeLog(min, max, n) {
+			return Fn.denormalise(min, max, Math.log(value / min) / Math.log(max / min))
+		}),
+
+		rangeLogInv: curry(function rangeLogInv(min, max, n) {
+			return min * Math.pow(max / min, Fn.normalise(min, max, n));
+		}),
+
+		dB: function(n) {
+			return this.map(function(value) {
+				return 20 * Math.log10(value);
+			});
+		},
+
+		// Strings
+		match:      curry(function match(regex, string) { return regex.test(string); }),
+		exec:       curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
+		replace:    curry(function replace(regex, fn, string) { return string.replace(regex, fn); }),
+
+		slugify: function slugify(string) {
+			if (typeof string !== 'string') { return; }
+			return string.trim().toLowerCase().replace(/[\W_]/g, '-');
+		},
+
+		// Booleans
+		not: function not(object) { return !object; },
+
+		// Types
+
+		isDefined: function isDefined(value) {
+			// !!value is a fast out for non-zero numbers, non-empty strings
+			// and other objects, the rest checks for 0, '', etc.
+			return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
+		},
+
+		toType: function typeOf(object) {
+			return typeof object;
+		},
+
+		toClass: function classOf(object) {
+			return O.toString.apply(object).slice(8, -1);
+		},
+
+		toArray: function(object) {
+			return object.toArray ?
+				object.toArray() :
+				Fn(object).toArray() ;
+		},
+
+		toInt: function(n) {
+			return parseInt(n, 10);
+		},
+
+		toFloat: parseFloat,
+
+		toPlainText: function toPlainText(string) {
+			return string
+			// Decompose string to normalized version
+			.normalize('NFD')
+			// Remove accents
+			.replace(/[\u0300-\u036f]/g, '');
+		},
+
+		toStringType: (function(regex, types) {
+			return function toStringType(string) {
+				// Determine the type of string from its text content.
+				var n = -1;
+
+				// Test regexable string types
+				while (++n < types.length) {
+					if(regex[types[n]].test(string)) {
+						return types[n];
+					}
+				}
+
+				// Test for JSON
+				try {
+					JSON.parse(string);
+					return 'json';
+				}
+				catch(e) {}
+
+				// Default to 'string'
+				return 'string';
+			};
+		})(regex, ['date', 'url', 'email', 'int', 'float']),
+
+		// JSON
+		stringify: function stringify(object) {
+			return JSON.stringify(Fn.toClass(object) === "Map" ?
+				Fn(object) : object
+			);
+		},
+
+		log: function(text, object) {
+			console.log(text, object);
+			return x;
+		}
+	});
+
+	// Stream
+
+	function arrayNext(array) {
+		var value;
+
+		// Shift values out ignoring undefined
+		while (array.length && value === undefined) {
+			value = array.shift();
+		}
+
+		return value;
+	}
+
+	function Stream(setup) {
+		// Enable calling Stream without the new keyword.
+		if (!this || !Stream.prototype.isPrototypeOf(this)) {
+			return new Stream(setup);
+		}
+
+		var observers = {};
+
+		function notify(type) {
+			if (!observers[type]) { return; }
+			A.slice.apply(observers[type]).forEach(call);
+		}
+
+		this.on = function on(type, fn) {
+			// Lazily create observers list
+			observers[type] = observers[type] || [] ;
+			// Add observer
+			observers[type].push(fn);
+			return this;
+		};
+
+		Object.assign(this, setup(notify));
+
+		if (!this.hasOwnProperty('shift')) {
+			throw new Error('Fn.Stream: setup() did not provide a .shift() method.');
+		}
+	}
+
+	Stream.prototype = Object.create(Fn.prototype);
+
+	Object.assign(Stream.prototype, {
+		ap: function ap(object) {
+			var source = this;
+			return this.create(function ap() {
+				var fn = source.shift();
+				if (value === undefined) { return; }
+				return object.map(fn);
+			});
+		},
+
+		push: function error() {
+			throw new Error('Fn: ' + this.constructor.name + ' is not pushable.');
+		},
+
+		shift: function error() {
+			throw new Error('Fn: Stream has been created without a .next() method.');
+		},
+
+		pull: function pullWarning() {
+			// Legacy warning
+			console.warn('stream.pull() deprecated. Use stream.each().');
+			return this.each.apply(this, arguments);
+		},
+
+		each: function(fn) {
+			var source = this;
+			var a = arguments;
+
+			function each() {
+				Fn.prototype.each.apply(source, a);
+			}
+
+			// Flush and observe
+			each();
+			return this.on('push', each);
+		},
+
+		pipe: function(stream) {
+			Fn.prototype.pipe.apply(this, arguments);
+			// Notify a push without pushing any values -
+			// stream only needs to know values are available.
+			this.on('push', stream.push);
+			return stream;
+		},
+
+		concatParallel: function() {
+			var source = this;
+			var object;
+			var order = [];
+
+			function bind(object) {
+				object.on('push', function() {
+					order.push(object);
+				});
+				order.push(object);
+			}
+
+			function shiftNext() {
+				var stream = order.shift();
+				if (stream === undefined) { return; }
+				var value = stream.shift();
+				return value === undefined ?
+					shiftNext() :
+					value ;
+			}
+
+			return this.create(function concatParallel() {
+				var object = source.shift();
+				if (object !== undefined) { bind(object); }
+				var value = shiftNext();
+				return value;
+			});
+		},
+
+		delay: function(time) {
+			var source = this;
+
+			return new Stream(function setup(notify) {
+				source.on('push', function() {
+					setTimeout(notify, time, 'push');
+				});
+
+				return {
+					shift: function delay() {
+						return source.shift();
+					},
+
+					stop: function stop() {
+						// Probably should clear timers here.
+					}
+				};
+			});
+		},
+
+		throttle: function(time) {
+			var source = this;
+
+			return new Stream(function setup(notify) {
+				var t = Fn.Throttle(function() {
+					notify('push');
+				}, time);
+
+				source.on('push', t);
+
+				return {
+					shift: function throttle() {
+						var value, v;
+
+						while ((v = source.shift()) !== undefined) {
+							value = v;
+						}
+
+						if (source.status === "done") { t.cancel(); }
+
+						return value;
+					},
+
+					stop: t.cancel
+				};
+			});
+		},
+
+		toPromise: function() {
+			var source = this;
+
+			return new Promise(function setup(resolve, reject) {
+				var value = source.shift();
+
+				if (value !== undefined) {
+					resolve(value);
+					return;
+				}
+
+				source
+				.on('push', function() {
+					var value = source.shift();
+					if (value !== undefined) { resolve(value); }
+				})
+				.on('stop', reject);
+			});
+		}
+	});
+
+	Object.assign(Stream, {
+		of: function() {
+			var a = arguments;
+			return new Stream(function setup(notify) {
+				var pulling = false;
+
+				return {
+					shift: function buffer() {
+						var value = A.shift.apply(a);
+
+						if (value === undefined) {
+							pulling = true;
+							notify('pull');
+							pulling = false;
+							value = A.shift.apply(a);
+						}
+
+						return value;
+					},
+
+					push: function push() {
+						A.push.apply(a, arguments);
+						if (!pulling) { notify('push'); }
+					}
+				};
+			});
+		}
+	});
+
+	function ValueStream() {
+		return Stream(function setup(notify) {
+			var value;
+			var pulling = false;
+
+			return {
+				shift: function buffer() {
+					if (value === undefined) {
+						pulling = true;
+						notify('pull');
+						pulling = false;
+					}
+					var v = value;
+					value = undefined;
+					return v;
+				},
+
+				push: function push() {
+					// Store last pushed value
+					value = arguments[arguments.length - 1];
+					if (!pulling) { notify('push'); }
+					// Cancel value
+					value = undefined;
+				}
+			};
+		});
+	}
+
+	// BufferStream
+
+	function BufferStream(object) {
+		return Stream(function setup(notify) {
+			var source = typeof object === 'string' ? A.slice.apply(object) : object || [] ;
+			var pulling = false;
+
+			return {
+				shift: function buffer() {
+					var value = source.shift();
+
+					if (source.status === 'done') {
+						this.status = 'done';
+					}
+					else if (value === undefined) {
+						pulling = true;
+						notify('pull');
+						pulling = false;
+						value = source.shift();
+					}
+
+					return value;
+				},
+
+				push: function push() {
+					source.push.apply(source, arguments);
+					if (!pulling) { notify('push'); }
+				}
+			};
+		});
+	}
+
+	BufferStream.of = Stream.of;
+
+
+	// PromiseStream
+
+	function PromiseStream(promise) {
+		return new Stream(function setup(notify) {
+			var value;
+
+			promise.then(function(v) {
+				value = v;
+				notify('push');
+			});
+
+			return {
+				next: function promise() {
+					var v = value;
+					value = undefined;
+					return v;
+				}
+			};
+		});
+	}
+
+	PromiseStream.of = Stream.of;
+
+
+	// Export
+
+	Object.assign(Fn, {
+		Functor: function functorWarning() {
+			// Legacy warning
+			console.warn('Fn: new Fn.Functor() is deprecated. Use new Fn().');
+			return Fn.apply(Fn, arguments);
+		},
+
+		Throttle:      Throttle,
+		Stream:        Stream,
+		ValueStream:   ValueStream,
+		BufferStream:  BufferStream,
+		PromiseStream: PromiseStream
+	});
+
+	Fn.Functor.of = function() {
+		// Legacy warning
+		console.warn('Fn: Fn.Functor.of() is deprecated. Use Fn.of().');
+		return Fn.of.apply(Fn, arguments);
+	};
+
+	window.Fn = Fn;
+
+})(this);
+
+
+// mixin.listeners
+
+// .on(types, fn, [args...])
+// Binds a function to be called on events in types. The
+// callback fn is called with this object as the first
+// argument, followed by arguments passed to .trigger(),
+// followed by arguments passed to .on().
+
+// .on(object)
+// Registers object as a propagation target. Handlers bound
+// to the propagation target are called with 'this' set to
+// this object, and the target object as the first argument.
+
+// .off(types, fn)
+// Unbinds fn from given event types.
+
+// .off(types)
+// Unbinds all functions from given event types.
+
+// .off(fn)
+// Unbinds fn from all event types.
+
+// .off(object)
+// Stops propagation of all events to given object.
+
+// .off()
+// Unbinds all functions and removes all propagation targets.
+
+// .trigger(type, [args...])
+// Triggers event of type.
+
+(function(window) {
+	"use strict";
+
+	var mixin = window.mixin || (window.mixin = {});
+	var eventObject = {};
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+
+	function getListeners(object) {
+		if (!object.listeners) {
+			Object.defineProperty(object, 'listeners', {
+				value: {}
+			});
+		}
+
+		return object.listeners;
+	}
+
+	function getDelegates(object) {
+		if (!object.delegates) {
+			Object.defineProperty(object, 'delegates', {
+				value: []
+			});
+		}
+
+		return object.delegates;
+	}
+
+	function setupPropagation(object1, object2) {
+		var delegates = getDelegates(object1);
+
+		// Make sure delegates stays unique
+		if (delegates.indexOf(object2) === -1) {
+			delegates.push(object2);
+		}
+	}
+
+	function teardownPropagation(object1, object2) {
+		var delegates = getDelegates(object1);
+
+		if (object2 === undefined) {
+			delegates.length = 0;
+			return;
+		}
+
+		var i = delegates.indexOf(object2);
+
+		if (i === -1) { return; }
+
+		delegates.splice(i, 1);
+	}
+
+	function triggerListeners(object, listeners, args) {
+		var i = -1;
+		var l = listeners.length;
+		var params, result;
+
+		while (++i < l && result !== false) {
+			params = args.concat(listeners[i][1]);
+			result = listeners[i][0].apply(object, params);
+		}
+
+		return result;
+	}
+
+
+	mixin.events = {
+		// .on(type, fn)
+		//
+		// Callback fn is called with this set to the current object
+		// and the arguments (target, triggerArgs..., onArgs...).
+		on: function(types, fn) {
+			var root = this;
+
+			if (arguments.length === 1) {
+				// If types is a string return a stream.
+				if (typeof types === 'string') {
+					return Fn.Stream(function setup(notify) {
+						var buffer = [];
+
+						function push(collection, object) {
+							buffer.push(object);
+							notify('push');
+						}
+
+						root.on(types, push);
+
+						return {
+							next: function next() {
+								return buffer.shift();
+							},
+
+							end: function end() {
+								root.off(types, push);
+							}
+						};
+					});
+				}
+
+				// If types is an object with a trigger method, set it up so
+				// that events propagate from this object.
+				else if (types.trigger) {
+					setupPropagation(this, types);
+					return this;
+				}
+			}
+
+			if (!fn) {
+				throw new Error('Sparky: calling .on("' + types + '", fn) but fn is ' + typeof fn);
+			}
+
+			var events = getListeners(this);
+			var type, item;
+
+			if (typeof types === 'string') {
+				types = types.trim().split(/\s+/);
+				item = [fn, slice(arguments, 2)];
+			}
+			else {
+				return this;
+			}
+
+			while (type = types.shift()) {
+				// If the event has no listener queue, create.
+				if (!events[type]) {
+					events[type] = [];
+				}
+
+				// Store the listener in the queue
+				events[type].push(item);
+			}
+
+			return this;
+		},
+
+		// Remove one or many callbacks. If `context` is null, removes all callbacks
+		// with that function. If `callback` is null, removes all callbacks for the
+		// event. If `events` is null, removes all bound callbacks for all events.
+		off: function(types, fn) {
+			var type, calls, list, listeners, n;
+
+			// If no arguments passed in, unbind everything.
+			if (arguments.length === 0) {
+				teardownPropagation(this);
+
+				if (this.listeners) {
+					for (type in this.listeners) {
+						this.listeners[type].length = 0;
+						delete this.listeners[type];
+					}
+				}
+
+				return this;
+			}
+
+			// If types is an object with a trigger method, stop propagating
+			// events to it.
+			if (arguments.length === 1 && types.trigger) {
+				teardownPropagation(this, types);
+				return this;
+			}
+
+			// No events.
+			if (!this.listeners) { return this; }
+
+			if (typeof types === 'string') {
+				// .off(types, fn)
+				types = types.trim().split(/\s+/);
+			}
+			else {
+				// .off(fn)
+				fn = types;
+				types = Object.keys(this.listeners);
+			}
+
+			while (type = types.shift()) {
+				listeners = this.listeners[type];
+
+				if (!listeners) { continue; }
+
+				if (!fn) {
+					this.listeners[type].length = 0;
+					delete this.listeners[type];
+					continue;
+				}
+
+				n = listeners.length;
+
+				// Go through listeners in reverse order to avoid
+				// mucking up the splice indexes.
+				while (n--) {
+					if (listeners[n][0] === fn) {
+						listeners.splice(n, 1);
+					}
+				}
+			}
+
+			return this;
+		},
+
+		trigger: function(e) {
+			var events = getListeners(this);
+			// Copy delegates. We may be about to mutate the delegates list.
+			var delegates = getDelegates(this).slice();
+			var args = slice(arguments);
+			var type, target, i, l, params, result;
+
+			if (typeof e === 'string') {
+				type = e;
+				target = this;
+			}
+			else {
+				type = e.type;
+				target = e.target;
+			}
+
+			if (events[type]) {
+				args[0] = target;
+
+				// Use a copy of the event list in case it gets mutated
+				// while we're triggering the callbacks. If a handler
+				// returns false stop the madness.
+				if (triggerListeners(this, events[type].slice(), args) === false) {
+					return this;
+				}
+			}
+
+			if (!delegates.length) { return this; }
+
+			i = -1;
+			l = delegates.length;
+			args[0] = eventObject;
+
+			if (typeof e === 'string') {
+				// Prepare the event object. It's ok to reuse a single object,
+				// as trigger calls are synchronous, and the object is internal,
+				// so it does not get exposed.
+				eventObject.type = type;
+				eventObject.target = target;
+			}
+
+			while (++i < l) {
+				delegates[i].trigger.apply(delegates[i], args);
+			}
+
+			// Return this for chaining
+			return this;
+		}
+	};
+})(this);
+
+
+// observe(object, [prop], fn)
+// unobserve(object, [prop], [fn])
+//
+// Observes object properties for changes by redefining
+// properties of the observable object with setters that
+// fire a callback function whenever the property changes.
+// I warn you, this is hairy stuff. But when it works, it
+// works beautifully.
+
+(function(window){
+	var debug = false;
+
+	var slice = Function.prototype.call.bind(Array.prototype.slice);
+	var toString = Function.prototype.call.bind(Object.prototype.toString);
+
+	function isFunction(object) {
+		toString(object) === '[object Function]';
+	}
+
+	function call(array) {
+		// Call observer with stored arguments
+		array[0].apply(null, array[1]);
+	}
+
+	function getDescriptor(object, property) {
+		return object && (
+			Object.getOwnPropertyDescriptor(object, property) ||
+			getDescriptor(Object.getPrototypeOf(object), property)
+		);
+	}
+
+	function notifyObservers(object, observers) {
+		// Copy observers in case it is modified.
+		observers = observers.slice();
+
+		var n = -1;
+		var params, scope;
+
+		// Notify this object, and any objects that have
+		// this object in their prototype chain.
+		while (observers[++n]) {
+			params = observers[n];
+			scope = params[1][0];
+
+// Why did I do this? Why? Pre-emptive 'watch out, mates'?
+//			if (scope === object || scope.isPrototypeOf(object)) {
+				call(params);
+//			}
+		}
+	}
+
+	function notify(object, property) {
+		var prototype = object;
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		notifyObservers(object, observers);
+	}
+
+	function createProperty(object, property, observers, descriptor) {
+		var value = object[property];
+
+		delete descriptor.writable;
+		delete descriptor.value;
+
+		descriptor.configurable = false;
+		descriptor.get = function() { return value; };
+		descriptor.set = function(v) {
+			if (v === value) { return; }
+			value = v;
+			// Copy the array in case an observer modifies it.
+			observers.slice().forEach(call);
+		};
+
+		// Store the observers on the getter. TODO: We may
+		// want to think about putting them in a weak map.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function replaceGetSetProperty(object, property, observers, descriptor) {
+		var set = descriptor.set;
+
+		if (set) {
+			descriptor.set = function(v) {
+				set.call(this, v);
+				notifyObservers(this, observers);
+			};
+		}
+
+		// Prevent anything losing these observers.
+		descriptor.configurable = false;
+
+		// Store the observers so that future observers can be added.
+		descriptor.get.observers = observers;
+
+		Object.defineProperty(object, property, descriptor);
+	}
+
+	function observeProperty(object, property, fn) {
+		var args = slice(arguments, 0);
+
+		// Cut both prop and fn out of the args list
+		args.splice(1, 2);
+
+		var observer = [fn, args];
+		var prototype = object;
+		var descriptor;
+
+		// Find the nearest descriptor in the prototype chain.
+		while (
+			!(descriptor = Object.getOwnPropertyDescriptor(prototype, property)) &&
+			(prototype = Object.getPrototypeOf(prototype))
+		);
+
+		// If an observers list is already defined all we
+		// have to do is add our fn to the queue.
+		if (descriptor && descriptor.get && descriptor.get.observers) {
+			descriptor.get.observers.push(observer);
+			return;
+		}
+
+		var observers = [observer];
+
+		// If there is no descriptor, create a new property.
+		if (!descriptor) {
+			createProperty(object, property, observers, { enumerable: true });
+			return;
+		}
+
+		// If the property is not configurable we cannot
+		// overwrite the set function, so we're stuffed.
+		if (descriptor.configurable === false) {
+			// Although we can get away with observing
+			// get-only properties, as they don't replace
+			// the setter and they require an explicit call
+			// to notify().
+			if (descriptor.get && !descriptor.set) {
+				descriptor.get.observers = observers;
+			}
+			else {
+				debug && console.warn('observe: Property .' + property + ' has { configurable: false }. Can not observe.', object);
+				debug && console.trace();
+			}
+
+			return;
+		}
+
+		// If the property is writable, we're ok to overwrite
+		// it with a getter/setter. This has a side effect:
+		// normally a writable property in a prototype chain
+		// will be superseded by a property set on the object
+		// at the time of the set, but we're going to
+		// supersede it now. There is not a great deal that
+		// can be done to mitigate this.
+		if (descriptor.writable === true) {
+			createProperty(object, property, observers, descriptor);
+			return;
+		}
+
+		// If the property is not writable, we don't want to
+		// be replacing it with a getter/setter.
+		if (descriptor.writable === false) {
+			debug && console.warn('observe: Property .' + property + ' has { writable: false }. Shall not observe.', object);
+			return;
+		}
+
+		// If the property has no getter, what is the point
+		// even trying to observe it?
+		if (!descriptor.get) {
+			debug && console.warn('observe: Property .' + property + ' has a setter but no getter. Will not observe.', object);
+			return;
+		}
+
+		// Replace the getter/setter
+		replaceGetSetProperty(prototype, property, observers, descriptor);
+	}
+
+	function observe(object, property, fn) {
+		var args, key;
+
+		// Overload observe to handle observing all properties with
+		// the function signature observe(object, fn).
+		if (toString(property) === '[object Function]') {
+			fn = prop;
+			args = slice(arguments, 0);
+			args.splice(1, 0, null);
+
+			for (property in object) {
+				args[1] = property;
+				observeProperty.apply(null, args);
+			};
+
+			return;
+		}
+
+		observeProperty.apply(null, arguments);
+	}
+
+	function unobserve(object, property, fn) {
+		var index;
+
+		if (property instanceof Function) {
+			fn = property;
+
+			for (property in object) {
+				unobserve(data, key, fn);
+			};
+
+			return;
+		}
+
+		var descriptor = getDescriptor(object, property);
+		if (!descriptor) { return; }
+
+		var observers = descriptor.get && descriptor.get.observers;
+		if (!observers) { return; }
+
+		var n;
+
+		if (fn) {
+			n = observers.length;
+			while (n--) {
+				if (observers[n][0] === fn) {
+					observers.splice(n, 1);
+				}
+			}
+		}
+		else {
+			observers.length = 0;
+		}
+	}
+
+	window.observe = observe;
+	window.unobserve = unobserve;
+	window.notify = notify;
+})(window);
+
+
+// Collection()
+
+(function(window) {
+	"use strict";
+
+	var assign    = Object.assign;
+	var Fn        = window.Fn;
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
+	var mixin     = window.mixin;
+
+	var debug = false;
+
+	var defaults = { index: 'id' };
+
+
+	// Utils
+
+	function returnThis() { return this; }
+
+	// Each functions
+
+	function setValue(value, i) {
+		this[i] = value;
+	}
+
+	// Collection functions
+
+	function findByIndex(collection, id) {
+		var index = collection.index;
+		var n = -1;
+		var l = collection.length;
+
+		while (++n < l) {
+			if (collection[n][index] === id) {
+				return collection[n];
+			}
+		}
+	}
+
+	function queryObject(object, query, keys) {
+		// Optionally pass in keys to avoid having to get them repeatedly.
+		keys = keys || Object.keys(query);
+
+		var k = keys.length;
+		var key;
+
+		while (k--) {
+			key = keys[k];
+
+			// Test equality first, allowing the querying of
+			// collections of functions or regexes.
+			if (object[key] === query[key]) {
+				continue;
+			}
+
+			// Test function
+			if (typeof query[key] === 'function' && query[key](object, key)) {
+				continue;
+			}
+
+			// Test regex
+			if (query[key] instanceof RegExp && query[key].test(object[key])) {
+				continue;
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
+	function queryByObject(collection, query) {
+		var keys = Object.keys(query);
+
+		// Match properties of query against objects in the collection.
+		return keys.length === 0 ?
+			collection.slice() :
+			collection.filter(function(object) {
+				return queryObject(object, query, keys);
+			}) ;
+	}
+
+	function push(collection, object) {
+		Array.prototype.push.call(collection, object);
+		collection.trigger('add', object);
+	}
+
+	function splice(collection, i, n) {
+		var removed = Array.prototype.splice.call.apply(Array.prototype.splice, arguments);
+		var r = removed.length;
+		var added = Array.prototype.slice.call(arguments, 3);
+		var l = added.length;
+		var a = -1;
+
+		while (r--) {
+			collection.trigger('remove', removed[r], i + r);
+		}
+
+		while (++a < l) {
+			collection.trigger('add', added[a], a);
+		}
+
+		return removed;
+	}
+
+	function add(collection, object) {
+		// Add an item, keeping the collection sorted by id.
+		var index = collection.index;
+
+		// If the object does not have an index key...
+		if (!Fn.isDefined(object[index])) {
+			// ...check that it is not already in the
+			// collection before pushing it in.
+			if (collection.indexOf(object) === -1) {
+				push(collection, object);
+			}
+
+			return;
+		}
+
+		// Insert the object in the correct index. TODO: we
+		// should use the sort function for this!
+		var l = collection.length;
+		while (collection[--l] && (collection[l][index] > object[index] || !Fn.isDefined(collection[l][index])));
+		splice(collection, l + 1, 0, object);
+	}
+
+	function remove(collection, obj, i) {
+		if (i === undefined) { i = -1; }
+
+		while (++i < collection.length) {
+			if (obj === collection[i] || obj === collection[i][collection.index]) {
+				splice(collection, i, 1);
+				--i;
+			}
+		}
+	}
+
+	function update(collection, obj) {
+		var item = collection.find(obj);
+
+		if (item) {
+			assign(item, obj);
+			collection.trigger('update', item);
+		}
+		else {
+			add(collection, obj);
+		}
+	}
+
+	function callEach(fn, collection, objects) {
+		var l = objects.length;
+		var n = -1;
+
+		while (++n < l) {
+			fn.call(null, collection, objects[n]);
+		}
+	}
+
+	function overloadByLength(map) {
+		return function distribute() {
+			var length = arguments.length;
+			var fn = map[length] || map.default;
+
+			if (fn) {
+				return fn.apply(this, arguments);
+			}
+
+			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
+			return this;
+		}
+	}
+
+	function isCollection(object) {
+		return Collection.prototype.isPrototypeOf(object) ||
+			SubCollection.prototype.isPrototypeOf(object);
+	}
+
+	function createLengthObserver(collection) {
+		var length = collection.length;
+
+		return function lengthObserver() {
+			var object;
+
+			while (length-- > collection.length) {
+				object = collection[length];
+
+				// The length may have changed due to a splice or remove, in
+				// which case there will be no object at this index, but if
+				// there was, let's trigger it's demise.
+				if (object !== undefined) {
+					delete collection[length];
+					collection.trigger('remove', object, length);
+				}
+			}
+
+			length = collection.length;
+		};
+	}
+
+	function Collection(array, settings) {
+		if (this === undefined || this === window) {
+			// If this is undefined the constructor has been called without the
+			// new keyword, or without a context applied. Do that now.
+			return new Collection(array, settings);
+		}
+
+		// Handle the call signatures Collection() and Collection(settings).
+		if (array === undefined) {
+			array = [];
+		}
+		else if (!Fn.isDefined(array.length)) {
+			settings = array;
+			array = [];
+		}
+
+		var collection = this;
+		var options = assign({}, defaults, settings);
+
+		function byIndex(a, b) {
+			// Sort collection by index.
+			return a[collection.index] > b[collection.index] ? 1 : -1 ;
+		}
+
+		Object.defineProperties(collection, {
+			length: { value: 0, writable: true, configurable: true },
+			index: { value: options.index },
+			sort:  {
+				value: function sort(fn) {
+					// Collections get sorted by index by default, or by a function
+					// passed into options, or passed into the .sort(fn) call.
+					Array.prototype.sort.call(this, fn || options.sort || byIndex);
+					return this.trigger('sort');
+				},
+				writable: true
+			}
+		});
+
+		// Populate the collection. Don't use Object.assign for this, as it
+		// doesn't get values from childNode dom collections.
+		var n = -1;
+		while (array[++n]) { collection[n] = array[n]; }
+
+		collection.length = array.length;
+
+		// Sort the collection
+		//collection.sort();
+
+		// Watch the length and delete indexes when the
+		// length becomes shorter like a nice array does.
+		observe(collection, 'length', createLengthObserver(collection));
+	};
+
+	assign(Collection, {
+		// Fantasy land .of()
+		of: function() {
+			return Collection(arguments);
+		},
+
+		add: add,
+		remove: remove,
+		isCollection: isCollection
+	});
+
+	assign(Collection.prototype, mixin.events, {
+		// Fantasy land .of()
+		of: function() {
+			return Collection(arguments);
+		},
+
+		// Fantasy land .ap()
+		ap: function(object) {
+			return this.map(function(fn) {
+				return object.map(fn);
+			});
+		},
+
+		filter:  Array.prototype.filter,
+		map:     Array.prototype.map,
+		reduce:  Array.prototype.reduce,
+		concat:  Array.prototype.concat,
+		sort:    Array.prototype.sort,
+		slice:   Array.prototype.slice,
+		some:    Array.prototype.some,
+		indexOf: Array.prototype.indexOf,
+		forEach: Array.prototype.forEach,
+
+		each: function each() {
+			Array.prototype.forEach.apply(this, arguments);
+			return this;
+		},
+
+		add: overloadByLength({
+			0: returnThis,
+
+			"default": function addArgs() {
+				callEach(add, this, arguments);
+				return this;
+			}
+		}),
+
+		remove: overloadByLength({
+			0: function removeAll() {
+				while (this.length) { this.pop(); }
+				return this;
+			},
+
+			"default": function removeArgs() {
+				callEach(remove, this, arguments);
+				return this;
+			}
+		}),
+
+		push: function() {
+			callEach(push, this, arguments);
+			return this;
+		},
+
+		pop: function() {
+			var object = this[this.length - 1];
+			--this.length;
+			return object;
+		},
+
+		shift: function() {
+			var object = this[0];
+			this.remove(object);
+			return object;
+		},
+
+		splice: function() {
+			Array.prototype.unshift.call(arguments, this);
+			return splice.apply(this, arguments);
+		},
+
+		update: function() {
+			callEach(update, this, arguments);
+			return this;
+		},
+
+		find: overloadByLength({
+			0: Fn.noop,
+
+			1: function findObject(object) {
+				// Fast out. If object in collection, return it.
+				if (this.indexOf(object) > -1) { return object; }
+
+				// Otherwise find by index.
+				var index = this.index;
+
+				// Return the first object with matching key.
+				return typeof object === 'string' || typeof object === 'number' || object === undefined ?
+					findByIndex(this, object) :
+					findByIndex(this, object[index]) ;
+			}
+		}),
+
+		query: function(object) {
+			// query() is gauranteed to return an array.
+			return object ?
+				queryByObject(this, object) :
+				[] ;
+		},
+
+		contains: function(object) {
+			return this.indexOf(object) !== -1;
+		},
+
+		getAll: function(property) {
+			// Get the value of a property of all the objects in
+			// the collection if they all have the same value.
+			// Otherwise return undefined.
+
+			var n = this.length;
+
+			if (n === 0) { return; }
+
+			while (--n) {
+				if (this[n][property] !== this[n - 1][property]) { return; }
+			}
+
+			return this[n][property];
+		},
+
+		setAll: function(property, value) {
+			// Set a property on every object in the collection.
+
+			if (arguments.length !== 2) {
+				throw new Error('Collection.set(property, value) requires 2 arguments. ' + arguments.length + ' given.');
+			}
+
+			var n = this.length;
+			while (n--) { this[n][property] = value; }
+			return this;
+		},
+
+		toJSON: function() {
+			// Convert to array.
+			return Array.prototype.slice.apply(this);
+		},
+
+		toObject: function(key) {
+			// Convert to object, using a keyed value on
+			// each object as map keys.
+			key = key || this.index;
+
+			var object = {};
+			var prop, type;
+
+			while (n--) {
+				prop = this[n][key];
+				type = typeof prop;
+
+				if (type === 'string' || type === 'number' && prop > -Infinity && prop < Infinity) {
+					object[prop] = this[n];
+				}
+				else {
+					console.warn('Collection: toObject() ' + typeof prop + ' ' + prop + ' cannot be used as a key.');
+				}
+			}
+
+			return object;
+		},
+
+		sub: function(query, settings) {
+			return new SubCollection(this, query, settings);
+		}
+	});
+
+	function SubCollection(collection, query, settings) {
+		// TODO: Clean up SubCollection
+
+		var options = assign({ sort: sort }, settings);
+		var keys = Object.keys(query);
+		var echo = true;
+		var subset = this;
+
+		function sort(o1, o2) {
+			// Keep the subset ordered as the collection
+			var i1 = collection.indexOf(o1);
+			var i2 = collection.indexOf(o2);
+			return i1 > i2 ? 1 : -1 ;
+		}
+
+		function update(object) {
+			var i = subset.indexOf(object);
+
+			echo = false;
+
+			if (queryObject(object, query, keys)) {
+				if (i === -1) {
+					// Keep subset is sorted with default sort fn,
+					// splice object into position
+					if (options.sort === sort) {
+						var i1 = collection.indexOf(object) ;
+						var n = i1;
+						var o2, i2;
+
+						while (n--) {
+							o2 = collection[n];
+							i2 = subset.indexOf(o2);
+							if (i2 > -1 && i2 < i1) { break; }
+						}
+
+						subset.splice(i2 + 1, 0, object);
+					}
+					else {
+						subset.add(object);
+					}
+
+					subset.on('add', subsetAdd);
+				}
+			}
+			else {
+				if (i !== -1) {
+					subset.remove(object);
+				}
+			}
+
+			echo = true;
+		}
+
+		function add(collection, object) {
+			var n = keys.length;
+			var key;
+
+			// Observe keys of this object that might affect
+			// it's right to remain in the subset
+			while (n--) {
+				key = keys[n];
+				observe(object, key, update);
+			}
+
+			update(object);
+		}
+
+		function remove(collection, object) {
+			var n = keys.length;
+			var key;
+
+			while (n--) {
+				key = keys[n];
+				unobserve(object, key, update);
+			}
+
+			var i = subset.indexOf(object);
+
+			if (i > -1) {
+				echo = false;
+				subset.splice(i, 1);
+				echo = true;
+			}
+		}
+
+		function destroy(collection) {
+			collection.forEach(function(object) {
+				remove(collection, object);
+			});
+
+			subset
+			.off('add', subsetAdd)
+			.off('remove', subsetRemove);
+		}
+
+		function subsetAdd(subset, object) {
+			if (!echo) { return; }
+			collection.add(object);
+		}
+
+		function subsetRemove(subset, object) {
+			if (!echo) { return; }
+			collection.remove(object);
+		}
+
+		// Initialise as collection.
+		Collection.call(this, options);
+
+		// Observe the collection to update the subset
+		collection
+		.on('add', add)
+		.on('remove', remove)
+		.on('destroy', destroy);
+
+		// Initialise existing object in collection and echo
+		// subset add and remove operations to collection.
+		if (collection.length) {
+			collection.forEach(function(object) {
+				add(collection, object);
+			});
+		}
+		else {
+			subset
+			.on('add', subsetAdd)
+			.on('remove', subsetRemove);
+		}
+
+		this.destroy = function() {
+			// Lots of unbinding
+			destroy(collection);
+
+			collection
+			.off('add', add)
+			.off('remove', remove)
+			.off('destroy', destroy);
+
+			subset.off();
+		};
+
+		this.synchronise = function() {
+			// Force a sync from code that only has access
+			// to the subset.
+			collection.forEach(update);
+			return this;
+		};
+	}
+
+	assign(SubCollection.prototype, Collection.prototype);
+
+	window.Collection = Collection;
+})(this);
 
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
