@@ -2,7 +2,7 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Live data binding templating library for the DOM.",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
@@ -32,10 +32,13 @@
     "karma-qunit": "latest",
     "karma-safari-launcher": "latest",
     "qunit": "latest",
-    "qunitjs": "latest"
+    "qunitjs": "latest",
+    "eslint": "^3.6.1"
   },
+  "license": "private",
   "scripts": {
     "build": "npm install && grunt",
+    "lint": "eslint static/js/*.js static/fn/js/*.js static/sparky/js/*.js static/breakpoint/js/*.js apps/*/static/js/*.js",
     "test": "karma start"
   }
 }
