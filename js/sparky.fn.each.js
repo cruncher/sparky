@@ -10,25 +10,6 @@
 	// destroying those sparkies.
 	var destroyDelay = 8000;
 
-	//function create(boss, node, scope, fn) {
-	//	// Create a dependent sparky without delegating scope
-	//	var sparky = Sparky(node, scope, fn, this);
-	//
-	//	function delegateDestroy() { sparky.destroy(); }
-	//	function delegateRender(self) { sparky.render(); }
-	//
-	//	// Bind events
-	//	boss
-	//	.on('destroy', delegateDestroy)
-	//	.on('render', delegateRender);
-	//
-	//	return sparky.on('destroy', function() {
-	//		boss
-	//		.off('destroy', delegateDestroy)
-	//		.off('render', delegateRender);
-	//	});
-	//}
-
 	function createPlaceholder(node) {
 		if (!Sparky.debug) { return DOM.create('text', ''); }
 
@@ -47,10 +28,11 @@
 		var cache    = [];
 
 		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
-		// keys, and a Sparky scope may be a number or a string, although that
+		// keys, and a Sparky scope may be a number or a string - although that
 		// is unusual and perhaps we should ban it.
 		var rejects  = new Map();
 		var scheduled = [];
+
 		var clone    = node.cloneNode(true);
 		var fns      = this.interrupt();
 		var placeholder = createPlaceholder(node);
@@ -75,8 +57,8 @@
 				i = collection.indexOf(object);
 
 				if (i === -1) {
-					DOM.remove(sparkies[l][0]);
 					rejects.set(object, sparkies[l]);
+					DOM.remove(sparkies[l][0]);
 					scheduled.push(object);
 				}
 				else {
@@ -87,28 +69,43 @@
 			l = sparkies.length = cache.length = collection.length;
 
 			// Ignore any objects at the start of the collection that have
-			// not changed position. Optimises for case where we're pushing
-			// things on the end.
+			// not changed position. Optimises for the common case where we're
+			// pushing things on the end.
 			while(cache[++n] && cache[n] === collection[n]);
 			--n;
+
+			var changed = false;
 
 			// Loop through the collection, recaching objects and creating
 			// sparkies where needed.
 			while(++n < l) {
+				// While nothing has changed, do nothing
+				if (!changed && cache[n] === collection[n]) {
+					continue;
+				}
+				else {
+					changed = true;
+				}
+
 				object = cache[n] = collection[n];
 				removeScheduled(object);
 
-				// KEEP AN EYE ON THIS!!!
-				// It used to be that we created a standalone sparky, not a child
-				// sparky. As in:
-				//
-				// create(sparky, clone.cloneNode(true), object, fns);
-				//
-				// This seems to have changed when we converted to streams.
-				// I'm no longer clear why...
+				sparkies[n] = rejects.get(object);
 
-				sparkies[n] = map[n] || rejects.get(object) || sparky.create(clone.cloneNode(true), object, fns);
+				Sparky.log('sparky for object');
+				if (sparkies[n]) {
+					Sparky.log('    ...found in rejects')
+					rejects.delete(object);
+				}
+				else {
+					sparkies[n] = map[n] || sparky.create(clone.cloneNode(true), object, fns);
+				}
 
+				// If node before placeholder is a leftover reject
+				if (placeholder.previousSibling === sparkies[n][0]) {
+					Sparky.log('    ...already in DOM position', sparkies[n][0]);
+					continue;
+				}
 
 				// We are in an animation frame. Go ahead and manipulate the DOM.
 				DOM.before(placeholder, sparkies[n][0]);
@@ -128,7 +125,12 @@
 			clearTimeout(timer);
 			timer = setTimeout(function() {
 				scheduled.forEach(function(object) {
-					rejects.get(object).destroy();
+					var sparky = rejects.get(object);
+					// Todo: This should not occur. Object must be in rejects
+					// at this point. but it is occurring. Find out what is
+					// wrong.
+					if (!sparky) { return; }
+					sparky.destroy();
 					rejects.delete(object);
 				});
 				scheduled.length = 0;
