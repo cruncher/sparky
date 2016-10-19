@@ -115,7 +115,7 @@
 				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
 				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
 			};
-			
+
 			return function formatDate(value, format, lang) {
 				if (!value) { return; }
 
