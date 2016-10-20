@@ -14,11 +14,11 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'modules/jquery/jquery-2.1.1.js',
-      'modules/object.assign/object.assign.js',
-      'modules/polyfills/number.isnan.js',
-      'modules/polyfills/math.log10.js',
-      'modules/polyfills/window.customevent.js',
-      'modules/polyfills/window.requestanimationframe.js',
+      'modules/fn/polyfills/object.assign.js',
+      'modules/fn/polyfills/number.isnan.js',
+      'modules/fn/polyfills/math.log10.js',
+      'modules/fn/polyfills/window.customevent.js',
+      'modules/fn/polyfills/window.requestanimationframe.js',
       'modules/fn/js/fn.js',
       'modules/fn/js/events.js',
       'modules/collection/js/observe.js',

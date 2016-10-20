@@ -96,21 +96,26 @@ if (!Math.log10) {
 
 
 // window.CustomEvent polyfill
+// http://caniuse.com/#search=customevent
 
-(function(window, undefined) {
+(function(window) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
 	if (window.console) { console.log('Polyfill: CustomEvent'); }
 
-	window.CustomEvent = function CustomEvent(event, params) {
-		params = params || { bubbles: false, cancelable: false, detail: undefined };
+	var Event = window.Event;
+	var defaults = { bubbles: false, cancelable: false, detail: undefined };
+
+	function CustomEvent(event, params) {
+		params = params || defaults;
 		
 		var e = document.createEvent('CustomEvent');
 		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
 		
 		return e;
 	};
-	
-	window.CustomEvent.prototype = window.Event.prototype;
+
+	CustomEvent.prototype = Event.prototype;
+	window.CustomEvent = CustomEvent;
 })(window);
 
 // window.requestAnimationFrame polyfill
@@ -154,26 +159,13 @@ if (!Math.log10) {
 (function(window) {
 	"use strict";
 
-	var debug = true;
-
 
 	// Import
 
-	var Symbol = window.Symbol;
 	var A = Array.prototype;
-	var F = Function.prototype;
 	var N = Number.prototype;
 	var O = Object.prototype;
 	var S = String.prototype;
-
-
-	// Polyfill
-
-	if (!Math.log10) {
-		Math.log10 = function log10(n) {
-			return Math.log(n) / Math.LN10;
-		};
-	}
 
 
 	// Define
@@ -199,8 +191,23 @@ if (!Math.log10) {
 		return fn.length === 2;
 	})();
 
+	function setFunctionProperties(string, parity, fn1, fn2) {
+		// Make the string representation of this function equivalent to fn
+		fn2.toString = function() {
+			return /function\s*[\w\d]*\s*\([,\w\d\s]*\)/.exec(fn1.toString()) + ' { [' + string + '] }';
+		};
+
+		// Where possible, define length so that curried functions show how
+		// many arguments they are yet expecting
+		if (isFunctionLengthDefineable) {
+			Object.defineProperty(fn2, 'length', { value: parity });
+		}
+	}
+
 
 	// Functional functions
+
+	var loggers = [];
 
 	function noop() {}
 
@@ -210,21 +217,29 @@ if (!Math.log10) {
 		return fn();
 	}
 
-	function compose(fn1, fn2) {
-		return function composed(n) { return fn1(fn2(n)); }
+	function invoke(n, fn) {
+		return fn(n);
+	}
+
+	function compose(fn2, fn1) {
+		return function composed(n) {
+			return fn2(fn1(n));
+		};
 	}
 
 	function pipe() {
 		var a = arguments;
-		return function pipe(n) { return A.reduce.call(a, call, n); }
+		return function piped(n) {
+			return A.reduce.call(a, invoke, n);
+		};
 	}
 
-	function memoize(fn) {
+	function cache(fn) {
 		var map = new Map();
 
-		return function memoized(object) {
+		function cached(object) {
 			if (arguments.length !== 1) {
-				throw new Error('Fn: Memoized function called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+				throw new Error('Fn: Cached function called with ' + arguments.length + ' arguments. Accepts exactly 1.');
 			}
 
 			if (map.has(object)) {
@@ -234,7 +249,13 @@ if (!Math.log10) {
 			var result = fn(object);
 			map.set(object, result);
 			return result;
-		};
+		}
+
+		if (Fn.debug) {
+			setFunctionProperties('cached function', 1, fn, cached);
+		}
+
+		return cached;
 	}
 
 	function curry(fn, parity) {
@@ -256,44 +277,75 @@ if (!Math.log10) {
 				}, parity - a.length) ;
 		};
 
-		// For debugging
-		// Make the string representation of this function equivalent to fn
-		if (debug) {
-			//curried.toString = function() { return fn.toString(); };
-
-		 	// Where possible, define length so that curried functions show how
-		 	// many arguments they are yet expecting
-			if (isFunctionLengthDefineable) {
-				Object.defineProperty(curried, 'length', { value: parity });
-			}
+		if (Fn.debug) {
+			setFunctionProperties('curried function', parity, fn, curried);
 		}
 
 		return curried;
 	}
 
-//	function curry(fn, parity) {
-//		// A slightly stricter version of .curry() that caches curried results
-//		parity = parity || fn.length;
+	function cacheCurry(fn, parity) {
+		parity = parity || fn.length;
+
+		if (parity < 2) { return cache(fn); }
+
+		var memo = cache(function partial(object) {
+			return cacheCurry(function() {
+				var params = [object];
+				A.push.apply(params, arguments);
+				return fn.apply(null, params);
+			}, parity - 1) ;
+		});
+
+		// For convenience, allow curried functions to be called as:
+		// fn(a, b, c)
+		// fn(a)(b)(c)
+		// fn(a, b)(c)
+		function curried() {
+			return arguments.length > 1 ?
+				memo(arguments[0]).apply(null, A.slice.call(arguments, 1)) :
+				memo(arguments[0]) ;
+		}
+
+		if (Fn.debug) {
+			setFunctionProperties('cached and curried function', parity, fn, curried);
+		}
+
+		return curried;
+	}
+
+//	function overloadByLength(object) {
+//		return function distribute() {
+//			var length = arguments.length;
+//			var fn = object[length] || object.default;
 //
-//		if (parity < 2) { return memoize(fn); }
+//			if (fn) {
+//				return fn.apply(this, arguments);
+//			}
 //
-//		var memo = memoize(function partial(object) {
-//			return curry(function() {
-//				var params = [object];
-//				A.push.apply(params, arguments);
-//				return fn.apply(null, params);
-//			}, parity - 1) ;
-//		});
-//
-//		// For convenience, allow curried functions to be called as:
-//		// fn(a, b, c)
-//		// fn(a)(b)(c)
-//		// fn(a, b)(c)
-//		return function curried() {
-//			return arguments.length > 1 ?
-//				memo(arguments[0]).apply(null, A.slice.call(arguments, 1)) :
-//				memo(arguments[0]) ;
-//		};
+//			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
+//			return this;
+//		}
+//	}
+
+
+	// Array functions
+
+	function sortedSplice(array, fn, value) {
+		// Splices value into array at position determined by result of fn,
+		// where result is either in the range [-1, 0, 1] or [true, false]
+		var n = array.length;
+		while (n-- && fn(array[n], value) > 0);
+		array.splice(++n, 0, value);
+	}
+
+//	function shiftSparse(array) {
+//		// Shift values, ignoring undefined
+//		var value;
+//		while (array.length && value === undefined) {
+//			value = array.shift();
+//		}
+//		return value;
 //	}
 
 
@@ -301,8 +353,7 @@ if (!Math.log10) {
 
 	var rpathtrimmer = /^\[|\]$/g;
 	var rpathsplitter = /\]?(?:\.|\[)/g;
-	var rpropselector = /(\w+)\=(\w+)/;
-	var map = [];
+	var rpropselector = /(\w+)=(\w+)/;
 
 	function isObject(obj) { return obj instanceof Object; }
 
@@ -342,7 +393,6 @@ if (!Math.log10) {
 
 	function objTo(root, array, value) {
 		var key = array.shift();
-		var object;
 
 		if (array.length === 0) {
 			Fn.set(key, value, root);
@@ -360,7 +410,7 @@ if (!Math.log10) {
 	// String types
 
 	var regex = {
-		url:       /^(?:\/|https?\:\/\/)(?:[!#$&-;=?-~\[\]\w]|%[0-9a-fA-F]{2})+$/,
+		url:       /^(?:\/|https?:\/\/)(?:[!#$&-;=?-~\[\]\w]|%[0-9a-fA-F]{2})+$/,
 		//url:       /^([a-z][\w\.\-\+]*\:\/\/)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,6}/,
 		email:     /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i,
 		date:      /^\d{4}-(?:0[1-9]|1[012])-(?:0[1-9]|[12][0-9]|3[01])$/,
@@ -378,6 +428,8 @@ if (!Math.log10) {
 
 
 	// Throttle
+
+	// Returns a function 
 
 	var requestAnimationFrame = window.requestAnimationFrame;
 
@@ -423,8 +475,17 @@ if (!Math.log10) {
 
 	function Throttle(fn, time) {
 		var request = time ?
-			createRequestTimerFrame(time) :
+			createRequestTimerFrame(time * 1000) :
 			requestAnimationFrame ;
+
+		var queue = function() {
+			// Don't queue update if it's already queued
+			if (queued) { return; }
+			queued = true;
+
+			// Queue update
+			request(update);
+		};
 
 		var queued, context, a;
 
@@ -444,15 +505,6 @@ if (!Math.log10) {
 			fn = noop;
 		}
 
-		function queue() {
-			// Don't queue update if it's already queued
-			if (queued) { return; }
-			queued = true;
-
-			// Queue update
-			request(update);
-		}
-
 		function throttle() {
 			// Store the latest context and arguments
 			context = this;
@@ -467,6 +519,48 @@ if (!Math.log10) {
 	}
 
 
+	// Hold
+
+	// Returns a function that waits for `time` seconds without being called
+	// before calling fn with the latest context and arguments.
+
+	function Hold(fn, time) {
+		var timer;
+
+		var queue = function() {
+			clearTimeout(timer);
+			// Set time in milliseconds
+			timer = setTimeout(update, (time || 0) * 1000);
+		};
+
+		var context, a;
+
+		function update() {
+			fn.apply(context, a);
+		}
+
+		function cancel() {
+			// Don't permit further changes to be queued
+			queue = noop;
+
+			// If there is an update queued apply it now
+			clearTimeout(timer);
+		}
+
+		function hold() {
+			// Store the latest context and arguments
+			context = this;
+			a = arguments;
+
+			// Queue the update
+			queue();
+		}
+
+		hold.cancel = cancel;
+		return hold;
+	}
+
+
 	// Fn
 
 	function Fn(fn) {
@@ -475,29 +569,52 @@ if (!Math.log10) {
 		}
 
 		var source = this;
+		var buffer, n;
 
 		if (!fn) {
-			fn = noop;
+			this.shift = noop;
+			return;
+		}
+
+		if (typeof fn === "function") {
+			this.shift = fn;
+			return;
+		}
+
+		// fn is an object with a shift function
+		if (typeof fn.shift === "function" && fn.length === undefined) {
+			this.shift = function shift() {
+				var value = fn.shift();
+				if (fn.status === "done") { source.status = 'done'; }
+				return value;
+			};
+			return;
 		}
 
 		// fn is an iterator
-		else if (typeof fn.next === "function") {
-			fn = function shift() {
-				var result = iterator.next();
+		if (typeof fn.next === "function") {
+			this.shift = function shift() {
+				var result = fn.next();
 				if (result.done) { source.status = 'done'; }
 				return result.value;
 			};
+			return;
+		}
+
+		// fn is an arguments object, maybe from Fn.of()
+		if (Fn.toClass(fn) === "Arguments") {
+			n = -1;
+			this.shift = function shift() {
+				return fn[++n];
+			};
+			return;
 		}
 
 		// fn is an array or array-like object
-		else {
-			var buffer = A.slice.apply(fn);
-			fn = function shift() {
-				return buffer.shift();
-			};
-		}
-
-		this.shift = fn;
+		buffer = A.slice.apply(fn);
+		this.shift = function shift() {
+			return buffer.shift();
+		};
 	}
 
 	Object.assign(Fn.prototype, {
@@ -519,7 +636,7 @@ if (!Math.log10) {
 
 		ap: function ap(object) {
 			var fn = this.shift();
-			if (value === undefined) { return; }
+			if (fn === undefined) { return; }
 			return object.map(fn);
 		},
 
@@ -535,6 +652,36 @@ if (!Math.log10) {
 			return this.create(function filter() {
 				var value;
 				while ((value = source.shift()) !== undefined && !fn(value));
+				return value;
+			});
+		},
+
+		syphon: function(fn) {
+			var shift   = this.shift;
+			var buffer1 = [];
+			var buffer2 = [];
+
+			this.shift = function() {
+				if (buffer1.length) { return buffer1.shift(); }
+
+				var value;
+
+				while ((value = shift()) !== undefined && fn(value)) {
+					buffer2.push(value);
+				}
+
+				return value;
+			};
+
+			return this.create(function filter() {
+				if (buffer2.length) { return buffer2.shift(); }
+
+				var value;
+
+				while ((value = shift()) !== undefined && !fn(value)) {
+					buffer1.push(value);
+				}
+
 				return value;
 			});
 		},
@@ -572,25 +719,26 @@ if (!Math.log10) {
 
 				if (value === undefined) {
 					value = object.shift();
-				};
+				}
 
 				return value;
 			});
 		},
 
 		sort: function(fn) {
-			var source = this;
-			var array = empty;
-
 			fn = fn || Fn.byGreater ;
 
-			// Todo: this will fail in a Stream if values are pushed.
+			var source = this;
+			var buffer = [];
+
 			return this.create(function sort() {
-				if (array.length === 0) {
-					array = source.toArray().sort(fn);
+				var value;
+
+				while((value = source.shift()) !== undefined) {
+					sortedSplice(buffer, fn, value);
 				}
 
-				return array.shift();
+				return buffer.shift();
 			});
 		},
 
@@ -638,24 +786,25 @@ if (!Math.log10) {
 
 			return this.create(function split() {
 				var value = source.shift();
-				var b;
+				var temp;
 
-				if (value === undefined) { return; }
+				if (value === undefined) {
+					if (buffer.length) {
+						temp = buffer;
+						buffer = [];
+						return temp;
+					}
+
+					return;
+				}
 
 				if (fn(value)) {
-					b = buffer;
-					buffer = [];
-					return b;
+					temp = buffer;
+					buffer = [value];
+					return temp.length ? temp : split() ;
 				}
 
 				buffer.push(value);
-
-				if (source.status === 'done') {
-					b = buffer;
-					buffer = [];
-					return b;
-				}
-
 				return split();
 			});
 		},
@@ -667,7 +816,7 @@ if (!Math.log10) {
 			return this.create(n ?
 				// If n is defined batch into arrays of length n.
 				function nextBatchN() {
-					var value;
+					var value, _buffer;
 
 					while (buffer.length < n) {
 						value = source.shift();
@@ -676,7 +825,7 @@ if (!Math.log10) {
 					}
 
 					if (buffer.length >= n) {
-						var _buffer = buffer;
+						_buffer = buffer;
 						buffer = [];
 						return Fn.of.apply(Fn, _buffer);
 					}
@@ -763,10 +912,12 @@ if (!Math.log10) {
 			});
 		},
 
-		scan: function(fn) {
-			var i = 0, total = 0;
+		scan: function(fn, seed) {
+			// seed defaults to 0
+			seed = arguments.length > 1 ? seed : 0 ;
+			var i = 0;
 			return this.map(function scan(value) {
-				return (total = fn(total, value, i++));
+				return (seed = fn(seed, value, i++));
 			});
 		},
 
@@ -796,11 +947,11 @@ if (!Math.log10) {
 
 		// Output
 
-		// Fn is an iterator
 		next: function() {
+			var value = this.shift();
 			return {
-				done: this.status === 'done',
-				value: this.shift()
+				done: value === undefined,
+				value: value
 			};
 		},
 
@@ -818,8 +969,31 @@ if (!Math.log10) {
 			return stream;
 		},
 
+		clone: function() {
+			var shift = this.shift;
+			var buffer1 = [];
+			var buffer2 = [];
+
+			function fill() {
+				var value = shift();
+				if (value === undefined) { return; }
+				buffer1.push(value);
+				buffer2.push(value);
+			}
+
+			this.shift = function() {
+				if (!buffer1.length) { fill(); }
+				return buffer1.shift();
+			};
+
+			return this.create(function clone() {
+				if (!buffer2.length) { fill(); }
+				return buffer2.shift();
+			});
+		},
+
 		tap: function(fn) {
-			// Overwrite next to copy values to tap fn
+			// Overwrite shift to copy values to tap fn
 			this.shift = Fn.compose(function(value) {
 				if (value !== undefined) { fn(value); }
 				return value;
@@ -876,32 +1050,33 @@ if (!Math.log10) {
 		}
 	});
 
-	if (Symbol) {
+	Fn.prototype.toArray = Fn.prototype.toJSON;
+
+	if (window.Symbol) {
 		Fn.prototype[Symbol.iterator] = function() {
 			return this;
 		};
 	}
 
-	Fn.prototype.toArray = Fn.prototype.toJSON;
-
 	Object.assign(Fn, {
+		debug: false,
+
 		of: function of() {
-			var a = arguments;
 			return new this(arguments);
 		},
 
-		empty:    empty,
-		noop:     noop,
-		id:       id,
-		call:     call,
-		memoize:  memoize,
-		curry:    curry,
-		compose:  compose,
-		pipe:     pipe,
+		empty:      empty,
+		noop:       noop,
+		id:         id,
+		cache:      cache,
+		curry:      curry,
+		cacheCurry: cacheCurry,
+		compose:    compose,
+		pipe:       pipe,
 
-		is: curry(function is(a, b) {
-			return a === b;
-		}),
+		returnThis: function() { return this; },
+
+		is: curry(function is(a, b) { return a === b; }),
 
 		equals: curry(function equals(a, b) {
 			// Fast out if references are for the same object.
@@ -925,6 +1100,8 @@ if (!Math.log10) {
 			return true;
 		}),
 
+		isGreater: curry(function byGreater(a, b) { return b > a ; }),
+
 		by: curry(function by(property, a, b) {
 			return Fn.byGreater(a[property], b[property]);
 		}),
@@ -937,14 +1114,12 @@ if (!Math.log10) {
 			return S.localeCompare.call(a, b);
 		}),
 
-		assign: curry(function assign(obj1, obj2) {
-			return Object.assign(obj1, obj2);
-		}),
+		assign: curry(Object.assign, 2),
 
 		get: curry(function get(key, object) {
-			return typeof object.get === "function" ?
+			return object && (typeof object.get === "function" ?
 				object.get(key) :
-				object[key] ;
+				object[key]) ;
 		}),
 
 		set: curry(function set(key, value, object) {
@@ -954,10 +1129,10 @@ if (!Math.log10) {
 		}),
 
 		getPath: curry(function get(path, object) {
-			return object.get ? object.get(path) :
+			return object && (object.get ? object.get(path) :
 				typeof path === 'number' ? object[path] :
 				path === '' || path === '.' ? object :
-				objFrom(object, splitPath(path)) ;
+				objFrom(object, splitPath(path))) ;
 		}),
 
 		setPath: curry(function set(path, value, object) {
@@ -1000,6 +1175,12 @@ if (!Math.log10) {
 			return fn ? throttle(fn) : throttle ;
 		},
 
+		requestTick: (function(promise) {
+			return function(fn) {
+				promise.then(fn);
+			};
+		})(Promise.resolve()),
+
 		entries: function(object){
 			return typeof object.entries === 'function' ?
 				object.entries() :
@@ -1009,6 +1190,7 @@ if (!Math.log10) {
 		keys: function(object){
 			return typeof object.keys === 'function' ?
 				object.keys() :
+
 				/* Don't use Object.keys(), it returns an array,
 				   not an iterator. */
 				A.keys.apply(object) ;
@@ -1033,11 +1215,76 @@ if (!Math.log10) {
 		reduce:      curry(function reduce(fn, n, object) { return object.reduce ? object.reduce(fn, n) : A.reduce.call(object, fn, n); }),
 		slice:       curry(function slice(n, m, object) { return object.slice ? object.slice(n, m) : A.slice.call(object, n, m); }),
 		sort:        curry(function sort(fn, object) { return object.sort ? object.sort(fn) : A.sort.call(object, fn); }),
-
-		push: curry(function push(value, object) {
+		push:        curry(function push(value, object) {
 			(object.push || A.push).call(object, value);
 			return object;
 		}),
+
+		intersect: curry(function intersect(arr1, arr2) {
+			// A fast intersect that assumes arrays are sorted (ascending) numbers.
+			var l1 = arr1.length, l2 = arr2.length,
+			    i1 = 0, i2 = 0,
+			    arr3 = [];
+		
+			while (i1 < l1 && i2 < l2) {
+				if (arr1[i1] === arr2[i2]) {
+					arr3.push(arr1[i1]);
+					++i1;
+					++i2;
+				}
+				else if (arr2[i2] > arr1[i1]) {
+					++i1;
+				}
+				else {
+					++i2;
+				}
+			}
+		
+			return arr3;
+		}),
+
+		diff: curry(function(arr1, arr2) {
+			// A fast diff that assumes arrays are sorted (ascending) numbers.
+			var l1 = arr1.length, l2 = arr2.length,
+			    i1 = 0, i2 = 0,
+			    arr3 = [], n;
+		
+			while (i1 < l1) {
+				while (i2 < l2 && arr1[i1] > arr2[i2]) {
+					arr3.push(arr2[i2]);
+					++i2;
+				}
+		
+				if (arr1[i1] !== arr2[i2]) {
+					arr3.push(arr1[i1]);
+				}
+		
+				n = arr1[i1];
+				while (n === arr1[i1] && ++i1 < l1);
+				while (n === arr2[i2] && ++i2 < l2);
+			}
+		
+			while (i2 < l2) {
+				arr3.push(arr2[i2]);
+				++i2;
+			}
+		
+			return arr3;
+		}),
+	
+		unite: curry(function unite(arr1, arr2) {
+			return arr1.concat(arr2).filter(unique).sort(greater);
+		}),
+
+		//range: function(arr) {
+		//	return 	Math.max.apply(null, arr) - Math.min.apply(null, arr);
+		//},
+
+		randomGaussian: function randomGaussian(n) {
+			// Returns a random number with a bell curve probability centred
+			// around 0 with limits -n to n.
+			return n * (Math.random() + Math.random() - 1);
+		},
 
 		add:         curry(function add(a, b) { return b + a; }),
 		multiply:    curry(function multiply(a, b) { return b * a; }),
@@ -1045,14 +1292,33 @@ if (!Math.log10) {
 		pow:         curry(function pow(a, b) { return Math.pow(b, a); }),
 		min:         curry(function min(a, b) { return a > b ? b : a ; }),
 		max:         curry(function max(a, b) { return a < b ? b : a ; }),
+		// conflicting properties not allowed in strict mode
+		// log:         curry(function log(base, n) { return Math.log(n) / Math.log(base); }),
+		nthRoot:     curry(function nthRoot(n, x) { return Math.pow(x, 1/n); }),
+
+		gcd: function gcd(a, b) {
+			// Greatest common divider
+			return b ? gcd(b, a % b) : a ;
+		},
+
+		lcm: function lcm(a, b) {
+			// Lowest common multiple.
+			return a * b / Fn.gcd(a, b);
+		},
+
+		factorise: function factorise(n, d) {
+			// Reduce a fraction by finding the Greatest Common Divisor and
+			// dividing by it.
+			var f = Fn.gcd(n, d);
+			return [n/f, d/f];
+		},
+
 		normalise:   curry(function normalise(min, max, value) { return (value - min) / (max - min); }),
 		denormalise: curry(function denormalise(min, max, value) { return value * (max - min) + min; }),
 		toFixed:     curry(function toFixed(n, value) { return N.toFixed.call(value, n); }),
-
-		rangeLog: curry(function rangeLog(min, max, n) {
-			return Fn.denormalise(min, max, Math.log(value / min) / Math.log(max / min))
+		rangeLog:    curry(function rangeLog(min, max, n) {
+			return Fn.denormalise(min, max, Math.log(n / min) / Math.log(max / min))
 		}),
-
 		rangeLogInv: curry(function rangeLogInv(min, max, n) {
 			return min * Math.pow(max / min, Fn.normalise(min, max, n));
 		}),
@@ -1143,24 +1409,13 @@ if (!Math.log10) {
 			);
 		},
 
-		log: function(text, object) {
+		log: curry(function(text, object) {
 			console.log(text, object);
-			return x;
-		}
+			return object;
+		})
 	});
 
 	// Stream
-
-	function arrayNext(array) {
-		var value;
-
-		// Shift values out ignoring undefined
-		while (array.length && value === undefined) {
-			value = array.shift();
-		}
-
-		return value;
-	}
 
 	function Stream(setup) {
 		// Enable calling Stream without the new keyword.
@@ -1197,7 +1452,7 @@ if (!Math.log10) {
 			var source = this;
 			return this.create(function ap() {
 				var fn = source.shift();
-				if (value === undefined) { return; }
+				if (fn === undefined) { return; }
 				return object.map(fn);
 			});
 		},
@@ -1239,7 +1494,6 @@ if (!Math.log10) {
 
 		concatParallel: function() {
 			var source = this;
-			var object;
 			var order = [];
 
 			function bind(object) {
@@ -1392,6 +1646,7 @@ if (!Math.log10) {
 		});
 	}
 
+
 	// BufferStream
 
 	function BufferStream(object) {
@@ -1451,30 +1706,106 @@ if (!Math.log10) {
 	PromiseStream.of = Stream.of;
 
 
+	// Pool
+
+//	function pool(Constructor, isIdle) {
+//		if (!Constructor.reset) {
+//			throw new Error('Fn: Fn.pool(constructor) - constructor must have a .reset() function');
+//		}
+//	
+//		var store = [];
+//
+//		function log() {
+//			var total = store.length;
+//			var idle = store.filter(isIdle).length;
+//
+//			return {
+//				name:   Constructor.name,
+//				total:  total,
+//				active: total - idle,
+//				idle:   idle
+//			};
+//		}
+//	
+//		// Todo: This is bad! It keeps a reference to the pools hanging around,
+//		// accessible from the global scope, so even if the pools are forgotten
+//		// they are never garbage collected!
+//		loggers.push(log);
+//	
+//		return function Pooled() {
+//			var object = store.find(isIdle);
+//	
+//			if (object) {
+//				Constructor.reset.apply(object, arguments);
+//			}
+//			else {
+//				object = Object.create(Constructor.prototype);
+//				Constructor.apply(object, arguments);
+//				store.push(object);
+//			}
+//	
+//			return object;
+//		};
+//	}
+//
+//	pool.snapshot = function() {
+//		return Fn(loggers).map(call).toJSON();
+//	};
+
+	function Pool(options, prototype) {
+		var create = options.create || Fn.noop;
+		var reset  = options.reset  || Fn.noop;
+		var isIdle = options.isIdle;
+		var store = [];
+
+		function log() {
+			var total = store.length;
+			var idle = store.filter(isIdle).length;
+			return {
+				name:   options.name,
+				total:  total,
+				active: total - idle,
+				idle:   idle
+			};
+		}
+	
+		// Todo: This is bad! It keeps a reference to the pools hanging around,
+		// accessible from the global scope, so even if the pools are forgotten
+		// they are never garbage collected!
+		loggers.push(log);
+
+		return function PooledObject() {
+			var object = store.find(isIdle);
+
+			if (!object) {
+				object = Object.create(prototype || null);
+				create.apply(object, arguments);
+				store.push(object);
+			}
+
+			reset.apply(object, arguments);
+			return object;
+		};
+	}
+
+	Pool.snapshot = function() {
+		return Fn(loggers).map(call).toJSON();
+	};
+
+
 	// Export
 
 	Object.assign(Fn, {
-		Functor: function functorWarning() {
-			// Legacy warning
-			console.warn('Fn: new Fn.Functor() is deprecated. Use new Fn().');
-			return Fn.apply(Fn, arguments);
-		},
-
+		Pool:          Pool,
 		Throttle:      Throttle,
+		Hold:          Hold,
 		Stream:        Stream,
 		ValueStream:   ValueStream,
 		BufferStream:  BufferStream,
 		PromiseStream: PromiseStream
 	});
 
-	Fn.Functor.of = function() {
-		// Legacy warning
-		console.warn('Fn: Fn.Functor.of() is deprecated. Use Fn.of().');
-		return Fn.of.apply(Fn, arguments);
-	};
-
 	window.Fn = Fn;
-
 })(this);
 
 
@@ -1511,6 +1842,8 @@ if (!Math.log10) {
 
 (function(window) {
 	"use strict";
+
+	var Fn = window.Fn;
 
 	var mixin = window.mixin || (window.mixin = {});
 	var eventObject = {};
@@ -1630,7 +1963,7 @@ if (!Math.log10) {
 				return this;
 			}
 
-			while (type = types.shift()) {
+			while (type = types.shift()) { // eslint-disable-line no-cond-assign
 				// If the event has no listener queue, create.
 				if (!events[type]) {
 					events[type] = [];
@@ -1647,7 +1980,7 @@ if (!Math.log10) {
 		// with that function. If `callback` is null, removes all callbacks for the
 		// event. If `events` is null, removes all bound callbacks for all events.
 		off: function(types, fn) {
-			var type, calls, list, listeners, n;
+			var type, listeners, n;
 
 			// If no arguments passed in, unbind everything.
 			if (arguments.length === 0) {
@@ -1683,7 +2016,7 @@ if (!Math.log10) {
 				types = Object.keys(this.listeners);
 			}
 
-			while (type = types.shift()) {
+			while (type = types.shift()) { // eslint-disable-line no-cond-assign
 				listeners = this.listeners[type];
 
 				if (!listeners) { continue; }
@@ -1713,7 +2046,7 @@ if (!Math.log10) {
 			// Copy delegates. We may be about to mutate the delegates list.
 			var delegates = getDelegates(this).slice();
 			var args = slice(arguments);
-			var type, target, i, l, params, result;
+			var type, target, i, l;
 
 			if (typeof e === 'string') {
 				type = e;
@@ -2610,14 +2943,14 @@ if (!Math.log10) {
 	var rurljson = /\/\S*\.json$/;
 
 
-	// Utilities
+	// Functions
 
-	var noop      = Fn.noop;
-	var isDefined = Fn.isDefined;
+	var noop       = Fn.noop;
+	var isDefined  = Fn.isDefined;
+	var returnThis = Fn.returnThis;
 
 	function call(fn) { fn(); }
 
-	function returnThis() { return this; }
 
 	// Debug
 
@@ -2970,7 +3303,7 @@ if (!Math.log10) {
 
 		// Setup this as a Collection of nodes. Where node is a document
 		// fragment, assign all it's children to sparky collection.
-		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
+		Collection.call(this, [node]);
 
 		// If fn is to be called and a stream is returned, we use that.
 		var outstream = fn ? fn.call(sparky, node, instream) : instream ;
@@ -4988,25 +5321,6 @@ if (!Math.log10) {
 	// destroying those sparkies.
 	var destroyDelay = 8000;
 
-	//function create(boss, node, scope, fn) {
-	//	// Create a dependent sparky without delegating scope
-	//	var sparky = Sparky(node, scope, fn, this);
-	//
-	//	function delegateDestroy() { sparky.destroy(); }
-	//	function delegateRender(self) { sparky.render(); }
-	//
-	//	// Bind events
-	//	boss
-	//	.on('destroy', delegateDestroy)
-	//	.on('render', delegateRender);
-	//
-	//	return sparky.on('destroy', function() {
-	//		boss
-	//		.off('destroy', delegateDestroy)
-	//		.off('render', delegateRender);
-	//	});
-	//}
-
 	function createPlaceholder(node) {
 		if (!Sparky.debug) { return DOM.create('text', ''); }
 
@@ -5025,10 +5339,11 @@ if (!Math.log10) {
 		var cache    = [];
 
 		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
-		// keys, and a Sparky scope may be a number or a string, although that
+		// keys, and a Sparky scope may be a number or a string - although that
 		// is unusual and perhaps we should ban it.
 		var rejects  = new Map();
 		var scheduled = [];
+
 		var clone    = node.cloneNode(true);
 		var fns      = this.interrupt();
 		var placeholder = createPlaceholder(node);
@@ -5053,8 +5368,8 @@ if (!Math.log10) {
 				i = collection.indexOf(object);
 
 				if (i === -1) {
-					DOM.remove(sparkies[l][0]);
 					rejects.set(object, sparkies[l]);
+					DOM.remove(sparkies[l][0]);
 					scheduled.push(object);
 				}
 				else {
@@ -5065,28 +5380,43 @@ if (!Math.log10) {
 			l = sparkies.length = cache.length = collection.length;
 
 			// Ignore any objects at the start of the collection that have
-			// not changed position. Optimises for case where we're pushing
-			// things on the end.
+			// not changed position. Optimises for the common case where we're
+			// pushing things on the end.
 			while(cache[++n] && cache[n] === collection[n]);
 			--n;
+
+			var changed = false;
 
 			// Loop through the collection, recaching objects and creating
 			// sparkies where needed.
 			while(++n < l) {
+				// While nothing has changed, do nothing
+				if (!changed && cache[n] === collection[n]) {
+					continue;
+				}
+				else {
+					changed = true;
+				}
+
 				object = cache[n] = collection[n];
 				removeScheduled(object);
 
-				// KEEP AN EYE ON THIS!!!
-				// It used to be that we created a standalone sparky, not a child
-				// sparky. As in:
-				//
-				// create(sparky, clone.cloneNode(true), object, fns);
-				//
-				// This seems to have changed when we converted to streams.
-				// I'm no longer clear why...
+				sparkies[n] = rejects.get(object);
 
-				sparkies[n] = map[n] || rejects.get(object) || sparky.create(clone.cloneNode(true), object, fns);
+				Sparky.log('sparky for object');
+				if (sparkies[n]) {
+					Sparky.log('    ...found in rejects')
+					rejects.delete(object);
+				}
+				else {
+					sparkies[n] = map[n] || sparky.create(clone.cloneNode(true), object, fns);
+				}
 
+				// If node before placeholder is a leftover reject
+				if (placeholder.previousSibling === sparkies[n][0]) {
+					Sparky.log('    ...already in DOM position', sparkies[n][0]);
+					continue;
+				}
 
 				// We are in an animation frame. Go ahead and manipulate the DOM.
 				DOM.before(placeholder, sparkies[n][0]);
@@ -5106,7 +5436,12 @@ if (!Math.log10) {
 			clearTimeout(timer);
 			timer = setTimeout(function() {
 				scheduled.forEach(function(object) {
-					rejects.get(object).destroy();
+					var sparky = rejects.get(object);
+					// Todo: This should not occur. Object must be in rejects
+					// at this point. but it is occurring. Find out what is
+					// wrong.
+					if (!sparky) { return; }
+					sparky.destroy();
 					rejects.delete(object);
 				});
 				scheduled.length = 0;
@@ -5540,7 +5875,7 @@ if (!Math.log10) {
 				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
 				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
 			};
-			
+
 			return function formatDate(value, format, lang) {
 				if (!value) { return; }
 
