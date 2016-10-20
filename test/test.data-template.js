@@ -64,7 +64,7 @@ module('Sparky:templates 3', function(fixture) {
 	};
 
 	asyncTest('Sparky should run fns on top-level elements in templates', function() {
-		expect(1);
+		expect(2);
 
 		var sparky = Sparky('#test-template', {});
 
@@ -75,6 +75,7 @@ module('Sparky:templates 3', function(fixture) {
 }, function() {/*
 
 <template id="test-template">
+	<p data-fn="do-something">My God, it's full of stars.</p>
 	<p data-fn="do-something">My God, it's full of stars.</p>
 </template>
 
