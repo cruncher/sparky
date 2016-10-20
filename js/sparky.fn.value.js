@@ -4,38 +4,15 @@
 	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var parseName = Sparky.parseName;
+	var noop   = Fn.noop;
 	var stringToInt = Sparky.stringToInt;
 	var stringToFloat = Sparky.stringToFloat;
 	var stringToBool = Sparky.stringToBool ;
 	var stringOnToBool = Sparky.stringOnToBool;
 	var definedToString = Sparky.definedToString;
-	var intToString = Sparky.intToString;
 	var floatToString = Sparky.floatToString;
 	var boolToString = Sparky.boolToString;
 	var boolToStringOn = Sparky.boolToStringOn;
-
-	function noop() {}
-
-	function stringToBoolInverted(value) {
-		return !stringToBool(value);
-	}
-
-	function stringOnToBoolInverted(value) {
-		return value !== 'on';
-	}
-
-	function boolToStringInverted(value) {
-		return typeof value === 'boolean' ? !value + '' :
-			typeof value === 'number' ? !value + '' :
-			undefined ;
-	}
-
-	function boolToStringOnInverted(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? '' : 'on' :
-			undefined ;
-	}
 
 	// Controllers
 
@@ -105,8 +82,10 @@
 		function from(value) {
 			if (array === undefined) { array = Collection(); }
 
+			var i;
+
 			if (value === undefined) {
-				var i = array.indexOf(node.value);
+				i = array.indexOf(node.value);
 				if (i !== -1) { array.splice(i, 1); }
 			}
 			else if (array.indexOf(value) === -1) {
@@ -135,8 +114,10 @@
 		function from(value) {
 			if (array === undefined) { array = Collection(); }
 
+			var i;
+
 			if (value === undefined) {
-				var i = array.indexOf(stringToInt(node.value));
+				i = array.indexOf(stringToInt(node.value));
 				if (i !== -1) { array.splice(i, 1); }
 			}
 			else if (array.indexOf(value) === -1) {
@@ -173,7 +154,7 @@
 		}
 
 		setup(this, node, scopes, to, from);
-	};
+	}
 
 	function valueFloatPow3(node, scopes) {
 		var normalise, denormalise;
@@ -199,7 +180,7 @@
 		}
 
 		setup(this, node, scopes, to, from);
-	};
+	}
 
 	function valueFloatLog(node, scopes) {
 		var min, max, normalise, denormalise;
@@ -230,7 +211,7 @@
 		}
 
 		setup(this, node, scopes, to, from);
-	};
+	}
 
 	function valueIntLog(node, scopes) {
 		var min, max, normalise, denormalise;
@@ -261,7 +242,7 @@
 		}
 
 		setup(this, node, scopes, to, from);
-	};
+	}
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,

@@ -9,9 +9,6 @@
 	var isDefined = Fn.isDefined;
 	var settings  = (Sparky.settings = Sparky.settings || {});
 
-	// A reuseable array.
-	var array = [];
-
 	function createList(ordinals) {
 		var array = [], n = 0;
 
@@ -57,6 +54,35 @@
 		return s;
 	}
 
+	var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
+	//var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
+	var rnonzeronumbers = /[1-9]/;
+
+	function createDate(value) {
+		// Test the Date constructor to see if it is parsing date
+		// strings as local dates, as per the ES6 spec, or as GMT, as
+		// per pre ES6 engines.
+		// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
+		var date = new Date(value);
+		var json = date.toJSON();
+		var gmt =
+			// It's GMT if the first characters of the json match
+			// the value...
+			json.slice(0, value.length) === value &&
+
+			// ...and if all remaining numbers in the json are 0.
+			!json.slice(value.length).match(rnonzeronumbers) ;
+
+		return typeof value !== 'string' ? new Date(value) :
+			// If the Date constructor parses to gmt offset the date by
+			// adding the date's offset in milliseconds to get a local
+			// date. getTimezoneOffset returns the offset in minutes.
+			gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
+
+			// Otherwise use the local date.
+			date ;
+	}
+
 	Sparky.filter = {
 		add: function(value, n) {
 			var result = parseFloat(value) + n ;
@@ -72,7 +98,7 @@
 			return Sparky.filter.replace(value, string, '');
 		},
 
-		date: (function(settings) {
+		formatdate: (function(settings) {
 			var formatters = {
 				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
 				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
@@ -88,12 +114,28 @@
 				mm:   function(date) { return ('0' + date.getMinutes()).slice(-2); },
 				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
 				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+			};
 
+			return function formatDate(value, format, lang) {
+				if (!value) { return; }
+
+				var date = value instanceof Date ? value : createDate(value) ;
+
+				lang = lang || settings.lang;
+
+				return format.replace(rletter, function($0, $1) {
+					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
+				});
+			};
+		})(settings),
+
+		date: (function(settings) {
+			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
 				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
 				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
 				c: function(date) { return date.toISOString(); },
-				//d: function(date) { return date.getDate(); },
+				d: function(date) { return date.getDate(); },
 				D: function(date, lang) { return settings[lang].days[date.getDay()].slice(0,3); },
 				//e: function(date) { return ; },
 				//E: function(date) { return ; },
@@ -129,35 +171,6 @@
 				//z: function(date) { return ; },
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
-
-			var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
-			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-			var rnonzeronumbers = /[1-9]/;
-
-			function createDate(value) {
-				// Test the Date constructor to see if it is parsing date
-				// strings as local dates, as per the ES6 spec, or as GMT, as
-				// per pre ES6 engines.
-				// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
-				var date = new Date(value);
-				var json = date.toJSON();
-				var gmt =
-					// It's GMT if the first characters of the json match
-					// the value...
-					json.slice(0, value.length) === value &&
-
-					// ...and if all remaining numbers in the json are 0.
-					!json.slice(value.length).match(rnonzeronumbers) ;
-
-				return typeof value !== 'string' ? new Date(value) :
-					// If the Date constructor parses to gmt offset the date by
-					// adding the date's offset in milliseconds to get a local
-					// date. getTimezoneOffset returns the offset in minutes.
-					gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
-
-					// Otherwise use the local date.
-					date ;
-			}
 
 			return function formatDate(value, format, lang) {
 				if (!value) { return; }
@@ -336,6 +349,7 @@
 		prepad: function(value, n, char) {
 			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
+			var array = [];
 
 			// String is longer then padding: let it through unprocessed
 			if (n - l < 1) { return value; }

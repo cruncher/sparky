@@ -35,7 +35,7 @@
 	var rclasstags;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
-	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
+	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
 
 	// Matches anything with a space
 	var rspaces = /\s+/;
@@ -44,18 +44,14 @@
 	var rtext = /\S/;
 
 	// Matches the arguments list in the result of a fn.toString()
-	var rarguments = /function(?:\s+\w+)?\s*(\([\w\,\s]*\))/;
+	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var filterCache = {};
-
-	var empty = [];
 
 
 	// Utility functions
 
-	var noop      = Fn.noop;
 	var identity  = Fn.id;
-	var call      = Fn.call;
 	var isDefined = Fn.isDefined;
 	var toClass   = Fn.toClass;
 
@@ -81,14 +77,14 @@
 	}
 
 	function toggleAttributeSVG(node, attribute, value) {
-		if (isDefined(node[attribute])) { node[attribute] = !!value; }
+		if (attribute in node) { node[attribute] = !!value; }
 		else if (value) { setAttributeSVG(node, attribute, value); }
 		else { node.removeAttribute(attribute); }
 	}
 
 	function toggleAttributeHTML(node, attribute, value) {
-		if (isDefined(node[attribute])) { node[attribute] = !!value; }
-		else if (value) { setAttributeHTML(node, attribute, attribute); }
+		if (attribute in node) { node[attribute] = !!value; }
+		else if (value) { node.setAttribute(attribute, attribute); }
 		else { node.removeAttribute(attribute); }
 	}
 
@@ -294,7 +290,7 @@
 
 		var n = -1;
 		var l = nodes.length;
-		var child, sparky, unbind;
+		var child;
 
 		// Loop forwards through the children
 		while (++n < l) {
@@ -355,8 +351,6 @@
 	}
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
-		var isSVG = node instanceof SVGElement;
-
 		// Look for data- aliased attributes before attributes. This is
 		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
@@ -372,9 +366,7 @@
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = //isSVG ?
-		//    	setAttributeSVG.bind(this, node, attr) :
-		    	setAttributeHTML.bind(this, node, attr) ;
+		var update = setAttributeHTML.bind(null, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
@@ -393,7 +385,7 @@
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = toggleAttributeHTML.bind(this, node, attr) ;
+		var update = toggleAttributeHTML.bind(null, node, attr) ;
 		observeBoolean(value.trim(), bind, unbind, get, update, unobservers);
 	}
 
@@ -403,7 +395,6 @@
 
 		if (!tokens) { return; }
 		var replace = makeReplaceText(get);
-		var oldValue;
 
 		function update() {
 			Sparky.rtags.lastIndex = 0;
@@ -432,7 +423,7 @@
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/'/g, '"') + ']') || []
 		};
 	}
 
@@ -623,10 +614,10 @@
 
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
-			setTimeout(function() {
+			Fn.requestTick(function() {
 				Sparky.dom.trigger(node, 'valuechange');
 				node.disabled = true;
-			}, 0);
+			});
 		}
 		else {
 			Sparky.dom.trigger(node, 'valuechange');
@@ -671,7 +662,10 @@
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will be
 						// called and the scope updated from the default value.
-						dispatchInputChangeEvent(node);
+						
+						// Avoid sending to selects, as we do not rely on Bolt
+						// for setting state on select labels anymore...
+						if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
@@ -688,7 +682,9 @@
 					node.value = '';
 				}
 
-				dispatchInputChangeEvent(node);
+				// Avoid sending to selects, as we do not rely on Bolt
+				// for setting state on select labels anymore...
+				if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -709,7 +705,6 @@
 	}
 
 	function bindValue(node, get, set, bind, unbind, path, to, from) {
-		var nodeValue = node.getAttribute('value');
 		var update = makeUpdateInput(node, get, set, path, to);
 		var change = makeChangeListener(node, set, path, from);
 
@@ -781,8 +776,6 @@
 	}
 
 	function parseName(node, get, set, bind, unbind, to, from) {
-		var name = node.name;
-
 		if (Sparky.debug === "verbose" && !node.name) {
 			console.warn('Sparky: Cannot bind value of node with empty name.', node);
 			return;
@@ -796,7 +789,7 @@
 		var tag, fn;
 
 		Sparky.rtags.lastIndex = 0;
-		while (tag = Sparky.rtags.exec(node.name)) {
+		while ((tag = Sparky.rtags.exec(node.name))) {
 			if (tag[1].length === 2) {
 				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
 				node.name = node.name.replace(tag[0], tag[2]);
@@ -814,7 +807,7 @@
 		rtags = Sparky.render(rtagstemplate, arguments);
 		rsimpletags = Sparky.render(rsimpletagstemplate, arguments);
 		rclasstags = Sparky.render(rclasstagstemplate, arguments);
-	};
+	}
 
 	Object.defineProperties(Sparky, {
 		rtags: {

@@ -65,7 +65,7 @@
 	var Sparky = window.Sparky;
 
 	assign(Sparky.fn, {
-		html: function html(node, scopes) {
+		html: function(node, scopes) {
 			scopes.tap(function(html) {
 				node.innerHTML = html;
 			});
@@ -73,8 +73,10 @@
 	});
 })(this);
 
-(function() {
+(function(window) {
 	"use strict";
+
+	var Fn = window.Fn;
 
 	function preventDefault(e) {
 		e.preventDefault();
@@ -156,13 +158,11 @@
 			});
 		}
 	});
-})();
+})(this);
 
 
 (function() {
 	"use strict";
-
-	var dom = Sparky.dom;
 
 	Sparky.fn['x-scroll-slave'] = function(node) {
 		var name = node.getAttribute('data-x-scroll-master');

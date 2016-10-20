@@ -26,8 +26,8 @@
 
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
-	var id        = Fn.id;
-	var call      = Fn.call;
+
+	function call(fn) { fn(); }
 
 	function returnThis() { return this; }
 
@@ -80,7 +80,8 @@
 		}
 
 		// If node is a template use a copy of it's content.
-		if (Sparky.dom.tag(node) === 'template') {
+		var tag = Sparky.dom.tag(node);
+		if (tag === 'template' || tag === 'script') {
 			node = Sparky.template(node.id);
 		}
 
@@ -329,7 +330,6 @@
 
 		var sparky = this;
 		var init = true;
-		var rootscope;
 		var scope;
 		var parsed;
 

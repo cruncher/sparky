@@ -22,6 +22,7 @@
 		},
 
 		port:    function(pk) {
+			// Nasty way of putting it at the end of the list: 'zzzzzzzz'
 			if (!Fn.isDefined(pk)) { return 'zzzzzzzz'; }
 			var port = Sparky.data.ports.find(pk);
 			return port ? Fn.toPlainText(port.name) : 'zzzzzzzz' ;

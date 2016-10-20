@@ -1,24 +1,12 @@
-(function(Sparky) {
+(function(window) {
 	"use strict";
+
+	var Fn     = window.Fn;
+	var Sparky = window.Sparky;
 
 	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
 	var dom = {};
-
-	// Utility functions
-
-	function noop() {}
-
-	function isDefined(val) { return val !== undefined && val !== null; }
-
-	function all(fn) {
-		return function(node, collection) {
-			var n = -1;
-			var length = collection.length;
-			while (++n < length) { fn(node, collection[n]); }
-			return node;
-		};
-	}
 
 	// Selection, traversal and mutation
 
@@ -268,7 +256,9 @@
 			return node.content;
 		}
 
-		if (dom.tag(node) === 'script') {
+		var tag = dom.tag(node);
+
+		if (tag === 'script') {
 			// Data parent is a workaround for browsers that don't support inert
 			// templates. Allows the author to specify a context inside which
 			// the template is parsed. Where a template has top level <td>s, for
@@ -276,11 +266,13 @@
 			// removed by the browser.
 			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent'));
 		}
+		else if (tag === 'template') {
+			// In browsers where templates are not inert, ids used inside them
+			// conflict with ids in any rendered result. To go some way to
+			// tackling this, remove the node from the DOM.
+			remove(node);
+		}
 
-		// In browsers where templates are not inert, ids used inside them
-		// conflict with ids in any rendered result. To go some way to
-		// tackling this, remove the node from the DOM.
-		remove(node);
 		return fragmentFromChildren(node);
 	}
 
@@ -297,8 +289,10 @@
 	}
 
 	function registerTemplate(id, node) {
+		var template;
+
 		if (typeof node === 'function') {
-			var template = dom.create('template');
+			template = dom.create('template');
 			template.innerHTML = multiline(node);
 			node = fragmentFromContent(template);
 		}
@@ -400,4 +394,4 @@
 
 	// Export
 	Sparky.dom = dom;
-})(window.Sparky);
+})(this);

@@ -70,6 +70,8 @@
 // Number.isNaN(n) polyfill
 
 if (!Number.isNaN) {
+	if (window.console) { console.log('Polyfill: Number.isNaN()'); }
+
 	(function(globalIsNaN) {
 		"use strict";
 	
@@ -85,6 +87,8 @@ if (!Number.isNaN) {
 }
 
 if (!Math.log10) {
+	if (window.console) { console.log('Polyfill: Math.log10()'); }
+
 	Math.log10 = function log10(n) {
 		return Math.log(n) / Math.LN10;
 	};
@@ -95,6 +99,7 @@ if (!Math.log10) {
 
 (function(window, undefined) {
 	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
+	if (window.console) { console.log('Polyfill: CustomEvent'); }
 
 	window.CustomEvent = function CustomEvent(event, params) {
 		params = params || { bubbles: false, cancelable: false, detail: undefined };
@@ -121,6 +126,8 @@ if (!Math.log10) {
 	}
 
 	if (!window.requestAnimationFrame) {
+		if (window.console) { console.log('Polyfill: requestAnimationFrame()'); }
+
 		window.requestAnimationFrame = function(callback, element) {
 			var currTime = +new Date();
 			var nextTime = frameDuration - (currTime % frameDuration);
@@ -152,6 +159,7 @@ if (!Math.log10) {
 
 	// Import
 
+	var Symbol = window.Symbol;
 	var A = Array.prototype;
 	var F = Function.prototype;
 	var N = Number.prototype;
@@ -166,6 +174,13 @@ if (!Math.log10) {
 			return Math.log(n) / Math.LN10;
 		};
 	}
+
+
+	// Define
+
+	var empty = Object.freeze(Object.defineProperties([], {
+		shift: { value: noop }
+	}));
 
 
 	// Feature test
@@ -204,41 +219,90 @@ if (!Math.log10) {
 		return function pipe(n) { return A.reduce.call(a, call, n); }
 	}
 
+	function memoize(fn) {
+		var map = new Map();
+
+		return function memoized(object) {
+			if (arguments.length !== 1) {
+				throw new Error('Fn: Memoized function called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+			}
+
+			if (map.has(object)) {
+				return map.get(object);
+			}
+
+			var result = fn(object);
+			map.set(object, result);
+			return result;
+		};
+	}
+
 	function curry(fn, parity) {
 		parity = parity || fn.length;
 
-		function curried() {
+		if (parity < 2) { return fn; }
+
+		var curried = function curried() {
 			var a = arguments;
 			return a.length >= parity ?
 				// If there are enough arguments, call fn.
 				fn.apply(this, a) :
-				// Otherwise create a new function with parity of the remaining
-				// number of required arguments. And curry that.
-				curry(function partial() {
+				// Otherwise create a new function. And curry that. The param is
+				// declared so that partial has length 1.
+				curry(function partial(param) {
 					var params = A.slice.apply(a);
 					A.push.apply(params, arguments);
 					return fn.apply(this, params);
 				}, parity - a.length) ;
-		}
+		};
 
+		// For debugging
 		// Make the string representation of this function equivalent to fn
-		// for sane debugging
 		if (debug) {
-			curried.toString = function() { return fn.toString(); };
+			//curried.toString = function() { return fn.toString(); };
+
+		 	// Where possible, define length so that curried functions show how
+		 	// many arguments they are yet expecting
+			if (isFunctionLengthDefineable) {
+				Object.defineProperty(curried, 'length', { value: parity });
+			}
 		}
 
-		// Where possible, define length so that curried functions show how
-		// many arguments they are yet expecting
-		return isFunctionLengthDefineable ?
-			Object.defineProperty(curried, 'length', { value: parity }) :
-			curried ;
+		return curried;
 	}
+
+//	function curry(fn, parity) {
+//		// A slightly stricter version of .curry() that caches curried results
+//		parity = parity || fn.length;
+//
+//		if (parity < 2) { return memoize(fn); }
+//
+//		var memo = memoize(function partial(object) {
+//			return curry(function() {
+//				var params = [object];
+//				A.push.apply(params, arguments);
+//				return fn.apply(null, params);
+//			}, parity - 1) ;
+//		});
+//
+//		// For convenience, allow curried functions to be called as:
+//		// fn(a, b, c)
+//		// fn(a)(b)(c)
+//		// fn(a, b)(c)
+//		return function curried() {
+//			return arguments.length > 1 ?
+//				memo(arguments[0]).apply(null, A.slice.call(arguments, 1)) :
+//				memo(arguments[0]) ;
+//		};
+//	}
 
 
 	// Get and set paths
 
 	var rpathtrimmer = /^\[|\]$/g;
-	var rpathsplitter = /\]?\.|\[/g;
+	var rpathsplitter = /\]?(?:\.|\[)/g;
+	var rpropselector = /(\w+)\=(\w+)/;
+	var map = [];
 
 	function isObject(obj) { return obj instanceof Object; }
 
@@ -248,21 +312,48 @@ if (!Math.log10) {
 			.split(rpathsplitter);
 	}
 
-	function objFrom(object, array) {
-		var key   = array.shift();
-		var value = object[key];
+	function select(object, selector) {
+		var selection = rpropselector.exec(selector);
 
-		return array.length === 0 ? value :
-			value !== undefined ? objFrom(value, array) :
-			undefined ;
+		return selection ?
+			findByProperty(object, selection[1], JSON.parse(selection[2])) :
+			Fn.get(selector, object) ;
 	}
 
-	function objTo(root, array, object) {
-		var key = array.shift();
+	function findByProperty(array, name, value) {
+		// Find first matching object in array
+		var n = -1;
 
-		return array.length === 0 ?
-			(root[key] = object) :
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array, object) ;
+		while (++n < array.length) {
+			if (array[n] && array[n][name] === value) {
+				return array[n];
+			}
+		}
+	}
+
+	function objFrom(object, array) {
+		var key = array.shift();
+		var value = select(object, key);
+
+		return array.length === 0 ? value :
+			Fn.isDefined(value) ? objFrom(value, array) :
+			value ;
+	}
+
+	function objTo(root, array, value) {
+		var key = array.shift();
+		var object;
+
+		if (array.length === 0) {
+			Fn.set(key, value, root);
+			return value;
+		}
+
+		var object = Fn.get(key, root);
+		if (!isObject(object)) { object = {}; }
+
+		Fn.set(key, object, root);
+		return objTo(object, array, value) ;
 	}
 
 
@@ -272,6 +363,7 @@ if (!Math.log10) {
 		url:       /^(?:\/|https?\:\/\/)(?:[!#$&-;=?-~\[\]\w]|%[0-9a-fA-F]{2})+$/,
 		//url:       /^([a-z][\w\.\-\+]*\:\/\/)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,6}/,
 		email:     /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i,
+		date:      /^\d{4}-(?:0[1-9]|1[012])-(?:0[1-9]|[12][0-9]|3[01])$/,
 		hexColor:  /^(#)?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
 		hslColor:  /^(?:(hsl)(\())?\s?(\d{1,3}(?:\.\d+)?)\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?(\))?$/,
 		rgbColor:  /^(?:(rgb)(\())?\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?(\d{1,3})\s?(\))?$/,
@@ -303,7 +395,7 @@ if (!Math.log10) {
 		function timed() {
 			timer = false;
 			t = now();
-			fns.forEach(Fn.apply([now()]));
+			fns.forEach(Fn.run([now()]));
 			fns.length = 0;
 		}
 
@@ -377,38 +469,455 @@ if (!Math.log10) {
 
 	// Fn
 
-	function Fn(object) {
-		    // Object is a function
-		return typeof object === "function" ? new Stream(object) :
-			// Object is an iterator
-			object && object.next ? new ReadStream(object) :
-			// Object could be anything
-			new BufferStream(object) ;
+	function Fn(fn) {
+		if (!this || !Fn.prototype.isPrototypeOf(this)) {
+			return new Fn(fn);
+		}
+
+		var source = this;
+
+		if (!fn) {
+			fn = noop;
+		}
+
+		// fn is an iterator
+		else if (typeof fn.next === "function") {
+			fn = function shift() {
+				var result = iterator.next();
+				if (result.done) { source.status = 'done'; }
+				return result.value;
+			};
+		}
+
+		// fn is an array or array-like object
+		else {
+			var buffer = A.slice.apply(fn);
+			fn = function shift() {
+				return buffer.shift();
+			};
+		}
+
+		this.shift = fn;
 	}
 
-	Object.assign(Fn, {
-		Throttle: Throttle,
+	Object.assign(Fn.prototype, {
+		// Input
 
+		create: function(fn) {
+			var functor = Object.create(this);
+			functor.shift = fn;
+			return functor;
+		},
+
+		of: function() {
+			// Delegate to the constructor's .of()
+			return this.constructor.of.apply(this.constructor, arguments);
+		},
+
+
+		// Transform
+
+		ap: function ap(object) {
+			var fn = this.shift();
+			if (value === undefined) { return; }
+			return object.map(fn);
+		},
+
+		map: function(fn) {
+			return this.create(Fn.compose(function map(object) {
+				return object !== undefined ? fn(object) : undefined ;
+			}, this.shift));
+		},
+
+		filter: function(fn) {
+			var source = this;
+
+			return this.create(function filter() {
+				var value;
+				while ((value = source.shift()) !== undefined && !fn(value));
+				return value;
+			});
+		},
+
+		dedup: function() {
+			var value;
+			return this.filter(function(newValue) {
+				var oldValue = value;
+				value = newValue;
+				return oldValue !== newValue;
+			});
+		},
+
+		join: function() {
+			var source = this;
+			var buffer = empty;
+
+			return this.create(function join(object) {
+				var value = buffer.shift();
+				if (value !== undefined) { return value; }
+				buffer = source.shift();
+				if (buffer !== undefined) { return join(object); }
+				buffer = empty;
+			});
+		},
+
+		chain: function(fn) {
+			return this.map(fn).join();
+		},
+
+		concat: function(object) {
+			var source = this;
+			return this.create(function concat() {
+				var value = source.shift();
+
+				if (value === undefined) {
+					value = object.shift();
+				};
+
+				return value;
+			});
+		},
+
+		sort: function(fn) {
+			var source = this;
+			var array = empty;
+
+			fn = fn || Fn.byGreater ;
+
+			// Todo: this will fail in a Stream if values are pushed.
+			return this.create(function sort() {
+				if (array.length === 0) {
+					array = source.toArray().sort(fn);
+				}
+
+				return array.shift();
+			});
+		},
+
+		head: function() {
+			var source = this;
+			var i = 0;
+
+			return this.create(function head() {
+				if (i++ === 0) {
+					source.status = 'done';
+					return source.shift();
+				}
+			});
+		},
+
+		tail: function() {
+			var source = this;
+			var i = 0;
+
+			return this.create(function tail() {
+				if (i++ === 0) { source.shift(); }
+				return source.shift();
+			});
+		},
+
+		slice: function(n, m) {
+			var source = this;
+			var i = -1;
+
+			return this.create(function slice() {
+				while (++i < n) {
+					source.shift();
+				}
+
+				if (i < m) {
+					if (i === m - 1) { this.status = 'done'; }
+					return source.shift();
+				}
+			});
+		},
+
+		split: function(fn) {
+			var source = this;
+			var buffer = [];
+
+			return this.create(function split() {
+				var value = source.shift();
+				var b;
+
+				if (value === undefined) { return; }
+
+				if (fn(value)) {
+					b = buffer;
+					buffer = [];
+					return b;
+				}
+
+				buffer.push(value);
+
+				if (source.status === 'done') {
+					b = buffer;
+					buffer = [];
+					return b;
+				}
+
+				return split();
+			});
+		},
+
+		batch: function(n) {
+			var source = this;
+			var buffer = [];
+
+			return this.create(n ?
+				// If n is defined batch into arrays of length n.
+				function nextBatchN() {
+					var value;
+
+					while (buffer.length < n) {
+						value = source.shift();
+						if (value === undefined) { return; }
+						buffer.push(value);
+					}
+
+					if (buffer.length >= n) {
+						var _buffer = buffer;
+						buffer = [];
+						return Fn.of.apply(Fn, _buffer);
+					}
+				} :
+
+				// If n is undefined or 0, batch all values into an array.
+				function nextBatch() {
+					buffer = source.toArray();
+					// An empty array is equivalent to undefined
+					return buffer.length ? buffer : undefined ;
+				});
+		},
+
+		group: function(fn) {
+			var source = this;
+			var buffer = [];
+			var streams = new Map();
+
+			fn = fn || Fn.id;
+
+			function create() {
+				var stream = new BufferStream();
+				buffer.push(stream);
+				return stream.on('pull', function() {
+					// Pull until a new value is added to the current stream
+					pullUntil(Fn.is(stream));
+				});
+			}
+
+			function pullUntil(check) {
+				var value = source.shift();
+				if (value === undefined) { return; }
+				var key = fn(value);
+				var stream = streams.get(key);
+
+				if (stream === undefined) {
+					stream = create();
+					streams.set(key, stream);
+				}
+
+				stream.push(value);
+				return check(stream) || pullUntil(check);
+			}
+
+			function isBuffered() {
+				return !!buffer.length;
+			}
+
+			return this.create(function group() {
+				// Pull until a new stream is available
+				pullUntil(isBuffered);
+				return buffer.shift();
+			});
+		},
+
+		groupTo: function(fn, object) {
+			var source = this;
+
+			function create() {
+				var stream = new BufferStream();
+				return stream.on('pull', pullAll);
+			}
+
+			function pullAll() {
+				var value = source.shift();
+				if (value === undefined) { return; }
+				var key = fn(value);
+				var stream = Fn.get(key, object);
+
+				if (stream === undefined) {
+					stream = create();
+					Fn.set(key, stream, object);
+				}
+
+				stream.push(value);
+				return pullAll();
+			}
+
+			return this.create(function group() {
+				if (source.status === 'done') { return; }
+				source.status = 'done';
+				pullAll();
+				return object;
+			});
+		},
+
+		scan: function(fn) {
+			var i = 0, total = 0;
+			return this.map(function scan(value) {
+				return (total = fn(total, value, i++));
+			});
+		},
+
+		unique: function() {
+			var source = this;
+			var values = [];
+
+			return this.create(function unique() {
+				var value = source.shift();
+				if (value === undefined) { return; }
+
+				if (values.indexOf(value) === -1) {
+					values.push(value);
+					return value;
+				}
+
+				return unique();
+			});
+		},
+
+		assign: function(object) { return this.map(Fn.assign(object)); },
+
+		parse: function() { return this.map(JSON.parse); },
+
+		stringify: function() { return this.map(Fn.stringify); },
+
+
+		// Output
+
+		// Fn is an iterator
+		next: function() {
+			return {
+				done: this.status === 'done',
+				value: this.shift()
+			};
+		},
+
+		pipe: function(stream) {
+			if (!stream || !stream.on) {
+				throw new Error('Fn: Fn.pipe(object) object must be a pushable stream. (' + stream + ')');
+			}
+
+			var source = this;
+
+			stream.on('pull', function() {
+				stream.push(source.shift());
+			});
+
+			return stream;
+		},
+
+		tap: function(fn) {
+			// Overwrite next to copy values to tap fn
+			this.shift = Fn.compose(function(value) {
+				if (value !== undefined) { fn(value); }
+				return value;
+			}, this.shift);
+
+			return this;
+		},
+
+		each: function(fn) {
+			var value;
+
+			while ((value = this.shift()) !== undefined) {
+				fn(value);
+			}
+		},
+
+		reduce: function(fn, value) {
+			var output = Fn.isDefined(value) ? value : 0 ;
+
+			while ((value = this.shift()) !== undefined) {
+				output = fn(output, value);
+			}
+
+			return output;
+		},
+
+		find: function(fn) {
+			return this.filter(fn).head().shift();
+		},
+
+		toJSON: function() {
+			return this.reduce(function(t, v) {
+				t.push(v);
+				return t;
+			}, []);
+		},
+
+		toFunction: function() {
+			var source = this;
+			return function fn() {
+				if (arguments.length) {
+					this.push.apply(this, arguments);
+				}
+				return source.shift();
+			};
+		},
+
+		log: function() {
+			var a = arguments;
+
+			return this.tap(function(object) {
+				console.log.apply(console, Fn.push(object, A.slice.apply(a)));
+			});
+		}
+	});
+
+	if (Symbol) {
+		Fn.prototype[Symbol.iterator] = function() {
+			return this;
+		};
+	}
+
+	Fn.prototype.toArray = Fn.prototype.toJSON;
+
+	Object.assign(Fn, {
+		of: function of() {
+			var a = arguments;
+			return new this(arguments);
+		},
+
+		empty:    empty,
 		noop:     noop,
 		id:       id,
 		call:     call,
+		memoize:  memoize,
 		curry:    curry,
 		compose:  compose,
 		pipe:     pipe,
 
-		is: curry(function is(object1, object2) {
-			return object1 === object2;
+		is: curry(function is(a, b) {
+			return a === b;
 		}),
 
 		equals: curry(function equals(a, b) {
-			// Fast out if references are for the same object
+			// Fast out if references are for the same object.
 			if (a === b) { return true; }
 
-			var keys = Object.keys(a);
-			var n = keys.length;
+			if (typeof a !== 'object' || typeof b !== 'object') { return false; }
+
+			var akeys = Object.keys(a);
+			var bkeys = Object.keys(b);
+
+			if (akeys.length !== bkeys.length) { return false; }
+
+			var n = akeys.length;
 
 			while (n--) {
-				if (a[keys[n]] !== b[keys[n]]) {
+				if (!equals(a[akeys[n]], b[akeys[n]])) {
 					return false;
 				}
 			}
@@ -428,17 +937,31 @@ if (!Math.log10) {
 			return S.localeCompare.call(a, b);
 		}),
 
-		assign: curry(function assign(obj2, obj1) {
+		assign: curry(function assign(obj1, obj2) {
 			return Object.assign(obj1, obj2);
 		}),
 
-		get: curry(function get(path, object) {
-			return typeof path === 'number' ? object[path] :
-				path === '' ? object :
-				objFrom(object, splitPath(path));
+		get: curry(function get(key, object) {
+			return typeof object.get === "function" ?
+				object.get(key) :
+				object[key] ;
 		}),
 
-		set: curry(function set(path, value, object) {
+		set: curry(function set(key, value, object) {
+			return typeof object.set === "function" ?
+				object.set(key, value) :
+				(object[key] = value) ;
+		}),
+
+		getPath: curry(function get(path, object) {
+			return object.get ? object.get(path) :
+				typeof path === 'number' ? object[path] :
+				path === '' || path === '.' ? object :
+				objFrom(object, splitPath(path)) ;
+		}),
+
+		setPath: curry(function set(path, value, object) {
+			if (object.set) { object.set(path, value); }
 			if (typeof path === 'number') { return object[path] = value; }
 			var array = splitPath(path);
 			return array.length === 1 ?
@@ -446,12 +969,20 @@ if (!Math.log10) {
 				objTo(object, array, value);
 		}),
 
-		invoke: curry(function invoke(name, object) {
-			return object[name]();
+		invoke: curry(function invoke(name, args, object) {
+			return object[name].apply(object, args);
 		}),
 
-		apply: curry(function apply(values, fn) {
+		run: curry(function apply(values, fn) {
 			return fn.apply(null, values);
+		}),
+
+		map: curry(function map(fn, object) {
+			return object.map ? object.map(fn) : A.map.call(object, fn);
+		}),
+
+		find: curry(function find(fn, object) {
+			return object.find ? object.find(fn) : A.find.call(object, fn);
 		}),
 
 		throttle: function(time, fn) {
@@ -469,17 +1000,43 @@ if (!Math.log10) {
 			return fn ? throttle(fn) : throttle ;
 		},
 
+		entries: function(object){
+			return typeof object.entries === 'function' ?
+				object.entries() :
+				A.entries.apply(object) ;
+		},
+
+		keys: function(object){
+			return typeof object.keys === 'function' ?
+				object.keys() :
+				/* Don't use Object.keys(), it returns an array,
+				   not an iterator. */
+				A.keys.apply(object) ;
+		},
+
+		values: function(object){
+			return typeof object.values === 'function' ?
+				object.values() :
+				A.values.apply(object) ;
+		},
+
+		each: curry(function each(fn, object) {
+			return object && (
+				object.each ? object.each(fn) :
+				object.forEach ? object.forEach(function(item) { fn(item); }) :
+				A.forEach.call(object, function(item) { fn(item); })
+			);
+		}),
+
 		concat:      curry(function concat(array2, array1) { return array1.concat ? array1.concat(array2) : A.concat.call(array1, array2); }),
-		each:        curry(function each(fn, object) { return object.each ? object.each(fn) : A.forEach.call(object, fn); }),
 		filter:      curry(function filter(fn, object) { return object.filter ? object.filter(fn) : A.filter.call(object, fn); }),
-		map:         curry(function map(fn, object) { return object.map ? object.map(fn) : A.map.call(object, fn); }),
 		reduce:      curry(function reduce(fn, n, object) { return object.reduce ? object.reduce(fn, n) : A.reduce.call(object, fn, n); }),
 		slice:       curry(function slice(n, m, object) { return object.slice ? object.slice(n, m) : A.slice.call(object, n, m); }),
 		sort:        curry(function sort(fn, object) { return object.sort ? object.sort(fn) : A.sort.call(object, fn); }),
 
-		push: curry(function push(stream, object) {
-			(stream.push || A.push).apply(stream, object);
-			return stream;
+		push: curry(function push(value, object) {
+			(object.push || A.push).call(object, value);
+			return object;
 		}),
 
 		add:         curry(function add(a, b) { return b + a; }),
@@ -507,8 +1064,9 @@ if (!Math.log10) {
 		},
 
 		// Strings
-		match: curry(function match(regex, string) { return regex.test(string); }),
-		exec: curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
+		match:      curry(function match(regex, string) { return regex.test(string); }),
+		exec:       curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
+		replace:    curry(function replace(regex, fn, string) { return string.replace(regex, fn); }),
 
 		slugify: function slugify(string) {
 			if (typeof string !== 'string') { return; }
@@ -523,19 +1081,39 @@ if (!Math.log10) {
 		isDefined: function isDefined(value) {
 			// !!value is a fast out for non-zero numbers, non-empty strings
 			// and other objects, the rest checks for 0, '', etc.
-			return !!value || (value !== undefined && value !== null);
+			return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
 		},
 
-		typeOf: function typeOf(object) {
+		toType: function typeOf(object) {
 			return typeof object;
 		},
 
-		classOf: function classOf(object) {
+		toClass: function classOf(object) {
 			return O.toString.apply(object).slice(8, -1);
 		},
 
-		stringTypeOf: (function(regex, types) {
-			return function stringTypeOf(string) {
+		toArray: function(object) {
+			return object.toArray ?
+				object.toArray() :
+				Fn(object).toArray() ;
+		},
+
+		toInt: function(n) {
+			return parseInt(n, 10);
+		},
+
+		toFloat: parseFloat,
+
+		toPlainText: function toPlainText(string) {
+			return string
+			// Decompose string to normalized version
+			.normalize('NFD')
+			// Remove accents
+			.replace(/[\u0300-\u036f]/g, '');
+		},
+
+		toStringType: (function(regex, types) {
+			return function toStringType(string) {
 				// Determine the type of string from its text content.
 				var n = -1;
 
@@ -556,9 +1134,20 @@ if (!Math.log10) {
 				// Default to 'string'
 				return 'string';
 			};
-		})(regex, ['url', 'email', 'int', 'float'])
-	});
+		})(regex, ['date', 'url', 'email', 'int', 'float']),
 
+		// JSON
+		stringify: function stringify(object) {
+			return JSON.stringify(Fn.toClass(object) === "Map" ?
+				Fn(object) : object
+			);
+		},
+
+		log: function(text, object) {
+			console.log(text, object);
+			return x;
+		}
+	});
 
 	// Stream
 
@@ -573,18 +1162,6 @@ if (!Math.log10) {
 		return value;
 	}
 
-	var notifyObservers = curry(function(observers, type) {
-		if (!observers[type]) { return; }
-		//(new ReadStream(observers[type])).pull(Fn.run);
-		var array = A.slice.apply(observers[type]);
-		array.forEach(Fn.run);
-	});
-
-	function notifyObserversExceptPush(observers, type) {
-		if (type === 'push') { return; }
-		return notifyObservers(observers, type);
-	}
-
 	function Stream(setup) {
 		// Enable calling Stream without the new keyword.
 		if (!this || !Stream.prototype.isPrototypeOf(this)) {
@@ -592,300 +1169,72 @@ if (!Math.log10) {
 		}
 
 		var observers = {};
-		var notify = notifyObservers(observers);
 
-		function trigger(type) {
-			// Prevent 'push' event calls from within 'next' event calls. This
-			// is a bit of a clunky workaround to stop greedy processes
-			// consuming the stream while the next values are being requested.
-			var _notify = notify;
-			notify = notifyObserversExceptPush;
-			_notify(observers, type);
-			notify = _notify;
+		function notify(type) {
+			if (!observers[type]) { return; }
+			A.slice.apply(observers[type]).forEach(call);
 		}
-
-		Object.assign(this, setup(trigger));
 
 		this.on = function on(type, fn) {
 			// Lazily create observers list
 			observers[type] = observers[type] || [] ;
-
 			// Add observer
 			observers[type].push(fn);
-
 			return this;
 		};
-	}
 
-	function BufferStream(object) {
-		if (!this || !BufferStream.prototype.isPrototypeOf(this)) {
-			return new BufferStream(object);
+		Object.assign(this, setup(notify));
+
+		if (!this.hasOwnProperty('shift')) {
+			throw new Error('Fn.Stream: setup() did not provide a .shift() method.');
 		}
-
-		// Todo: Is this needed?
-		this.status = 'ready';
-
-		Stream.call(this, function setup(notify) {
-			var buffer = typeof object === 'string' ? A.slice.apply(object) : object || [] ;
-
-			return {
-				next: function next() {
-					var value = buffer.shift();
-
-					if (buffer.status === 'done') {
-						this.status = 'done';
-					}
-
-					return value;
-				},
-
-				push: function push() {
-					buffer.push.apply(buffer, arguments);
-					notify('push');
-				}
-			};
-		});
 	}
 
-	function ReadStream(object) {
-		if (!this || !ReadStream.prototype.isPrototypeOf(this)) {
-			return new ReadStream(object);
-		}
-
-		Stream.call(this, function setup(notify) {
-			var buffer = typeof object === 'string' ? A.slice.apply(object) : object || [] ;
-
-			return {
-				next: function() {
-					var value = buffer.shift();
-
-					if (buffer.status === 'done' || buffer.length === 0) {
-						this.status = 'done';
-					}
-
-					return value;
-				}
-			};
-		});
-	}
+	Stream.prototype = Object.create(Fn.prototype);
 
 	Object.assign(Stream.prototype, {
-		create: function(next) {
-			var stream = Object.create(this);
-			stream.next = next;
-			return stream;
+		ap: function ap(object) {
+			var source = this;
+			return this.create(function ap() {
+				var fn = source.shift();
+				if (value === undefined) { return; }
+				return object.map(fn);
+			});
 		},
 
-		push: function(input) {
+		push: function error() {
 			throw new Error('Fn: ' + this.constructor.name + ' is not pushable.');
 		},
 
-		shift: function() {
-			return this.next();
+		shift: function error() {
+			throw new Error('Fn: Stream has been created without a .next() method.');
 		},
 
-		pull: function pull1(fn) {
-			fn = fn || Fn.noop;
-
-			var next = this.next;
-
-			function flush() {
-				var value;
-
-				while ((value = next()) !== undefined) {
-					fn(value);
-				}
-			}
-
-			this.pull = function pull2(fn2) {
-				var fn1 = fn;
-
-				fn = function distribute() {
-					fn1.apply(null, arguments);
-					fn2.apply(null, arguments);
-				};
-
-				// Return source
-				return this;
-			};
-
-			// Flush the source then listen for values
-			flush();
-			return this.on('push', flush);
+		pull: function pullWarning() {
+			// Legacy warning
+			console.warn('stream.pull() deprecated. Use stream.each().');
+			return this.each.apply(this, arguments);
 		},
 
-		pipe: function(object) {
-			// object is either:
-			// array -
-			// stream -
-			// undefined -
-
+		each: function(fn) {
 			var source = this;
-			var stream = object || new BufferStream();
+			var a = arguments;
 
-			this.tap(function(value) {
-				stream.push(value);
-			});
-
-			if (stream.on) {
-				// There's something stinky yet elegant about these two.
-				stream
-				.on('next', function() {
-					// Call .next(), which fills all streams with the new value.
-					var v = source.next();
-				});
-
-				source
-				.on('push', function() {
-					// Notify a push event without actually pushing any values,
-					// because .next() will do that if it's asked for.
-					stream.push();
-				});
+			function each() {
+				Fn.prototype.each.apply(source, a);
 			}
 
+			// Flush and observe
+			each();
+			return this.on('push', each);
+		},
+
+		pipe: function(stream) {
+			Fn.prototype.pipe.apply(this, arguments);
+			// Notify a push without pushing any values -
+			// stream only needs to know values are available.
+			this.on('push', stream.push);
 			return stream;
-		},
-
-		tap: function(fn) {
-			// Overwrite next to copy values to tap fn
-			this.next = Fn.compose(function(value) {
-				if (value !== undefined) { fn(value); }
-				return value;
-			}, this.next);
-
-			return this;
-		},
-
-		map: function(fn) {
-			return this.create(Fn.compose(function next(value) {
-				return value !== undefined ? fn(value) : undefined ;
-			}, this.next));
-		},
-
-		head: function() {
-			var source = this;
-			var i = 0;
-
-			return this.create(function next() {
-				if (i++ === 0) {
-					this.status = 'done';
-					return source.next();
-				}
-			});
-		},
-
-		tail: function() {
-			var source = this;
-			var i = 0;
-
-			return this.create(function next() {
-				if (i++ === 0) { source.next(); }
-				return source.next();
-			});
-		},
-
-		slice: function(n, m) {
-			var source = this;
-			var i = -1;
-
-			return this.create(function next() {
-				while (++i < n) {
-					source.next();
-				}
-
-				if (i < m) {
-					if (i === m - 1) { this.status = 'done'; }
-					return source.next();
-				}
-			});
-		},
-
-		split: function(match) {
-			var source = this;
-			var buffer = [];
-
-			return this.create(function next() {
-				var value = source.next();
-				var b;
-
-				if (value === undefined) { return; }
-
-				if (value === match) {
-					b = buffer;
-					buffer = [];
-					return b;
-				}
-
-				buffer.push(value);
-
-				if (source.status === 'done') {
-					b = buffer;
-					buffer = [];
-					return b;
-				}
-
-				return next();
-			});
-		},
-
-		group: function(fn, order) {
-			var source = this;
-			var channels = [];
-			var store = {};
-
-			fn = fn || Fn.id;
-
-			function nextUntilMatchChannel(channelKey) {
-				var value = source.next();
-				if (value === undefined) { return; }
-
-				var key = fn(value);
-
-				if (store[key]) {
-					store[key].push(value);
-					if (store[key] === channelKey) { return; }
-				}
-				else {
-					store[key] = create(key);
-					channels.push(store[key]);
-					store[key].push(value);
-				}
-
-				return nextUntilMatchChannel(channelKey);
-			}
-
-			function create(key) {
-				var channel = new BufferStream();
-
-				channel.on('next', function() {
-					nextUntilMatchChannel(key);
-				});
-
-				// source.on('push', channel.push);
-				if (debug) { channel.key = key; }
-				return channel;
-			}
-
-			return this.create(function nextUntilNewChannel() {
-				var channel = channels.shift();
-				if (channel) { return channel; }
-
-				var value = source.next();
-				if (value === undefined) { return; }
-
-				var key = fn(value);
-
-				if (store[key]) {
-					store[key].push(value);
-				}
-				else {
-					store[key] = create(key);
-					store[key].push(value);
-					return store[key];
-				}
-
-				return nextUntilNewChannel();
-			});
 		},
 
 		concatParallel: function() {
@@ -903,299 +1252,226 @@ if (!Math.log10) {
 			function shiftNext() {
 				var stream = order.shift();
 				if (stream === undefined) { return; }
-				var value = stream.next();
+				var value = stream.shift();
 				return value === undefined ?
 					shiftNext() :
 					value ;
 			}
 
-			return this.create(function next() {
-				var object = source.next();
+			return this.create(function concatParallel() {
+				var object = source.shift();
 				if (object !== undefined) { bind(object); }
 				var value = shiftNext();
 				return value;
 			});
 		},
 
-		concatSerial: function() {
-			var source = this;
-			var object;
-
-			return this.create(function next() {
-				object = object || source.next();
-				if (object === undefined) { return; }
-
-				var value = object.next ? object.next() : object.shift() ;
-
-				if (value === undefined) {
-					object = undefined;
-					return next();
-				}
-
-				return value;
-			});
-		},
-
-		find: function(fn) {
+		delay: function(time) {
 			var source = this;
 
-			// Allow filter to be used without fn, where it filters out undefined
-			fn = typeof fn === 'object' ? compare(fn) :
-				fn.apply ? fn :
-				Fn.is(fn) ;
-
-			function process() {
-				var value;
-
-				while ((value = source.next()) !== undefined && !fn(value));
-
-				if (value !== undefined) {
-					// Process is a call once kind of thing
-					process = noop;
-				}
-
-				return value;
-			}
-
-			return new this.constructor(function next() {
-				return process();
-			}, source.push);
-		},
-
-		filter: function(fn) {
-			var source = this;
-
-			fn = typeof fn === 'object' ? Fn.compare(fn) : fn ;
-
-			return this.create(function next() {
-				var value;
-				while ((value = source.next()) !== undefined && !fn(value));
-				return value;
-			}, source.push);
-		},
-
-		scan: function(fn) {
-			var i = 0, t = 0;
-			return this.map(function scan(value) {
-				return fn(value, t, i++);
-			});
-		},
-
-		sort: function(fn) {
-			var source = this;
-			var array = [];
-
-			fn = fn || Fn.byGreater ;
-
-			return new this.constructor(function next() {
-				if (array.length === 0) {
-					array = source.toArray();
-					array.sort(fn);
-				}
-
-				return array.shift();
-			}, source.push);
-		},
-
-		unique: function() {
-			var source = this;
-			var buffer = [];
-
-			return new this.constructor(function unique() {
-				var value = source.next();
-
-				if (value === undefined) { return; }
-
-				if (buffer.indexOf(value) === -1) {
-					buffer.push(value);
-					return value;
-				}
-
-				// If we have not already returned carry on looking
-				// for a unique value.
-				return unique();
-			}, source.push);
-		},
-
-		batch: function(n) {
-			var source = this;
-			var buffer = [];
-
-			return new this.create(n ?
-				// If n is defined batch into arrays of length n.
-				function nextBatchN() {
-					var value;
-
-					while (buffer.length < n) {
-						value = source.next();
-						if (value === undefined) { return; }
-						buffer.push(value);
-					}
-
-					if (buffer.length >= n) {
-						var _buffer = buffer;
-						buffer = [];
-						return _buffer;
-					}
-				} :
-
-				// If n is undefined or 0, batch all values into an array.
-				function nextBatch() {
-					buffer = source.toArray();
-					// An empty array is equivalent to undefined
-					return buffer.length ? buffer : undefined ;
+			return new Stream(function setup(notify) {
+				source.on('push', function() {
+					setTimeout(notify, time, 'push');
 				});
-		},
 
-		concatAll: function() {
-			var source = this;
-			var object;
+				return {
+					shift: function delay() {
+						return source.shift();
+					},
 
-			return this.create(function next() {
-				var value = object.next ? object.next() : object.shift() ;
-				if (value !== undefined) { return value; }
-				object = source.next();
-				if (object === undefined) { return; }
-				return next();
+					stop: function stop() {
+						// Probably should clear timers here.
+					}
+				};
 			});
 		},
 
-		concatMap: function(fn) {
-			return this.map(fn).concatAll();
-		},
-
-		chain: function(n) {
+		throttle: function(time) {
 			var source = this;
-			var buffer = [];
-			var stream = this.create(function next() {
-				var value = buffer.shift() ;
 
-				if (value !== undefined) {
-					return value;
-				}
+			return new Stream(function setup(notify) {
+				var t = Fn.Throttle(function() {
+					notify('push');
+				}, time);
 
-				if (source.status === 'done') {
-					this.status = 'done';
-					return;
-				}
+				source.on('push', t);
 
-				var b = source.next();
+				return {
+					shift: function throttle() {
+						var value, v;
 
-				if (b === undefined) {
-					return;
-				}
+						while ((v = source.shift()) !== undefined) {
+							value = v;
+						}
 
-				buffer = ReadStream(b);
-				return next();
+						if (source.status === "done") { t.cancel(); }
+
+						return value;
+					},
+
+					stop: t.cancel
+				};
 			});
-
-			stream.status = 'active';
-			return stream;
-		},
-
-		add:         function(n) { return this.map(Fn.add(n)); },
-		subtract:    function(n) { return this.map(Fn.subtract(n)); },
-		multiply:    function(n) { return this.map(Fn.multiply(n)); },
-		divide:      function(n) { return this.map(Fn.divide(n)); },
-		mod:         function(n) { return this.map(Fn.mod(n)); },
-		pow:         function(n) { return this.map(Fn.pow(n)); },
-
-		boolify:     function() { return this.map(Boolean); },
-		stringify:   function() { return this.map(String); },
-		jsonify:     function() { return this.map(JSON.stringify); },
-		slugify:     function() { return this.map(Fn.slugify); },
-		match:       function(regex) { return this.map(Fn.match(regex)); },
-		exec:        function(regex) { return this.map(Fn.exec(regex)); },
-
-		get:         function(name) { return this.map(Fn.get(path)); },
-		set:         function(name, value) { return this.map(Fn.set(path, value)); },
-		assign:      function(object) { return this.map(Fn.assign(object)); },
-
-		typeOf: function() { return this.map(Fn.typeOf); },
-		classOf: function() { return this.map(Fn.classOf); },
-
-		done: function(fn) {
-			var source = this;
-			var next = this.next;
-
-			this.next = function next() {
-				var value = _next.apply(source);
-				if (value === undefined) { fn(); }
-				return value;
-			};
-
-			return this;
-		},
-
-		apply: function(ignored, values) {
-			this.push.apply(this, values);
-			return this.next();
-		},
-
-		call: function() {
-			var values = A.slice.call(arguments, 1);
-			return this.apply(this, values);
-		},
-
-		toArray: function() {
-			var result = [];
-			var value;
-
-			while ((value = this.next()) !== undefined) {
-				result.push(value);
-			}
-
-			return result;
-		},
-
-		toReadStream: function() {
-			return new ReadStream(this);
-		},
-
-		toString: function() {
-			return this.toArray().join('');
-		},
-
-		toFunction: function() {
-			var source = this;
-			return function fn() {
-				return source.apply(source, arguments);
-			};
 		},
 
 		toPromise: function() {
 			var source = this;
-			var value = this.next();
 
-			return new Promise(function setup(next, reject) {
+			return new Promise(function setup(resolve, reject) {
+				var value = source.shift();
+
 				if (value !== undefined) {
-					next(value);
+					resolve(value);
 					return;
 				}
 
 				source
 				.on('push', function() {
-					var value = source.next();
-					if (value !== undefined) { next(value); }
+					var value = source.shift();
+					if (value !== undefined) { resolve(value); }
 				})
-				.on('end', reject);
+				.on('stop', reject);
 			});
 		}
 	});
 
-	Stream.prototype.toJSON = Stream.prototype.toArray;
+	Object.assign(Stream, {
+		of: function() {
+			var a = arguments;
+			return new Stream(function setup(notify) {
+				var pulling = false;
 
-	Object.setPrototypeOf(ReadStream.prototype, Stream.prototype);
-	Object.setPrototypeOf(BufferStream.prototype, Stream.prototype);
+				return {
+					shift: function buffer() {
+						var value = A.shift.apply(a);
 
-	Object.assign(Fn, {
-		Stream:       Stream,
-		ReadStream:   ReadStream,
-		BufferStream: BufferStream
+						if (value === undefined) {
+							pulling = true;
+							notify('pull');
+							pulling = false;
+							value = A.shift.apply(a);
+						}
+
+						return value;
+					},
+
+					push: function push() {
+						A.push.apply(a, arguments);
+						if (!pulling) { notify('push'); }
+					}
+				};
+			});
+		}
 	});
+
+	function ValueStream() {
+		return Stream(function setup(notify) {
+			var value;
+			var pulling = false;
+
+			return {
+				shift: function buffer() {
+					if (value === undefined) {
+						pulling = true;
+						notify('pull');
+						pulling = false;
+					}
+					var v = value;
+					value = undefined;
+					return v;
+				},
+
+				push: function push() {
+					// Store last pushed value
+					value = arguments[arguments.length - 1];
+					if (!pulling) { notify('push'); }
+					// Cancel value
+					value = undefined;
+				}
+			};
+		});
+	}
+
+	// BufferStream
+
+	function BufferStream(object) {
+		return Stream(function setup(notify) {
+			var source = typeof object === 'string' ? A.slice.apply(object) : object || [] ;
+			var pulling = false;
+
+			return {
+				shift: function buffer() {
+					var value = source.shift();
+
+					if (source.status === 'done') {
+						this.status = 'done';
+					}
+					else if (value === undefined) {
+						pulling = true;
+						notify('pull');
+						pulling = false;
+						value = source.shift();
+					}
+
+					return value;
+				},
+
+				push: function push() {
+					source.push.apply(source, arguments);
+					if (!pulling) { notify('push'); }
+				}
+			};
+		});
+	}
+
+	BufferStream.of = Stream.of;
+
+
+	// PromiseStream
+
+	function PromiseStream(promise) {
+		return new Stream(function setup(notify) {
+			var value;
+
+			promise.then(function(v) {
+				value = v;
+				notify('push');
+			});
+
+			return {
+				next: function promise() {
+					var v = value;
+					value = undefined;
+					return v;
+				}
+			};
+		});
+	}
+
+	PromiseStream.of = Stream.of;
 
 
 	// Export
+
+	Object.assign(Fn, {
+		Functor: function functorWarning() {
+			// Legacy warning
+			console.warn('Fn: new Fn.Functor() is deprecated. Use new Fn().');
+			return Fn.apply(Fn, arguments);
+		},
+
+		Throttle:      Throttle,
+		Stream:        Stream,
+		ValueStream:   ValueStream,
+		BufferStream:  BufferStream,
+		PromiseStream: PromiseStream
+	});
+
+	Fn.Functor.of = function() {
+		// Legacy warning
+		console.warn('Fn: Fn.Functor.of() is deprecated. Use Fn.of().');
+		return Fn.of.apply(Fn, arguments);
+	};
 
 	window.Fn = Fn;
 
@@ -1982,7 +2258,30 @@ if (!Math.log10) {
 		observe(collection, 'length', createLengthObserver(collection));
 	};
 
+	assign(Collection, {
+		// Fantasy land .of()
+		of: function() {
+			return Collection(arguments);
+		},
+
+		add: add,
+		remove: remove,
+		isCollection: isCollection
+	});
+
 	assign(Collection.prototype, mixin.events, {
+		// Fantasy land .of()
+		of: function() {
+			return Collection(arguments);
+		},
+
+		// Fantasy land .ap()
+		ap: function(object) {
+			return this.map(function(fn) {
+				return object.map(fn);
+			});
+		},
+
 		filter:  Array.prototype.filter,
 		map:     Array.prototype.map,
 		reduce:  Array.prototype.reduce,
@@ -2030,6 +2329,12 @@ if (!Math.log10) {
 			return object;
 		},
 
+		shift: function() {
+			var object = this[0];
+			this.remove(object);
+			return object;
+		},
+
 		splice: function() {
 			Array.prototype.unshift.call(arguments, this);
 			return splice.apply(this, arguments);
@@ -2068,7 +2373,7 @@ if (!Math.log10) {
 			return this.indexOf(object) !== -1;
 		},
 
-		get: function(property) {
+		getAll: function(property) {
 			// Get the value of a property of all the objects in
 			// the collection if they all have the same value.
 			// Otherwise return undefined.
@@ -2084,7 +2389,7 @@ if (!Math.log10) {
 			return this[n][property];
 		},
 
-		set: function(property, value) {
+		setAll: function(property, value) {
 			// Set a property on every object in the collection.
 
 			if (arguments.length !== 2) {
@@ -2278,10 +2583,6 @@ if (!Math.log10) {
 
 	assign(SubCollection.prototype, Collection.prototype);
 
-	Collection.add = add;
-	Collection.remove = remove;
-	Collection.isCollection = isCollection;
-
 	window.Collection = Collection;
 })(this);
 
@@ -2297,29 +2598,38 @@ if (!Math.log10) {
 (function(window) {
 	"use strict";
 
+
+	// Imports
+
+	var Fn     = window.Fn;
 	var assign = Object.assign;
+
+
+	// Variables
 
 	var rurljson = /\/\S*\.json$/;
 
-	// Utility functions
+
+	// Utilities
 
 	var noop      = Fn.noop;
 	var isDefined = Fn.isDefined;
-	var id        = Fn.id;
-	var call      = Fn.call;
+
+	function call(fn) { fn(); }
 
 	function returnThis() { return this; }
 
 	// Debug
 
-	function nodeToText(node) {
+	function nodeToString(node) {
 		return [
 			'<',
 			Sparky.dom.tag(node),
-			//(node.className ? ' class="' + node.className + '"' : ''),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
-			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
+			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
+			(node.getAttribute('data-template') ? ' data-template="' + node.getAttribute('data-template') + '"' : ''),
+			(node.className ? ' class="' + node.className + '"' : ''),
 			(node.id ? ' id="' + node.id + '"' : ''),
 			'>'
 		].join('');
@@ -2352,11 +2662,14 @@ if (!Math.log10) {
 			selector ;
 
 		if (!node) {
-			throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+			console.warn('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+			return;
+			//throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
 		}
 
 		// If node is a template use a copy of it's content.
-		if (Sparky.dom.tag(node) === 'template') {
+		var tag = Sparky.dom.tag(node);
+		if (tag === 'template' || tag === 'script') {
 			node = Sparky.template(node.id);
 		}
 
@@ -2406,31 +2719,29 @@ if (!Math.log10) {
 			update(scope);
 	}
 
-	function resolveFn(node, fn, ctrl) {
+	function resolveFn(node, fn, ctrl, instream) {
 		// The ctrl list can be a space-separated string of ctrl paths,
-		return typeof fn === 'string' ? makeFn(fn, ctrl) :
+		return typeof fn === 'string' ? makeFn(fn, ctrl, instream) :
 			// a function,
-			typeof fn === 'function' ? makeDistributeFn([fn]) :
+			typeof fn === 'function' ? makeDistributeFn([fn], instream) :
 			// an array of functions,
-			typeof fn === 'object' ? makeDistributeFn(fn) :
+			typeof fn === 'object' ? makeDistributeFn(fn, instream) :
 			// or defined in the data-fn attribute
-			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl) ;
+			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, instream) ;
 	}
 
-	function makeDistributeFn(list) {
-		return function distributeFn(node, model) {
+	function makeDistributeFn(list, instream) {
+		return function distributeFn(node) {
 			// Distributor controller
 			var l = list.length;
 			var n = -1;
-			var scope = model;
 			var result;
+			var flag = false;
 
 			// TODO: This is exposes solely so that ctrl
 			// 'observe-selected' can function in sound.io.
 			// Really naff. Find a better way.
 			this.ctrls = list;
-
-			var flag = false;
 
 			this.interrupt = function interrupt() {
 				flag = true;
@@ -2439,29 +2750,28 @@ if (!Math.log10) {
 
 			while (++n < l) {
 				// Call the list of ctrls, in order.
-				result = list[n].call(this, node, scope);
+				result = list[n].call(this, node, instream);
 
 				// Returning false interrupts the fn calls.
 				if (flag) { return false; }
 
 				// Returning an object sets that object to
 				// be used as scope.
-				if (result !== undefined) { scope = result; }
+				if (result !== undefined) { instream = result.each ? result : Fn.of(result) ; }
 			}
 
-			return scope;
+			return instream;
 		};
 	}
 
-	function makeDistributeFnFromPaths(paths, ctrls) {
+	function makeDistributeFnFromPaths(paths, ctrls, instream) {
 		var list = [];
 		var l = paths.length;
 		var n = -1;
 		var ctrl;
 
 		while (++n < l) {
-			ctrl = Sparky.get(ctrls, paths[n]);
-
+			ctrl = Fn.getPath(paths[n], ctrls);
 			if (!ctrl) {
 				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
 			}
@@ -2469,13 +2779,13 @@ if (!Math.log10) {
 			list.push(ctrl);
 		}
 
-		return makeDistributeFn(list);
+		return makeDistributeFn(list, instream);
 	}
 
-	function makeFn(string, ctrls) {
+	function makeFn(string, ctrls, instream) {
 		if (!isDefined(string)) { return; }
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeFnFromPaths(paths, ctrls);
+		return makeDistributeFnFromPaths(paths, ctrls, instream);
 	}
 
 	function replaceWithComment(node, i, sparky) {
@@ -2513,7 +2823,9 @@ if (!Math.log10) {
 			fn = bindings[n][1];
 			throttle = bindings[n][2];
 			Sparky.observePath(scope, path, throttle, !init);
-			if (init) { fn(Sparky.get(scope, path)); }
+			if (init) {
+				fn(Fn.getPath(path, scope));
+			}
 		}
 	}
 
@@ -2542,7 +2854,7 @@ if (!Math.log10) {
 		while (n--) {
 			path = bindings[n][0];
 			throttle = bindings[n][2];
-			if (path) { throttle(Sparky.get(scope, path)); }
+			if (path) { throttle(Fn.getPath(path, scope)); }
 			else { throttle(); }
 		}
 	}
@@ -2598,20 +2910,18 @@ if (!Math.log10) {
 		}
 	}
 
-	function Sparky(node, scope, fn, parent) {
+	function Sparky(node, rootscope, fn, parent) {
 		// Allow calling the constructor with or without 'new'.
 		if (!(this instanceof Sparky)) {
-			return new Sparky(node, scope, fn, parent);
+			return new Sparky(node, rootscope, fn, parent);
 		}
 
 		var sparky = this;
 		var init = true;
-		var initscope = scope;
-		var ctrlscope;
+		var scope;
 		var parsed;
 
-		// Use scope variable as current scope.
-		scope = undefined;
+		var instream = Fn.ValueStream().dedup();
 
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
@@ -2620,29 +2930,7 @@ if (!Math.log10) {
 		var removeThrottle = Fn.Throttle(removeNodes);
 
 		function updateScope(object) {
-			// If scope is unchanged, do nothing.
-			if (scope === (ctrlscope || object)) { return; }
-
-			// If old scope exists, tear it down
-			if (scope && parsed) { teardown(scope, parsed.bindings); }
-
-			// ctrlscope trumps new objects
-			scope = ctrlscope || object;
-
-			if (scope && parsed) {
-				// Run initialiser fns, if any
-				if (parsed.setups.length) { initialise(parsed.setups, init); }
-
-				// Assign and set up scope
-				setup(scope, parsed.bindings, init);
-			}
-
-			// Trigger scope first, children assemble themselves
-			sparky.trigger('scope', scope);
-
-			// Then update this node
-			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
-			init = false;
+			instream.push(object);
 		}
 
 		function observeScope(scope, path) {
@@ -2656,12 +2944,14 @@ if (!Math.log10) {
 		node = resolveNode(node);
 
 		if (!node) {
-			throw new Error("Sparky: Sparky(node) – node not found: " + node);
+			console.warn("Sparky: Sparky(node) – node not found: " + node);
+			return;
+			//throw new Error("Sparky: Sparky(node) – node not found: " + node);
 		}
 
-		Sparky.logVerbose('Sparky(', node, initscope, fn && (fn.call ? fn.name : fn), ')');
+		Sparky.logVerbose('Sparky(', node, rootscope, fn && (fn.call ? fn.name : fn), ')');
 
-		fn = resolveFn(node, fn, ctrl);
+		fn = resolveFn(node, fn, ctrl, instream);
 
 		// Define data and ctrl inheritance
 		Object.defineProperties(this, {
@@ -2671,6 +2961,9 @@ if (!Math.log10) {
 		});
 
 		this.scope = function(object) {
+			// If we are already using this object as rootscope, bye bye.
+			if (object === rootscope) { return; }
+			rootscope = object;
 			resolveScope(node, object, parent ? parent.data : Sparky.data, observeScope, updateScope);
 			return this;
 		};
@@ -2679,38 +2972,43 @@ if (!Math.log10) {
 		// fragment, assign all it's children to sparky collection.
 		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
 
-		// Todo: SHOULD be able to get rid of this, if ctrl fns not required to
-		// accept scope as second parameter. Actually, no no no - the potential
-		// scope must be passed to the fn, as the fn may return a different
-		// scope and has no access to this one otherwise.
-		resolveScope(node, initscope, parent ? parent.data : Sparky.data, function(basescope, path) {
-			ctrlscope = Sparky.get(basescope, path);
-		}, function(object) {
-			ctrlscope = object;
-		});
-
-		// If fn is to be called and a scope is returned, we use that.
-		if (fn) {
-			ctrlscope = fn.call(sparky, node, ctrlscope) ;
-		}
+		// If fn is to be called and a stream is returned, we use that.
+		var outstream = fn ? fn.call(sparky, node, instream) : instream ;
 
 		// A controller returning false is telling us not to do data
 		// binding. We can skip the heavy work.
-		if (ctrlscope === false) {
+		if (outstream === false) {
 			this.on('destroy', function() {
 				Sparky.dom.remove(this);
 			});
 
-			// Todo: We don't ALWAYS want to call .scope() here.
-			// if (initscope) { this.scope(initscope); }
-			this.scope(initscope);
+			this.scope(rootscope);
 			init = false;
 			return;
 		}
 
-		// If ctrlscope is unchanged from scope, ctrlscope should not override
-		// scope changes. There's probably a better way of expressing this.
-		if (ctrlscope === initscope) { ctrlscope = undefined; }
+		var children = [];
+
+		this.create = function(node, scope1, fn) {
+			var sparky = Sparky.prototype.create.apply(this, arguments);
+
+			// If scope is already set, apply it immediately, handling the
+			// case where a sparky instance is created after a parent sparky
+			// has been initialised.
+			if (isDefined(scope)) { sparky.scope(scope); }
+
+			// We can't .tap() the outstream here. If a sparky instance is
+			// created after a parent sparky is instantiated outstream.tap()
+			// will follow the outstream's .each() and it will never receive
+			// anything. So push child scope() calls into an array and deal
+			// with that inside outstream.each();
+			children.push(sparky.scope);
+
+			return sparky.on('destroy', function() {
+				var i = children.indexOf(sparky.scope);
+				if (i > -1) { children.splice(i, 1); }
+			});
+		};
 
 		// Define .render() for forcing tags to update.
 		this.render = function() {
@@ -2730,11 +3028,10 @@ if (!Math.log10) {
 
 		// Parse the DOM nodes for Sparky tags.
 		parsed = Sparky.parse(sparky, function get(path) {
-				return scope && Sparky.get(scope, path);
-			}, function set(property, value) {
-				scope && Sparky.set(scope, property, value);
-			}
-		);
+			return scope && Fn.getPath(path, scope);
+		}, function set(property, value) {
+			scope && Fn.setPath(property, value, scope);
+		});
 
 		// Instantiate children AFTER this sparky has been fully wired up. Not
 		// sure why. Don't think it's important.
@@ -2745,8 +3042,43 @@ if (!Math.log10) {
 		// Don't keep nodes hanging around in memory
 		parsed.nodes.length = 0;
 
+		outstream
+		.dedup()
+		.map(function(object) {
+			// If old scope exists, tear it down
+			if (scope && parsed) { teardown(scope, parsed.bindings); }
+
+			scope = object;
+
+			if (scope && parsed) {
+				// Run initialiser fns, if any
+				if (parsed.setups.length) { initialise(parsed.setups, init); }
+
+				// Assign and set up scope
+				setup(scope, parsed.bindings, init);
+			}
+
+			Sparky.log('Sparky: scope change', node, scope);
+
+			// Trigger children
+			//sparky.trigger('scope', scope);
+
+			// Update DOM insertion of this sparky's nodes
+			updateNodes(sparky, scope, addNodes, addThrottle, removeNodes, removeThrottle, init);
+
+			// Then update this node
+			init = false;
+
+			return scope;
+		})
+		.each(function(scope) {
+			children.forEach(function(fn) {
+				fn(scope);
+			});
+		});
+
 		// If there is scope, set it up now
-		if (initscope || ctrlscope) { this.scope(initscope || ctrlscope); }
+		resolveScope(node, rootscope, parent ? parent.data : Sparky.data, observeScope, updateScope);
 
 		init = false;
 	}
@@ -2754,25 +3086,22 @@ if (!Math.log10) {
 	Sparky.prototype = Object.create(Collection.prototype);
 
 	assign(Sparky.prototype, {
-		// Create a child Sparky dependent upon this one.
-		create: function(node, scope, fn) {
-			var boss = this;
+		// Create dependent Sparky
+		create: function create(node, scope, fn) {
+			var boss   = this;
 			var sparky = Sparky(node, scope, fn, this);
 
 			function delegateDestroy() { sparky.destroy(); }
-			function delegateScope(self, scope) { sparky.scope(scope); }
 			function delegateRender(self) { sparky.render(); }
 
 			// Bind events...
 			this
 			.on('destroy', delegateDestroy)
-			.on('scope', delegateScope)
 			.on('render', delegateRender);
 
 			return sparky.on('destroy', function() {
 				boss
 				.off('destroy', delegateDestroy)
-				.off('scope', delegateScope)
 				.off('render', delegateRender);
 			});
 		},
@@ -2801,6 +3130,7 @@ if (!Math.log10) {
 		debug: false,
 		log: log,
 		logVerbose: logVerbose,
+		nodeToString: nodeToString,
 
 		try: function(fn, createMessage) {
 			return function catchError() {
@@ -2828,28 +3158,15 @@ if (!Math.log10) {
 	window.Sparky = Sparky;
 })(this);
 
-(function(Sparky) {
+(function(window) {
 	"use strict";
+
+	var Fn     = window.Fn;
+	var Sparky = window.Sparky;
 
 	var assign = Object.assign;
 	var slice  = Function.prototype.call.bind(Array.prototype.slice);
-	var reduce = Function.prototype.call.bind(Array.prototype.reduce);
 	var dom = {};
-
-	// Utility functions
-
-	function noop() {}
-
-	function isDefined(val) { return val !== undefined && val !== null; }
-
-	function all(fn) {
-		return function(node, collection) {
-			var n = -1;
-			var length = collection.length;
-			while (++n < length) { fn(node, collection[n]); }
-			return node;
-		};
-	}
 
 	// Selection, traversal and mutation
 
@@ -3021,7 +3338,7 @@ if (!Math.log10) {
 		tag:       tagName,
 		create:    createNode,
 
-		append: function(node1, node2) {
+		append: Fn.curry(function(node1, node2) {
 			if (Node.prototype.isPrototypeOf(node2)) {
 				append(node1, node2);
 			}
@@ -3030,7 +3347,7 @@ if (!Math.log10) {
 					append(node1, node);
 				});
 			}
-		},
+		}),
 
 		after:     insertAfter,
 		before:    insertBefore,
@@ -3062,9 +3379,27 @@ if (!Math.log10) {
 	var rcomment = /\{\s*\/\*\s*([\s\S]*)\s*\*\/\s*\}$/;
 
 	function fragmentFromChildren(node) {
-		var children = slice(node.childNodes);
 		var fragment = document.createDocumentFragment();
-		return reduce(children, append, fragment);
+		Fn(node.childNodes).each(dom.append(fragment));
+		return fragment;
+	}
+
+	function fragmentFromHTML(html, tag) {
+		var fragment = document.createDocumentFragment();
+		var node     = document.createElement(tag || 'div');
+		node.innerHTML = html;
+
+		if (node.innerHTML !== html) {
+			console.warn('Sparky: HTML has been transformed by innerHTML parsing while creating fragment.');
+			console.groupCollapsed('Sparky: Compare before and after');
+				console.log('This transform may be completely harmless: SVG content or unusual whitespace in tags is transformed without changing DOM structure.');
+				console.log(html);
+				console.log(node.innerHTML);
+			console.groupEnd();
+		}
+
+		Fn(node.childNodes).each(dom.append(fragment));
+		return fragment;
 	}
 
 	function fragmentFromContent(node) {
@@ -3077,20 +3412,28 @@ if (!Math.log10) {
 		var node = document.getElementById(id);
 		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
 
+		if (node.content) {
+			return node.content;
+		}
+
 		var tag = dom.tag(node);
 
-		if (tag !== 'template' && tag !== 'script') { return; }
-
-		if (node.content) {
-			return fragmentFromContent(node);
+		if (tag === 'script') {
+			// Data parent is a workaround for browsers that don't support inert
+			// templates. Allows the author to specify a context inside which
+			// the template is parsed. Where a template has top level <td>s, for
+			// example, it should have data-parent="tr", or the <td>s will be
+			// removed by the browser.
+			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent'));
 		}
-		else {
+		else if (tag === 'template') {
 			// In browsers where templates are not inert, ids used inside them
 			// conflict with ids in any rendered result. To go some way to
 			// tackling this, remove the node from the DOM.
 			remove(node);
-			return fragmentFromChildren(node);
 		}
+
+		return fragmentFromChildren(node);
 	}
 
 	function cloneTemplate(id) {
@@ -3106,8 +3449,10 @@ if (!Math.log10) {
 	}
 
 	function registerTemplate(id, node) {
+		var template;
+
 		if (typeof node === 'function') {
-			var template = dom.create('template');
+			template = dom.create('template');
 			template.innerHTML = multiline(node);
 			node = fragmentFromContent(template);
 		}
@@ -3209,7 +3554,7 @@ if (!Math.log10) {
 
 	// Export
 	Sparky.dom = dom;
-})(window.Sparky);
+})(this);
 
 
 // Sparky.observe()
@@ -3220,8 +3565,10 @@ if (!Math.log10) {
 
 	// Import
 
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
+	var Fn        = window.Fn;
+	var Sparky    = window.Sparky;
+	var observe   = window.observe;
+	var unobserve = window.unobserve;
 
 	// Utility functions
 
@@ -3232,23 +3579,13 @@ if (!Math.log10) {
 
 	var rpathtrimmer = /^\[|\]$/g;
 	var rpathsplitter = /\]?(?:\.|\[)/g;
-	var rpropselector = /(\w+)\=(\w+)/;
+	var rpropselector = /(\w+)=(\w+)/;
 	var map = [];
-
-	function isObject(obj) { return obj instanceof Object; }
 
 	function splitPath(path) {
 		return path
 			.replace(rpathtrimmer, '')
 			.split(rpathsplitter);
-	}
-
-	function select(object, key) {
-		var selection = rpropselector.exec(key);
-
-		return selection ?
-			findByProperty(object, selection[1], JSON.parse(selection[2])) :
-			object[key] ;
 	}
 
 	function findByProperty(array, name, value) {
@@ -3262,23 +3599,6 @@ if (!Math.log10) {
 		}
 	}
 
-	function objFrom(object, array) {
-		var key = array.shift();
-		var value = select(object, key);
-
-		return array.length === 0 ? value :
-			isDefined(value) ? objFrom(value, array) :
-			value ;
-	}
-
-	function objTo(root, array, obj) {
-		var key = array[0];
-
-		return array.length > 1 ?
-			objTo(isObject(root[key]) ? root[key] : (root[key] = {}), array.slice(1), obj) :
-			(root[key] = obj) ;
-	}
-
 	function observePath3(root, prop, array, fn, notify) {
 		function update() {
 			Sparky.logVerbose('path resolved to value:', root[prop]);
@@ -3287,7 +3607,7 @@ if (!Math.log10) {
 
 		Sparky.observe(root, prop, update, notify);
 
-		return function unobserve() {
+		return function() {
 			Sparky.unobserve(root, prop, update);
 		};
 	}
@@ -3312,7 +3632,7 @@ if (!Math.log10) {
 			var obj = findByProperty(root, selection[1], JSON.parse(selection[2]));
 			// Check that object has changed
 			if (obj === object) { return; }
-			object = o;
+			object = obj;
 			update();
 		}
 
@@ -3331,19 +3651,18 @@ if (!Math.log10) {
 			root.on('add remove sort', updateSelection);
 			updateSelection();
 			notify = true;
-			return function unobserve() {
+			return function() {
 				destroy();
 				root.off('add remove sort', updateSelection);
 			};
 		}
-		else {
-			Sparky.observe(root, prop, updateProperty, true);
-			notify = true;
-			return function unobserve() {
-				destroy();
-				Sparky.unobserve(root, prop, updateProperty);
-			};
-		}
+			
+		Sparky.observe(root, prop, updateProperty, true);
+		notify = true;
+		return function() {
+			destroy();
+			Sparky.unobserve(root, prop, updateProperty);
+		};
 	}
 
 	function observePath1(root, array, fn, notify) {
@@ -3374,14 +3693,14 @@ if (!Math.log10) {
 	}
 
 	function observePathOnce(root, path, fn) {
-		var array = splitPath(path);
-		var value = objFrom(root, array.slice());
+		var value = Fn.getPath(path, root);
 
 		if (isDefined(value)) {
 			fn(value);
 			return;
 		}
 
+		var array   = splitPath(path);
 		var destroy = observePath1(root, array, update, false);
 
 		// Hack around the fact that the first call to destroy()
@@ -3428,23 +3747,6 @@ if (!Math.log10) {
 		}
 	}
 
-	function getPath(obj, path) {
-		return obj && (path === '.' ?
-			obj :
-			objFrom(obj, splitPath(path)));
-	}
-
-	function setPath(root, path, obj) {
-		var array = splitPath(path);
-
-		return array.length === 1 ?
-			(root[path] = obj) :
-			objTo(root, array, obj);
-	}
-
-	Sparky.get = getPath;
-	Sparky.set = setPath;
-
 	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
 		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
 	});
@@ -3473,7 +3775,7 @@ if (!Math.log10) {
 			if (!active) { return; }
 
 			window.requestAnimationFrame(frame);
-		};
+		}
 
 		function cancel() {
 			active = false;
@@ -3521,10 +3823,12 @@ if (!Math.log10) {
 			return poll(object, property, fn);
 		}
 
+		var descriptor;
+
 		if (property === 'length') {
 			// Observe length and update the DOM on next
 			// animation frame if it changes.
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			descriptor = Object.getOwnPropertyDescriptor(object, property);
 
 			if (!descriptor.get && !descriptor.configurable) {
 				console.warn && console.warn('Sparky: Are you trying to observe an array?. Sparky is going to observe it by polling. You may want to use a Collection() to avoid this.', object, object instanceof Array);
@@ -3542,8 +3846,10 @@ if (!Math.log10) {
 			return unpoll(object, property, fn);
 		}
 
+		var descriptor;
+
 		if (property === 'length') {
-			var descriptor = Object.getOwnPropertyDescriptor(object, property);
+			descriptor = Object.getOwnPropertyDescriptor(object, property);
 			if (!descriptor.get && !descriptor.configurable) {
 				return unpoll(object, property, fn);
 			}
@@ -3644,7 +3950,7 @@ if (!Math.log10) {
 	var rclasstags;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
-	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?:\:(.+))?/;
+	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
 
 	// Matches anything with a space
 	var rspaces = /\s+/;
@@ -3653,21 +3959,19 @@ if (!Math.log10) {
 	var rtext = /\S/;
 
 	// Matches the arguments list in the result of a fn.toString()
-	var rarguments = /function(?:\s+\w+)?\s*(\([\w\,\s]*\))/;
+	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var filterCache = {};
 
-	var empty = [];
 
 	// Utility functions
 
-	var noop      = Fn.noop;
 	var identity  = Fn.id;
-	var call      = Fn.call;
 	var isDefined = Fn.isDefined;
-	var classOf   = Fn.classOf;
+	var toClass   = Fn.toClass;
 
 	var slice = Function.prototype.call.bind(Array.prototype.slice);
+
 
 	// DOM
 
@@ -3688,12 +3992,14 @@ if (!Math.log10) {
 	}
 
 	function toggleAttributeSVG(node, attribute, value) {
-		if (value) { setAttributeSVG(node, attribute, value); }
+		if (attribute in node) { node[attribute] = !!value; }
+		else if (value) { setAttributeSVG(node, attribute, value); }
 		else { node.removeAttribute(attribute); }
 	}
 
 	function toggleAttributeHTML(node, attribute, value) {
-		if (value) { setAttributeHTML(node, attribute, attribute); }
+		if (attribute in node) { node[attribute] = !!value; }
+		else if (value) { node.setAttribute(attribute, attribute); }
 		else { node.removeAttribute(attribute); }
 	}
 
@@ -3727,7 +4033,9 @@ if (!Math.log10) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
+			bindAttribute(node, 'step', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
 			    	// Only let numbers set the value of number and range inputs
@@ -3747,6 +4055,7 @@ if (!Math.log10) {
 		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
 			// Only let strings set the value of selects
@@ -3764,6 +4073,7 @@ if (!Math.log10) {
 
 		textarea: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
+			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			// Only let strings set the value of a textarea
 			var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
@@ -3820,7 +4130,7 @@ if (!Math.log10) {
 			bindClasses(node, bind, unbind, get, unobservers);
 			bindAttributes(node, bind, unbind, get, unobservers, attributes);
 
-			// Set up special binding for certain elements like form inputs
+			// Set up special bindings for certain tags, like form inputs
 			if (tags[tag]) {
 				tags[tag](node, bind, unbind, get, set, setup, create, unobservers);
 			}
@@ -3863,16 +4173,17 @@ if (!Math.log10) {
 		var template, nodes;
 
 		if (isDefined(id)) {
+			// Node has a data-template attribute
 			template = Sparky.template(id);
 
-			// If the template does not exist, do nothing.
+			// If the template does not exist, do nothing
 			if (!template) {
 				Sparky.log('template "' + id + '" not found in DOM.');
 				return;
 			}
 
 			// childNodes is a live list, and we don't want that because we may
-			// be about to modify the DOM.
+			// be about to modify the DOM
 			nodes = slice(template.childNodes);
 
 			// Wait for scope to become available with a self-unbinding function
@@ -3894,7 +4205,7 @@ if (!Math.log10) {
 
 		var n = -1;
 		var l = nodes.length;
-		var child, sparky, unbind;
+		var child;
 
 		// Loop forwards through the children
 		while (++n < l) {
@@ -3905,7 +4216,6 @@ if (!Math.log10) {
 				isDefined(child.getAttribute('data-fn')) ||
 				isDefined(child.getAttribute('data-scope'))
 			)) {
-				//create(child);
 				create(child);
 				//unobservers.push(sparky.destroy.bind(sparky));
 			}
@@ -3956,8 +4266,6 @@ if (!Math.log10) {
 	}
 
 	function bindAttribute(node, attribute, bind, unbind, get, unobservers) {
-		var isSVG = node instanceof SVGElement;
-
 		// Look for data- aliased attributes before attributes. This is
 		// particularly important for the style attribute in IE, as it does not
 		// return invalid CSS text content, so Sparky can't read tags in it.
@@ -3973,9 +4281,7 @@ if (!Math.log10) {
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = //isSVG ?
-		//    	setAttributeSVG.bind(this, node, attr) :
-		    	setAttributeHTML.bind(this, node, attr) ;
+		var update = setAttributeHTML.bind(null, node, attr) ;
 
 		observeProperties(value, bind, unbind, get, update, unobservers);
 	}
@@ -3994,9 +4300,33 @@ if (!Math.log10) {
 		if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
-		var update = toggleAttributeHTML.bind(this, node, attr) ;
+		var update = toggleAttributeHTML.bind(null, node, attr) ;
+		observeBoolean(value.trim(), bind, unbind, get, update, unobservers);
+	}
 
-		observeProperties(value, bind, unbind, get, update, unobservers);
+	function observeBoolean(text, bind, unbind, get, fn, unobservers) {
+		Sparky.rtags.lastIndex = 0;
+		var tokens = Sparky.rtags.exec(text);
+
+		if (!tokens) { return; }
+		var replace = makeReplaceText(get);
+
+		function update() {
+			Sparky.rtags.lastIndex = 0;
+			var value = replace.apply(null, tokens);
+			fn(value);
+		}
+
+		// Live tag
+		if (tokens[1].length === 2) {
+			unobservers.push(observeProperties2(bind, unbind, update, [tokens[2]]));
+		}
+		// Dead tag
+		else {
+			// Scope is not available yet. We need to wait for it. Todo: This
+			// should be done inside the Sparky constructor.
+			window.requestAnimationFrame(update);
+		}
 	}
 
 	function toFilter(filter) {
@@ -4004,11 +4334,11 @@ if (!Math.log10) {
 
 		return {
 			name: parts[1],
-			fn: Sparky.filters[parts[1]],
+			fn: Sparky.filter[parts[1]],
 
 			// Leave the first arg empty. It will be populated with the value to
 			// be filtered when the filter fn is called.
-			args: parts[2] && JSON.parse('["",' + parts[2].replace(/\'/g, '\"') + ']') || []
+			args: parts[2] && JSON.parse('["",' + parts[2].replace(/'/g, '"') + ']') || []
 		};
 	}
 
@@ -4020,18 +4350,22 @@ if (!Math.log10) {
 		var n = -1;
 		var args;
 
+		// Todo: replace this mechanism with a functor.
+
 		while (++n < l) {
+			if (!isDefined(word)) { break; }
+
 			if (!filters[n].fn) {
-				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filters');
+				throw new Error('Sparky: filter \'' + filters[n].name + '\' does not exist in Sparky.filter');
 			}
 
-			if (Sparky.debug === 'filter') {
+			if (Sparky.debug === 'verbose') {
 				console.log('Sparky: filter:', filters[n].name, 'value:', word, 'args:', filters[n].args);
 			}
 
 			args = filters[n].args;
 			args[0] = word;
-			word = filters[n].fn.apply(Sparky, args);
+			word = filters[n].fn.apply(null, args);
 		}
 
 		return word;
@@ -4064,16 +4398,17 @@ if (!Math.log10) {
 
 	function makeReplaceText(get) {
 		return function replaceText($0, $1, $2, $3) {
-			var value1 = get($2);
-			var value2 = $3 ? applyFilters(value1, $3) : value1 ;
-			return !isDefined(value2) ? '' :
-				typeof value2 === 'string' ? value2 :
-				typeof value2 === 'number' ? value2 :
-				typeof value2 === 'boolean' ? value2 :
+			var value = $3 ? applyFilters(get($2), $3) : get($2) ;
+			var type = typeof value;
+
+			return !isDefined(value) ? '' :
+				type === 'string' ? value :
+				type === 'number' ? value :
+				type === 'boolean' ? value :
 				// Beautify the .toString() result of functions
-				typeof value2 === 'function' ? (value2.name || 'function') + (rarguments.exec(value2.toString()) || [])[1] :
+				type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
 				// Use just the Class string in '[object Class]'
-				classOf(value2) ;
+				toClass(value) ;
 		}
 	}
 
@@ -4106,9 +4441,7 @@ if (!Math.log10) {
 		else {
 			// Scope is not available yet. We need to wait for it. Todo: This
 			// should be done inside the Sparky constructor.
-			window.requestAnimationFrame(function() {
-				update();
-			});
+			window.requestAnimationFrame(update);
 		}
 	}
 
@@ -4196,10 +4529,10 @@ if (!Math.log10) {
 
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
-			setTimeout(function() {
+			Fn.requestTick(function() {
 				Sparky.dom.trigger(node, 'valuechange');
 				node.disabled = true;
-			}, 0);
+			});
 		}
 		else {
 			Sparky.dom.trigger(node, 'valuechange');
@@ -4244,7 +4577,10 @@ if (!Math.log10) {
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will be
 						// called and the scope updated from the default value.
-						dispatchInputChangeEvent(node);
+						
+						// Avoid sending to selects, as we do not rely on Bolt
+						// for setting state on select labels anymore...
+						if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
@@ -4254,14 +4590,16 @@ if (!Math.log10) {
 					// string causes the cursor to jump in inputs, and we dont
 					// want to send a change event where nothing changed.
 					if (node.value === value) { return; }
-
 					node.value = value;
 				}
 				else {
+					// Be strict about setting strings on inputs
 					node.value = '';
 				}
 
-				dispatchInputChangeEvent(node);
+				// Avoid sending to selects, as we do not rely on Bolt
+				// for setting state on select labels anymore...
+				if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -4282,7 +4620,6 @@ if (!Math.log10) {
 	}
 
 	function bindValue(node, get, set, bind, unbind, path, to, from) {
-		var nodeValue = node.getAttribute('value');
 		var update = makeUpdateInput(node, get, set, path, to);
 		var change = makeChangeListener(node, set, path, from);
 
@@ -4354,8 +4691,6 @@ if (!Math.log10) {
 	}
 
 	function parseName(node, get, set, bind, unbind, to, from) {
-		var name = node.name;
-
 		if (Sparky.debug === "verbose" && !node.name) {
 			console.warn('Sparky: Cannot bind value of node with empty name.', node);
 			return;
@@ -4369,7 +4704,7 @@ if (!Math.log10) {
 		var tag, fn;
 
 		Sparky.rtags.lastIndex = 0;
-		while (tag = Sparky.rtags.exec(node.name)) {
+		while ((tag = Sparky.rtags.exec(node.name))) {
 			if (tag[1].length === 2) {
 				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
 				node.name = node.name.replace(tag[0], tag[2]);
@@ -4387,7 +4722,7 @@ if (!Math.log10) {
 		rtags = Sparky.render(rtagstemplate, arguments);
 		rsimpletags = Sparky.render(rsimpletagstemplate, arguments);
 		rclasstags = Sparky.render(rclasstagstemplate, arguments);
-	};
+	}
 
 	Object.defineProperties(Sparky, {
 		rtags: {
@@ -4409,6 +4744,7 @@ if (!Math.log10) {
 	assign(Sparky, {
 		parse: parse,
 		parseName: parseName,
+		bindValue: bindValue,
 		attributes: attributes,
 
 		stringToInt:     stringToInt,
@@ -4441,24 +4777,30 @@ if (!Math.log10) {
 (function(window) {
 	var Sparky = window.Sparky;
 
+	// Detect IE
+	var isIE = !!(document.all && document.compatMode || window.navigator.msPointerEnabled);
+
 	// Logs nodes, scopes and data.
-	Sparky.fn.log = function(node) {
+	Sparky.fn.log = function(node, scopes) {
 		var sparky = this;
 
-		function log(node, scope) {
-			console.group('scope change');
-			console.log('node ', node);
+		// In IE11 and probably below, and possibly Edge, who knows,
+		// console.groups can arrive in really weird orders. They are not at all
+		// useful for debugging as a result. Rely on console.log.
+
+		function log(scope) {
+			console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
+			console.log('data ', sparky.data);
 			console.log('scope', scope);
-			console.log('data', sparky.data);
-			console.log('fn', sparky.fn);
-			console.groupEnd();
+			console.log('fn   ', sparky.fn);
+			console[isIE ? 'log' : 'groupEnd']('---');
 		}
 
-		this.on('scope', log);
+		console[isIE ? 'log' : 'group']('Sparky: run   ' + Sparky.nodeToString(node));
+		console.log('data ', sparky.data);
+		console[isIE ? 'log' : 'groupEnd']('---');
 
-		console.group('initialisation');
-		console.log('node ', node);
-		console.groupEnd();
+		return scopes.tap(log);
 	};
 })(this);
 
@@ -4470,8 +4812,8 @@ if (!Math.log10) {
 	var dom    = Sparky.dom;
 
 	assign(Sparky.fn, {
-		"remove-hidden": function onReadyUnhide(node) {
-			this.on('scope', function() {
+		"remove-hidden": function(node, scopes) {
+			scopes.tap(function() {
 				window.requestAnimationFrame(function() {
 					dom.classes(node).remove('hidden');
 				});
@@ -4487,7 +4829,7 @@ if (!Math.log10) {
 	var Sparky = window.Sparky;
 
 	assign(Sparky.fn, {
-		html: function html(node) {
+		html: function(node, scopes) {
 			scopes.tap(function(html) {
 				node.innerHTML = html;
 			});
@@ -4495,8 +4837,10 @@ if (!Math.log10) {
 	});
 })(this);
 
-(function() {
+(function(window) {
 	"use strict";
+
+	var Fn = window.Fn;
 
 	function preventDefault(e) {
 		e.preventDefault();
@@ -4538,19 +4882,51 @@ if (!Math.log10) {
 			});
 		},
 
-		"scope": function(node) {
+		"ajax-on-submit": function(node, scopes) {
+			var method = node.getAttribute('method') || 'POST';
+			var url = node.getAttribute('action');
+
+			if (!Fn.isDefined(url)) {
+				throw new Error('Sparky: fn ajax-on-submit requires an action="url" attribute.');
+			}
+
+			var submit;
+
+			node.addEventListener('submit', preventDefault);
+
+			scopes.tap(function(scope) {
+				if (submit) { node.removeEventListener(submit); }
+				submit = function(e) {
+					jQuery.ajax({
+						type: method.toLowerCase(),
+						url:  url,
+						data: JSON.stringify(scope),
+						dataType: 'json'
+					})
+					.then(function(value) {
+						console.log(value);
+					});
+				};
+				node.addEventListener('submit', submit);
+			})
+
+			this
+			.on('destroy', function() {
+				node.removeEventListener('submit', submit);
+			});
+		},
+
+		"scope": function(node, scopes) {
 			scopes.tap(function(scope) {
 				Sparky.setScope(node, scope);
 			});
 		}
 	});
-})();
+})(this);
 
 
 (function() {
 	"use strict";
-
-	var dom = Sparky.dom;
 
 	Sparky.fn['x-scroll-slave'] = function(node) {
 		var name = node.getAttribute('data-x-scroll-master');
@@ -4603,7 +4979,6 @@ if (!Math.log10) {
 (function(window) {
 	"use strict";
 
-	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
 	var DOM    = Sparky.dom;
@@ -4611,28 +4986,26 @@ if (!Math.log10) {
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
 	// destroying those sparkies.
-	var destroyDelay = 12000;
+	var destroyDelay = 8000;
 
-	var call = Fn.call;
-
-	function create(boss, node, scope, fn) {
-		// Create a dependent sparky without delegating scope
-		var sparky = Sparky(node, scope, fn, this);
-
-		function delegateDestroy() { sparky.destroy(); }
-		function delegateRender(self) { sparky.render(); }
-
-		// Bind events
-		boss
-		.on('destroy', delegateDestroy)
-		.on('render', delegateRender);
-
-		return sparky.on('destroy', function() {
-			boss
-			.off('destroy', delegateDestroy)
-			.off('render', delegateRender);
-		});
-	}
+	//function create(boss, node, scope, fn) {
+	//	// Create a dependent sparky without delegating scope
+	//	var sparky = Sparky(node, scope, fn, this);
+	//
+	//	function delegateDestroy() { sparky.destroy(); }
+	//	function delegateRender(self) { sparky.render(); }
+	//
+	//	// Bind events
+	//	boss
+	//	.on('destroy', delegateDestroy)
+	//	.on('render', delegateRender);
+	//
+	//	return sparky.on('destroy', function() {
+	//		boss
+	//		.off('destroy', delegateDestroy)
+	//		.off('render', delegateRender);
+	//	});
+	//}
 
 	function createPlaceholder(node) {
 		if (!Sparky.debug) { return DOM.create('text', ''); }
@@ -4645,19 +5018,25 @@ if (!Math.log10) {
 			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 	}
 
-	Sparky.fn.each = function setupCollection(node) {
+	Sparky.fn.each = function setupCollection(node, scopes) {
 		var sparky   = this;
+		var data     = this.data;
 		var sparkies = [];
 		var cache    = [];
 
 		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
-		// keys, and a Sparky scope may be a number or a string.
+		// keys, and a Sparky scope may be a number or a string, although that
+		// is unusual and perhaps we should ban it.
 		var rejects  = new Map();
 		var scheduled = [];
 		var clone    = node.cloneNode(true);
 		var fns      = this.interrupt();
 		var placeholder = createPlaceholder(node);
 		var collection;
+
+		fns.unshift(function() {
+			this.data = Object.create(data);
+		});
 
 		var throttle = Fn.Throttle(function update() {
 			var n = -1;
@@ -4696,7 +5075,18 @@ if (!Math.log10) {
 			while(++n < l) {
 				object = cache[n] = collection[n];
 				removeScheduled(object);
-				sparkies[n] = map[n] || rejects.get(object) || create(sparky, clone.cloneNode(true), object, fns);
+
+				// KEEP AN EYE ON THIS!!!
+				// It used to be that we created a standalone sparky, not a child
+				// sparky. As in:
+				//
+				// create(sparky, clone.cloneNode(true), object, fns);
+				//
+				// This seems to have changed when we converted to streams.
+				// I'm no longer clear why...
+
+				sparkies[n] = map[n] || rejects.get(object) || sparky.create(clone.cloneNode(true), object, fns);
+
 
 				// We are in an animation frame. Go ahead and manipulate the DOM.
 				DOM.before(placeholder, sparkies[n][0]);
@@ -4719,6 +5109,7 @@ if (!Math.log10) {
 					rejects.get(object).destroy();
 					rejects.delete(object);
 				});
+				scheduled.length = 0;
 			}, destroyDelay);
 		}
 
@@ -4755,15 +5146,15 @@ if (!Math.log10) {
 		DOM.before(node, placeholder);
 		DOM.remove(node);
 
-		this
-		.on('scope', function(source, scope) {
-			if (this !== source) { return; }
-			if (scope === collection) { return; }
+		scopes
+		.dedup()
+		.each(function(scope) {
 			if (collection) { unobserveCollection(); }
 			collection = scope;
-			if (scope === undefined) { return; }
-			observeCollection();
-		})
+			if (collection) { observeCollection(); }
+		});
+
+		this
 		.on('destroy', function destroy() {
 			throttle.cancel();
 			unobserveCollection();
@@ -4777,102 +5168,70 @@ if (!Math.log10) {
 	var assign = Object.assign;
 	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
-	var parseName = Sparky.parseName;
+	var noop   = Fn.noop;
 	var stringToInt = Sparky.stringToInt;
 	var stringToFloat = Sparky.stringToFloat;
 	var stringToBool = Sparky.stringToBool ;
 	var stringOnToBool = Sparky.stringOnToBool;
 	var definedToString = Sparky.definedToString;
-	var intToString = Sparky.intToString;
 	var floatToString = Sparky.floatToString;
 	var boolToString = Sparky.boolToString;
 	var boolToStringOn = Sparky.boolToStringOn;
 
-	function noop() {}
-
-	function stringToBoolInverted(value) {
-		return !stringToBool(value);
-	}
-
-	function stringOnToBoolInverted(value) {
-		return value !== 'on';
-	}
-
-	function boolToStringInverted(value) {
-		return typeof value === 'boolean' ? !value + '' :
-			typeof value === 'number' ? !value + '' :
-			undefined ;
-	}
-
-	function boolToStringOnInverted(value) {
-		return typeof value === 'boolean' || typeof value === 'number' ?
-			value ? '' : 'on' :
-			undefined ;
-	}
-
-	function normalise(value, min, max) {
-		return (value - min) / (max - min);
-	}
-
-	function denormalise(value, min, max) {
-		return value * (max - min) + min;
-	}
-
 	// Controllers
 
-	function setup(sparky, node, to, from) {
+	function setup(sparky, node, scopes, to, from) {
 		var scope, path, fn;
 		var unbind = Sparky.parseName(node, function get(name) {
-			return Sparky.get(scope, name);
+			return Fn.getPath(name, scope);
 		}, function set(name, value) {
-			return scope && Sparky.set(scope, name, value);
+			return scope && Fn.setPath(name, value, scope);
 		}, function bind(p, f) {
 			path = p;
 			fn = f;
 		}, noop, to, from);
 
 		sparky
-		.on('scope', function update(sparky, newscope) {
-			// Ignore events not from this sparky
-			// if (this !== sparky) { return; }
-			if (scope) { Sparky.unobservePath(scope, path, fn); }
-			scope = newscope;
-			if (scope) { Sparky.observePath(scope, path, fn, true); }
-		})
 		.on('destroy', function() {
 			unbind();
 			if (scope) { Sparky.unobservePath(scope, path, fn); }
 		});
+
+		return scopes.tap(function update(object) {
+			if (scope) { Sparky.unobservePath(scope, path, fn); }
+			scope = object;
+			if (scope) { Sparky.observePath(scope, path, fn, true); }
+		});
 	}
 
-	function valueAny(node) {
+	function valueAny(node, scopes) {
 		// Coerce any defined value to string so that any values pass the type checker
-		setup(this, node, definedToString, Fn.id);
+		setup(this, node, scopes, definedToString, Fn.id);
 	}
 
-	function valueString(node) {
+	function valueString(node, scopes) {
 		// Don't coerce so that only strings pass the type checker
-		setup(this, node, Fn.id, Fn.id);
+		setup(this, node, scopes, Fn.id, Fn.id);
 	}
 
-	function valueNumber(node) {
-		setup(this, node, floatToString, stringToFloat);
+	function valueNumber(node, scopes) {
+		setup(this, node, scopes, floatToString, stringToFloat);
 	}
 
-	function valueInteger(node) {
-		setup(this, node, floatToString, stringToInt);
+	function valueInteger(node, scopes) {
+		setup(this, node, scopes, floatToString, stringToInt);
 	}
 
-	function valueBoolean(node) {
+	function valueBoolean(node, scopes) {
 		if (node.type === 'checkbox' && !Fn.isDefined(node.getAttribute('value'))) {
-			setup(this, node, boolToStringOn, stringOnToBool);
+			setup(this, node, scopes, boolToStringOn, stringOnToBool);
 		}
 		else {
-			setup(this, node, boolToString, stringToBool);
+			setup(this, node, scopes, boolToString, stringToBool);
 		}
 	}
 
-	function valueInArray(node) {
+	function valueInArray(node, scopes) {
 		var array;
 
 		function to(arr) {
@@ -4887,8 +5246,10 @@ if (!Math.log10) {
 		function from(value) {
 			if (array === undefined) { array = Collection(); }
 
+			var i;
+
 			if (value === undefined) {
-				var i = array.indexOf(node.value);
+				i = array.indexOf(node.value);
 				if (i !== -1) { array.splice(i, 1); }
 			}
 			else if (array.indexOf(value) === -1) {
@@ -4898,10 +5259,10 @@ if (!Math.log10) {
 			return array;
 		}
 
-		setup(this, node, to, from);
+		setup(this, node, scopes, to, from);
 	}
 
-	function valueIntInArray(node) {
+	function valueIntInArray(node, scopes) {
 		var array;
 
 		function to(arr) {
@@ -4917,8 +5278,10 @@ if (!Math.log10) {
 		function from(value) {
 			if (array === undefined) { array = Collection(); }
 
+			var i;
+
 			if (value === undefined) {
-				var i = array.indexOf(stringToInt(node.value));
+				i = array.indexOf(stringToInt(node.value));
 				if (i !== -1) { array.splice(i, 1); }
 			}
 			else if (array.indexOf(value) === -1) {
@@ -4928,63 +5291,69 @@ if (!Math.log10) {
 			return array;
 		}
 
-		setup(this, node, to, Fn.compose(from, stringToInt));
+		setup(this, node, scopes, to, Fn.compose(from, stringToInt));
 	}
 
-	function valueFloatPow2(node, model) {
-		var min, max;
+	function valueFloatPow2(node, scopes) {
+		var normalise, denormalise;
 
 		function updateMinMax() {
-			min = node.min ? parseFloat(node.min) : 0 ;
-			max = node.max ? parseFloat(node.max) : 1 ;
+			var min = node.min ? parseFloat(node.min) : 0 ;
+			var max = node.max ? parseFloat(node.max) : 1 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(value, min, max), 1/2), min, max) + '';
+			return denormalise(Math.pow(normalise(value), 1/2)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(n, min, max), 2), min, max);
+			return denormalise(Math.pow(normalise(n), 2));
 		}
 
-		setup(this, node, to, from);
-	};
+		setup(this, node, scopes, to, from);
+	}
 
-	function valueFloatPow3(node, model) {
-		var min, max;
+	function valueFloatPow3(node, scopes) {
+		var normalise, denormalise;
 
 		function updateMinMax() {
-			min = node.min ? parseFloat(node.min) : 0 ;
-			max = node.max ? parseFloat(node.max) : 1 ;
+			var min = node.min ? parseFloat(node.min) : 0 ;
+			var max = node.max ? parseFloat(node.max) : 1 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 		}
 
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(value, min, max), 1/3), min, max) + '';
+			return denormalise(Math.pow(normalise(value), 1/3)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return denormalise(Math.pow(normalise(n, min, max), 3), min, max);
+			return denormalise(Math.pow(normalise(n), 3));
 		}
 
-		setup(this, node, to, from);
-	};
+		setup(this, node, scopes, to, from);
+	}
 
-	function valueFloatLog(node, model) {
-		var min, max;
+	function valueFloatLog(node, scopes) {
+		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
 			min = node.min ? parseFloat(node.min) : 1 ;
 			max = node.max ? parseFloat(node.max) : 10 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 
 			if (min <= 0) {
 				console.warn('Sparky.fn["value-float-log"] cannot accept a min attribute of 0 or lower.', node);
@@ -4995,25 +5364,27 @@ if (!Math.log10) {
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.log(value / min) / Math.log(max / min), min, max) + '';
+			return denormalise(Math.log(value / min) / Math.log(max / min)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return min * Math.pow(max / min, normalise(n, min, max));
+			return min * Math.pow(max / min, normalise(n));
 		}
 
-		setup(this, node, to, from);
-	};
+		setup(this, node, scopes, to, from);
+	}
 
-	function valueIntLog(node, model) {
-		var min, max;
+	function valueIntLog(node, scopes) {
+		var min, max, normalise, denormalise;
 
 		function updateMinMax() {
 			min = node.min ? parseFloat(node.min) : 1 ;
 			max = node.max ? parseFloat(node.max) : 10 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
 
 			if (min <= 0) {
 				console.warn('Sparky.fn["value-int-log"] cannot accept a min attribute of 0 or lower.', node);
@@ -5024,18 +5395,18 @@ if (!Math.log10) {
 		function to(value) {
 			if (typeof value !== 'number') { return ''; }
 			updateMinMax();
-			return denormalise(Math.log(Math.round(value) / min) / Math.log(max / min), min, max) + '';
+			return denormalise(Math.log(Math.round(value) / min) / Math.log(max / min)) + '';
 		}
 
 		function from(value) {
 			var n = parseFloat(value);
 			if (Number.isNaN(n)) { return; }
 			updateMinMax();
-			return Math.round(min * Math.pow(max / min, normalise(n, min, max)));
+			return Math.round(min * Math.pow(max / min, normalise(n)));
 		}
 
-		setup(this, node, to, from);
-	};
+		setup(this, node, scopes, to, from);
+	}
 
 	assign(Sparky.fn, {
 		'value-any':            valueAny,
@@ -5048,14 +5419,12 @@ if (!Math.log10) {
 		'value-float-pow-2':    valueFloatPow2,
 		'value-float-pow-3':    valueFloatPow3,
 		'value-in-array':       valueInArray,
-		'value-int-in-array':       valueIntInArray,
-		//'value-number-invert':  valueNumberInvert,
-		//'value-boolean-invert': valueBooleanInvert
+		'value-int-in-array':   valueIntInArray
 	});
 })(this);
 
 
-// Sparky.filters
+// Sparky.filter
 
 (function(window) {
 	"use strict";
@@ -5064,9 +5433,6 @@ if (!Math.log10) {
 	var Sparky    = window.Sparky;
 	var isDefined = Fn.isDefined;
 	var settings  = (Sparky.settings = Sparky.settings || {});
-
-	// A reuseable array.
-	var array = [];
 
 	function createList(ordinals) {
 		var array = [], n = 0;
@@ -5113,7 +5479,36 @@ if (!Math.log10) {
 		return s;
 	}
 
-	Sparky.filters = {
+	var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
+	//var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
+	var rnonzeronumbers = /[1-9]/;
+
+	function createDate(value) {
+		// Test the Date constructor to see if it is parsing date
+		// strings as local dates, as per the ES6 spec, or as GMT, as
+		// per pre ES6 engines.
+		// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
+		var date = new Date(value);
+		var json = date.toJSON();
+		var gmt =
+			// It's GMT if the first characters of the json match
+			// the value...
+			json.slice(0, value.length) === value &&
+
+			// ...and if all remaining numbers in the json are 0.
+			!json.slice(value.length).match(rnonzeronumbers) ;
+
+		return typeof value !== 'string' ? new Date(value) :
+			// If the Date constructor parses to gmt offset the date by
+			// adding the date's offset in milliseconds to get a local
+			// date. getTimezoneOffset returns the offset in minutes.
+			gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
+
+			// Otherwise use the local date.
+			date ;
+	}
+
+	Sparky.filter = {
 		add: function(value, n) {
 			var result = parseFloat(value) + n ;
 			if (Number.isNaN(result)) { return; }
@@ -5125,8 +5520,39 @@ if (!Math.log10) {
 		},
 
 		cut: function(value, string) {
-			return Sparky.filters.replace(value, string, '');
+			return Sparky.filter.replace(value, string, '');
 		},
+
+		formatdate: (function(settings) {
+			var formatters = {
+				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
+				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
+				MM:   function(date) { return ('0' + (date.getMonth() + 1)).slice(-2); },
+				MMM:  function(date) { return this.MMMM(date).slice(0,3); },
+				MMMM: function(date) { return settings[lang].months[date.getMonth()]; },
+				DD:   function(date) { return ('0' + date.getDate()).slice(-2); },
+				d:    function(date) { return '' + date.getDay(); },
+				dd:   function(date) { return ('0' + date.getDay()).slice(-2); },
+				ddd:  function(date) { return this.dddd(date).slice(0,3); },
+				dddd: function(date) { return settings[lang].days[date.getDay()]; },
+				HH:   function(date) { return ('0' + date.getHours()).slice(-2); },
+				mm:   function(date) { return ('0' + date.getMinutes()).slice(-2); },
+				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
+				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+			};
+			
+			return function formatDate(value, format, lang) {
+				if (!value) { return; }
+
+				var date = value instanceof Date ? value : createDate(value) ;
+
+				lang = lang || settings.lang;
+
+				return format.replace(rletter, function($0, $1) {
+					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
+				});
+			};
+		})(settings),
 
 		date: (function(settings) {
 			var formatters = {
@@ -5171,35 +5597,6 @@ if (!Math.log10) {
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 
-			var rletter = /([a-zA-Z])/g;
-			var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-			var rnonzeronumbers = /[1-9]/;
-
-			function createDate(value) {
-				// Test the Date constructor to see if it is parsing date
-				// strings as local dates, as per the ES6 spec, or as GMT, as
-				// per pre ES6 engines.
-				// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
-				var date = new Date(value);
-				var json = date.toJSON();
-				var gmt =
-					// It's GMT if the string matches the same length of
-					// characters from it's JSONified version...
-					json.slice(0, value.length) === value &&
-
-					// ...and if all remaining numbers are 0.
-					!json.slice(value.length).match(rnonzeronumbers) ;
-
-				return typeof value !== 'string' ? new Date(value) :
-					// If the Date constructor parses to gmt offset the date by
-					// adding the date's offset in milliseconds to get a local
-					// date. getTimezoneOffset returns the offset in minutes.
-					gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
-
-					// Otherwise use the local date.
-					date ;
-			}
-
 			return function formatDate(value, format, lang) {
 				if (!value) { return; }
 
@@ -5208,7 +5605,7 @@ if (!Math.log10) {
 				lang = lang || settings.lang;
 
 				return format.replace(rletter, function($0, $1) {
-					return formatters[$1](date, lang);
+					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
 				});
 			};
 		})(settings),
@@ -5222,12 +5619,6 @@ if (!Math.log10) {
 			if (typeof value !== 'number') { return; }
 			return Number.prototype.toFixed.call(value, n);
 		},
-
-		// .default() can't work, because Sparky does not send undefined or null
-		// values to be filtered.
-		//'default': function(value) {
-		//	return (this === '' || this === undefined || this === null) ? value : this ;
-		//},
 
 		divide: function(value, n) {
 			if (typeof value !== 'number') { return; }
@@ -5248,7 +5639,7 @@ if (!Math.log10) {
 
 		'find-in': function(id, path) {
 			if (!isDefined(id)) { return; }
-			var collection = Sparky.get(Sparky.data, path);
+			var collection = Fn.getPath(path, Sparky.data);
 			return collection && collection.find(id);
 		},
 
@@ -5267,11 +5658,11 @@ if (!Math.log10) {
 		},
 
 		get: function(value, name) {
-			return value ? value[name] : undefined ;
+			return isDefined(value) ? Fn.get(name, value) : undefined ;
 		},
 
-		"greater-than": function(value1, value2, str1, str2) {
-			return value1 > value2 ? str1 : str2 ;
+		"greater-than": function(value1, value2) {
+			return value1 > value2;
 		},
 
 		contains: function(array, value) {
@@ -5279,14 +5670,11 @@ if (!Math.log10) {
 		},
 
 		invert: function(value) {
-			return typeof value === 'boolean' ? !value :
-				typeof value === 'number' ? 1 / value :
-				!value ;
+			return typeof value === 'number' ? 1 / value : !value ;
 		},
 
-		is: function(value, val, string1, string2) {
-			return (value === val ? string1 : string2) || '';
-		},
+		is: Fn.is,
+		equals: Fn.equals,
 
 		join: function(value, string) {
 			return Array.prototype.join.call(value, string);
@@ -5319,8 +5707,17 @@ if (!Math.log10) {
 		//	};
 		//})(),
 
-		lower: function(value) {
-			String.prototype.toLowerCase.apply(value);
+		localise: function(value, digits) {
+			var locale = document.documentElement.lang;
+			var options = {};
+
+			if (isDefined(digits)) {
+				options.minimumFractionDigits = digits;
+				options.maximumFractionDigits = digits;
+			}
+
+			// Todo: localise value where toLocaleString not supported
+			return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
 		},
 
 		lowercase: function(value) {
@@ -5328,8 +5725,8 @@ if (!Math.log10) {
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: function(array, path) {
-			return array && array.map(Fn.get(path));
+		map: function(array, method, path) {
+			return array && array.map(Fn[method](path));
 		},
 
 		mod: function(value, n) {
@@ -5341,6 +5738,8 @@ if (!Math.log10) {
 			return value * n;
 		},
 
+		not: Fn.not,
+
 		parseint: function(value) {
 			return parseInt(value, 10);
 		},
@@ -5349,7 +5748,7 @@ if (!Math.log10) {
 			return value * 100;
 		},
 
-		pluralize: function(value, str1, str2, lang) {
+		pluralise: function(value, str1, str2, lang) {
 			if (typeof value !== 'number') { return; }
 
 			str1 = str1 || '';
@@ -5375,6 +5774,7 @@ if (!Math.log10) {
 		prepad: function(value, n, char) {
 			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
+			var array = [];
 
 			// String is longer then padding: let it through unprocessed
 			if (n - l < 1) { return value; }
@@ -5389,13 +5789,9 @@ if (!Math.log10) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
 
-		reduce: (function(processes) {
-			return function(array, name, initialValue) {
-				return array && array.reduce(processes[name], initialValue || 0);
-			};
-		})({
-			sum: function(a, b) { return a + b; }
-		}),
+		reduce: function(array, name, initialValue) {
+			return array && array.reduce(Fn[name], initialValue || 0);
+		},
 
 		replace: function(value, str1, str2) {
 			if (typeof value !== 'string') { return; }
@@ -5450,14 +5846,8 @@ if (!Math.log10) {
 			var string = value + '';
 			var infinity = Infinity + '';
 
-			if (string === infinity) {
-				return '∞';
-			}
-
-			if (string === ('-' + infinity)) {
-				return '-∞';
-			}
-
+			if (string === infinity) { return '∞'; }
+			if (string === ('-' + infinity)) { return '-∞'; }
 			return value;
 		},
 
@@ -5468,6 +5858,24 @@ if (!Math.log10) {
 		//timesince
 		//timeuntil
 		//title
+
+		trans: function(value) {
+			var translations = Sparky.data.translations;
+
+			if (!translations) {
+				console.warn('Sparky: You need to provide Sparky.data.translations');
+				return value;
+			}
+
+			var text = translations[value] ;
+
+			if (!text) {
+				console.warn('procsea: You need to provide a translation for "' + value + '"');
+				return value;
+			}
+
+			return text ;
+		},
 
 		truncatechars: function(value, n) {
 			return value.length > n ?
