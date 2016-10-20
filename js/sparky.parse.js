@@ -60,27 +60,27 @@
 
 	// DOM
 
-	function setAttributeSVG(node, attribute, value) {
-		if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
-			node.setAttribute(attribute, value);
-		}
-		else if (attribute === "href") {
-			node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
-		}
-		else {
-			node.setAttributeNS(Sparky.svgNamespace, attribute, value);
-		}
-	}
+	//function setAttributeSVG(node, attribute, value) {
+	//	if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
+	//		node.setAttribute(attribute, value);
+	//	}
+	//	else if (attribute === "href") {
+	//		node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
+	//	}
+	//	else {
+	//		node.setAttributeNS(Sparky.svgNamespace, attribute, value);
+	//	}
+	//}
 
 	function setAttributeHTML(node, attribute, value) {
 		node.setAttribute(attribute, value);
 	}
 
-	function toggleAttributeSVG(node, attribute, value) {
-		if (attribute in node) { node[attribute] = !!value; }
-		else if (value) { setAttributeSVG(node, attribute, value); }
-		else { node.removeAttribute(attribute); }
-	}
+	//function toggleAttributeSVG(node, attribute, value) {
+	//  if (attribute in node) { node[attribute] = !!value; }
+	//  else if (value) { setAttributeSVG(node, attribute, value); }
+	//  else { node.removeAttribute(attribute); }
+	//}
 
 	function toggleAttributeHTML(node, attribute, value) {
 		if (attribute in node) { node[attribute] = !!value; }
@@ -123,14 +123,14 @@
 			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
-			    	// Only let numbers set the value of number and range inputs
-			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
-			    // Checkboxes default to value "on" when the value attribute
-			    // is not given. Make them behave as booleans.
-			    (type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
-			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
-			    	// Only let strings set the value of other inputs
-			    	parseName(node, get, set, bind, unbind, identity, identity) ;
+				// Only let numbers set the value of number and range inputs
+				parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
+			// Checkboxes default to value "on" when the value attribute
+			// is not given. Make them behave as booleans.
+			(type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
+				parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
+				// Only let strings set the value of other inputs
+				parseName(node, get, set, bind, unbind, identity, identity) ;
 
 			if (unbindName) { unobservers.push(unbindName); }
 
@@ -333,9 +333,9 @@
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = dom.classes(node);
 		var update = function update(newText, oldText) {
-		    	if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
-		    	if (newText && rtext.test(newText)) { addClasses(classList, newText); }
-		    };
+			if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
+			if (newText && rtext.test(newText)) { addClasses(classList, newText); }
+		};
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
 
@@ -360,7 +360,7 @@
 		var attr = aliases[attribute] || attribute ;
 		var value = alias ? alias :
 		//    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
-		    	node.getAttribute(attr) ;
+			node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
@@ -429,8 +429,8 @@
 
 	function applyFilters(word, filterString) {
 		var filters = filterCache[filterString] || (
-		    	filterCache[filterString] = filterString.split('|').map(toFilter)
-		    );
+			filterCache[filterString] = filterString.split('|').map(toFilter)
+		);
 		var l = filters.length;
 		var n = -1;
 		var args;

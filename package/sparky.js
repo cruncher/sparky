@@ -2934,8 +2934,9 @@ if (!Math.log10) {
 
 	// Imports
 
-	var Fn     = window.Fn;
-	var assign = Object.assign;
+	var assign     = Object.assign;
+	var Collection = window.Collection;
+	var Fn         = window.Fn;
 
 
 	// Variables
@@ -4308,27 +4309,27 @@ if (!Math.log10) {
 
 	// DOM
 
-	function setAttributeSVG(node, attribute, value) {
-		if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
-			node.setAttribute(attribute, value);
-		}
-		else if (attribute === "href") {
-			node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
-		}
-		else {
-			node.setAttributeNS(Sparky.svgNamespace, attribute, value);
-		}
-	}
+	//function setAttributeSVG(node, attribute, value) {
+	//	if (attribute === 'd' || attribute === "transform" || attribute === "viewBox") {
+	//		node.setAttribute(attribute, value);
+	//	}
+	//	else if (attribute === "href") {
+	//		node.setAttributeNS(Sparky.xlinkNamespace, attribute, value);
+	//	}
+	//	else {
+	//		node.setAttributeNS(Sparky.svgNamespace, attribute, value);
+	//	}
+	//}
 
 	function setAttributeHTML(node, attribute, value) {
 		node.setAttribute(attribute, value);
 	}
 
-	function toggleAttributeSVG(node, attribute, value) {
-		if (attribute in node) { node[attribute] = !!value; }
-		else if (value) { setAttributeSVG(node, attribute, value); }
-		else { node.removeAttribute(attribute); }
-	}
+	//function toggleAttributeSVG(node, attribute, value) {
+	//  if (attribute in node) { node[attribute] = !!value; }
+	//  else if (value) { setAttributeSVG(node, attribute, value); }
+	//  else { node.removeAttribute(attribute); }
+	//}
 
 	function toggleAttributeHTML(node, attribute, value) {
 		if (attribute in node) { node[attribute] = !!value; }
@@ -4371,14 +4372,14 @@ if (!Math.log10) {
 			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 
 			var unbindName = type === 'number' || type === 'range' ?
-			    	// Only let numbers set the value of number and range inputs
-			    	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
-			    // Checkboxes default to value "on" when the value attribute
-			    // is not given. Make them behave as booleans.
-			    (type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
-			    	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
-			    	// Only let strings set the value of other inputs
-			    	parseName(node, get, set, bind, unbind, identity, identity) ;
+				// Only let numbers set the value of number and range inputs
+				parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
+			// Checkboxes default to value "on" when the value attribute
+			// is not given. Make them behave as booleans.
+			(type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
+				parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
+				// Only let strings set the value of other inputs
+				parseName(node, get, set, bind, unbind, identity, identity) ;
 
 			if (unbindName) { unobservers.push(unbindName); }
 
@@ -4581,9 +4582,9 @@ if (!Math.log10) {
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = dom.classes(node);
 		var update = function update(newText, oldText) {
-		    	if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
-		    	if (newText && rtext.test(newText)) { addClasses(classList, newText); }
-		    };
+			if (oldText && rtext.test(oldText)) { removeClasses(classList, oldText); }
+			if (newText && rtext.test(newText)) { addClasses(classList, newText); }
+		};
 
 		if (Sparky.debug === 'verbose') { console.log('Sparky: bind class="' + classes + ' ' + tags.join(' ') + '"'); }
 
@@ -4608,7 +4609,7 @@ if (!Math.log10) {
 		var attr = aliases[attribute] || attribute ;
 		var value = alias ? alias :
 		//    	isSVG ? node.getAttributeNS(Sparky.xlinkNamespace, attr) || node.getAttribute(attr) :
-		    	node.getAttribute(attr) ;
+			node.getAttribute(attr) ;
 
 		if (!value) { return; }
 		if (alias) { node.removeAttribute('data-' + attribute); }
@@ -4677,8 +4678,8 @@ if (!Math.log10) {
 
 	function applyFilters(word, filterString) {
 		var filters = filterCache[filterString] || (
-		    	filterCache[filterString] = filterString.split('|').map(toFilter)
-		    );
+			filterCache[filterString] = filterString.split('|').map(toFilter)
+		);
 		var l = filters.length;
 		var n = -1;
 		var args;
@@ -5500,10 +5501,13 @@ if (!Math.log10) {
 (function(window) {
 	"use strict";
 
-	var assign = Object.assign;
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
-	var noop   = Fn.noop;
+	var assign     = Object.assign;
+
+	var Fn         = window.Fn;
+	var Collection = window.Collection;
+	var Sparky     = window.Sparky;
+
+	var noop       = Fn.noop;
 	var stringToInt = Sparky.stringToInt;
 	var stringToFloat = Sparky.stringToFloat;
 	var stringToBool = Sparky.stringToBool ;

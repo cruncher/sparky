@@ -38,7 +38,7 @@
   "license": "private",
   "scripts": {
     "build": "npm install && grunt",
-    "lint": "eslint static/js/*.js static/fn/js/*.js static/sparky/js/*.js static/breakpoint/js/*.js apps/*/static/js/*.js",
+    "lint": "eslint js/*.js modules/polyfills*.js plugins/*.js",
     "test": "karma start"
   }
 }

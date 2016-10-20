@@ -1,10 +1,13 @@
 (function(window) {
 	"use strict";
 
-	var assign = Object.assign;
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
-	var noop   = Fn.noop;
+	var assign     = Object.assign;
+
+	var Fn         = window.Fn;
+	var Collection = window.Collection;
+	var Sparky     = window.Sparky;
+
+	var noop       = Fn.noop;
 	var stringToInt = Sparky.stringToInt;
 	var stringToFloat = Sparky.stringToFloat;
 	var stringToBool = Sparky.stringToBool ;

@@ -13,8 +13,9 @@
 
 	// Imports
 
-	var Fn     = window.Fn;
-	var assign = Object.assign;
+	var assign     = Object.assign;
+	var Collection = window.Collection;
+	var Fn         = window.Fn;
 
 
 	// Variables

@@ -18,14 +18,13 @@
 	Sparky.fn['template-text'] = function(node, scopes) {
 		var sparky = this;
 		var id = node.getAttribute('data-template');
-		var text, template, code;
+		var text, template;
 
 		// No point in continueing when we're replacing the content of this
 		// node with code.
 		var fns = this.interrupt();
 
 		// But we do want to make sure the rest of the fns get their turn.
-		var n = -1;
 		fns.forEach(function(fn) {
 			fn.call(sparky, node)
 		});

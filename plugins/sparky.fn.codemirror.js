@@ -1,17 +1,18 @@
 (function(window) {
 	"use strict";
 
-	var Sparky = window.Sparky;
-	var assign = Object.assign;
+	var CodeMirror = window.CodeMirror;
+	var Sparky     = window.Sparky;
+	var assign     = Object.assign;
 
 	// Define an extended mixed-mode that understands vbscript and
 	// leaves mustache/handlebars embedded templates in html mode
-	var mixedMode = {
-	  name: "htmlmixed",
-	  scriptTypes: [
-		  { matches: /\/javascript/i, mode: "javascript" }
-	  ]
-	};
+	//var mixedMode = {
+	//  name: "htmlmixed",
+	//  scriptTypes: [
+	//	  { matches: /\/javascript/i, mode: "javascript" }
+	//  ]
+	//};
 
 	// Note: was "midi-scope"
 	assign(Sparky.fn, {

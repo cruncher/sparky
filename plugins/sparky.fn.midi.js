@@ -1,9 +1,11 @@
 (function(window) {
 	"use strict";
 
-	var Sparky = window.Sparky;
-	var MIDI   = window.MIDI;
-	var collection = Sparky.data['midi-nodes'] = Collection();
+	var Sparky     = window.Sparky;
+	var Collection = window.Collection;
+	var MIDI       = window.MIDI;
+
+	//var collection = Sparky.data['midi-nodes'] = Collection();
 
 	// Note: was "midi-scope"
 	Sparky.fn['midi'] = function(node, scopes) {
