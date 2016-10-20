@@ -1,4 +1,4 @@
-module('Sparky:collections', function(fixture) {
+module('Sparky:templates 1', function(fixture) {
 	console.log('Test <p data-template="id"> ...');
 
 	asyncTest('Sparky should replace contents of SVG <g data-template="id">', function() {
@@ -27,7 +27,7 @@ module('Sparky:collections', function(fixture) {
 
 */});
 
-module('Sparky:collections', function(fixture) {
+module('Sparky:templates 2', function(fixture) {
 	console.log('Test <g data-template="id"> ...');
 
 	asyncTest('Sparky should replace contents of SVG <g data-template="id">', function() {
@@ -52,6 +52,30 @@ module('Sparky:collections', function(fixture) {
 
 <template id="g-template">
 	<rect x="0" y="0" width="100" height="100"></rect>
+</template>
+
+*/});
+
+module('Sparky:templates 3', function(fixture) {
+	console.log('Test <g data-template="id"> ...');
+
+	Sparky.fn['do-something'] = function(node, scopes) {
+		ok(true, 'do-something should be called');
+	};
+
+	asyncTest('Sparky should run fns on top-level elements in templates', function() {
+		expect(1);
+
+		var sparky = Sparky('#test-template', {});
+
+		window.requestAnimationFrame(function() {
+			QUnit.start();
+		});
+	});
+}, function() {/*
+
+<template id="test-template">
+	<p data-fn="do-something">My God, it's full of stars.</p>
 </template>
 
 */});

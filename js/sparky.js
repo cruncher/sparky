@@ -22,14 +22,14 @@
 	var rurljson = /\/\S*\.json$/;
 
 
-	// Utilities
+	// Functions
 
-	var noop      = Fn.noop;
-	var isDefined = Fn.isDefined;
+	var noop       = Fn.noop;
+	var isDefined  = Fn.isDefined;
+	var returnThis = Fn.returnThis;
 
 	function call(fn) { fn(); }
 
-	function returnThis() { return this; }
 
 	// Debug
 
@@ -382,7 +382,7 @@
 
 		// Setup this as a Collection of nodes. Where node is a document
 		// fragment, assign all it's children to sparky collection.
-		Collection.call(this, node.nodeType === 11 ? node.childNodes : [node]);
+		Collection.call(this, [node]);
 
 		// If fn is to be called and a stream is returned, we use that.
 		var outstream = fn ? fn.call(sparky, node, instream) : instream ;
