@@ -34,6 +34,7 @@ module.exports = function(config) {
       'js/sparky.filters.js',
       'js/sparky.ready.js',
       'test/module.js',
+      'test/test.data-template.js',
       'test/test.sparky-observe.js',
       'test/test.filters.js',
       'test/test.sparky.js',
