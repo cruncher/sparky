@@ -16,6 +16,7 @@
 	var assign     = Object.assign;
 	var Collection = window.Collection;
 	var Fn         = window.Fn;
+	var Stream     = Fn.Stream;
 
 
 	// Variables
@@ -334,7 +335,15 @@
 		var scope;
 		var parsed;
 
-		var instream = Fn.ValueStream().dedup();
+		var value;
+		var instream = Stream(function shift() {
+			var v = value;
+			value = undefined;
+			return v;
+		}, function push() {
+			value = arguments[arguments.length - 1];
+		})
+		.dedup();
 
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
