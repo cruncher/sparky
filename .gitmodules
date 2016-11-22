@@ -6,4 +6,4 @@
 	url = https://github.com/stephband/window.breakpoint.git
 [submodule "modules/fn"]
 	path = modules/fn
-	url = https://github.com/cruncher/Fn.git
+	url = https://github.com/stephband/Fn.git
