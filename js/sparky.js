@@ -1,11 +1,7 @@
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
-
-	console.log('Sparky');
-	console.log('https://labs.cruncher.ch/sparky');
-	console.log('_______________________________');
+	console.log('Sparky - https://github.com/cruncher/sparky');
 })(this);
-
 
 (function(window) {
 	"use strict";
