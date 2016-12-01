@@ -7,7 +7,7 @@
 (function(window) {
 	if (!jQuery) { return; }
 
-	var dom = Sparky.dom;
+	var dom = window.dom;
 	var doc = jQuery(document);
 
 	function isInTemplate(node) {

@@ -44,8 +44,8 @@
 	"use strict";
 
 	var assign = Object.assign;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var dom    = Sparky.dom;
 
 	assign(Sparky.fn, {
 		"remove-hidden": function(node, scopes) {

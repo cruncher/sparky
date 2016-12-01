@@ -2,6 +2,7 @@
 	"use strict";
 
 	var CodeMirror = window.CodeMirror;
+	var dom        = window.dom;
 	var Sparky     = window.Sparky;
 	var assign     = Object.assign;
 
@@ -37,7 +38,7 @@
 				if (changing) { return; }
 				node.value = codemirror.getValue();
 				changing = true;
-				Sparky.dom.trigger(node, "change");
+				dom.trigger("change", node);
 				changing = false;
 			});
 
