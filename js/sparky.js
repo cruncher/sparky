@@ -12,6 +12,7 @@
 	var assign     = Object.assign;
 	var Collection = window.Collection;
 	var Fn         = window.Fn;
+	var dom        = window.dom;
 	var Stream     = Fn.Stream;
 
 
@@ -34,7 +35,7 @@
 	function nodeToString(node) {
 		return [
 			'<',
-			Sparky.dom.tag(node),
+			dom.tag(node),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
 			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
@@ -78,7 +79,7 @@
 		}
 
 		// If node is a template use a copy of it's content.
-		var tag = Sparky.dom.tag(node);
+		var tag = dom.tag(node);
 		if (tag === 'template' || tag === 'script') {
 			node = Sparky.template(node.id);
 		}
@@ -201,17 +202,17 @@
 	function replaceWithComment(node, i, sparky) {
 		// If debug use comments as placeholders, otherwise use text nodes.
 		var placeholder = Sparky.debug ?
-			Sparky.dom.create('comment', Sparky.dom.tag(node)) :
-			Sparky.dom.create('text', '') ;
-		Sparky.dom.before(node, placeholder);
-		Sparky.dom.remove(node);
+			dom.create('comment', dom.tag(node)) :
+			dom.create('text', '') ;
+		dom.before(node, placeholder);
+		dom.remove(node);
 		return placeholder;
 	}
 
 	function replaceWithNode(node, i, sparky) {
 		var placeholder = sparky.placeholders[i];
-		Sparky.dom.before(placeholder, node);
-		Sparky.dom.remove(placeholder);
+		dom.before(placeholder, node);
+		dom.remove(placeholder);
 	}
 
 	function initialise(inits, init) {
@@ -397,7 +398,7 @@
 		// binding. We can skip the heavy work.
 		if (outstream === false) {
 			this.on('destroy', function() {
-				Sparky.dom.remove(this);
+				dom.remove(this);
 			});
 
 			this.scope(rootscope);
@@ -437,8 +438,8 @@
 		// Register destroy on this sparky before creating child nodes, so that
 		// this gets destroyed before child sparkies do.
 		this.on('destroy', function() {
-			Sparky.dom.remove(this);
-			this.placeholders && Sparky.dom.remove(this.placeholders);
+			dom.remove(this);
+			this.placeholders && dom.remove(this.placeholders);
 			unobserveScope();
 			teardown(scope, parsed.bindings);
 			destroy(parsed);
@@ -538,7 +539,7 @@
 		// is not present, returns undefined.
 		tojQuery: function() {
 			if (!window.jQuery) { return; }
-			return jQuery(this.filter(Sparky.dom.isElementNode));
+			return jQuery(this.filter(dom.isElementNode));
 		}
 	});
 
@@ -569,7 +570,7 @@
 		fn:   {},
 
 		template: function(id, node) {
-			return Sparky.dom.template.apply(this, arguments);
+			return dom.template.apply(this, arguments);
 		}
 	});
 

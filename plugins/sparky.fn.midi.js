@@ -1,6 +1,7 @@
 (function(window) {
 	"use strict";
 
+	var dom        = window.dom;
 	var Sparky     = window.Sparky;
 	var Collection = window.Collection;
 	var MIDI       = window.MIDI;
@@ -14,13 +15,13 @@
 
 	Sparky.fn['if-midi'] = function(node, scopes) {
 		MIDI.request.then(undefined, function() {
-			Sparky.dom.remove(node);
+			dom.remove(node);
 		});
 	};
 
 	Sparky.fn['if-not-midi'] = function(node, scopes) {
 		MIDI.request.then(function() {
-			Sparky.dom.remove(node);
+			dom.remove(node);
 		});
 	};
 })(window);
