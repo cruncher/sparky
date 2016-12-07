@@ -183,7 +183,7 @@
 		while (++n < l) {
 			ctrl = Fn.getPath(paths[n], ctrls);
 			if (!ctrl) {
-				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
+				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.fn');
 			}
 
 			list.push(ctrl);
