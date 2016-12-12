@@ -570,7 +570,14 @@
 		fn:   {},
 
 		template: function(id, node) {
-			return dom.template.apply(this, arguments);
+			// Todo: Store node in a cache. This used to responsibility of
+			// dom.js. No more.
+			if (node) {
+				console.warn('Cant cache Sparky.template(id, node)')
+				return;
+			}
+
+			return dom.fragmentFromId(id);
 		}
 	});
 
