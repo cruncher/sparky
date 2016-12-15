@@ -2,8 +2,8 @@
 	"use strict";
 
 	var Fn     = window.Fn;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var DOM    = Sparky.dom;
 
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
@@ -11,12 +11,12 @@
 	var destroyDelay = 8000;
 
 	function createPlaceholder(node) {
-		if (!Sparky.debug) { return DOM.create('text', ''); }
+		if (!Sparky.debug) { return dom.create('text', ''); }
 
 		var attrScope = node.getAttribute('data-scope');
 		var attrCtrl = node.getAttribute('data-fn');
 
-		return DOM.create('comment',
+		return dom.create('comment',
 			(attrScope ? ' data-scope="' + attrScope + '"' : '') +
 			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 	}
@@ -58,7 +58,7 @@
 
 				if (i === -1) {
 					rejects.set(object, sparkies[l]);
-					DOM.remove(sparkies[l][0]);
+					dom.remove(sparkies[l][0]);
 					scheduled.push(object);
 				}
 				else {
@@ -103,12 +103,12 @@
 
 				// If node before placeholder is a leftover reject
 				if (placeholder.previousSibling === sparkies[n][0]) {
-					Sparky.log('    ...already in DOM position', sparkies[n][0]);
+					Sparky.log('    ...already in dom position', sparkies[n][0]);
 					continue;
 				}
 
-				// We are in an animation frame. Go ahead and manipulate the DOM.
-				DOM.before(placeholder, sparkies[n][0]);
+				// We are in an animation frame. Go ahead and manipulate the dom.
+				dom.before(placeholder, sparkies[n][0]);
 			}
 
 			Sparky.log(
@@ -167,8 +167,8 @@
 		clone.removeAttribute('data-fn');
 
 		// Put the placeholder in place and remove the node
-		DOM.before(node, placeholder);
-		DOM.remove(node);
+		dom.before(node, placeholder);
+		dom.remove(node);
 
 		scopes
 		.dedup()

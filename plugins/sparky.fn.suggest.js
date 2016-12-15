@@ -1,5 +1,8 @@
 (function(window) {
-	var Sparky = window.Sparky;
+	var Fn         = window.Fn;
+	var dom        = window.dom;
+	var Collection = window.Collection;
+	var Sparky     = window.Sparky;
 
 	function wrap(i, min, max) {
 		return i < min ? max - (min - i) :
@@ -35,7 +38,7 @@
 		var elem = tip.tojQuery();
 
 		window.requestAnimationFrame(function() {
-			elem.trigger({ type: 'activate', relatedTarget: node });
+			elem.trigger({ type: 'dom-activate', relatedTarget: node });
 
 			var buttons = elem.find('[data-fn~="scope"]');
 			var i = 0;
@@ -60,17 +63,17 @@
 					buttons.eq(i).addClass('focus');
 				}
 				else if (e.keyCode === 9) {
-					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+					dom.trigger('click', buttons.eq(i)[0]);
 				}
 				else if (e.keyCode === 13) {
 					e.preventDefault();
-					Sparky.dom.trigger(buttons.eq(i)[0], 'click');
+					dom.trigger('click', buttons.eq(i)[0]);
 				}
 			}
 
 			function deactivate(e) {
 				buttons.eq(i).removeClass('focus');
-				elem.off('deactivate', deactivate);
+				elem.off('dom-deactivate', deactivate);
 				elem.off('mouseenter', mouseenter);
 				node.removeEventListener('keydown', keydown);
 			}
@@ -79,18 +82,18 @@
 			node.addEventListener('keydown', keydown);
 			elem
 			.on('mouseenter', '[data-fn~="scope"]', mouseenter)
-			.on('deactivate', deactivate);
+			.on('dom-deactivate', deactivate);
 		});
 	}
 
 	function listen(node, fn) {
 		function update(data) {
-			jQuery(node).trigger('deactivate');
+			jQuery(node).trigger('dom-deactivate');
 			fn(data);
 		}
 
 		function click(e) {
-			var button = Sparky.dom.closest(e.target, '[data-fn~="scope"]', e.currentTarget);
+			var button = dom.closest('[data-fn~="scope"]', e.target, e.currentTarget);
 			var object = Sparky.getScope(button);
 			update(object);
 		}
@@ -107,7 +110,7 @@
 	}, 320);
 
 	Sparky.fn.suggest = function(node, scopes) {
-		if (Sparky.dom.tag(node) !== 'input') {
+		if (dom.tag(node) !== 'input') {
 			console.warn('Sparky: data-fn="suggest" can only be applied to an <input>.');
 			return;
 		}
@@ -144,16 +147,16 @@
 		if (pattern) { pattern = RegExp(pattern); }
 
 		var tip = Sparky(templateId);
-		Sparky.dom.append(document.body, tip);
+		dom.append(document.body, tip);
 
 		var scope;
 		scopes.tap(function(newscope) {
 			scope = newscope;
 		});
 
-		listen(tip.filter(Sparky.dom.isElementNode)[0], function(data) {
+		listen(tip.filter(dom.isElementNode)[0], function(data) {
 			node.value = format ? Sparky.render(format, data) : data ;
-			Sparky.dom.trigger(node, 'change');
+			dom.trigger('change', node);
 
 			// Focus the next tabbable node
 			var next = jQuery(node).nextAll('input:not([disabled]):not([hidden]):not([tabindex^="-"])').first();
@@ -170,7 +173,7 @@
 			var text = e.target.value;
 
 			if (pattern && !pattern.test(text)) {
-				jQuery(tip).trigger('deactivate');
+				jQuery(tip).trigger('dom-deactivate');
 				return;
 			}
 
@@ -183,7 +186,7 @@
 		});
 
 		node.addEventListener('blur', function(e) {
-			jQuery(tip).trigger('deactivate');
+			jQuery(tip).trigger('dom-deactivate');
 		});
 	};
 })(this);

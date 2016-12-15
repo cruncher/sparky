@@ -189,10 +189,11 @@
 		}
 	}
 
-	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
-		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
-	});
+	//Sparky.observePath = Sparky.try(observePath, function message(root, path) {
+	//	return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
+	//});
 
+	Sparky.observePath = observePath;
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
 

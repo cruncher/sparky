@@ -3756,9 +3756,9 @@ if (!Math.log10) {
 			// Data parent is a workaround for browsers that don't support inert
 			// templates. Allows the author to specify a context inside which
 			// the template is parsed. Where a template has top level <td>s, for
-			// example, it should have data-parent="tr", or the <td>s will be
+			// example, it should have data-parent-tag="tr", or the <td>s will be
 			// removed by the browser.
-			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent'));
+			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent-tag'));
 		}
 		else if (tag === 'template') {
 			// In browsers where templates are not inert, ids used inside them
@@ -4081,10 +4081,11 @@ if (!Math.log10) {
 		}
 	}
 
-	Sparky.observePath = Sparky.try(observePath, function message(root, path) {
-		return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
-	});
+	//Sparky.observePath = Sparky.try(observePath, function message(root, path) {
+	//	return 'Sparky: failed to observe path "' + path + '" in object ' + JSON.stringify(root);
+	//});
 
+	Sparky.observePath = observePath;
 	Sparky.unobservePath = unobservePath;
 	Sparky.observePathOnce = observePathOnce;
 

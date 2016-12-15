@@ -13,8 +13,8 @@
 
 	var assign = Object.assign;
 	var Fn     = window.Fn;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var dom    = Sparky.dom;
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
@@ -278,8 +278,8 @@
 			// which modifies bindings... see? It won't bug just now, becuase
 			// reverse loops, but if you change anything...
 			setup(function domify() {
-				Sparky.dom.empty(node);
-				Sparky.dom.append(node, template);
+				dom.empty(node);
+				dom.append(node, template);
 			});
 		}
 		else {
@@ -311,7 +311,7 @@
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
-		var classes = dom.getClass(node);
+		var classes = dom.attribute('class', node);
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
@@ -328,7 +328,7 @@
 		if (!tags.length) { return; }
 
 		// Now that we extracted the tags, overwrite the class with remaining text
-		dom.setClass(node, text);
+		node.setAttribute('class', text);
 
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = dom.classes(node);
@@ -615,12 +615,12 @@
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
 			Fn.requestTick(function() {
-				Sparky.dom.trigger(node, 'valuechange');
+				dom.trigger('valuechange', node);
 				node.disabled = true;
 			});
 		}
 		else {
-			Sparky.dom.trigger(node, 'valuechange');
+			dom.trigger('valuechange', node);
 		}
 	}
 
@@ -665,7 +665,7 @@
 						
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
-						if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+						if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
@@ -684,7 +684,7 @@
 
 				// Avoid sending to selects, as we do not rely on Bolt
 				// for setting state on select labels anymore...
-				if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+				if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -821,7 +821,7 @@
 		}
 	});
 
-	changeTags(/\{{2,3}/, /\}{2,3}/);
+	changeTags(/\{\[{1,2}/, /\]{1,2}\}/);
 
 
 	// Export
