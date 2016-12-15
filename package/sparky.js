@@ -94,30 +94,6 @@ if (!Math.log10) {
 	};
 }
 
-
-// window.CustomEvent polyfill
-// http://caniuse.com/#search=customevent
-
-(function(window) {
-	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
-	if (window.console) { console.log('Polyfill: CustomEvent'); }
-
-	var Event = window.Event;
-	var defaults = { bubbles: false, cancelable: false, detail: undefined };
-
-	function CustomEvent(event, params) {
-		params = params || defaults;
-		
-		var e = document.createEvent('CustomEvent');
-		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-		
-		return e;
-	};
-
-	CustomEvent.prototype = Event.prototype;
-	window.CustomEvent = CustomEvent;
-})(window);
-
 // window.requestAnimationFrame polyfill
 
 (function(window) {
@@ -150,10 +126,7 @@ if (!Math.log10) {
 
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
-
-	console.log('Fn');
-	console.log('https://github.com/cruncher/fn');
-	console.log('______________________________');
+	console.log('Fn     – https://github.com/stephband/fn');
 })(this);
 
 (function(window) {
@@ -167,12 +140,17 @@ if (!Math.log10) {
 	var O = Object.prototype;
 	var S = String.prototype;
 
+	var debug = true;
+
 
 	// Define
 
 	var empty = Object.freeze(Object.defineProperties([], {
 		shift: { value: noop }
 	}));
+
+	// Constant for converting radians to degrees
+	var angleFactor = 360 / (Math.PI * 2);
 
 
 	// Feature test
@@ -221,6 +199,12 @@ if (!Math.log10) {
 		return fn(n);
 	}
 
+	function bind(values, fn) {
+		var params = [null];
+		params.push.apply(params, values);
+		return fn.bind.apply(fn, params);
+	}
+
 	function compose(fn2, fn1) {
 		return function composed(n) {
 			return fn2(fn1(n));
@@ -251,7 +235,7 @@ if (!Math.log10) {
 			return result;
 		}
 
-		if (Fn.debug) {
+		if (debug) {
 			setFunctionProperties('cached function', 1, fn, cached);
 		}
 
@@ -277,7 +261,7 @@ if (!Math.log10) {
 				}, parity - a.length) ;
 		};
 
-		if (Fn.debug) {
+		if (debug) {
 			setFunctionProperties('curried function', parity, fn, curried);
 		}
 
@@ -307,26 +291,40 @@ if (!Math.log10) {
 				memo(arguments[0]) ;
 		}
 
-		if (Fn.debug) {
+		if (debug) {
 			setFunctionProperties('cached and curried function', parity, fn, curried);
 		}
 
 		return curried;
 	}
 
-//	function overloadByLength(object) {
-//		return function distribute() {
-//			var length = arguments.length;
-//			var fn = object[length] || object.default;
-//
-//			if (fn) {
-//				return fn.apply(this, arguments);
-//			}
-//
-//			console.warn('Collection: method is not overloaded to accept ' + length + ' arguments.');
-//			return this;
-//		}
-//	}
+	function overloadLength(object) {
+		return function overload() {
+			var length = arguments.length;
+			var fn = object[length] || object.default;
+
+			if (fn) {
+				return fn.apply(this, arguments);
+			}
+
+			console.warn('Fn: method overload for ' + length + ' arguments not available');
+			return this;
+		}
+	}
+
+	function overloadTypes(map) {
+		return function overload() {
+			var types = Array.prototype.map.call(arguments, toType);
+			var fn = map[types] || map['default'];
+
+			if (!fn) {
+				console.warn('Fn: method overload for type (' + types + ') not available')
+				return;
+			}
+
+			return fn.apply(this, arguments);
+		};
+	}
 
 
 	// Array functions
@@ -339,19 +337,23 @@ if (!Math.log10) {
 		array.splice(++n, 0, value);
 	}
 
-//	function shiftSparse(array) {
-//		// Shift values, ignoring undefined
-//		var value;
-//		while (array.length && value === undefined) {
-//			value = array.shift();
-//		}
-//		return value;
-//	}
+	function shiftSparse(array) {
+		// Shift values ignoring undefined holes
+		var value;
+		while (array.length) {
+			value = A.shift.apply(array);
+			if (value !== undefined) { return value; }
+		}
+	}
+
+	function byGreater(a, b) {
+		return a === b ? 0 : a > b ? 1 : -1 ;
+	}
 
 
 	// Get and set paths
 
-	var rpathtrimmer = /^\[|\]$/g;
+	var rpathtrimmer  = /^\[|\]$/g;
 	var rpathsplitter = /\]?(?:\.|\[)/g;
 	var rpropselector = /(\w+)=(\w+)/;
 
@@ -433,11 +435,11 @@ if (!Math.log10) {
 
 	var requestAnimationFrame = window.requestAnimationFrame;
 
-	var now = window.performance.now ? function now() {
-			return window.performance.now();
-		} : function now() {
-			return +new Date();
-		} ;
+	var now = window.performance && window.performance.now ? function now() {
+		return window.performance.now();
+	} : function now() {
+		return +new Date();
+	} ;
 
 	function createRequestTimerFrame(time) {
 		var timer = false;
@@ -569,7 +571,7 @@ if (!Math.log10) {
 		}
 
 		var source = this;
-		var buffer, n;
+		var buffer;
 
 		if (!fn) {
 			this.shift = noop;
@@ -584,6 +586,7 @@ if (!Math.log10) {
 		// fn is an object with a shift function
 		if (typeof fn.shift === "function" && fn.length === undefined) {
 			this.shift = function shift() {
+				if (source.status === 'done') { return; }
 				var value = fn.shift();
 				if (fn.status === "done") { source.status = 'done'; }
 				return value;
@@ -594,6 +597,7 @@ if (!Math.log10) {
 		// fn is an iterator
 		if (typeof fn.next === "function") {
 			this.shift = function shift() {
+				if (source.status === 'done') { return; }
 				var result = fn.next();
 				if (result.done) { source.status = 'done'; }
 				return result.value;
@@ -603,9 +607,11 @@ if (!Math.log10) {
 
 		// fn is an arguments object, maybe from Fn.of()
 		if (Fn.toClass(fn) === "Arguments") {
-			n = -1;
 			this.shift = function shift() {
-				return fn[++n];
+				if (source.status === 'done') { return; }
+				var result = shiftSparse(fn);
+				if (result === undefined) { source.status = "done"; }
+				return result;
 			};
 			return;
 		}
@@ -613,18 +619,19 @@ if (!Math.log10) {
 		// fn is an array or array-like object
 		buffer = A.slice.apply(fn);
 		this.shift = function shift() {
+			if (source.status === 'done') { return; }
 			return buffer.shift();
 		};
 	}
 
+	function create(object, fn) {
+		var functor = Object.create(object);
+		functor.shift = fn;
+		return functor;
+	}
+
 	Object.assign(Fn.prototype, {
 		// Input
-
-		create: function(fn) {
-			var functor = Object.create(this);
-			functor.shift = fn;
-			return functor;
-		},
 
 		of: function() {
 			// Delegate to the constructor's .of()
@@ -634,6 +641,8 @@ if (!Math.log10) {
 
 		// Transform
 
+		process: function(fn) { return fn(this); },
+
 		ap: function ap(object) {
 			var fn = this.shift();
 			if (fn === undefined) { return; }
@@ -641,15 +650,15 @@ if (!Math.log10) {
 		},
 
 		map: function(fn) {
-			return this.create(Fn.compose(function map(object) {
-				return object !== undefined ? fn(object) : undefined ;
+			return create(this, Fn.compose(function map(object) {
+				return object === undefined ? undefined : fn(object) ;
 			}, this.shift));
 		},
 
 		filter: function(fn) {
 			var source = this;
 
-			return this.create(function filter() {
+			return create(this, function filter() {
 				var value;
 				while ((value = source.shift()) !== undefined && !fn(value));
 				return value;
@@ -673,7 +682,7 @@ if (!Math.log10) {
 				return value;
 			};
 
-			return this.create(function filter() {
+			return create(this, function filter() {
 				if (buffer2.length) { return buffer2.shift(); }
 
 				var value;
@@ -699,7 +708,7 @@ if (!Math.log10) {
 			var source = this;
 			var buffer = empty;
 
-			return this.create(function join(object) {
+			return create(this, function join(object) {
 				var value = buffer.shift();
 				if (value !== undefined) { return value; }
 				buffer = source.shift();
@@ -714,7 +723,7 @@ if (!Math.log10) {
 
 		concat: function(object) {
 			var source = this;
-			return this.create(function concat() {
+			return create(this, function concat() {
 				var value = source.shift();
 
 				if (value === undefined) {
@@ -725,13 +734,77 @@ if (!Math.log10) {
 			});
 		},
 
+		// Todo: Perhaps CueTimer should become part of Fn?
+		cue: function(request, cancel, cuetime, map, test) {
+			var source    = this;
+			var cuestream = Stream.of();
+			var startTime = -Infinity;
+			var stopTime  = Infinity;
+			var t1        = startTime;
+			var value, mappedValue;
+
+			function cue(time) {
+				var t2 = time >= stopTime ? stopTime : time ;
+
+				if (value === undefined) {
+					while ((value = source.shift()) !== undefined && (mappedValue = map(value)) !== undefined && test(t1, t2, mappedValue)) {
+						cuestream.push(mappedValue);
+						value = undefined;
+					}
+				}
+				else {
+					mappedValue = map(value);
+
+					if (mappedValue !== undefined && test(t1, t2, mappedValue)) {
+						cuestream.push(mappedValue);
+
+						while ((value = source.shift()) !== undefined && (mappedValue = map(value)) !== undefined && test(t1, t2, mappedValue)) {
+							cuestream.push(mappedValue);
+							value = undefined;
+						}
+					}
+				}
+
+				if (source.status === 'done') { return; }
+				if (time === stopTime) { return; }
+
+				t1 = startTime > time ? startTime : time ;
+				request(cue);
+			}
+
+			cuestream.stop = function stop(time) {
+				stopTime = time;
+				if (stopTime <= t1) { cancel(cue); }
+				return this;
+			};
+
+			cuestream.start = function start(time) {
+				startTime = time;
+				t1 = startTime;
+
+				if (startTime >= cuetime()) {
+					// This is ok even when cuetime() is -Infinity, because the
+					// first request() goes through the timer synchronously, ie
+					// immediately
+					request(cue);
+				}
+				else {
+					cue(cuetime());
+				}
+
+				return this;
+			};
+
+			return cuestream;
+		},
+
 		sort: function(fn) {
 			fn = fn || Fn.byGreater ;
 
 			var source = this;
 			var buffer = [];
 
-			return this.create(function sort() {
+			return create(this, function sort() {
 				var value;
 
 				while((value = source.shift()) !== undefined) {
@@ -744,13 +817,11 @@ if (!Math.log10) {
 
 		head: function() {
 			var source = this;
-			var i = 0;
 
-			return this.create(function head() {
-				if (i++ === 0) {
-					source.status = 'done';
-					return source.shift();
-				}
+			return create(this, function head() {
+				if (source.status === 'done') { return; }
+				source.status = 'done';
+				return source.shift();
 			});
 		},
 
@@ -758,9 +829,24 @@ if (!Math.log10) {
 			var source = this;
 			var i = 0;
 
-			return this.create(function tail() {
+			return create(this, function tail() {
 				if (i++ === 0) { source.shift(); }
 				return source.shift();
+			});
+		},
+
+		last: function() {
+			var source = this;
+			var i = 0;
+
+			return create(this, function last() {
+				var n;
+
+				source.each(function(value) {
+					n = value;
+				});
+
+				return n;
 			});
 		},
 
@@ -768,7 +854,7 @@ if (!Math.log10) {
 			var source = this;
 			var i = -1;
 
-			return this.create(function slice() {
+			return create(this, function slice() {
 				while (++i < n) {
 					source.shift();
 				}
@@ -784,7 +870,7 @@ if (!Math.log10) {
 			var source = this;
 			var buffer = [];
 
-			return this.create(function split() {
+			return create(this, function split() {
 				var value = source.shift();
 				var temp;
 
@@ -813,7 +899,7 @@ if (!Math.log10) {
 			var source = this;
 			var buffer = [];
 
-			return this.create(n ?
+			return create(this, n ?
 				// If n is defined batch into arrays of length n.
 				function nextBatchN() {
 					var value, _buffer;
@@ -846,13 +932,21 @@ if (!Math.log10) {
 
 			fn = fn || Fn.id;
 
-			function create() {
-				var stream = new BufferStream();
-				buffer.push(stream);
-				return stream.on('pull', function() {
-					// Pull until a new value is added to the current stream
-					pullUntil(Fn.is(stream));
+			function group() {
+				var array = [];
+				var stream = Stream(function group() {
+					if (!array.length) {
+						// Pull until a new value is added to the current stream
+						pullUntil(Fn.is(stream));
+					}
+
+					return array.shift();
+				}, function push() {
+					array.push.apply(array, arguments);
 				});
+
+				buffer.push(stream);
+				return stream;
 			}
 
 			function pullUntil(check) {
@@ -862,7 +956,7 @@ if (!Math.log10) {
 				var stream = streams.get(key);
 
 				if (stream === undefined) {
-					stream = create();
+					stream = group();
 					streams.set(key, stream);
 				}
 
@@ -874,43 +968,51 @@ if (!Math.log10) {
 				return !!buffer.length;
 			}
 
-			return this.create(function group() {
+			return create(this, function group() {
 				// Pull until a new stream is available
 				pullUntil(isBuffered);
 				return buffer.shift();
 			});
 		},
 
-		groupTo: function(fn, object) {
-			var source = this;
-
-			function create() {
-				var stream = new BufferStream();
-				return stream.on('pull', pullAll);
-			}
-
-			function pullAll() {
-				var value = source.shift();
-				if (value === undefined) { return; }
-				var key = fn(value);
-				var stream = Fn.get(key, object);
-
-				if (stream === undefined) {
-					stream = create();
-					Fn.set(key, stream, object);
-				}
-
-				stream.push(value);
-				return pullAll();
-			}
-
-			return this.create(function group() {
-				if (source.status === 'done') { return; }
-				source.status = 'done';
-				pullAll();
-				return object;
-			});
-		},
+		//groupTo: function(fn, object) {
+		//	var source = this;
+		//
+		//	function group() {
+		//		var array = [];
+		//		return Stream(function group() {
+		//			if (!array.length) {
+		//				// Pull until a new value is added to the current stream
+		//				pullAll();
+		//			}
+		//			return array.shift();
+		//		}, function push() {
+		//			array.push.apply(array, arguments);
+		//		});
+		//	}
+		//
+		//	function pullAll() {
+		//		var value = source.shift();
+		//		if (value === undefined) { return; }
+		//		var key = fn(value);
+		//		var stream = Fn.get(key, object);
+		//
+		//		if (stream === undefined) {
+		//			stream = group();
+		//			Fn.set(key, stream, object);
+		//		}
+		//
+		//		stream.push(value);
+		//		return pullAll();
+		//	}
+		//
+		//	return create(this, function group() {
+		//		if (source.status === 'done') { return; }
+		//		source.status = 'done';
+		//		pullAll();
+		//		return object;
+		//	});
+		//},
 
 		scan: function(fn, seed) {
 			// seed defaults to 0
@@ -925,7 +1027,7 @@ if (!Math.log10) {
 			var source = this;
 			var values = [];
 
-			return this.create(function unique() {
+			return create(this, function unique() {
 				var value = source.shift();
 				if (value === undefined) { return; }
 
@@ -956,14 +1058,20 @@ if (!Math.log10) {
 		},
 
 		pipe: function(stream) {
-			if (!stream || !stream.on) {
+			if (!stream || !stream.push) {
 				throw new Error('Fn: Fn.pipe(object) object must be a pushable stream. (' + stream + ')');
 			}
 
 			var source = this;
 
-			stream.on('pull', function() {
-				stream.push(source.shift());
+			if (stream.push && source.on) {
+				source.on('push', stream.push);
+			}
+
+			stream.on('pull', function pull() {
+				var value = source.shift();
+				if (source.status === 'done') { stream.off('pull', pull); }
+				return value;
 			});
 
 			return stream;
@@ -986,7 +1094,7 @@ if (!Math.log10) {
 				return buffer1.shift();
 			};
 
-			return this.create(function clone() {
+			return create(this, function clone() {
 				if (!buffer2.length) { fill(); }
 				return buffer2.shift();
 			});
@@ -1008,6 +1116,8 @@ if (!Math.log10) {
 			while ((value = this.shift()) !== undefined) {
 				fn(value);
 			}
+
+			return this;
 		},
 
 		reduce: function(fn, value) {
@@ -1059,20 +1169,18 @@ if (!Math.log10) {
 	}
 
 	Object.assign(Fn, {
-		debug: false,
+		of: function of() { return new this(arguments); },
 
-		of: function of() {
-			return new this(arguments);
-		},
-
-		empty:      empty,
-		noop:       noop,
-		id:         id,
-		cache:      cache,
-		curry:      curry,
-		cacheCurry: cacheCurry,
-		compose:    compose,
-		pipe:       pipe,
+		empty:          empty,
+		noop:           noop,
+		id:             id,
+		cache:          cache,
+		curry:          curry,
+		cacheCurry:     cacheCurry,
+		compose:        compose,
+		pipe:           pipe,
+		overloadLength: overloadLength,
+		overloadTypes:  overloadTypes,
 
 		returnThis: function() { return this; },
 
@@ -1103,12 +1211,10 @@ if (!Math.log10) {
 		isGreater: curry(function byGreater(a, b) { return b > a ; }),
 
 		by: curry(function by(property, a, b) {
-			return Fn.byGreater(a[property], b[property]);
+			return byGreater(a[property], b[property]);
 		}),
 
-		byGreater: curry(function byGreater(a, b) {
-			return a === b ? 0 : a > b ? 1 : -1 ;
-		}),
+		byGreater: curry(byGreater),
 
 		byAlphabet: curry(function byAlphabet(a, b) {
 			return S.localeCompare.call(a, b);
@@ -1119,7 +1225,11 @@ if (!Math.log10) {
 		get: curry(function get(key, object) {
 			return object && (typeof object.get === "function" ?
 				object.get(key) :
-				object[key]) ;
+				// Coerse null to undefined
+				object[key] === null ?
+					undefined :
+					object[key]
+			);
 		}),
 
 		set: curry(function set(key, value, object) {
@@ -1143,6 +1253,8 @@ if (!Math.log10) {
 				(object[path] = value) :
 				objTo(object, array, value);
 		}),
+
+		bind: curry(bind),
 
 		invoke: curry(function invoke(name, args, object) {
 			return object[name].apply(object, args);
@@ -1210,12 +1322,17 @@ if (!Math.log10) {
 			);
 		}),
 
-		concat:      curry(function concat(array2, array1) { return array1.concat ? array1.concat(array2) : A.concat.call(array1, array2); }),
-		filter:      curry(function filter(fn, object) { return object.filter ? object.filter(fn) : A.filter.call(object, fn); }),
-		reduce:      curry(function reduce(fn, n, object) { return object.reduce ? object.reduce(fn, n) : A.reduce.call(object, fn, n); }),
-		slice:       curry(function slice(n, m, object) { return object.slice ? object.slice(n, m) : A.slice.call(object, n, m); }),
-		sort:        curry(function sort(fn, object) { return object.sort ? object.sort(fn) : A.sort.call(object, fn); }),
-		push:        curry(function push(value, object) {
+		concat:   curry(function concat(array2, array1) { return array1.concat ? array1.concat(array2) : A.concat.call(array1, array2); }),
+
+		filter:   curry(function filter(fn, object) { return object.filter ? object.filter(fn) : A.filter.call(object, fn); }),
+
+		reduce:   curry(function reduce(fn, n, object) { return object.reduce ? object.reduce(fn, n) : A.reduce.call(object, fn, n); }),
+
+		slice:    curry(function slice(n, m, object) { return object.slice ? object.slice(n, m) : A.slice.call(object, n, m); }),
+
+		sort:     curry(function sort(fn, object) { return object.sort ? object.sort(fn) : A.sort.call(object, fn); }),
+
+		push:     curry(function push(value, object) {
 			(object.push || A.push).call(object, value);
 			return object;
 		}),
@@ -1273,12 +1390,8 @@ if (!Math.log10) {
 		}),
 	
 		unite: curry(function unite(arr1, arr2) {
-			return arr1.concat(arr2).filter(unique).sort(greater);
+			return arr1.concat(arr2).filter(unique).sort(Fn.byGreater);
 		}),
-
-		//range: function(arr) {
-		//	return 	Math.max.apply(null, arr) - Math.min.apply(null, arr);
-		//},
 
 		randomGaussian: function randomGaussian(n) {
 			// Returns a random number with a bell curve probability centred
@@ -1286,12 +1399,52 @@ if (!Math.log10) {
 			return n * (Math.random() + Math.random() - 1);
 		},
 
-		add:         curry(function add(a, b) { return b + a; }),
-		multiply:    curry(function multiply(a, b) { return b * a; }),
-		mod:         curry(function mod(a, b) { return b % a; }),
-		pow:         curry(function pow(a, b) { return Math.pow(b, a); }),
-		min:         curry(function min(a, b) { return a > b ? b : a ; }),
-		max:         curry(function max(a, b) { return a < b ? b : a ; }),
+		add:      curry(function add(a, b) { return b + a; }),
+
+		multiply: curry(function multiply(a, b) { return b * a; }),
+
+		mod:      curry(function mod(a, b) { return b % a; }),
+
+		pow:      curry(function pow(a, b) { return Math.pow(b, a); }),
+
+		min:      curry(function min(a, b) { return a > b ? b : a ; }),
+
+		max:      curry(function max(a, b) { return a < b ? b : a ; }),
+
+		limit:    curry(function limit(min, max, n) { return n > max ? max : n < min ? min : n ; }),
+
+		wrap:     curry(function wrap(min, max, n) { return (n < min ? max : min) + (n - min) % (max - min); }),
+
+		degToRad: function toDeg(n) { return n / angleFactor; },
+
+		radToDeg: function toRad(n) { return n * angleFactor; },
+
+		toPolar:  function setPolar(cartesian) {
+			var x = cartesian[0];
+			var y = cartesian[1];
+
+			return [
+				// Distance
+				x === 0 ?
+					Math.abs(y) :
+				y === 0 ?
+					Math.abs(x) :
+					Math.sqrt(x*x + y*y) ,
+				// Angle
+				Math.atan2(x, y)
+			];
+		},
+
+		toCartesian: function setCartesian(polar) {
+			var d = polar[0];
+			var a = polar[1];
+
+			return [
+				Math.sin(a) * d ,
+				Math.cos(a) * d
+			];
+		},
+
 		// conflicting properties not allowed in strict mode
 		// log:         curry(function log(base, n) { return Math.log(n) / Math.log(base); }),
 		nthRoot:     curry(function nthRoot(n, x) { return Math.pow(x, 1/n); }),
@@ -1314,11 +1467,15 @@ if (!Math.log10) {
 		},
 
 		normalise:   curry(function normalise(min, max, value) { return (value - min) / (max - min); }),
+
 		denormalise: curry(function denormalise(min, max, value) { return value * (max - min) + min; }),
+
 		toFixed:     curry(function toFixed(n, value) { return N.toFixed.call(value, n); }),
+
 		rangeLog:    curry(function rangeLog(min, max, n) {
 			return Fn.denormalise(min, max, Math.log(n / min) / Math.log(max / min))
 		}),
+
 		rangeLogInv: curry(function rangeLogInv(min, max, n) {
 			return min * Math.pow(max / min, Fn.normalise(min, max, n));
 		}),
@@ -1329,18 +1486,24 @@ if (!Math.log10) {
 			});
 		},
 
+
 		// Strings
-		match:      curry(function match(regex, string) { return regex.test(string); }),
-		exec:       curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
-		replace:    curry(function replace(regex, fn, string) { return string.replace(regex, fn); }),
+
+		match:       curry(function match(regex, string) { return regex.test(string); }),
+
+		exec:        curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
+
+		replace:     curry(function replace(regex, fn, string) { return string.replace(regex, fn); }),
 
 		slugify: function slugify(string) {
 			if (typeof string !== 'string') { return; }
 			return string.trim().toLowerCase().replace(/[\W_]/g, '-');
 		},
 
+
 		// Booleans
 		not: function not(object) { return !object; },
+
 
 		// Types
 
@@ -1350,11 +1513,11 @@ if (!Math.log10) {
 			return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
 		},
 
-		toType: function typeOf(object) {
+		toType: function toType(object) {
 			return typeof object;
 		},
 
-		toClass: function classOf(object) {
+		toClass: function toClass(object) {
 			return O.toString.apply(object).slice(8, -1);
 		},
 
@@ -1402,6 +1565,7 @@ if (!Math.log10) {
 			};
 		})(regex, ['date', 'url', 'email', 'int', 'float']),
 
+
 		// JSON
 		stringify: function stringify(object) {
 			return JSON.stringify(Fn.toClass(object) === "Map" ?
@@ -1415,42 +1579,82 @@ if (!Math.log10) {
 		})
 	});
 
+
 	// Stream
 
-	function Stream(setup) {
-		// Enable calling Stream without the new keyword.
-		if (!this || !Stream.prototype.isPrototypeOf(this)) {
-			return new Stream(setup);
+	var eventsSymbol = Symbol('events');
+
+	function Stream(shift, push, stop) {
+		// Enable construction without the `new` keyword
+		if (!Stream.prototype.isPrototypeOf(this)) {
+			return new Stream(shift, push, stop);
 		}
 
-		var observers = {};
+		var stream = this;
 
-		function notify(type) {
-			if (!observers[type]) { return; }
-			A.slice.apply(observers[type]).forEach(call);
+		this.shift = shift;
+
+		if (push) {
+			this.push = function() {
+				push.apply(stream, arguments);
+				trigger('push', stream);
+			};
 		}
 
-		this.on = function on(type, fn) {
-			// Lazily create observers list
-			observers[type] = observers[type] || [] ;
-			// Add observer
-			observers[type].push(fn);
-			return this;
-		};
+		if (stop) { stream.stop = stop; }
 
-		Object.assign(this, setup(notify));
-
-		if (!this.hasOwnProperty('shift')) {
-			throw new Error('Fn.Stream: setup() did not provide a .shift() method.');
-		}
+		stream[eventsSymbol] = {};
 	}
 
 	Stream.prototype = Object.create(Fn.prototype);
 
+	function latest(source) {
+		var value, v;
+
+		while ((v = source.shift()) !== undefined) {
+			value = v;
+		}
+		
+		return value;
+	}
+
+	function getEvents(object) {
+		return object[eventsSymbol] || (object[eventsSymbol] = {});
+	}
+
+	function trigger(type, object) {
+		var events = object[eventsSymbol];
+		// Todo: make sure forEach is acting on a copy of events[type] ?
+		events && events[type] && events[type].forEach(call);
+	}
+
 	Object.assign(Stream.prototype, {
+		on: function(type, fn) {
+			var events = this[eventsSymbol];
+			var listeners = events[type] || (events[type] = []);
+			listeners.push(fn);
+			return this;
+		},
+
+		off: function(type, fn) {
+			var events = this[eventsSymbol];
+			var listeners = events[type];
+			if (!listeners) { return; }
+			var n = listeners.length;
+			while (n--) {
+				if (listeners[n] === fn) { listeners.splice(n, 1); }
+			}
+			return this;
+		},
+
+		stop: function() {
+			this.status = "done";
+			trigger('done', this);
+		},
+
 		ap: function ap(object) {
 			var source = this;
-			return this.create(function ap() {
+			return create(this, function ap() {
 				var fn = source.shift();
 				if (fn === undefined) { return; }
 				return object.map(fn);
@@ -1461,21 +1665,12 @@ if (!Math.log10) {
 			throw new Error('Fn: ' + this.constructor.name + ' is not pushable.');
 		},
 
-		shift: function error() {
-			throw new Error('Fn: Stream has been created without a .next() method.');
-		},
-
-		pull: function pullWarning() {
-			// Legacy warning
-			console.warn('stream.pull() deprecated. Use stream.each().');
-			return this.each.apply(this, arguments);
-		},
-
 		each: function(fn) {
 			var source = this;
 			var a = arguments;
 
 			function each() {
+				// Delegate to Fn.each()
 				Fn.prototype.each.apply(source, a);
 			}
 
@@ -1485,10 +1680,9 @@ if (!Math.log10) {
 		},
 
 		pipe: function(stream) {
+			// Delegate to Fn.pipe
 			Fn.prototype.pipe.apply(this, arguments);
-			// Notify a push without pushing any values -
-			// stream only needs to know values are available.
-			this.on('push', stream.push);
+			this('push', stream.push);
 			return stream;
 		},
 
@@ -1512,7 +1706,7 @@ if (!Math.log10) {
 					value ;
 			}
 
-			return this.create(function concatParallel() {
+			return create(this, function concatParallel() {
 				var object = source.shift();
 				if (object !== undefined) { bind(object); }
 				var value = shiftNext();
@@ -1522,50 +1716,36 @@ if (!Math.log10) {
 
 		delay: function(time) {
 			var source = this;
+			var push = this.push;
+			var stream = Stream(source.shift, Fn.noop);
 
-			return new Stream(function setup(notify) {
-				source.on('push', function() {
-					setTimeout(notify, time, 'push');
-				});
+			this.push = function() {
+				push.apply(source, arguments);
+				setTimeout(stream.push, time);
+			};
 
-				return {
-					shift: function delay() {
-						return source.shift();
-					},
-
-					stop: function stop() {
-						// Probably should clear timers here.
-					}
-				};
-			});
+			return stream;
 		},
 
 		throttle: function(time) {
-			var source = this;
+			var source   = this;
+			var push     = this.push;
+			var stream   = Stream(function() {
+				var value = latest(source);
+				if (source.status === "done") {
+					throttle.cancel();
+					stream.status = "done";
+				}
+				return value;
+			}, Fn.noop);
+			var throttle = Fn.Throttle(stream.push, time);
 
-			return new Stream(function setup(notify) {
-				var t = Fn.Throttle(function() {
-					notify('push');
-				}, time);
+			this.push = function() {
+				push.apply(source, arguments);
+				throttle();
+			};
 
-				source.on('push', t);
-
-				return {
-					shift: function throttle() {
-						var value, v;
-
-						while ((v = source.shift()) !== undefined) {
-							value = v;
-						}
-
-						if (source.status === "done") { t.cancel(); }
-
-						return value;
-					},
-
-					stop: t.cancel
-				};
-			});
+			return stream;
 		},
 
 		toPromise: function() {
@@ -1592,187 +1772,37 @@ if (!Math.log10) {
 	Object.assign(Stream, {
 		of: function() {
 			var a = arguments;
-			return new Stream(function setup(notify) {
-				var pulling = false;
 
-				return {
-					shift: function buffer() {
-						var value = A.shift.apply(a);
-
-						if (value === undefined) {
-							pulling = true;
-							notify('pull');
-							pulling = false;
-							value = A.shift.apply(a);
-						}
-
-						return value;
-					},
-
-					push: function push() {
-						A.push.apply(a, arguments);
-						if (!pulling) { notify('push'); }
-					}
-				};
+			return new Stream(function shift() {
+				return shiftSparse(a);
+			}, function push() {
+				A.push.apply(a, arguments);
 			});
 		}
 	});
 
-	function ValueStream() {
-		return Stream(function setup(notify) {
-			var value;
-			var pulling = false;
-
-			return {
-				shift: function buffer() {
-					if (value === undefined) {
-						pulling = true;
-						notify('pull');
-						pulling = false;
-					}
-					var v = value;
-					value = undefined;
-					return v;
-				},
-
-				push: function push() {
-					// Store last pushed value
-					value = arguments[arguments.length - 1];
-					if (!pulling) { notify('push'); }
-					// Cancel value
-					value = undefined;
-				}
-			};
-		});
-	}
-
-
-	// BufferStream
-
-	function BufferStream(object) {
-		return Stream(function setup(notify) {
-			var source = typeof object === 'string' ? A.slice.apply(object) : object || [] ;
-			var pulling = false;
-
-			return {
-				shift: function buffer() {
-					var value = source.shift();
-
-					if (source.status === 'done') {
-						this.status = 'done';
-					}
-					else if (value === undefined) {
-						pulling = true;
-						notify('pull');
-						pulling = false;
-						value = source.shift();
-					}
-
-					return value;
-				},
-
-				push: function push() {
-					source.push.apply(source, arguments);
-					if (!pulling) { notify('push'); }
-				}
-			};
-		});
-	}
-
-	BufferStream.of = Stream.of;
-
-
-	// PromiseStream
-
-	function PromiseStream(promise) {
-		return new Stream(function setup(notify) {
-			var value;
-
-			promise.then(function(v) {
-				value = v;
-				notify('push');
-			});
-
-			return {
-				next: function promise() {
-					var v = value;
-					value = undefined;
-					return v;
-				}
-			};
-		});
-	}
-
-	PromiseStream.of = Stream.of;
-
 
 	// Pool
-
-//	function pool(Constructor, isIdle) {
-//		if (!Constructor.reset) {
-//			throw new Error('Fn: Fn.pool(constructor) - constructor must have a .reset() function');
-//		}
-//	
-//		var store = [];
-//
-//		function log() {
-//			var total = store.length;
-//			var idle = store.filter(isIdle).length;
-//
-//			return {
-//				name:   Constructor.name,
-//				total:  total,
-//				active: total - idle,
-//				idle:   idle
-//			};
-//		}
-//	
-//		// Todo: This is bad! It keeps a reference to the pools hanging around,
-//		// accessible from the global scope, so even if the pools are forgotten
-//		// they are never garbage collected!
-//		loggers.push(log);
-//	
-//		return function Pooled() {
-//			var object = store.find(isIdle);
-//	
-//			if (object) {
-//				Constructor.reset.apply(object, arguments);
-//			}
-//			else {
-//				object = Object.create(Constructor.prototype);
-//				Constructor.apply(object, arguments);
-//				store.push(object);
-//			}
-//	
-//			return object;
-//		};
-//	}
-//
-//	pool.snapshot = function() {
-//		return Fn(loggers).map(call).toJSON();
-//	};
 
 	function Pool(options, prototype) {
 		var create = options.create || Fn.noop;
 		var reset  = options.reset  || Fn.noop;
 		var isIdle = options.isIdle;
 		var store = [];
-
-		function log() {
+	
+		// Todo: This is bad! It keeps a reference to the pools hanging around,
+		// accessible from the global scope, so even if the pools are forgotten
+		// they are never garbage collected!
+		loggers.push(function log() {
 			var total = store.length;
-			var idle = store.filter(isIdle).length;
+			var idle  = store.filter(isIdle).length;
 			return {
 				name:   options.name,
 				total:  total,
 				active: total - idle,
 				idle:   idle
 			};
-		}
-	
-		// Todo: This is bad! It keeps a reference to the pools hanging around,
-		// accessible from the global scope, so even if the pools are forgotten
-		// they are never garbage collected!
-		loggers.push(log);
+		});
 
 		return function PooledObject() {
 			var object = store.find(isIdle);
@@ -1799,15 +1829,11 @@ if (!Math.log10) {
 		Pool:          Pool,
 		Throttle:      Throttle,
 		Hold:          Hold,
-		Stream:        Stream,
-		ValueStream:   ValueStream,
-		BufferStream:  BufferStream,
-		PromiseStream: PromiseStream
+		Stream:        Stream
 	});
 
 	window.Fn = Fn;
 })(this);
-
 
 // mixin.listeners
 
@@ -2921,12 +2947,8 @@ if (!Math.log10) {
 
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
-
-	console.log('Sparky');
-	console.log('https://labs.cruncher.ch/sparky');
-	console.log('_______________________________');
+	console.log('Sparky - https://github.com/cruncher/sparky');
 })(this);
-
 
 (function(window) {
 	"use strict";
@@ -2937,6 +2959,8 @@ if (!Math.log10) {
 	var assign     = Object.assign;
 	var Collection = window.Collection;
 	var Fn         = window.Fn;
+	var dom        = window.dom;
+	var Stream     = Fn.Stream;
 
 
 	// Variables
@@ -2958,7 +2982,7 @@ if (!Math.log10) {
 	function nodeToString(node) {
 		return [
 			'<',
-			Sparky.dom.tag(node),
+			dom.tag(node),
 			//(node.getAttribute('href') ? ' href="' + node.getAttribute('href') + '"' : ''),
 			(node.getAttribute('data-scope') ? ' data-scope="' + node.getAttribute('data-scope') + '"' : ''),
 			(node.getAttribute('data-fn') ? ' data-fn="' + node.getAttribute('data-fn') + '"' : ''),
@@ -3002,7 +3026,7 @@ if (!Math.log10) {
 		}
 
 		// If node is a template use a copy of it's content.
-		var tag = Sparky.dom.tag(node);
+		var tag = dom.tag(node);
 		if (tag === 'template' || tag === 'script') {
 			node = Sparky.template(node.id);
 		}
@@ -3107,7 +3131,7 @@ if (!Math.log10) {
 		while (++n < l) {
 			ctrl = Fn.getPath(paths[n], ctrls);
 			if (!ctrl) {
-				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.ctrl');
+				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.fn');
 			}
 
 			list.push(ctrl);
@@ -3125,17 +3149,17 @@ if (!Math.log10) {
 	function replaceWithComment(node, i, sparky) {
 		// If debug use comments as placeholders, otherwise use text nodes.
 		var placeholder = Sparky.debug ?
-			Sparky.dom.create('comment', Sparky.dom.tag(node)) :
-			Sparky.dom.create('text', '') ;
-		Sparky.dom.before(node, placeholder);
-		Sparky.dom.remove(node);
+			dom.create('comment', dom.tag(node)) :
+			dom.create('text', '') ;
+		dom.before(node, placeholder);
+		dom.remove(node);
 		return placeholder;
 	}
 
 	function replaceWithNode(node, i, sparky) {
 		var placeholder = sparky.placeholders[i];
-		Sparky.dom.before(placeholder, node);
-		Sparky.dom.remove(placeholder);
+		dom.before(placeholder, node);
+		dom.remove(placeholder);
 	}
 
 	function initialise(inits, init) {
@@ -3255,7 +3279,15 @@ if (!Math.log10) {
 		var scope;
 		var parsed;
 
-		var instream = Fn.ValueStream().dedup();
+		var value;
+		var instream = Stream(function shift() {
+			var v = value;
+			value = undefined;
+			return v;
+		}, function push() {
+			value = arguments[arguments.length - 1];
+		})
+		.dedup();
 
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
@@ -3313,7 +3345,7 @@ if (!Math.log10) {
 		// binding. We can skip the heavy work.
 		if (outstream === false) {
 			this.on('destroy', function() {
-				Sparky.dom.remove(this);
+				dom.remove(this);
 			});
 
 			this.scope(rootscope);
@@ -3353,8 +3385,8 @@ if (!Math.log10) {
 		// Register destroy on this sparky before creating child nodes, so that
 		// this gets destroyed before child sparkies do.
 		this.on('destroy', function() {
-			Sparky.dom.remove(this);
-			this.placeholders && Sparky.dom.remove(this.placeholders);
+			dom.remove(this);
+			this.placeholders && dom.remove(this.placeholders);
 			unobserveScope();
 			teardown(scope, parsed.bindings);
 			destroy(parsed);
@@ -3454,11 +3486,13 @@ if (!Math.log10) {
 		// is not present, returns undefined.
 		tojQuery: function() {
 			if (!window.jQuery) { return; }
-			return jQuery(this.filter(Sparky.dom.isElementNode));
+			return jQuery(this.filter(dom.isElementNode));
 		}
 	});
 
 	// Export
+
+	var fragments = {};
 
 	assign(Sparky, {
 		debug: false,
@@ -3485,409 +3519,17 @@ if (!Math.log10) {
 		fn:   {},
 
 		template: function(id, node) {
-			return Sparky.dom.template.apply(this, arguments);
+			if (node) {
+				console.warn('Cant cache Sparky.template(id, node)')
+				return;
+			}
+
+			var fragment = fragments[id] || (fragments[id] = dom.fragmentFromId(id));
+			return fragment.cloneNode(true);
 		}
 	});
 
 	window.Sparky = Sparky;
-})(this);
-
-(function(window) {
-	"use strict";
-
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
-
-	var assign = Object.assign;
-	var slice  = Function.prototype.call.bind(Array.prototype.slice);
-	var dom = {};
-
-	// Selection, traversal and mutation
-
-	// TokenList constructor to emulate classList property. The get fn should
-	// take the arguments (node), and return a string of tokens. The set fn
-	// should take the arguments (node, string).
-
-	function TokenList(node, get, set) {
-		this.node = node;
-		this.get = get;
-		this.set = set;
-	}
-
-	TokenList.prototype = {
-		add: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
-
-			while (n--) {
-				if (array.indexOf(arguments[n]) === -1) {
-					array.push(arguments[n]);
-				}
-			}
-
-			this.set(this.node, array.join(' '));
-		},
-
-		remove: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(Sparky.rspaces) : [] ;
-			var i;
-
-			while (n--) {
-				i = array.indexOf(arguments[n]);
-				if (i !== -1) { array.splice(i, 1); }
-			}
-
-			this.set(this.node, array.join(' '));
-		}
-	};
-
-	function getClass(node) {
-		// node.className is an object in SVG. getAttribute
-		// is more consistent, if a tad slower.
-		return node.getAttribute('class');
-	}
-
-	function setClass(node, classes) {
-		if (node instanceof SVGElement) {
-			node.setAttribute('class', classes);
-		}
-		else {
-			node.className = classes;
-		}
-	}
-
-	function getClassList(node) {
-		return node.classList || new TokenList(node, getClass, setClass);
-	}
-
-	function getStyle(node, name) {
-		return window.getComputedStyle ?
-			window
-			.getComputedStyle(node, null)
-			.getPropertyValue(name) :
-			0 ;
-	}
-
-	function matches(node, selector) {
-		return node.matches ? node.matches(selector) :
-			node.matchesSelector ? node.matchesSelector(selector) :
-			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
-			node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
-			node.msMatchesSelector ? node.msMatchesSelector(selector) :
-			node.oMatchesSelector ? node.oMatchesSelector(selector) :
-			node.tagName.toLowerCase() === selector ;
-	}
-
-	function closest(node, selector, root) {
-		if (!node || node === root || node === document || node.nodeType === 11) { return; }
-
-		if (node.correspondingUseElement) {
-			// SVG <use> elements store their DOM reference in
-			// .correspondingUseElement.
-			node = node.correspondingUseElement;
-		}
-
-		return matches(node, selector) ?
-			 node :
-			 closest(node.parentNode, selector, root) ;
-	}
-
-	function tagName(node) {
-		return node.tagName.toLowerCase();
-	}
-
-	function createNode(name) {
-		// create('comment', 'Text');
-		if (name === 'comment' || name === '!') {
-			return document.createComment(arguments[1]);
-		}
-
-		// create('text', 'Text')
-		if (name === 'text') {
-			return document.createTextNode(arguments[1]);
-		}
-
-		// create('fragment')
-		if (name === 'fragment') {
-			return document.createDocumentFragment();
-		}
-
-		// create('div', 'HTML')
-		var node = document.createElement(name);
-		node.innerHTML = arguments[1];
-		return node;
-	}
-
-	function append(node1, node2) {
-		node1.appendChild(node2);
-		return node1;
-	}
-
-	function empty(node) {
-		while (node.lastChild) { node.removeChild(node.lastChild); }
-	}
-
-	function remove(node) {
-		node.parentNode && node.parentNode.removeChild(node);
-	}
-
-	function insertBefore(target, node) {
-		target.parentNode && target.parentNode.insertBefore(node, target);
-	}
-
-	function insertAfter(target, node) {
-		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
-	}
-
-	function query(node, selector) {
-		if (arguments.length === 1 && typeof node === 'string') {
-			selector = node;
-			node = document;
-		}
-
-		return slice(node.querySelectorAll(selector));
-	}
-
-	function isElementNode(node) {
-		return node.nodeType === 1;
-	}
-
-	function isTextNode(node) {
-		return node.nodeType === 3;
-	}
-
-	function isCommentNode(node) {
-		return node.nodeType === 8;
-	}
-
-	function isFragmentNode(node) {
-		return node.nodeType === 11;
-	}
-
-	assign(dom, {
-		query:     query,
-		tag:       tagName,
-		create:    createNode,
-
-		append: Fn.curry(function(node1, node2) {
-			if (Node.prototype.isPrototypeOf(node2)) {
-				append(node1, node2);
-			}
-			else {
-				Array.prototype.forEach.call(node2, function(node) {
-					append(node1, node);
-				});
-			}
-		}),
-
-		after:     insertAfter,
-		before:    insertBefore,
-		empty:     empty,
-		remove:    function(node) {
-			if (Node.prototype.isPrototypeOf(node)) {
-				remove(node);
-				return;
-			}
-
-			Array.prototype.forEach.call(node, remove);
-		},
-		closest:   closest,
-		matches:   matches,
-		classes:   getClassList,
-		style:     getStyle,
-		getClass:  getClass,
-		setClass:  setClass,
-		isElementNode:  isElementNode,
-		isTextNode:     isTextNode,
-		isCommentNode:  isCommentNode,
-		isFragmentNode: isFragmentNode
-	});
-
-
-	// Templates
-
-	var templates = {};
-	var rcomment = /\{\s*\/\*\s*([\s\S]*)\s*\*\/\s*\}$/;
-
-	function fragmentFromChildren(node) {
-		var fragment = document.createDocumentFragment();
-		Fn(node.childNodes).each(dom.append(fragment));
-		return fragment;
-	}
-
-	function fragmentFromHTML(html, tag) {
-		var fragment = document.createDocumentFragment();
-		var node     = document.createElement(tag || 'div');
-		node.innerHTML = html;
-
-		if (node.innerHTML !== html) {
-			console.warn('Sparky: HTML has been transformed by innerHTML parsing while creating fragment.');
-			console.groupCollapsed('Sparky: Compare before and after');
-				console.log('This transform may be completely harmless: SVG content or unusual whitespace in tags is transformed without changing DOM structure.');
-				console.log(html);
-				console.log(node.innerHTML);
-			console.groupEnd();
-		}
-
-		Fn(node.childNodes).each(dom.append(fragment));
-		return fragment;
-	}
-
-	function fragmentFromContent(node) {
-		// A template tag has a content property that gives us a document
-		// fragment. If that doesn't exist we must make a document fragment.
-		return node.content || fragmentFromChildren(node);
-	}
-
-	function getTemplate(id) {
-		var node = document.getElementById(id);
-		if (!node) { throw new Error('dom: element id="' + id + '" is not in the DOM.') }
-
-		if (node.content) {
-			return node.content;
-		}
-
-		var tag = dom.tag(node);
-
-		if (tag === 'script') {
-			// Data parent is a workaround for browsers that don't support inert
-			// templates. Allows the author to specify a context inside which
-			// the template is parsed. Where a template has top level <td>s, for
-			// example, it should have data-parent-tag="tr", or the <td>s will be
-			// removed by the browser.
-			return fragmentFromHTML(node.innerHTML, node.getAttribute('data-parent-tag'));
-		}
-		else if (tag === 'template') {
-			// In browsers where templates are not inert, ids used inside them
-			// conflict with ids in any rendered result. To go some way to
-			// tackling this, remove the node from the DOM.
-			remove(node);
-		}
-
-		return fragmentFromChildren(node);
-	}
-
-	function cloneTemplate(id) {
-		var template = templates[id] || (templates[id] = getTemplate(id));
-		return template && template.cloneNode(true);
-	}
-
-	function multiline(fn) {
-		if (typeof fn !== 'function') { throw new TypeError('multiline(fn) expects a function.'); }
-		var match = rcomment.exec(fn.toString());
-		if (!match) { throw new TypeError('Multiline comment missing.'); }
-		return match[1];
-	}
-
-	function registerTemplate(id, node) {
-		var template;
-
-		if (typeof node === 'function') {
-			template = dom.create('template');
-			template.innerHTML = multiline(node);
-			node = fragmentFromContent(template);
-		}
-
-		templates[id] = node;
-	}
-
-	assign(dom, {
-		template: function(id, node) {
-			if (node) { registerTemplate(id, node); }
-			else { return cloneTemplate(id); }
-		},
-
-		fragmentFromTemplate: cloneTemplate,
-		fragmentFromContent: fragmentFromContent
-	});
-
-
-	// Events
-
-	var eventOptions = { bubbles: true };
-
-	function createEvent(type) {
-		return new CustomEvent(type, eventOptions);
-	}
-
-	function delegate(selector, fn) {
-		// Create an event handler that looks up the ancestor tree
-		// to find selector.
-		return function handler(e) {
-			var node = closest(e.target, selector, e.currentTarget);
-
-			if (!node) { return; }
-
-			e.delegateTarget = node;
-			return fn(e);
-		};
-	}
-
-	function isPrimaryButton(e) {
-		// Ignore mousedowns on any button other than the left (or primary)
-		// mouse button, or when a modifier key is pressed.
-		return (e.which === 1 && !e.ctrlKey && !e.altKey);
-	}
-
-	function trigger(node, type) {
-		// Don't cache events. It prevents you from triggering an an event of a
-		// type given type from inside the handler of another event of that type.
-		node.dispatchEvent(createEvent(type));
-	}
-
-	function on(node, type, fn) {
-		node.addEventListener(type, fn);
-	}
-
-	function off(node, type, fn) {
-		node.removeEventListener(type, fn);
-	}
-
-	assign(dom, {
-		on:       on,
-		off:      off,
-		trigger:  trigger,
-		delegate: delegate,
-		isPrimaryButton: isPrimaryButton
-	});
-
-
-	// Feature tests
-
-	var testEvent = new CustomEvent('featuretest', { bubbles: true });
-
-	function testTemplate() {
-		// Older browsers don't know about the content property of templates.
-		return 'content' in document.createElement('template');
-	}
-
-	function testEventDispatchOnDisabled() {
-		// FireFox won't dispatch any events on disabled inputs:
-		// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
-
-		var input = document.createElement('input');
-		var result = false;
-
-		append(document.body, input);
-		input.disabled = true;
-		input.addEventListener('featuretest', function(e) { result = true; });
-		input.dispatchEvent(testEvent);
-		dom.remove(input);
-
-		return result;
-	}
-
-	dom.features = {
-		template: testTemplate(),
-		inputEventsOnDisabled: testEventDispatchOnDisabled()
-	};
-
-
-	// Export
-	Sparky.dom = dom;
 })(this);
 
 
@@ -4263,8 +3905,8 @@ if (!Math.log10) {
 
 	var assign = Object.assign;
 	var Fn     = window.Fn;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var dom    = Sparky.dom;
 
 	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
@@ -4528,8 +4170,8 @@ if (!Math.log10) {
 			// which modifies bindings... see? It won't bug just now, becuase
 			// reverse loops, but if you change anything...
 			setup(function domify() {
-				Sparky.dom.empty(node);
-				Sparky.dom.append(node, template);
+				dom.empty(node);
+				dom.append(node, template);
 			});
 		}
 		else {
@@ -4561,7 +4203,7 @@ if (!Math.log10) {
 	}
 
 	function bindClasses(node, bind, unbind, get, unobservers) {
-		var classes = dom.getClass(node);
+		var classes = dom.attribute('class', node);
 
 		// If there are no classes, go no further
 		if (!classes) { return; }
@@ -4578,7 +4220,7 @@ if (!Math.log10) {
 		if (!tags.length) { return; }
 
 		// Now that we extracted the tags, overwrite the class with remaining text
-		dom.setClass(node, text);
+		node.setAttribute('class', text);
 
 		// Create an update function for keeping sparky's classes up-to-date
 		var classList = dom.classes(node);
@@ -4865,12 +4507,12 @@ if (!Math.log10) {
 			// We have to wait, though. It's not clear why. This makes it async,
 			// but let's not worry too much about that.
 			Fn.requestTick(function() {
-				Sparky.dom.trigger(node, 'valuechange');
+				dom.trigger('valuechange', node);
 				node.disabled = true;
 			});
 		}
 		else {
-			Sparky.dom.trigger(node, 'valuechange');
+			dom.trigger('valuechange', node);
 		}
 	}
 
@@ -4915,7 +4557,7 @@ if (!Math.log10) {
 						
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
-						if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+						if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
@@ -4934,7 +4576,7 @@ if (!Math.log10) {
 
 				// Avoid sending to selects, as we do not rely on Bolt
 				// for setting state on select labels anymore...
-				if (Sparky.dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+				if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -5071,7 +4713,7 @@ if (!Math.log10) {
 		}
 	});
 
-	changeTags(/\{{2,3}/, /\}{2,3}/);
+	changeTags(/\{\[{1,2}/, /\]{1,2}\}/);
 
 
 	// Export
@@ -5143,8 +4785,8 @@ if (!Math.log10) {
 	"use strict";
 
 	var assign = Object.assign;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var dom    = Sparky.dom;
 
 	assign(Sparky.fn, {
 		"remove-hidden": function(node, scopes) {
@@ -5315,8 +4957,8 @@ if (!Math.log10) {
 	"use strict";
 
 	var Fn     = window.Fn;
+	var dom    = window.dom;
 	var Sparky = window.Sparky;
-	var DOM    = Sparky.dom;
 
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
@@ -5324,12 +4966,12 @@ if (!Math.log10) {
 	var destroyDelay = 8000;
 
 	function createPlaceholder(node) {
-		if (!Sparky.debug) { return DOM.create('text', ''); }
+		if (!Sparky.debug) { return dom.create('text', ''); }
 
 		var attrScope = node.getAttribute('data-scope');
 		var attrCtrl = node.getAttribute('data-fn');
 
-		return DOM.create('comment',
+		return dom.create('comment',
 			(attrScope ? ' data-scope="' + attrScope + '"' : '') +
 			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
 	}
@@ -5371,7 +5013,7 @@ if (!Math.log10) {
 
 				if (i === -1) {
 					rejects.set(object, sparkies[l]);
-					DOM.remove(sparkies[l][0]);
+					dom.remove(sparkies[l][0]);
 					scheduled.push(object);
 				}
 				else {
@@ -5416,12 +5058,12 @@ if (!Math.log10) {
 
 				// If node before placeholder is a leftover reject
 				if (placeholder.previousSibling === sparkies[n][0]) {
-					Sparky.log('    ...already in DOM position', sparkies[n][0]);
+					Sparky.log('    ...already in dom position', sparkies[n][0]);
 					continue;
 				}
 
-				// We are in an animation frame. Go ahead and manipulate the DOM.
-				DOM.before(placeholder, sparkies[n][0]);
+				// We are in an animation frame. Go ahead and manipulate the dom.
+				dom.before(placeholder, sparkies[n][0]);
 			}
 
 			Sparky.log(
@@ -5480,8 +5122,8 @@ if (!Math.log10) {
 		clone.removeAttribute('data-fn');
 
 		// Put the placeholder in place and remove the node
-		DOM.before(node, placeholder);
-		DOM.remove(node);
+		dom.before(node, placeholder);
+		dom.remove(node);
 
 		scopes
 		.dedup()
