@@ -1,6 +1,8 @@
 (function(window) {
-	var dom    = window.dom;
-	var Sparky = window.Sparky;
+	var Fn         = window.Fn;
+	var dom        = window.dom;
+	var Collection = window.Collection;
+	var Sparky     = window.Sparky;
 
 	function wrap(i, min, max) {
 		return i < min ? max - (min - i) :

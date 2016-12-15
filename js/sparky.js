@@ -545,6 +545,8 @@
 
 	// Export
 
+	var fragments = {};
+
 	assign(Sparky, {
 		debug: false,
 		log: log,
@@ -570,14 +572,13 @@
 		fn:   {},
 
 		template: function(id, node) {
-			// Todo: Store node in a cache. This used to responsibility of
-			// dom.js. No more.
 			if (node) {
 				console.warn('Cant cache Sparky.template(id, node)')
 				return;
 			}
 
-			return dom.fragmentFromId(id);
+			var fragment = fragments[id] || (fragments[id] = dom.fragmentFromId(id));
+			return fragment.cloneNode(true);
 		}
 	});
 
