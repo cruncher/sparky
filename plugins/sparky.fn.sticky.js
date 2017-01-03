@@ -10,10 +10,10 @@
 	var breakpoint = window.breakpoint;
 
 	Sparky.fn['sticky'] = function stickToTop(node, scopes) {
-		var value = node.getAttribute('data-sticky');
+		var value = dom.attribute('data-sticky', node);
 
 		scopes.tap(function() {
-			var top = jQuery(node).offset().top;
+			var top = dom.offset(node)[1];
 			var gap = dom.valueToPx(value);
 			var fixed;
 
@@ -23,13 +23,13 @@
 				fixed = node.cloneNode(true);
 				var fixedThs  = dom.query('th', fixed);
 
-				jQuery('th', node).each(function(i, th) {
-					fixedThs[i].style.width = dom.style('width', th);
+				// Make sure table header cells retain their correct width
+				dom.query('th', node).forEach(function(th, i) {
+					fixedThs[i].style.width = dom.style('width', th) + 'px';
 				});
 
 				dom.classes(fixed).add('fixed');
-				dom.append(node.parentNode, fixed);
-
+				dom.after(node, fixed);
 			}, function exit() {
 				if (fixed) { dom.remove(fixed); }
 			});
