@@ -434,23 +434,34 @@
 		//timeuntil
 		//title
 
-		trans: function(value) {
-			var translations = Sparky.data.translations;
+		trans: (function() {
+			var warned = {};
 
-			if (!translations) {
-				console.warn('Sparky: You need to provide Sparky.data.translations');
-				return value;
-			}
-
-			var text = translations[value] ;
-
-			if (!text) {
-				console.warn('procsea: You need to provide a translation for "' + value + '"');
-				return value;
-			}
-
-			return text ;
-		},
+			return function(value) {
+				var translations = Sparky.data.translations;
+	
+				if (!translations) {
+					if (!warned.missingTranslations) {
+						console.warn('Sparky: Missing lookup object Sparky.data.translations');
+						warned.missingTranslations = true;
+					}
+					return value;
+				}
+	
+				var text = translations[value] ;
+	
+				if (!text) {
+					if (!warned[value]) {
+						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
+						warned[value] = true;
+					}
+	
+					return value;
+				}
+	
+				return text ;
+			};
+		})(),
 
 		truncatechars: function(value, n) {
 			return value.length > n ?
