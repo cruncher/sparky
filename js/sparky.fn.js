@@ -48,7 +48,7 @@
 	var Sparky = window.Sparky;
 
 	assign(Sparky.fn, {
-		"remove-hidden": function(node, scopes) {
+		"show-on-scope": function(node, scopes) {
 			scopes.tap(function() {
 				window.requestAnimationFrame(function() {
 					dom.classes(node).remove('hidden');
