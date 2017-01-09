@@ -339,6 +339,7 @@
 			return v;
 		}, function push() {
 			value = arguments[arguments.length - 1];
+			this.notify('push');
 		})
 		.dedup();
 
