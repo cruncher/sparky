@@ -129,6 +129,10 @@
 			};
 		})(settings),
 
+		formattime: function(value, format, lang) {
+			return Time(value).render(format, lang);
+		},
+
 		date: (function(settings) {
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
