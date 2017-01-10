@@ -51,7 +51,7 @@
 		"show-on-scope": function(node, scopes) {
 			scopes.tap(function() {
 				window.requestAnimationFrame(function() {
-					dom.classes(node).remove('hidden');
+					dom.classes(node).remove('sparky-hidden');
 				});
 			});
 		}
