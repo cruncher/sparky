@@ -14,7 +14,7 @@
 
 		scopes.tap(function() {
 			var top = dom.offset(node)[1];
-			var gap = dom.valueToPx(value);
+			var gap = dom.toPx(value);
 			var fixed;
 
 			breakpoint({
