@@ -89,7 +89,9 @@
 		}
 
 		if (!node) {
-			throw new Error('Sparky: node cannot be found during setup: ' + selector);
+			console.warn('Sparky: node cannot be found during setup: ' + selector);
+			return;
+			//throw new Error('Sparky: node cannot be found during setup: ' + selector);
 		}
 
 		return node;
