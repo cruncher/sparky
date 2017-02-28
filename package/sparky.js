@@ -3019,16 +3019,26 @@ if (!Math.log10) {
 			document.querySelector(selector) :
 			selector ;
 
-		if (!node) {
-			console.warn('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
-			return;
-			//throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+		var tag;
+
+		if (node) {
+			tag = dom.tag(node);
+
+			// If node is a template use a fragment copy of it's content
+			return (tag === 'template' || tag === 'script') ?
+				Sparky.template(node.id) :
+				node ;
 		}
 
-		// If node is a template use a copy of it's content.
-		var tag = dom.tag(node);
-		if (tag === 'template' || tag === 'script') {
-			node = Sparky.template(node.id);
+		if (/^#/.test(selector)) {
+			// Get template from id '#id'
+			node = Sparky.template(selector.slice(1));
+		}
+
+		if (!node) {
+			console.warn('Sparky: node cannot be found during setup: ' + selector);
+			return;
+			//throw new Error('Sparky: node cannot be found during setup: ' + selector);
 		}
 
 		return node;
@@ -3286,6 +3296,7 @@ if (!Math.log10) {
 			return v;
 		}, function push() {
 			value = arguments[arguments.length - 1];
+			this.notify('push');
 		})
 		.dedup();
 
@@ -3518,12 +3529,7 @@ if (!Math.log10) {
 		data: {},
 		fn:   {},
 
-		template: function(id, node) {
-			if (node) {
-				console.warn('Cant cache Sparky.template(id, node)')
-				return;
-			}
-
+		template: function(id) {
 			var fragment = fragments[id] || (fragments[id] = dom.fragmentFromId(id));
 			return fragment.cloneNode(true);
 		}
@@ -4264,9 +4270,15 @@ if (!Math.log10) {
 	}
 
 	function bindBooleanAttribute(node, attribute, bind, unbind, get, unobservers) {
-		// Look for data- aliased attributes before attributes. This is
-		// particularly important for the style attribute in IE, as it does not
-		// return invalid CSS text content, so Sparky can't read tags in it.
+		// Look for data-attributes before attributes.
+		//
+		// In IE, the style attribute does not return invalid CSS text content,
+		// so Sparky can't read tags in it.
+		//
+		// In FF, the disabled attribute is set to the previous value that the
+		// element had when the page is refreshed, so it contains no sparky
+		// tags. The proper way to address this problem is to set
+		// autocomplete="off" on the parent form or on the field.
 		var alias = node.getAttribute('data-' + attribute) ;
 
 		// SVG has case sensitive attributes.
@@ -4497,24 +4509,24 @@ if (!Math.log10) {
 			undefined ;
 	}
 
-	function dispatchInputChangeEvent(node) {
-		// FireFox won't dispatch any events on disabled inputs so we need to do
-		// a little dance, enabling it quickly, sending the event and disabling
-		// it again.
-		if (!dom.features.inputEventsOnDisabled && node.disabled) {
-			node.disabled = false;
-
-			// We have to wait, though. It's not clear why. This makes it async,
-			// but let's not worry too much about that.
-			Fn.requestTick(function() {
-				dom.trigger('valuechange', node);
-				node.disabled = true;
-			});
-		}
-		else {
-			dom.trigger('valuechange', node);
-		}
-	}
+	//function dispatchInputChangeEvent(node) {
+	//	// FireFox won't dispatch any events on disabled inputs so we need to do
+	//	// a little dance, enabling it quickly, sending the event and disabling
+	//	// it again.
+	//	if (!dom.features.inputEventsOnDisabled && node.disabled) {
+	//		node.disabled = false;
+	//
+	//		// We have to wait, though. It's not clear why. This makes it async,
+	//		// but let's not worry too much about that.
+	//		Fn.requestTick(function() {
+	//			dom.trigger('valuechange', node);
+	//			node.disabled = true;
+	//		});
+	//	}
+	//	else {
+	//		dom.trigger('valuechange', node);
+	//	}
+	//}
 
 	function makeUpdateInput(node, get, set, path, fn) {
 		var type = node.type;
@@ -4531,20 +4543,22 @@ if (!Math.log10) {
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will
 						// be called and the scope updated from the default value.
-						dispatchInputChangeEvent(node);
+						//dispatchInputChangeEvent(node);
 						return;
 					}
 				}
 
-				checked = node.value === value;
+				// Wait for attributes to potentially update
+				requestAnimationFrame(function() {
+					checked = node.value === value;
 
-				// Don't set checked state if it already has that state, and
-				// certainly don't simulate a change event.
-				if (node.checked === checked) { return; }
-
-				node.checked = checked;
-				dispatchInputChangeEvent(node);
+					// Don't set checked state if it already has that state.
+					if (node.checked === checked) { return; }
+					node.checked = checked;
+					//dispatchInputChangeEvent(node);
+				});
 			} :
+
 			function updateValue() {
 				var value = fn(get(path));
 
@@ -4557,26 +4571,29 @@ if (!Math.log10) {
 						
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
-						if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+						//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
 
-				if (typeof value === 'string') {
-					// Check against the current value - resetting the same
-					// string causes the cursor to jump in inputs, and we dont
-					// want to send a change event where nothing changed.
-					if (node.value === value) { return; }
-					node.value = value;
-				}
-				else {
-					// Be strict about setting strings on inputs
-					node.value = '';
-				}
+				// Wait for attributes and select children to potentially update
+				requestAnimationFrame(function() {
+					if (typeof value === 'string') {
+						// Check against the current value - resetting the same
+						// string causes the cursor to jump in inputs, and we dont
+						// want to send a change event where nothing changed.
+						if (node.value === value) { return; }
+						node.value = value;
+					}
+					else {
+						// Be strict about setting strings on inputs
+						node.value = '';
+					}
+				});
 
 				// Avoid sending to selects, as we do not rely on Bolt
 				// for setting state on select labels anymore...
-				if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+				//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -4609,9 +4626,7 @@ if (!Math.log10) {
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(get(path))) {
-				change();
-			}
+			if (!isDefined(get(path))) { change(); }
 		});
 
 		bind(path, update);
@@ -4789,10 +4804,10 @@ if (!Math.log10) {
 	var Sparky = window.Sparky;
 
 	assign(Sparky.fn, {
-		"remove-hidden": function(node, scopes) {
+		"show-on-scope": function(node, scopes) {
 			scopes.tap(function() {
 				window.requestAnimationFrame(function() {
-					dom.classes(node).remove('hidden');
+					dom.classes(node).remove('sparky-hidden');
 				});
 			});
 		}
@@ -5536,6 +5551,10 @@ if (!Math.log10) {
 			};
 		})(settings),
 
+		formattime: function(value, format, lang) {
+			return Time(value).render(format, lang);
+		},
+
 		date: (function(settings) {
 			var formatters = {
 				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
@@ -5841,23 +5860,34 @@ if (!Math.log10) {
 		//timeuntil
 		//title
 
-		trans: function(value) {
-			var translations = Sparky.data.translations;
+		trans: (function() {
+			var warned = {};
 
-			if (!translations) {
-				console.warn('Sparky: You need to provide Sparky.data.translations');
-				return value;
-			}
-
-			var text = translations[value] ;
-
-			if (!text) {
-				console.warn('procsea: You need to provide a translation for "' + value + '"');
-				return value;
-			}
-
-			return text ;
-		},
+			return function(value) {
+				var translations = Sparky.data.translations;
+	
+				if (!translations) {
+					if (!warned.missingTranslations) {
+						console.warn('Sparky: Missing lookup object Sparky.data.translations');
+						warned.missingTranslations = true;
+					}
+					return value;
+				}
+	
+				var text = translations[value] ;
+	
+				if (!text) {
+					if (!warned[value]) {
+						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
+						warned[value] = true;
+					}
+	
+					return value;
+				}
+	
+				return text ;
+			};
+		})(),
 
 		truncatechars: function(value, n) {
 			return value.length > n ?
