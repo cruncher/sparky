@@ -72,16 +72,26 @@
 			document.querySelector(selector) :
 			selector ;
 
-		if (!node) {
-			console.warn('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
-			return;
-			//throw new Error('Sparky: node cannot be found on Sparky(node) setup: ' + selector);
+		var tag;
+
+		if (node) {
+			tag = dom.tag(node);
+
+			// If node is a template use a fragment copy of it's content
+			return (tag === 'template' || tag === 'script') ?
+				Sparky.template(node.id) :
+				node ;
 		}
 
-		// If node is a template use a copy of it's content.
-		var tag = dom.tag(node);
-		if (tag === 'template' || tag === 'script') {
-			node = Sparky.template(node.id);
+		if (/^#/.test(selector)) {
+			// Get template from id '#id'
+			node = Sparky.template(selector.slice(1));
+		}
+
+		if (!node) {
+			console.warn('Sparky: node cannot be found during setup: ' + selector);
+			return;
+			//throw new Error('Sparky: node cannot be found during setup: ' + selector);
 		}
 
 		return node;
@@ -572,12 +582,7 @@
 		data: {},
 		fn:   {},
 
-		template: function(id, node) {
-			if (node) {
-				console.warn('Cant cache Sparky.template(id, node)')
-				return;
-			}
-
+		template: function(id) {
 			var fragment = fragments[id] || (fragments[id] = dom.fragmentFromId(id));
 			return fragment.cloneNode(true);
 		}
