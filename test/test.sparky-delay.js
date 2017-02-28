@@ -36,7 +36,7 @@ module('Child sparky', function(test) {
 }, function() {/*
 
 <div data-scope="dummy">
-	<a data-scope="model.object.thing" href="#{{blah}}">{{property}}</a>
+	<a data-scope="model.object.thing" href="#{[blah]}">{[property]}</a>
 </div>
 
 */});
@@ -89,7 +89,7 @@ module('Child sparky', function(test) {
 //}, function() {/*
 //
 //<div data-scope="dummy">
-//	<a data-scope="model.object.thing" href="#{{blah}}">{{property}}</a>
+//	<a data-scope="model.object.thing" href="#{[blah]}">{[property]}</a>
 //</div>
 //
 //*/});

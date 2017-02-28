@@ -651,14 +651,12 @@
 				}
 
 				// Wait for attributes to potentially update
-				requestAnimationFrame(function() {
-					checked = node.value === value;
+				checked = node.value === value;
 
-					// Don't set checked state if it already has that state.
-					if (node.checked === checked) { return; }
-					node.checked = checked;
-					//dispatchInputChangeEvent(node);
-				});
+				// Don't set checked state if it already has that state.
+				if (node.checked === checked) { return; }
+				node.checked = checked;
+				//dispatchInputChangeEvent(node);
 			} :
 
 			function updateValue() {
@@ -679,16 +677,28 @@
 				}
 
 				// Wait for attributes and select children to potentially update
-				requestAnimationFrame(function() {
+				if (typeof value === 'string') {
+					// Check against the current value - resetting the same
+					// string causes the cursor to jump in inputs, and we dont
+					// want to send a change event where nothing changed.
+					if (node.value === value) { return; }
+					node.value = value;
+				}
+				else {
+					// Be strict about setting strings on inputs
+					node.value = '';
+				}
+
+				// Hackaround for Procsea: selects are being repopulated after
+				// their value changes, so do everything we just did AGAIN. We
+				// MUST sort out the order of child DOM render value change
+				// stuff.
+				Fn.requestTick(function() {
 					if (typeof value === 'string') {
-						// Check against the current value - resetting the same
-						// string causes the cursor to jump in inputs, and we dont
-						// want to send a change event where nothing changed.
 						if (node.value === value) { return; }
 						node.value = value;
 					}
 					else {
-						// Be strict about setting strings on inputs
 						node.value = '';
 					}
 				});

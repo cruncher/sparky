@@ -54,7 +54,7 @@ module('Multiple controllers', function(test) {
 }, function() {/*
 
 <div data-scope="model">
-	<p data-fn="ctrl-1 ctrl-2 ctrl-3">{{property}}</p>
+	<p data-fn="ctrl-1 ctrl-2 ctrl-3">{[property]}</p>
 </div>
 
 */});

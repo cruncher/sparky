@@ -10,7 +10,7 @@ module('Template', function(test) {
 		done();
 	});
 }, function() {/*
-	<template id="test-template">{{property}}</template>
+	<template id="test-template">{[property]}</template>
 */});
 
 module('Test template...', function(test) {
@@ -40,7 +40,7 @@ module('Test template...', function(test) {
 }, function() {/*
 
 <template id="bartholemew">
-	<a class="{{ alex }}" href="#">{{ mary }}</a>
+	<a class="{[ alex ]}" href="#">{[ mary ]}</a>
 </template>
 
 <div data-template="bartholemew" id="thomas">
@@ -76,7 +76,7 @@ module('Test template...', function(test) {
 }, function() {/*
 
 <template id="bartholemew">
-	<a class="{{ alex }}" href="#">{{ mary }}</a>
+	<a class="{[ alex ]}" href="#">{[ mary ]}</a>
 </template>
 
 <div id="thomas">

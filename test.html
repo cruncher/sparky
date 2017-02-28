@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="author" content="" />
+	<meta name="description" content="" />
+
+	<title>Sparky</title>
+
+	<script>document.documentElement.className = 'js loading';</script>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+	<!-- Force latest IE rendering engine & Chrome Frame -->
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<!-- Make IE recognise HTML5 elements for styling -->
+	<!--[if lte IE 8]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<noscript>
+		<strong>Warning!</strong>
+		Your browser does not support HTML5 so some elements on this page are simulated using JScript. Unfortunately your browser has JScript disabled. Please enable it in order to display this page.
+	</noscript>
+	<![endif]-->
+
+	<link rel="icon" type="image/png" href="images/favicon.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+	<link rel="stylesheet" href="/bolt/package/css/bolt-0.9.8.css" />
+	<link rel="stylesheet" href="css/grid.css" />
+
+	<style></style>
+</head>
+
+<body data-fn="test-scope">
+	<p>{[name]}</p>
+
+	<script src="modules/fn/polyfills/array.find.js"></script>
+	<script src="modules/fn/polyfills/array.from.js"></script>
+	<script src="modules/fn/polyfills/array.of.js"></script>
+	<script src="modules/fn/polyfills/number.isnan.js"></script>
+	<script src="modules/fn/polyfills/math.log10.js"></script>
+	<script src="modules/fn/polyfills/symbol.js"></script>
+	<script src="modules/fn/polyfills/promise.js"></script>
+	<script src="modules/fn/polyfills/window.requestanimationframe.js"></script>
+	<script src="modules/dom/polyfills/window.customevent.js"></script>
+	<script src="modules/polyfills/window.performance.js"></script>
+	<script src="modules/polyfills/window.console.group.js"></script>
+
+	<script src="modules/fn/js/fn.js"></script>
+	<script src="modules/fn/js/fn.observe.js"></script>
+	<script src="modules/fn/js/events.js"></script>
+
+	<script src="modules/dom/js/dom.js"></script>
+
+	<script src="modules/collection/js/observe.js"></script>
+	<script src="modules/collection/js/collection.js"></script>
+	<script src="js/sparky.js"></script>
+	<script src="js/sparky.observe.js"></script>
+	<script src="js/sparky.render.js"></script>
+	<script src="js/sparky.parse.js"></script>
+	<script src="js/sparky.fn.js"></script>
+	<script src="js/sparky.fn.each.js"></script>
+	<script src="js/sparky.fn.value.js"></script>
+	<script src="js/sparky.filters.js"></script>
+
+	<script>
+		var scope = {
+			name: 'stephband'
+		};
+	
+		Sparky.fn['test-scope'] = function(node, scopes) {
+			return Fn.of(scope);
+		};
+	
+		Sparky(document.body);
+	</script>
+</body>
+</html>

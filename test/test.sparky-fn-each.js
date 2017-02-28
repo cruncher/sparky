@@ -24,7 +24,7 @@ module('Sparky:collections', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+	<li class="li-{[property]}" data-scope="{[collection]}" data-fn="each">{[property]}</li>
 </ul>
 
 */});
@@ -56,7 +56,7 @@ module('Sparky:collections', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+	<li class="li-{[property]}" data-scope="{[collection]}" data-fn="each">{[property]}</li>
 </ul>
 
 */});
@@ -88,7 +88,7 @@ module('Sparky:collections', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+	<li class="li-{[property]}" data-scope="{[collection]}" data-fn="each">{[property]}</li>
 </ul>
 
 */});
@@ -123,7 +123,7 @@ module('Sparky:collections', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+	<li class="li-{[property]}" data-scope="{[collection]}" data-fn="each">{[property]}</li>
 </ul>
 
 */});
@@ -176,7 +176,7 @@ module('Sparky:collections', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li class="li-{{property}}" data-scope="{{collection}}" data-fn="each">{{property}}</li>
+	<li class="li-{[property]}" data-scope="{[collection]}" data-fn="each">{[property]}</li>
 </ul>
 
 */});
@@ -217,7 +217,7 @@ module('Sparky.fn.each scope replacement', function(test) {
 }, function() {/*
 
 <ul data-fn="test-ctrl">
-	<li data-scope="{{collection}}" data-fn="each" class="li-{{property}}">{{property}}</li>
+	<li data-scope="{[collection]}" data-fn="each" class="li-{[property]}">{[property]}</li>
 </ul>
 
 */});

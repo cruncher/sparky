@@ -32,7 +32,7 @@ module('Test Sparky events... 1', function(test) {
 }, function() {/*
 
 <div class="node-1" data-fn="fn-1">
-	<div class="node-2" data-fn="fn-2">{{property}}</div>
+	<div class="node-2" data-fn="fn-2">{[property]}</div>
 </div>
 
 */});
@@ -74,7 +74,7 @@ module('Test Sparky events... 1', function(test) {
 //}, function() {/*
 //
 //<div class="node-1" data-fn="fn-1">
-//	<div class="node-2" data-fn="fn-2">{{property}}</div>
+//	<div class="node-2" data-fn="fn-2">{[property]}</div>
 //</div>
 //
 //*/});
@@ -119,7 +119,7 @@ module('Test Sparky events... 2', function(test) {
 }, function() {/*
 
 <div class="node-1" data-fn="fn-1">
-	<div class="node-2" data-fn="fn-2">{{property}}</div>
+	<div class="node-2" data-fn="fn-2">{[property]}</div>
 </div>
 
 */});
