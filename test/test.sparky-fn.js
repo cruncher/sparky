@@ -1,7 +1,7 @@
-module('Multiple controllers', function(fixture) {
+module('Multiple controllers', function(test) {
 	console.log('Test ctrls...');
 
-	asyncTest('Sparky should handle multiple controllers', function() {
+	test('Sparky should handle multiple controllers', function(assert, done, fixture) {
 		Sparky.data.model = { n: 0 };
 
 		var sparky;
@@ -12,34 +12,34 @@ module('Multiple controllers', function(fixture) {
 		var object2 = { property: 'value-2' };
 		var object3 = { property: 'value-3' };
 
-		expect(9);
+		assert.expect(9);
 
 		Sparky.fn['ctrl-1'] = function(node, scopes) {
 			sparky = this;
-			ok(node === p, 'Function should be called with node');
+			assert.ok(node === p, 'Function should be called with node');
 
 			return scopes.map(function(scope) {
-				ok(scope === Sparky.data.model, scope);
+				assert.ok(scope === Sparky.data.model, scope);
 				return object1;
 			});
 		};
 
 		Sparky.fn['ctrl-2'] = function(node, scopes) {
-			ok(this === sparky, 'Functions should share sparky *this* context.');
-			ok(Sparky.data.isPrototypeOf(this.data), 'data should inherit from Sparky.data');
-			ok(Sparky.fn.isPrototypeOf(this.fn), 'fn should inherit from Sparky.fn');
+			assert.ok(this === sparky, 'Functions should share sparky *this* context.');
+			assert.ok(Sparky.data.isPrototypeOf(this.data), 'data should inherit from Sparky.data');
+			assert.ok(Sparky.fn.isPrototypeOf(this.fn), 'fn should inherit from Sparky.fn');
 
 			return scopes.map(function(scope) {
-				ok(scope === object1, scope);
+				assert.ok(scope === object1, scope);
 				return object2;
 			});
 		};
 
 		Sparky.fn['ctrl-3'] = function(node, scopes) {
-			ok(this === sparky, 'Functions should share sparky *this* context.');
+			assert.ok(this === sparky, 'Functions should share sparky *this* context.');
 
 			return scopes.map(function(scope) {
-				ok(scope === object2, scope);
+				assert.ok(scope === object2, scope);
 				return object3;
 			});
 		};
@@ -47,8 +47,8 @@ module('Multiple controllers', function(fixture) {
 		Sparky(fixture);
 
 		window.requestAnimationFrame(function() {
-			ok(p.innerHTML === 'value-3');
-			QUnit.start();
+			assert.ok(p.innerHTML === 'value-3');
+			done();
 		});
 	});
 }, function() {/*

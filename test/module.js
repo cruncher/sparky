@@ -1,5 +1,4 @@
 var module = (function(QUnit) {
-	var fixture = document.createElement('div');
 	var rcomment = /\s*\/\*([\s\S]*)\*\/\s*/;
 
 	function multiline(fn) {
@@ -9,16 +8,25 @@ var module = (function(QUnit) {
 		return match[1];
 	}
 
-	fixture.id = 'qunit-fixture';
-	document.body.appendChild(fixture);
+	function getFixture() {
+		return document.getElementById('qunit-fixture');
+	}
 
 	return function module(name, fn1, fn2) {
 		QUnit.module(name, {
-			setup: function() {
-				if (fn2) { fixture.innerHTML = multiline(fn2); }
+			beforeEach: function() {
+				if (fn2) { getFixture().innerHTML = multiline(fn2); }
 			}
 		});
 
-		if (fn1) { fn1(fixture); }
+		if (fn1) {
+			fn1(function test(name, fn) {
+				QUnit.test(name, function(assert) {
+					var done = assert.async();
+					var fixture = getFixture();
+					fn(assert, done, fixture);
+				});
+			});
+		}
 	}
 })(QUnit);

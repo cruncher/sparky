@@ -1,20 +1,22 @@
 
-module('Template', function(fixture) {
-	test('Sparky.template() clones templates to documentFragments', function() {
+module('Template', function(test) {
+	test('Sparky.template() clones templates to documentFragments', function(assert, done, fixture) {
 		var result = Sparky.template('test-template');
 
-		ok(result);
-		ok(result !== fixture.querySelectorAll('template'));
-		ok(result.nodeType === 11);
+		assert.ok(result);
+		assert.ok(result !== fixture.querySelectorAll('template'));
+		assert.ok(result.nodeType === 11);
+		
+		done();
 	});
 }, function() {/*
 	<template id="test-template">{{property}}</template>
 */});
 
-module('Test template...', function(fixture) {
+module('Test template...', function(test) {
 	console.log('Test template replacement.');
 
-	asyncTest("Content should be replaced with content of template.", function() {
+	test("Content should be replaced with content of template.", function(assert, done, fixture) {
 		var node = fixture.querySelector('#thomas');
 		var scope = {
 			alex: 'Alex',
@@ -27,11 +29,11 @@ module('Test template...', function(fixture) {
 			var p = node.querySelectorAll('p');
 			var a = node.querySelectorAll('a');
 
-			ok(p.length === 0, 'Sparky should have taken the <p> out of #thomas. ' + node.innerHTML);
-			ok(a.length === 1, 'Sparky should have put an <a> in #thomas. ' + node.innerHTML);
+			assert.ok(p.length === 0, 'Sparky should have taken the <p> out of #thomas. ' + node.innerHTML);
+			assert.ok(a.length === 1, 'Sparky should have put an <a> in #thomas. ' + node.innerHTML);
 
 			window.requestAnimationFrame(function() {
-				QUnit.start();
+				done();
 			});
 		});
 	});
@@ -47,10 +49,10 @@ module('Test template...', function(fixture) {
 
 */});
 
-module('Test template...', function(fixture) {
+module('Test template...', function(test) {
 	console.log('Test template replacement.');
 
-	asyncTest("Content should be replaced with content of template.", function() {
+	test("Content should be replaced with content of template.", function(assert, done, fixture) {
 		var node = fixture.querySelector('#thomas');
 		var scope = {
 			alex: 'Alex',
@@ -63,11 +65,11 @@ module('Test template...', function(fixture) {
 			var p = node.querySelectorAll('p');
 			var a = node.querySelectorAll('a');
 
-			ok(p.length === 1, 'Sparky should have left the <p> in #thomas. ' + node.innerHTML);
-			ok(a.length === 1, 'Sparky should have put an <a> in the <p>. ' + node.innerHTML);
+			assert.ok(p.length === 1, 'Sparky should have left the <p> in #thomas. ' + node.innerHTML);
+			assert.ok(a.length === 1, 'Sparky should have put an <a> in the <p>. ' + node.innerHTML);
 
 			window.requestAnimationFrame(function() {
-				QUnit.start();
+				done();
 			});
 		});
 	});

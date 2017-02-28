@@ -1,8 +1,8 @@
-module('Sparky:collections', function(fixture) {
+module('Sparky:collections', function(test) {
 	console.log('Test Collection()...');
 
-	asyncTest('Sparky should bind to an empty collection by inserting no nodes.', function() {
-		expect(1);
+	test('Sparky should bind to an empty collection by inserting no nodes.', function(assert, done, fixture) {
+		assert.expect(1);
 
 		var collection = Collection([]);
 
@@ -17,8 +17,8 @@ module('Sparky:collections', function(fixture) {
 		Sparky(ul);
 
 		window.requestAnimationFrame(function() {
-			ok(ul.querySelectorAll('li').length === 0, 'All is well.');
-			QUnit.start();
+			assert.ok(ul.querySelectorAll('li').length === 0, 'All is well.');
+			done();
 		});
 	});
 }, function() {/*
@@ -29,9 +29,9 @@ module('Sparky:collections', function(fixture) {
 
 */});
 
-module('Sparky:collections', function(fixture) {
-	asyncTest('Initial length', function() {
-		expect(3);
+module('Sparky:collections', function(test) {
+	test('Initial length', function(assert, done, fixture) {
+		assert.expect(3);
 
 		var collection = Collection([{ property: 1 }, { property: 2 }]);
 
@@ -47,10 +47,10 @@ module('Sparky:collections', function(fixture) {
 
 		window.requestAnimationFrame(function() {
 			var lis = ul.querySelectorAll('li');
-			ok(lis.length === 2, 'Two <li>s expected in the DOM, actually ' + lis.length);
-			ok(lis[0] && lis[0].innerHTML === '1', "First li content from collection item should be '1', is '" + (lis[0] && lis[0].innerHTML) + "'");
-			ok(lis[1] && lis[1].innerHTML === '2', "Second li content from collection item should be '2', is '" + (lis[1] && lis[1].innerHTML) + "'");
-			QUnit.start();
+			assert.ok(lis.length === 2, 'Two <li>s expected in the DOM, actually ' + lis.length);
+			assert.ok(lis[0] && lis[0].innerHTML === '1', "First li content from collection item should be '1', is '" + (lis[0] && lis[0].innerHTML) + "'");
+			assert.ok(lis[1] && lis[1].innerHTML === '2', "Second li content from collection item should be '2', is '" + (lis[1] && lis[1].innerHTML) + "'");
+			done();
 		});
 	});
 }, function() {/*
@@ -61,9 +61,9 @@ module('Sparky:collections', function(fixture) {
 
 */});
 
-module('Sparky:collections', function(fixture) {
-	asyncTest("Two or three", function(assert) {
-		expect(2);
+module('Sparky:collections', function(test) {
+	test("Two or three", function(assert, done, fixture) {
+		assert.expect(2);
 
 		var collection = Collection([{ property: 1 }, { property: 2 }]);
 
@@ -75,13 +75,13 @@ module('Sparky:collections', function(fixture) {
 		Sparky(ul);
 
 		window.requestAnimationFrame(function functionName() {
-			ok(ul.querySelectorAll('li').length === 2, 'All is well.');
+			assert.ok(ul.querySelectorAll('li').length === 2, 'All is well.');
 
 			collection.push({ property: 3 });
 
 			window.requestAnimationFrame(function() {
-				ok(ul.querySelectorAll('li').length === 3, 'All is well.');
-				QUnit.start();
+				assert.ok(ul.querySelectorAll('li').length === 3, 'All is well.');
+				done();
 			});
 		});
 	});
@@ -93,9 +93,9 @@ module('Sparky:collections', function(fixture) {
 
 */});
 
-module('Sparky:collections', function(fixture) {
-	asyncTest("Zero to hero", function(assert) {
-		expect(2);
+module('Sparky:collections', function(test) {
+	test("Zero to hero", function(assert, done, fixture) {
+		assert.expect(2);
 
 		var collection = Collection();
 
@@ -109,14 +109,14 @@ module('Sparky:collections', function(fixture) {
 		var sparky = Sparky(ul);
 
 		window.requestAnimationFrame(function() {
-			ok(ul.querySelectorAll('li').length === 0, 'All is well.');
+			assert.ok(ul.querySelectorAll('li').length === 0, 'All is well.');
 
 			collection.push({ property: 1 });
 			collection.push({ property: 2 });
 
 			window.requestAnimationFrame(function() {
-				ok(ul.querySelectorAll('li').length === 2, 'All is well.');
-				QUnit.start();
+				assert.ok(ul.querySelectorAll('li').length === 2, 'All is well.');
+				done();
 			});
 		});
 	});
@@ -128,9 +128,9 @@ module('Sparky:collections', function(fixture) {
 
 */});
 
-module('Sparky:collections', function(fixture) {
-	asyncTest("Detach collection items", function(assert) {
-		expect(4);
+module('Sparky:collections', function(test) {
+	test("Detach collection items", function(assert, done, fixture) {
+		assert.expect(4);
 
 		var collection = Collection([{ property: 1 }, { property: 2 }]);
 
@@ -168,7 +168,7 @@ module('Sparky:collections', function(fixture) {
 					// a little later.
 
 					//assert.ok(li && li.innerHTML === '2', 'li content is still 2');
-					QUnit.start();
+					done();
 				});
 			});
 		});
@@ -182,16 +182,16 @@ module('Sparky:collections', function(fixture) {
 */});
 
 
-module('Sparky.fn.each scope replacement', function(fixture) {
-	asyncTest("Replace scope.collection", function(assert) {
-		expect(7);
+module('Sparky.fn.each scope replacement', function(test) {
+	test("Replace scope.collection", function(assert, done, fixture) {
+		assert.expect(7);
 
 		var collection1 = Collection([{ property: 1 }, { property: 2 }]);
 		var collection2 = Collection([{ property: 3 }, { property: 4 }, { property: 5 }]);
 		var scope = { collection: collection1 };
 
 		Sparky.fn['test-ctrl'] = function(node, model, sparky) {
-			return scope;
+			return Fn.of(scope);
 		};
 
 		var ul = fixture.querySelector('[data-fn="test-ctrl"]');
@@ -210,7 +210,7 @@ module('Sparky.fn.each scope replacement', function(fixture) {
 				assert.ok(lis[0].innerHTML === '3', '');
 				assert.ok(lis[1].innerHTML === '4', '');
 				assert.ok(lis[2].innerHTML === '5', '');
-				QUnit.start();
+				done();
 			});
 		});
 	});

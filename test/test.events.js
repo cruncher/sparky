@@ -1,6 +1,5 @@
-module('mixin.events', function(fixture) {
-	
-	test("events", function() {
+module('mixin.events', function(test) {
+	test("events", function(assert, done, fixture) {
 		var object = Object.create(mixin.events);
 		var n;
 		
@@ -8,13 +7,13 @@ module('mixin.events', function(fixture) {
 		.on('name', function() { n = 1; })
 		.trigger('name');
 		
-		ok(n === 1, 'Listeners are called.');
+		assert.ok(n === 1, 'Listeners are called.');
 
 		object
 		.on('name', function() { n = 2; })
 		.trigger('name');
 		
-		ok(n === 2, 'Listeners are called in bound order');
+		assert.ok(n === 2, 'Listeners are called in bound order');
 
 		function assign() { n = 3; }
 
@@ -23,21 +22,21 @@ module('mixin.events', function(fixture) {
 		.off('name', assign)
 		.trigger('name');
 
-		ok(n === 2, 'Listeners are unbound');
+		assert.ok(n === 2, 'Listeners are unbound');
 
 		object
 		.on('name', assign)
 		.off(assign)
 		.trigger('name');
 
-		ok(n === 2, 'Listeners are unbound by .off(fn)');
+		assert.ok(n === 2, 'Listeners are unbound by .off(fn)');
 
 		object
 		.on('name', assign)
 		.off('name other')
 		.trigger('name');
 
-		ok(n === 2, 'Listeners are unbound by .off(typesString)');
+		assert.ok(n === 2, 'Listeners are unbound by .off(typesString)');
 
 		object.off(assign);
 
@@ -50,20 +49,20 @@ module('mixin.events', function(fixture) {
 		.on('name', decrement)
 		.trigger('name');
 
-		ok(n === 7, 'Listeners unbound by .on(types, fn)');
+		assert.ok(n === 7, 'Listeners unbound by .on(types, fn)');
 	});
 
-	test("events callback arguments", function() {
+	test("events callback arguments", function(assert, done, fixture) {
 		var object = Object.create(mixin.events);
 		var n;
 
 		function callback($0, $1, $2, $3, $4) {
-			ok(this === object, 'Listeners are called with target as \'this\'');
-			ok($0 === object, 'Listeners are called with current object as first argument');
-			ok($1 === 1);
-			ok($2 === 2);
-			ok($3 === 3);
-			ok($4 === undefined, 'Listeners are given trailing arguments from .trigger(type, arg1, arg2,...) then .on(type, fn, arg3, arg4,...)');
+			assert.ok(this === object, 'Listeners are called with target as \'this\'');
+			assert.ok($0 === object, 'Listeners are called with current object as first argument');
+			assert.ok($1 === 1);
+			assert.ok($2 === 2);
+			assert.ok($3 === 3);
+			assert.ok($4 === undefined, 'Listeners are given trailing arguments from .trigger(type, arg1, arg2,...) then .on(type, fn, arg3, arg4,...)');
 		}
 
 		object
@@ -87,18 +86,18 @@ module('mixin.events', function(fixture) {
 		.trigger('other');
 	});
 
-	test("events.propagate()", function() {
+	test("events.propagate()", function(assert, done, fixture) {
 		var object1 = Object.create(mixin.events);
 		var object2 = Object.create(mixin.events);
 		var n;
 
 		function callback($0, $1, $2, $3, $4) {
-			ok(this === object2, 'Listeners are called with this object as \'this\'');
-			ok($0 === object1, 'Listeners are called with target as first argument');
-			ok($1 === 1);
-			ok($2 === 2);
-			ok($3 === 3);
-			ok($4 === undefined, 'Listeners are given trailing arguments from .trigger(type, arg1, arg2,...) then .on(type, fn, arg3, arg4,...)');
+			assert.ok(this === object2, 'Listeners are called with this object as \'this\'');
+			assert.ok($0 === object1, 'Listeners are called with target as first argument');
+			assert.ok($1 === 1);
+			assert.ok($2 === 2);
+			assert.ok($3 === 3);
+			assert.ok($4 === undefined, 'Listeners are given trailing arguments from .trigger(type, arg1, arg2,...) then .on(type, fn, arg3, arg4,...)');
 		}
 
 		object2.on('name', callback, 2, 3);

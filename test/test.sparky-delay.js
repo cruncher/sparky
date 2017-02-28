@@ -1,8 +1,8 @@
-module('Child sparky', function(fixture) {
+module('Child sparky', function(test) {
 	console.log('Test async models...');
 
-	asyncTest("Delayed models", function(assert) {
-		expect(2);
+	test("Delayed models", function(assert, done, fixture) {
+		assert.expect(2);
 
 		// Reset Sparky
 		Sparky.data = {
@@ -29,7 +29,7 @@ module('Child sparky', function(fixture) {
 
 			window.requestAnimationFrame(function() {
 				assert.ok(a.hash === '#7', "DOM href Should be updated on frame after property available: " + a.hash);
-				QUnit.start();
+				done();
 			});
 		}, 400);
 	});
@@ -46,7 +46,7 @@ module('Child sparky', function(fixture) {
 //
 // https://github.com/cruncher/sparky/issues/3
 
-//module('Child sparky', function(fixture) {
+//module('Child sparky', function(test) {
 //	console.log('Test async models...');
 //
 //	asyncTest("Delayed models", function(assert) {
@@ -82,7 +82,7 @@ module('Child sparky', function(fixture) {
 //
 //			window.requestAnimationFrame(function() {
 //				assert.ok(a.hash === '#7', "DOM href not updated on animation frame after property available: " + a.hash);
-//				QUnit.start();
+//				done();
 //			});
 //		}, 400);
 //	});

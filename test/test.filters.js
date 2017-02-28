@@ -1,7 +1,7 @@
-module('Sparky.filter', function(fixture) {
+module('Sparky.filter', function(test) {
 	var key, filter;
 	var expected = {
-		add: { '': undefined, '5.5, 3.5': 9},
+		add:     { '': undefined, '5.5, 3.5': 9},
 		slugify: { '': undefined, 'Pardon mE sir': 'pardon-me-sir' }
 	};
 
@@ -11,38 +11,44 @@ module('Sparky.filter', function(fixture) {
 		filter = Sparky.filter[key];
 
 		(function(key, result, expect) {
-			test("Sparky.filter." + key + "()", function() {
-				ok(result === expect, "Returns '" + result + "', expected '" + expect + "'");
+			test("Sparky.filter." + key + "()", function(assert, done, fixture) {
+				assert.ok(result === expect, "Returns '" + result + "', expected '" + expect + "'");
+				done();
 			});
 		})(key, filter(), expected[key]['']);
 	}
 
-	test("Sparky.filter.add", function() {
-		ok(Sparky.filter.add('5.5', 3.5) === 9);
+	test("Sparky.filter.add", function(assert, done, fixture) {
+		assert.ok(Sparky.filter.add('5.5', 3.5) === 9);
+		done();
 	});
 
-	test("Sparky.filter.slugify", function() {
-		ok(Sparky.filter.slugify('Pardon Me sir') === 'pardon-me-sir');
+	test("Sparky.filter.slugify", function(assert, done, fixture) {
+		assert.ok(Sparky.filter.slugify('Pardon Me sir') === 'pardon-me-sir');
+		done();
 	});
 
-	test("Sparky.filter.yesno", function() {
-		ok(Sparky.filter.yesno(true, '1', '2') === '1');
-		ok(Sparky.filter.yesno({}, '1', '2') === '1');
-		ok(Sparky.filter.yesno(false, '1', '2') === '2');
-		ok(Sparky.filter.yesno(undefined, '1', '2') === '2');
-		ok(Sparky.filter.yesno(null, '1', '2') === '2');
+	test("Sparky.filter.yesno", function(assert, done, fixture) {
+		assert.ok(Sparky.filter.yesno(true, '1', '2') === '1');
+		assert.ok(Sparky.filter.yesno({}, '1', '2') === '1');
+		assert.ok(Sparky.filter.yesno(false, '1', '2') === '2');
+		assert.ok(Sparky.filter.yesno(undefined, '1', '2') === '2');
+		assert.ok(Sparky.filter.yesno(null, '1', '2') === '2');
+		done();
 	});
 
-	test("Sparky.filter.prepad", function() {
-		ok(Sparky.filter.prepad('barf', '9') === '     barf');
+	test("Sparky.filter.prepad", function(assert, done, fixture) {
+		assert.ok(Sparky.filter.prepad('barf', '9') === '     barf');
 		// TODO: This is failing - FIX in filter fn!
 		//ok(Sparky.filter.prepad('barf', '2') === 'barf');
+		done();
 	});
 
-	test("Sparky.filter.postpad", function() {
-		ok(Sparky.filter.postpad('barf', '9') === 'barf     ');
-		ok(Sparky.filter.postpad('barf', '4') === 'barf');
-		ok(Sparky.filter.postpad('barf', '2') === 'ba');
+	test("Sparky.filter.postpad", function(assert, done, fixture) {
+		assert.ok(Sparky.filter.postpad('barf', '9') === 'barf     ');
+		assert.ok(Sparky.filter.postpad('barf', '4') === 'barf');
+		assert.ok(Sparky.filter.postpad('barf', '2') === 'ba');
+		done();
 	});
 });
 

@@ -1,16 +1,16 @@
-module('Sparky:templates 1', function(fixture) {
+
+module('Sparky:templates 1', function(test) {
 	console.log('Test <p data-template="id"> ...');
 
-	asyncTest('Sparky should replace contents of SVG <g data-template="id">', function() {
-		expect(2);
+	test('Sparky should replace contents of SVG <g data-template="id">', function(assert, done, fixture) {
+		assert.expect(2);
 
-		var div    = fixture.querySelector('#div');
 		var sparky = Sparky('#div', {});
 
 		window.requestAnimationFrame(function() {
-			ok(!fixture.querySelector('#div > p > span'), 'The <p> should not contain a <span>.');
-			ok(!!fixture.querySelector('#div > p > b'), 'The <p> should contain a <b>.');
-			QUnit.start();
+			assert.ok(!fixture.querySelector('#div > p > span'), 'The <p> should not contain a <span>.');
+			assert.ok(!!fixture.querySelector('#div > p > b'), 'The <p> should contain a <b>.');
+			done();
 		});
 	});
 }, function() {/*
@@ -27,19 +27,19 @@ module('Sparky:templates 1', function(fixture) {
 
 */});
 
-module('Sparky:templates 2', function(fixture) {
+module('Sparky:templates 2', function(test) {
 	console.log('Test <g data-template="id"> ...');
 
-	asyncTest('Sparky should replace contents of SVG <g data-template="id">', function() {
-		expect(2);
+	test('Sparky should replace contents of SVG <g data-template="id">', function(assert, done, fixture) {
+		assert.expect(2);
 
 		var svg    = fixture.querySelector('#svg');
 		var sparky = Sparky('#svg', {});
 
 		window.requestAnimationFrame(function() {
-			ok(!fixture.querySelector('#svg > g > circle'), 'The <g> should not contain a <circle>.');
-			ok(!!fixture.querySelector('#svg > g > rect'), 'The <g> should contain a <rect>.');
-			QUnit.start();
+			assert.ok(!fixture.querySelector('#svg > g > circle'), 'The <g> should not contain a <circle>.');
+			assert.ok(!!fixture.querySelector('#svg > g > rect'), 'The <g> should contain a <rect>.');
+			done();
 		});
 	});
 }, function() {/*
@@ -56,20 +56,20 @@ module('Sparky:templates 2', function(fixture) {
 
 */});
 
-module('Sparky:templates 3', function(fixture) {
+module('Sparky:templates 3', function(test) {
 	console.log('Test <g data-template="id"> ...');
 
-	Sparky.fn['do-something'] = function(node, scopes) {
-		ok(true, 'do-something should be called');
-	};
+	test('Sparky should run fns on top-level elements in templates', function(assert, done, fixture) {
+		assert.expect(2);
 
-	asyncTest('Sparky should run fns on top-level elements in templates', function() {
-		expect(2);
+		Sparky.fn['do-something'] = function(node, scopes) {
+			assert.ok(true, 'do-something should be called');
+		};
 
 		var sparky = Sparky('#test-template', {});
 
 		window.requestAnimationFrame(function() {
-			QUnit.start();
+			done();
 		});
 	});
 }, function() {/*
