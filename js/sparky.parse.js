@@ -689,19 +689,21 @@
 					node.value = '';
 				}
 
-				// Hackaround for Procsea: selects are being repopulated after
-				// their value changes, so do everything we just did AGAIN. We
-				// MUST sort out the order of child DOM render value change
-				// stuff.
-				Fn.requestTick(function() {
-					if (typeof value === 'string') {
-						if (node.value === value) { return; }
-						node.value = value;
-					}
-					else {
-						node.value = '';
-					}
-				});
+				// Todo: Hackaround for Procsea: selects are being repopulated
+				// after their value changes, so do everything we just did
+				// AGAIN. We MUST sort out the order of child DOM render value
+				// change stuff.
+				if (dom.tag(node) === "select") {
+					requestAnimationFrame(function() {
+						if (typeof value === 'string') {
+							if (node.value === value) { return; }
+							node.value = value;
+						}
+						else {
+							node.value = '';
+						}
+					});
+				}
 
 				// Avoid sending to selects, as we do not rely on Bolt
 				// for setting state on select labels anymore...
