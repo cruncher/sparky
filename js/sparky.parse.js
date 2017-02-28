@@ -605,24 +605,24 @@
 			undefined ;
 	}
 
-	function dispatchInputChangeEvent(node) {
-		// FireFox won't dispatch any events on disabled inputs so we need to do
-		// a little dance, enabling it quickly, sending the event and disabling
-		// it again.
-		if (!dom.features.inputEventsOnDisabled && node.disabled) {
-			node.disabled = false;
-
-			// We have to wait, though. It's not clear why. This makes it async,
-			// but let's not worry too much about that.
-			Fn.requestTick(function() {
-				dom.trigger('valuechange', node);
-				node.disabled = true;
-			});
-		}
-		else {
-			dom.trigger('valuechange', node);
-		}
-	}
+	//function dispatchInputChangeEvent(node) {
+	//	// FireFox won't dispatch any events on disabled inputs so we need to do
+	//	// a little dance, enabling it quickly, sending the event and disabling
+	//	// it again.
+	//	if (!dom.features.inputEventsOnDisabled && node.disabled) {
+	//		node.disabled = false;
+	//
+	//		// We have to wait, though. It's not clear why. This makes it async,
+	//		// but let's not worry too much about that.
+	//		Fn.requestTick(function() {
+	//			dom.trigger('valuechange', node);
+	//			node.disabled = true;
+	//		});
+	//	}
+	//	else {
+	//		dom.trigger('valuechange', node);
+	//	}
+	//}
 
 	function makeUpdateInput(node, get, set, path, fn) {
 		var type = node.type;
@@ -639,20 +639,22 @@
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will
 						// be called and the scope updated from the default value.
-						dispatchInputChangeEvent(node);
+						//dispatchInputChangeEvent(node);
 						return;
 					}
 				}
 
-				checked = node.value === value;
+				// Wait for attributes to potentially update
+				requestAnimationFrame(function() {
+					checked = node.value === value;
 
-				// Don't set checked state if it already has that state, and
-				// certainly don't simulate a change event.
-				if (node.checked === checked) { return; }
-
-				node.checked = checked;
-				dispatchInputChangeEvent(node);
+					// Don't set checked state if it already has that state.
+					if (node.checked === checked) { return; }
+					node.checked = checked;
+					//dispatchInputChangeEvent(node);
+				});
 			} :
+
 			function updateValue() {
 				var value = fn(get(path));
 
@@ -665,26 +667,29 @@
 						
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
-						if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+						//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 						return;
 					}
 				}
 
-				if (typeof value === 'string') {
-					// Check against the current value - resetting the same
-					// string causes the cursor to jump in inputs, and we dont
-					// want to send a change event where nothing changed.
-					if (node.value === value) { return; }
-					node.value = value;
-				}
-				else {
-					// Be strict about setting strings on inputs
-					node.value = '';
-				}
+				// Wait for attributes and select children to potentially update
+				requestAnimationFrame(function() {
+					if (typeof value === 'string') {
+						// Check against the current value - resetting the same
+						// string causes the cursor to jump in inputs, and we dont
+						// want to send a change event where nothing changed.
+						if (node.value === value) { return; }
+						node.value = value;
+					}
+					else {
+						// Be strict about setting strings on inputs
+						node.value = '';
+					}
+				});
 
 				// Avoid sending to selects, as we do not rely on Bolt
 				// for setting state on select labels anymore...
-				if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
+				//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
 			} ;
 	}
 
@@ -717,9 +722,7 @@
 			request = false;
 
 			// Where the model does not have value, set it from the node value.
-			if (!isDefined(get(path))) {
-				change();
-			}
+			if (!isDefined(get(path))) { change(); }
 		});
 
 		bind(path, update);
