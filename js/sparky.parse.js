@@ -372,9 +372,15 @@
 	}
 
 	function bindBooleanAttribute(node, attribute, bind, unbind, get, unobservers) {
-		// Look for data- aliased attributes before attributes. This is
-		// particularly important for the style attribute in IE, as it does not
-		// return invalid CSS text content, so Sparky can't read tags in it.
+		// Look for data-attributes before attributes.
+		//
+		// In IE, the style attribute does not return invalid CSS text content,
+		// so Sparky can't read tags in it.
+		//
+		// In FF, the disabled attribute is set to the previous value that the
+		// element had when the page is refreshed, so it contains no sparky
+		// tags. The proper way to address this problem is to set
+		// autocomplete="off" on the parent form or on the field.
 		var alias = node.getAttribute('data-' + attribute) ;
 
 		// SVG has case sensitive attributes.
