@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="author" content="@stephband" />
+	<meta name="description" content="" />
+	<meta name="viewport" content="width=device-width" />
+
+	<title>Sparky</title>
+
+	<script>document.documentElement.className = 'js loading';</script>
+
+	<link rel="icon" type="image/png" href="images/favicon.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+	<link rel="stylesheet" href="/bolt/package/css/bolt-0.9.8.css" />
+	<link rel="stylesheet" href="css/grid.css" />
+</head>
+
+<body data-fn="test-scope">
+	<select class="{[hello]}" id="test-select" name="name">
+		<option data-fn="each" id="test-option"></option>
+		<option value="{[key]}">{[value|multiply:7]}</option>
+		<option value="1">one</option>
+	</select>
+
+	<p>{[name]}</p>
+
+	<script src="modules/fn/polyfills/array.find.js"></script>
+	<script src="modules/fn/polyfills/array.from.js"></script>
+	<script src="modules/fn/polyfills/array.of.js"></script>
+	<script src="modules/fn/polyfills/number.isnan.js"></script>
+	<script src="modules/fn/polyfills/math.log10.js"></script>
+	<script src="modules/fn/polyfills/symbol.js"></script>
+	<script src="modules/fn/polyfills/promise.js"></script>
+	<script src="modules/fn/polyfills/window.requestanimationframe.js"></script>
+	<script src="modules/dom/polyfills/window.customevent.js"></script>
+	<script src="modules/polyfills/window.performance.js"></script>
+	<script src="modules/polyfills/window.console.group.js"></script>
+
+	<script src="modules/fn/js/fn.js"></script>
+	<script src="modules/fn/js/fn.observe.js"></script>
+	<script src="modules/fn/js/events.js"></script>
+
+	<script src="modules/dom/js/dom.js"></script>
+
+	<script src="modules/collection/js/observe.js"></script>
+	<script src="modules/collection/js/collection.js"></script>
+	<script src="js/sparky.js"></script>
+	<script src="js/sparky.observe.js"></script>
+	<script src="js/sparky.render.js"></script>
+	<script src="js/sparky.parse.js"></script>
+	<script src="js/sparky.fn.js"></script>
+	<script src="js/sparky.fn.each.js"></script>
+	<script src="js/sparky.fn.value.js"></script>
+	<script src="js/sparky.filters.js"></script>
+
+	<script>
+	var nothing = Fn.nothing;
+	var noop    = Fn.noop;
+	var curry   = Fn.curry;
+	var apply   = Fn.apply;
+	var get     = Fn.get;
+	var set     = Fn.set;
+	var each    = Fn.each;
+
+	// Matches a sparky template tag, capturing (path, filter)
+	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtags;
+
+	// Matches a simple sparky template tag, capturing (path)
+	var rsimpletagstemplate = /{{0}}\s*([\w\-\.\[\]]+)\s*{{1}}/g;
+	var rsimpletags;
+
+	// Matches tags plus any directly adjacent text
+	var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
+	var rclasstags;
+
+	// Matches filter string, capturing (filter name, filter parameter string)
+	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
+
+	// Matches anything with a space
+	var rspaces = /\s+/;
+
+	// Matches anything that contains a non-space character
+	var rtext = /\S/;
+
+	// Matches the arguments list in the result of a fn.toString()
+	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
+
+
+
+
+	var rpath   = /[\w\-\.]+/;
+	var rstring = /".*?"|'.*?'/;
+	var rnumber = /[+-]?(?:\d*\.)?\d+/;
+	var rbool   = /true|false/;
+
+
+	var rpathsplit = /["']?\](?:$|\.|\[["']?)|\[["']?/;
+	var rtoken = /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g;
+
+
+
+
+
+
+	var Stream = Fn.Stream;
+	var scopes = Stream.of({ name: [{a:1}, {a:2}, {a:3}] });
+	var scope = {
+		name: 'stephband'
+	};
+
+	var get    = Fn.get;
+	var invoke = Fn.invoke;
+
+	Sparky.fn['test-scope'] = function(node, scopes) {
+		return Fn.of(scope);
+	};
+
+	function sanitise(node) {
+		node.removeAttribute('id');
+		node.removeAttribute('data-fn');
+		node.removeAttribute('data-scope');
+	}
+
+	function replace(target, node) {
+		target = typeof target === 'function' ? target(node) : target ;
+		dom.before(target, node);
+		dom.remove(target);
+		return target;
+	}
+
+	function renderSelect(scopes) {
+		var node = dom.find('test-select');
+		var name = node.name;
+
+		scopes
+		.map(get(name))
+		.each(renderEach);
+	}
+
+	function renderEach(scopes) {
+		var node    = dom.find('test-option');
+		var comment = dom.create('comment', ' ' + dom.tag(node) + ' ');
+
+		dom.replace(node, comment);
+
+		Fn(scopes)
+		.map(function() { return node; })
+		.map(dom.clone)
+		.tap(sanitise)
+		.each(dom.before(comment));
+	}
+
+	//renderSelect(scopes);
+
+
+
+
+
+
+
+
+
+
+	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
+
+	var mountTypes = {
+		// element
+		1: function(node) {		
+			var structs = Fn(node.childNodes)
+			.chain(getStructs)
+			.concat(
+				parseClass(node),
+				parseAttribute('id', node),
+				parseAttribute('title', node),
+				parseAttribute('style', node),
+				mountTags[dom.tag(node)](node)
+			).toArray();
+console.log('parsed:', node, structs);
+			return structs;
+		},
+
+		// text
+		3: function(node) {
+			var structs = parse(node.nodeValue, set('nodeValue', node));
+			//console.log(node);
+			return structs;
+		},
+
+		// fragment
+		11: function(node) {
+			
+		}
+	};
+
+	var mountTags = {
+		label: function(node) {
+			return parseAttribute('for', node);
+		},
+
+		button: function(node) {
+			return parseBoolean('disabled', node);
+		},
+
+		input: function(node) {
+			var type = node.type;
+
+			return Fn.of(
+				parseAttributes(['value', 'min', 'max', 'step'], node),
+				parseBoolean('disabled', node),
+				parseBoolean('required', node),
+				parseAttribute('name', node)
+			).join();
+
+			//var unbindName = type === 'number' || type === 'range' ?
+			//	// Only let numbers set the value of number and range inputs
+			//	parseName(node, get, set, bind, unbind, floatToString, stringToFloat) :
+			//// Checkboxes default to value "on" when the value attribute
+			//// is not given. Make them behave as booleans.
+			//(type === 'checkbox' || type === 'radio') && !isDefined(node.getAttribute('value')) ?
+			//	parseName(node, get, set, bind, unbind, boolToStringOn, stringOnToBool) :
+			//	// Only let strings set the value of other inputs
+			//	parseName(node, get, set, bind, unbind, identity, identity) ;
+
+			//if (unbindName) { unobservers.push(unbindName); }
+			
+			//parseAttribute(node, 'name', bind, unbind, get, unobservers);
+		},
+
+		select: function(node) {
+			return Fn.of(
+				parseAttribute('value', node),
+				parseBoolean('disabled', node),
+				parseBoolean('required', node),
+				parseAttribute('name', node)
+			).join();
+
+			//bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+
+			// Only let strings set the value of selects
+			//var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
+			//if (unbindName) { unobservers.push(unbindName); }
+			//
+			//parseAttribute(node, 'name', bind, unbind, get, unobservers);
+		},
+
+		option: function(node) {
+			return Fn.of(
+				parseAttribute('value', node),
+				parseBoolean('disabled', node)
+			).join();
+			
+			//bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+		},
+
+		textarea: function(node) {
+			return Fn.of(
+				parseBoolean('disabled', node),
+				parseBoolean('required', node),
+				parseAttribute('name', node)
+			).join();
+
+			// Only let strings set the value of a textarea
+			//var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
+			//if (unbindName) { unobservers.push(unbindName); }
+			//parseAttribute('name', node);
+		},
+
+		time: function(node)  {
+			return parseAttributes(['datetime'], node);
+		},
+
+		svg: function(node) {
+			return parseAttributes(['viewbox'], node);
+		},
+
+		g: function(node) {
+			return parseAttributes(['transform'],  node);
+		},
+
+		path: function(node) {
+			return parseAttributes(['d', 'transform'], node);
+		},
+
+		line: function(node) {
+			return parseAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node);
+		},
+
+		rect: function(node) {
+			return parseAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node);
+		},
+
+		text: function(node) {
+			return parseAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node);
+		},
+
+		use: function(node) {
+			return parseAttributes(['href', 'transform'], node);
+		},
+
+		template: noop,
+		script: noop
+	};
+
+	function addClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.add.apply(classList, classes);
+	}
+
+	function removeClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.remove.apply(classList, classes);
+	}
+
+	function makeReplaceText(get) {
+		return function replaceText($0, $1, $2, $3) {
+			var value = $3 ? applyFilters(get($2), $3) : get($2) ;
+			var type = typeof value;
+
+			return !isDefined(value) ? '' :
+				type === 'string' ? value :
+				type === 'number' ? value :
+				type === 'boolean' ? value :
+				// Beautify the .toString() result of functions
+				type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
+				// Use just the Class string in '[object Class]'
+				toClass(value) ;
+		}
+	}
+
+	function splitPath(path) {
+		// Split path, making sure whitespace is topped and tailed
+		var array = path.split(rpathsplit);
+		if (array[0] === '') { array.shift(); }
+		if (array[array.length - 1] === '') { array.pop(); }
+		return array;
+	}
+
+	function parseAttributes(names, node) {
+		return Fn(names)
+		.chain(function(name) {
+			return parseAttribute(name, node);
+		});
+	}
+
+	function parseAttribute(name, node) {
+		var text = dom.attribute(name, node);
+
+		return text ? parse(text, function update(value) {
+			node.setAttribute(name, value);
+		}) : nothing ;
+	}
+
+	function parseBoolean(name, node) {
+		var tags = [];
+
+		// Look for data-attributes before attributes.
+		//
+		// In IE, the style attribute does not return invalid CSS text content,
+		// so Sparky can't read tags in it.
+		//
+		// In FF, the disabled attribute is set to the previous value that the
+		// element had when the page is refreshed, so it contains no sparky
+		// tags. The proper way to address this problem is to set
+		// autocomplete="off" on the parent form or on the field.
+		//
+		// Remember SVG has case sensitive attributes.
+		var attr = node.getAttribute('data-' + name) || node.getAttribute(name) ;
+
+		if (!attr) { return tags; }
+
+		var update = function updateBoolean(value) {
+			// Attribute is also a boolean property
+			if (attribute in node) { node[name] = !!value; }
+			// Or not
+			else if (value) { node.setAttribute(name, attribute); }
+			else { node.removeAttribute(attribute); }
+		};
+
+		rtoken.lastIndex = 0;
+		var tokens = rtoken.exec(value.trim());
+
+		if (!tokens) { return tags; }
+
+		tags.push({
+			token: value.trim(),
+			path: splitPath(tokens[2]),
+			transforms: tokens[3],
+			fn: update
+		});
+
+		//var replace = makeReplaceText(get);
+		//
+		//function update() {
+		//	Sparky.rtags.lastIndex = 0;
+		//	var value = replace.apply(null, tokens);
+		//	fn(value);
+		//}
+
+		return tags;
+	}
+
+	function parseClass(node) {
+		var tags    = [];
+		var attr    = dom.attribute('class', node);
+
+		// If there are no classes, go no further
+		if (!attr) { return tags; }
+
+		var classes = dom.classes(node);
+		var prev    = '';
+
+		// Create an update function for keeping sparky's classes up-to-date
+		var update = function updateClasses(string) {
+			if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
+			if (string && rtext.test(string)) { addClasses(classes, string); }
+			prev = string;
+		};
+
+		// TODO: Do we want to do this in parse(text) ??
+		// Extract the tags and overwrite the class with remaining text
+		rclasstags.lastIndex = 0;
+		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
+			tags.push({
+				token: $0,
+				path: splitPath($2),
+				transforms: $3,
+				fn: update
+			});
+
+			return '';
+		});
+
+		node.setAttribute('class', text);
+
+		return tags;
+	}
+
+	function parse(text, set) {
+		var tags = [];
+
+		rtoken.lastIndex = 0;
+		text.replace(rtoken, function($0, $1, $2, $3, $4) {
+			tags.push({
+				token: $0,
+				path: splitPath($2),
+				transforms: $3,
+				fn: set
+			});
+		});
+
+		return tags;
+	}
+
+	function Distribute(structs, getKey, getValue) {
+		var object = {};
+		var outputs = {};
+
+		structs[structs.each ? 'each' : 'forEach'](function(struct) {
+			var key = struct.path.shift();
+
+			if (struct.path.length === 0) {
+				if (!outputs[key]) { outputs[key] = Stream.of().dedup(); }
+				outputs[key].clone().each(struct.fn);
+			}
+			else {
+				if (!objects[key]) { objects[key] = []; }
+				objects[key].push(struct);
+			}
+		});
+
+		Object.keys(object).forEach(function(key) {
+			var distribute = Distribute(object[key], getKey, getValue);
+			outputs[key].clone().each(distribute);
+		});
+
+		return function distribute(data) {
+			Object.keys(data).forEach(function(key) {
+				var stream = outputs[key];
+				stream && stream.push(data[key]);
+			});
+
+			//var key    = getKey(data);
+			//var value  = getValue(data);
+			//var stream = outputs[key];
+			//stream.push(value);
+		};
+	}
+
+	function getStructs(node) {
+		return mountTypes[node.nodeType](node);
+	}
+
+	var mount = curry(function(getKey, getValue, node) {
+		var structs    = getStructs(node);
+
+		console.log('structs:', structs);
+		var distribute = Distribute(structs, getKey, getValue);
+
+		console.log('mounted:', node);
+		return Stream.of().throttle().each(distribute);
+	});
+
+
+	// Set up Sparky.tags(), Sparky.rtags, Sparky.rsimpletags
+
+	function changeTags(ropen, rclose) {
+		//rtags = Sparky.render(rtagstemplate, arguments);
+		rsimpletags = Sparky.render(rsimpletagstemplate, arguments);
+		rclasstags = Sparky.render(rclasstagstemplate, arguments);
+	}
+
+	changeTags(/\{\[{1,2}/, /\]{1,2}\}/);
+
+	var SP = {
+		mount: function(node) {
+			
+		},
+
+		tags: changeTags
+	};
+
+	Object.defineProperties(SP, {
+		rtags: {
+			get: function() { return rtags; },
+			enumerable: true
+		},
+
+		rsimpletags: {
+			get: function() { return rsimpletags; },
+			enumerable: true
+		}
+	});
+
+	window.s = mount(
+		function(data) { return data.key; },
+		function(data) { return data.value; },
+		dom.find('test-select')
+	);
+	</script>
+</body>
+</html>

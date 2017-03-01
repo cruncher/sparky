@@ -722,7 +722,7 @@
 			type === 'checkbox' ? function checkboxChange(e) {
 				set(path, fn(node.checked ? node.value : undefined));
 			} :
-			function valueChange(e) {
+			function change(e) {
 				set(path, fn(node.value));
 			} ;
 	}
