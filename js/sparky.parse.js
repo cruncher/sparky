@@ -498,8 +498,9 @@
 				type === 'boolean' ? value :
 				// Beautify the .toString() result of functions
 				type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
+				JSON.stringify(value, null, 4) ;
 				// Use just the Class string in '[object Class]'
-				toClass(value) ;
+				//toClass(value) ;
 		}
 	}
 
