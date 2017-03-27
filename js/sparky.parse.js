@@ -44,7 +44,7 @@
 	var rtext = /\S/;
 
 	// Matches URLs for html
-	var rurlhtml = /\/\S*\.html$/;
+	var rurlhtml = /^(?:https?:\/\/\S|\/\S)/;
 
 	// Matches the arguments list in the result of a fn.toString()
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
