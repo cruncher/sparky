@@ -268,6 +268,7 @@
 			// magic.
 			jQuery.ajax({
 				url: id,
+				type: 'GET',
 				dataType: 'html'
 			})
 			.then(function(html) {
