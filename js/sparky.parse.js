@@ -43,6 +43,9 @@
 	// Matches anything that contains a non-space character
 	var rtext = /\S/;
 
+	// Matches URLs for html
+	var rurlhtml = /\/\S*\.html$/;
+
 	// Matches the arguments list in the result of a fn.toString()
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
@@ -257,13 +260,30 @@
 		var id = node.getAttribute && node.getAttribute('data-template');
 		var template, nodes;
 
-		if (isDefined(id)) {
+		if (rurlhtml.test(id)) {
+			// Todo: this is supposed to be able to fetch Sparky templates,
+			// whereupon we may parse and insert them. Which implies that
+			// that bit at the bottom of this function needs to be made
+			// async. For now, we just assume flat html without any Sparky
+			// magic.
+			jQuery.ajax({
+				url: id,
+				dataType: 'html'
+			})
+			.then(function(html) {
+				// Dangerous? Potentially.
+				node.innerHTML = html;
+			});
+			
+			return;
+		}
+		else if (isDefined(id)) {
 			// Node has a data-template attribute
 			template = Sparky.template(id);
 
 			// If the template does not exist, do nothing
 			if (!template) {
-				Sparky.log('template "' + id + '" not found in DOM.');
+				Sparky.log('Sparky: template not found in DOM', node);
 				return;
 			}
 
