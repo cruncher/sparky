@@ -90,6 +90,10 @@
 			return result;
 		},
 
+		append: function(value, string) {
+			return value + string;
+		},
+
 		capfirst: function(value) {
 			return value.charAt(0).toUpperCase() + value.substring(1);
 		},
@@ -362,6 +366,10 @@
 			array.length = n - l;
 			array.push(string);
 			return array.join(char || ' ');
+		},
+
+		prepend: function(value, string) {
+			return string + value;
 		},
 
 		random: function(value) {
