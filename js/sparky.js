@@ -343,15 +343,20 @@
 		var parsed;
 
 		var value;
-		var instream = Stream(function shift() {
-			var v = value;
-			value = undefined;
-			return v;
-		}, function push() {
-			value = arguments[arguments.length - 1];
-			this.notify('push');
-		})
-		.dedup();
+		var instream = new Stream(function setup(notify) {
+			return {
+				shift: function shift() {
+					var v = value;
+					value = undefined;
+					return v;
+				},
+				
+				push: function push() {
+					value = arguments[arguments.length - 1];
+					notify('push');
+				}				
+			};
+		}).dedup();
 
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
