@@ -13,7 +13,7 @@
 	var Collection = window.Collection;
 	var Fn         = window.Fn;
 	var dom        = window.dom;
-	var Stream     = Fn.Stream;
+	var Stream     = window.Stream;
 
 
 	// Variables
