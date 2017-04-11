@@ -23,7 +23,7 @@
 	};
 
 	// Matches a sparky template tag, capturing (path, filter)
-	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
+	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}\]]+))?\s*{{1}}/g;
 	var rtags;
 
 	// Matches a simple sparky template tag, capturing (path)
