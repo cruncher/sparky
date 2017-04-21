@@ -42,7 +42,7 @@
 			this.data = Object.create(data);
 		});
 
-		var throttle = Fn.Throttle(function update() {
+		var throttle = Fn.throttle(function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};

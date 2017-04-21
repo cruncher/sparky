@@ -361,8 +361,8 @@
 		var data = parent ? parent.data : Sparky.data;
 		var ctrl = parent ? parent.fn : Sparky.fn;
 		var unobserveScope = noop;
-		var addThrottle = Fn.Throttle(addNodes);
-		var removeThrottle = Fn.Throttle(removeNodes);
+		var addThrottle = Fn.throttle(addNodes);
+		var removeThrottle = Fn.throttle(removeNodes);
 
 		function updateScope(object) {
 			instream.push(object);
