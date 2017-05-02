@@ -3,6 +3,7 @@
 	"use strict";
 
 	var Fn      = window.Fn;
+	var dom     = window.dom;
 	var Sparky  = window.Sparky;
 	var ga      = window.ga || Fn.noop;
 	var rspaces = Fn.rspaces;
@@ -12,31 +13,34 @@
 	}
 
 	Sparky.fn['analyse-on-click'] = function stickToTop(node, scopes) {
-		var property = dom.attribute('data-analyse', node);
+		node.addEventListener('click', function(e) {
+			var node     = dom.closest('[data-analyse]', e.target);
 
-		if (!property) {
-			console.warn('Sparky: data-fn="analyse-on-click" requires data-analyse="category action label"');
-			return;
-		}
+			if (!node) {
+				console.warn('Sparky: data-fn="analyse-on-click" requires data-analyse="category action label"');
+				return;
+			}
 
-		var data     = property.split(rspaces);
+			var property = dom.attribute('data-analyse', node);
+			var labels   = property.split(rspaces);
 
-		node.addEventListener('click', function() {
-			analyse.apply(null, data);
+			analyse.apply(null, labels);
 		});
 	};
 
 	Sparky.fn['analyse-on-change'] = function stickToTop(node, scopes) {
-		var property = dom.attribute('data-analyse', node);
-		var data     = property.split(rspaces);
+		node.addEventListener('change', function(e) {
+			var node     = e.target;
+			var property = dom.attribute('data-analyse', node);
 
-		if (!property) {
-			console.warn('Sparky: data-fn="analyse-on-change" requires data-analyse="category action label"');
-			return;
-		}
+			if (!property) {
+				console.warn('Sparky: data-fn="analyse-on-change" requires data-analyse="category action label"');
+				return;
+			}
 
-		node.addEventListener('change', function() {
-			analyse.apply(null, data);
+			var labels   = property.split(rspaces);
+
+			analyse.apply(null, labels);
 		});
 	};
 })(this);
