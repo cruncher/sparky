@@ -275,7 +275,7 @@
 				// Dangerous? Potentially.
 				node.innerHTML = html;
 			});
-			
+
 			return;
 		}
 		else if (isDefined(id)) {
@@ -437,7 +437,7 @@
 		else {
 			// Scope is not available yet. We need to wait for it. Todo: This
 			// should be done inside the Sparky constructor.
-			window.requestAnimationFrame(update);
+			requestAnimationFrame(update);
 		}
 	}
 
@@ -554,7 +554,7 @@
 		else {
 			// Scope is not available yet. We need to wait for it. Todo: This
 			// should be done inside the Sparky constructor.
-			window.requestAnimationFrame(update);
+			requestAnimationFrame(update);
 		}
 	}
 
@@ -758,7 +758,7 @@
 
 		// Wait for animation frame to let Sparky fill in tags in value, min
 		// and max before controlling.
-		var request = window.requestAnimationFrame(function() {
+		var request = requestAnimationFrame(function() {
 			request = false;
 
 			// Where the model does not have value, set it from the node value.

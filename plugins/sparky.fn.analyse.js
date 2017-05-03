@@ -12,6 +12,12 @@
 		ga('send', 'event', category, action, label, value);
 	}
 
+	function analyseTime(category, action, label, time) {
+		// Time should be an integer, in milliseconds
+		time = Math.round(time || window.performance.now());
+		ga('send', 'timing', category, action, time, label);
+	}
+
 	Sparky.fn['analyse-on-click'] = function stickToTop(node, scopes) {
 		node.addEventListener('click', function(e) {
 			var node     = dom.closest('[data-analyse]', e.target);

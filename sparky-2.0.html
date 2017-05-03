@@ -164,19 +164,19 @@
 
 
 
-	var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
+	//var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
-	var mountTypes = {
+	var mountType = choose(get('nodeType'), {
 		// element
 		1: function(node) {		
 			var structs = Fn(node.childNodes)
-			.chain(getStructs)
+			.chain(mountType)
 			.concat(
 				parseClass(node),
 				parseAttribute('id', node),
 				parseAttribute('title', node),
 				parseAttribute('style', node),
-				mountTags[dom.tag(node)](node)
+				mountTag(node)
 			).toArray();
 console.log('parsed:', node, structs);
 			return structs;
@@ -195,7 +195,7 @@ console.log('parsed:', node, structs);
 		}
 	};
 
-	var mountTags = {
+	var mountTag = choose(dom.tag, {
 		label: function(node) {
 			return parseAttribute('for', node);
 		},
@@ -489,12 +489,8 @@ console.log('parsed:', node, structs);
 		};
 	}
 
-	function getStructs(node) {
-		return mountTypes[node.nodeType](node);
-	}
-
 	var mount = curry(function(getKey, getValue, node) {
-		var structs    = getStructs(node);
+		var structs    = mountType(node);
 
 		console.log('structs:', structs);
 		var distribute = Distribute(structs, getKey, getValue);

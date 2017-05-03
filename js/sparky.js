@@ -487,7 +487,9 @@
 
 			if (scope && parsed) {
 				// Run initialiser fns, if any
-				if (parsed.setups.length) { initialise(parsed.setups, init); }
+				if (parsed.setups.length) {
+					initialise(parsed.setups, init);
+				}
 
 				// Assign and set up scope
 				setup(scope, parsed.bindings, init);
@@ -515,7 +517,7 @@
 		// If there is scope, set it up now
 		resolveScope(node, rootscope, parent ? parent.data : Sparky.data, observeScope, updateScope);
 
-		init = false;
+		//init = false;
 	}
 
 	Sparky.prototype = Object.create(Collection.prototype);
