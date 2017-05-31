@@ -5,18 +5,16 @@
 	var Fn      = window.Fn;
 	var dom     = window.dom;
 	var Sparky  = window.Sparky;
-	var ga      = window.ga || Fn.noop;
 	var rspaces = Fn.rspaces;
 
 	function analyse(category, action, label, value) {
-console.log(arguments);
-		ga('send', 'event', category, action, label, value);
+		window.ga && window.ga('send', 'event', category, action, label, value);
 	}
 
 	function analyseTime(category, action, label, time) {
 		// Time should be an integer, in milliseconds
 		time = Math.round(time || window.performance.now());
-		ga('send', 'timing', category, action, time, label);
+		window.ga && window.ga('send', 'timing', category, action, time, label);
 	}
 
 	Sparky.fn['analyse-on-click'] = function stickToTop(node, scopes) {
