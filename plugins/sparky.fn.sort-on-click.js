@@ -107,4 +107,39 @@
 			node.removeEventListener('click', click);
 		});
 	};
+
+	Sparky.fn['sort'] = function sortOnClick(node, scopes) {
+		// Create a chain of functions from the sort-by attribute that represent
+		// a hierarchical sort of multiple properties.
+		var property = node.getAttribute('data-sort-by');
+		var props    = property.split(rspaces);
+
+		var fns      = props.map(function(property) {
+			var fn = sortFns[property] ? sortFns[property] : Fn.id;
+
+			return property ? function(a, b) {
+				return byGreater(fn(a[property]), fn(b[property]));
+			} : byGreater;
+		});
+
+		var byAscending = function(a, b) {
+			return Fn.from(fns)
+			.map(function(fn) { return fn(a, b); })
+			.filter(isNot(0))
+			.take(1)
+			.shift() || 0;
+		};
+
+		function ascending() {
+			A.sort.call(this, byAscending);
+			this['sort-order'] = props[0] + '-ascending';
+			return this.trigger('sort');
+		}
+
+		scopes.tap(function(collection) {
+			if (!collection) { return; }
+			collection.sort = ascending;
+			collection.sort();
+		});
+	};
 })(this);
