@@ -36,6 +36,15 @@
 		seller:  function(pk) {
 			var seller = Sparky.data.sellers.find(pk);
 			return seller ? Fn.toPlainText(seller.name) : 'zzzzzzzz';
+		},
+
+		quality: function(name) {
+			var i = procsea.data.qualities.indexOf(name);
+			return i === -1 ? Infinity : i;			
+		},
+
+		offer: function(value) {
+			return !value;			
 		}
 	};
 	// ---------------------------------------------------------
@@ -114,7 +123,12 @@
 		var property = node.getAttribute('data-sort-by');
 		var props    = property.split(rspaces);
 
-		var fns      = props.map(function(property) {
+		// Todo:
+		// THIS IS A HACK. It gets special offers to display at the top of the
+		// table on first render (but not when sorting via sort buttons).
+		props.unshift('offer');
+
+		var fns = props.map(function(property) {
 			var fn = sortFns[property] ? sortFns[property] : Fn.id;
 
 			return property ? function(a, b) {
