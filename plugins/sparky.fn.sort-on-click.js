@@ -56,7 +56,7 @@
 		var property = node.getAttribute('data-sort-by');
 		var props    = property.split(rspaces);
 
-		var fns      = props.map(function(property) {
+		var fns = props.map(function(property) {
 			var fn = sortFns[property] ? sortFns[property] : Fn.id;
 
 			return property ? function(a, b) {
@@ -65,14 +65,28 @@
 		});
 
 		var byAscending = function(a, b) {
-			return Fn.from(fns)
+			return a.offer !== b.offer ?
+				// Keep the special offers at the top, in both ascending
+				// and descending.
+				a.offer === true ? -1 : 1 :
+			Fn.from(fns)
 			.map(function(fn) { return fn(a, b); })
 			.filter(isNot(0))
 			.take(1)
 			.shift() || 0;
 		};
 
-		var byDescending = negate(byAscending);
+		var byDescending = function(a, b) {
+			return a.offer !== b.offer ?
+				// Keep the special offers at the top, in both ascending
+				// and descending.
+				a.offer === true ? -1 : 1 :
+			(-1 * (Fn.from(fns)
+			.map(function(fn) { return fn(a, b); })
+			.filter(isNot(0))
+			.take(1)
+			.shift() || 0));
+		};
 
 		var click;
 
@@ -123,11 +137,6 @@
 		var property = node.getAttribute('data-sort-by');
 		var props    = property.split(rspaces);
 
-		// Todo:
-		// THIS IS A HACK. It gets special offers to display at the top of the
-		// table on first render (but not when sorting via sort buttons).
-		props.unshift('offer');
-
 		var fns = props.map(function(property) {
 			var fn = sortFns[property] ? sortFns[property] : Fn.id;
 
@@ -137,7 +146,9 @@
 		});
 
 		var byAscending = function(a, b) {
-			return Fn.from(fns)
+			return a.offer !== b.offer ?
+				a.offer === true ? -1 : 1 :
+			Fn.from(fns)
 			.map(function(fn) { return fn(a, b); })
 			.filter(isNot(0))
 			.take(1)
