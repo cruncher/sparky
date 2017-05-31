@@ -17,6 +17,10 @@
 		window.ga && window.ga('send', 'timing', category, action, time, label);
 	}
 
+	function dashesToSpaces(string) {
+		return string.replace('-', ' ');
+	}
+
 	Sparky.fn['analyse-on-click'] = function stickToTop(node, scopes) {
 		node.addEventListener('click', function(e) {
 			var node     = dom.closest('[data-analyse]', e.target);
@@ -27,7 +31,7 @@
 			}
 
 			var property = dom.attribute('data-analyse', node);
-			var labels   = property.split(rspaces);
+			var labels   = property.split(rspaces).map(dashesToSpaces);
 
 			analyse.apply(null, labels);
 		});
@@ -43,7 +47,7 @@
 				return;
 			}
 
-			var labels   = property.split(rspaces);
+			var labels   = property.split(rspaces).map(dashesToSpaces);
 
 			analyse.apply(null, labels);
 		});
