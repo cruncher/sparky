@@ -9,6 +9,7 @@
 	var rspaces = Fn.rspaces;
 
 	function analyse(category, action, label, value) {
+console.log(arguments);
 		ga('send', 'event', category, action, label, value);
 	}
 
