@@ -2,9 +2,14 @@
 
 	// Import
 
-	var Fn     = window.Fn;
-	var Sparky = window.Sparky;
-	var A      = Array.prototype;
+	var Fn        = window.Fn;
+	var Sparky    = window.Sparky;
+	var A         = Array.prototype;
+	var id        = Fn.id;
+	var is        = Fn.is;
+	var isNot     = Fn.isNot;
+	var byGreater = Fn.byGreater;
+	var rspaces   = Fn.rspaces;
 
 	function negate(fn) {
 		return function(a, b) { return -fn(a, b); }
@@ -15,7 +20,7 @@
 	// This is a hacky bit of crud to give us sorting by values in other
 	// objects. Perhaps the best way to do this would be to allow
 	// data-sort-by="calibre|find-in-calibres|get:'mass'". Perhaps.
-	var fns = {
+	var sortFns = {
 		calibre: function(name) {
 			var calibre = Sparky.data.calibres.find(name);
 			return calibre && calibre.mass ? calibre.mass : Infinity ;
@@ -31,34 +36,73 @@
 		seller:  function(pk) {
 			var seller = Sparky.data.sellers.find(pk);
 			return seller ? Fn.toPlainText(seller.name) : 'zzzzzzzz';
+		},
+
+		quality: function(name) {
+			var i = procsea.data.qualities.indexOf(name);
+			return i === -1 ? Infinity : i;			
+		},
+
+		offer: function(value) {
+			return !value;			
 		}
 	};
 	// ---------------------------------------------------------
 
 
 	Sparky.fn['sort-on-click'] = function sortOnClick(node, scopes) {
+		// Create a chain of functions from the sort-by attribute that represent
+		// a hierarchical sort of multiple properties.
 		var property = node.getAttribute('data-sort-by');
+		var props    = property.split(rspaces);
 
+		var fns = props.map(function(property) {
+			var fn = sortFns[property] ? sortFns[property] : Fn.id;
 
-		// Todo: Needs a review. Code belongs in Procsea.
-		// This is a hacky bit of crud to give us sorting by values in other
-		// objects. Perhaps the best way to do this would be to allow
-		// data-sort-by="calibre|find-in-calibres|get:'mass'". Perhaps.
-		var fn = fns[property] ? fns[property] : Fn.id;
-		// ---------------------------------------------------------
+			return property ? function(a, b) {
+				return byGreater(fn(a[property]), fn(b[property]));
+			} : byGreater;
+		});
 
+		var byAscending = function(a, b) {
+			return a.offer !== b.offer ?
+				// Keep the special offers at the top, in both ascending
+				// and descending.
+				a.offer === true ? -1 : 1 :
+			Fn.from(fns)
+			.map(function(fn) { return fn(a, b); })
+			.filter(isNot(0))
+			.take(1)
+			.shift() || 0;
+		};
 
+		var byDescending = function(a, b) {
+			return a.offer !== b.offer ?
+				// Keep the special offers at the top, in both ascending
+				// and descending.
+				a.offer === true ? -1 : 1 :
+			(-1 * (Fn.from(fns)
+			.map(function(fn) { return fn(a, b); })
+			.filter(isNot(0))
+			.take(1)
+			.shift() || 0));
+		};
 
-		var byAscending  = property ? function(a, b) {
-				return Fn.byGreater(fn(a[property]), fn(b[property]));
-			} : Fn.byGreater;
-
-		var byDescending = negate(byAscending);
 		var click;
 
-		scopes.tap(function(collection) {
-			var order = false;
+		function ascending() {
+			A.sort.call(this, byAscending);
+			this['sort-order'] = props[0] + '-ascending';
+			return this.trigger('sort');
+		}
 
+		function descending() {
+			A.sort.call(this, byDescending);
+			this['sort-order'] = props[0] + '-descending';
+			return this.trigger('sort');
+		}
+
+		scopes.tap(function(collection) {
 			if (click) {
 				node.removeEventListener('click', click);
 			}
@@ -69,19 +113,9 @@
 			}
 
 			click = function click(e) {
-				order = !order;
-
-				collection.sort = order ?
-					function ascending() {
-						A.sort.call(this, byAscending);
-						this['sort-order'] = property + '-ascending';
-						return this.trigger('sort');
-					} :
-					function descending() {
-						A.sort.call(this, byDescending);
-						this['sort-order'] = property + '-descending';
-						return this.trigger('sort');
-					} ;
+				collection.sort = collection.sort === descending ?
+					ascending :
+					descending ;
 
 				collection.sort();
 
@@ -94,6 +128,43 @@
 		})
 		.on('destroy', function() {
 			node.removeEventListener('click', click);
+		});
+	};
+
+	Sparky.fn['sort'] = function sortOnClick(node, scopes) {
+		// Create a chain of functions from the sort-by attribute that represent
+		// a hierarchical sort of multiple properties.
+		var property = node.getAttribute('data-sort-by');
+		var props    = property.split(rspaces);
+
+		var fns = props.map(function(property) {
+			var fn = sortFns[property] ? sortFns[property] : Fn.id;
+
+			return property ? function(a, b) {
+				return byGreater(fn(a[property]), fn(b[property]));
+			} : byGreater;
+		});
+
+		var byAscending = function(a, b) {
+			return a.offer !== b.offer ?
+				a.offer === true ? -1 : 1 :
+			Fn.from(fns)
+			.map(function(fn) { return fn(a, b); })
+			.filter(isNot(0))
+			.take(1)
+			.shift() || 0;
+		};
+
+		function ascending() {
+			A.sort.call(this, byAscending);
+			this['sort-order'] = props[0] + '-ascending';
+			return this.trigger('sort');
+		}
+
+		scopes.tap(function(collection) {
+			if (!collection) { return; }
+			collection.sort = ascending;
+			collection.sort();
 		});
 	};
 })(this);
