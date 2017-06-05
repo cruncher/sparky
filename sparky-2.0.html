@@ -14,7 +14,7 @@
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 	<link rel="stylesheet" href="/bolt/package/css/bolt-0.9.8.css" />
-	<link rel="stylesheet" href="css/grid.css" />
+	<!--link rel="stylesheet" href="css/grid.css" /-->
 </head>
 
 <body data-fn="test-scope">
@@ -39,8 +39,9 @@
 	<script src="modules/polyfills/window.console.group.js"></script>
 
 	<script src="modules/fn/js/fn.js"></script>
-	<script src="modules/fn/js/fn.observe.js"></script>
+	<script src="modules/fn/js/observe.js"></script>
 	<script src="modules/fn/js/events.js"></script>
+	<script src="modules/fn/js/stream.js"></script>
 
 	<script src="modules/dom/js/dom.js"></script>
 
@@ -56,6 +57,7 @@
 	<script src="js/sparky.filters.js"></script>
 
 	<script>
+	var choose  = Fn.choose;
 	var nothing = Fn.nothing;
 	var noop    = Fn.noop;
 	var curry   = Fn.curry;
@@ -190,7 +192,7 @@ console.log('parsed:', node, structs);
 		11: function(node) {
 			
 		}
-	};
+	});
 
 	var mountTag = choose(dom.tag, {
 		label: function(node) {
@@ -299,7 +301,7 @@ console.log('parsed:', node, structs);
 
 		template: noop,
 		script: noop
-	};
+	});
 
 	function addClasses(classList, text) {
 		var classes = text.trim().split(rspaces);

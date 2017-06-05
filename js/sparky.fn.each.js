@@ -38,11 +38,7 @@
 		var placeholder = createPlaceholder(node);
 		var collection;
 
-		fns.unshift(function() {
-			this.data = Object.create(data);
-		});
-
-		var throttle = Fn.throttle(function update() {
+		function update() {
 			var n = -1;
 			var l = cache.length;
 			var map = {};
@@ -117,9 +113,14 @@
 			);
 
 			reschedule();
-		});
+		}
 
+		var throttle = Fn.throttle(update);
 		var timer;
+
+		fns.unshift(function() {
+			this.data = Object.create(data);
+		});
 
 		function reschedule() {
 			clearTimeout(timer);
@@ -146,7 +147,8 @@
 		function observeCollection() {
 			if (collection.on) {
 				collection.on('add remove sort', throttle);
-				throttle();
+				// The first update should be performed immediately
+				update();
 			}
 			else {
 				Sparky.observe(collection, 'length', throttle);

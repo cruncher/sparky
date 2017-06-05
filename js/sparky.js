@@ -337,6 +337,8 @@
 			return new Sparky(node, rootscope, fn, parent);
 		}
 
+console.log('Sparky', node);
+
 		var sparky = this;
 		var init = true;
 		var scope;
