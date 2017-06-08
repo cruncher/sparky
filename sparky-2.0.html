@@ -224,7 +224,7 @@
 			push(structs, mountAttributes(['id', 'title', 'style'], node));
 			push(structs, mountTag(node));
 
-console.log('mounted:', node);
+console.log('mounted:', node, structs.length);
 
 			return structs;
 		},
@@ -395,22 +395,25 @@ console.log('mounted:', node);
 	});
 
 	function mountAttributes(names, node) {
-		return Fn(names)
-		.chain(function(name) {
-			return mountAttribute(name, node);
-		});
+		var structs = [];
+		var name;
+
+		while (name = names.shift()) {
+			push(structs, mountAttribute(name, node));
+		}
+
+		return structs;
 	}
 
 	function mountAttribute(name, node) {
 		var text = dom.attribute(name, node);
 
-		return text ? mountString(text, function update(value) {
+		return text ? mountString(text, function render(value) {
 			node.setAttribute(name, value);
 		}) : nothing ;
 	}
 
 	function mountBoolean(name, node) {
-		var tags = [];
 
 		// Look for data-attributes before attributes.
 		//
@@ -425,8 +428,9 @@ console.log('mounted:', node);
 		// Remember SVG has case sensitive attributes.
 		var attr = node.getAttribute('data-' + name) || node.getAttribute(name) ;
 
-		if (!attr) { return tags; }
+		if (!attr) { return nothing; }
 
+		var structs = [];
 		var update = function updateBoolean(value) {
 			// Attribute is also a boolean property
 			if (attribute in node) { node[name] = !!value; }
@@ -438,9 +442,9 @@ console.log('mounted:', node);
 		rtoken.lastIndex = 0;
 		var tokens = rtoken.exec(value.trim());
 
-		if (!tokens) { return tags; }
+		if (!tokens) { return structs; }
 
-		tags.push({
+		structs.push({
 			token: value.trim(),
 			getValue: getPath(tokens[2]),
 			path: tokens[2],
@@ -456,16 +460,16 @@ console.log('mounted:', node);
 		//	fn(value);
 		//}
 
-		return tags;
+		return structs;
 	}
 
 	function mountClass(node) {
-		var tags    = [];
 		var attr    = dom.attribute('class', node);
 
 		// If there are no classes, go no further
-		if (!attr) { return tags; }
+		if (!attr) { return nothing; }
 
+		var tags    = [];
 		var classes = dom.classes(node);
 		var prev    = '';
 
@@ -536,6 +540,8 @@ console.log('mounted:', node);
 		return debug(function distribute(data) {
 			return structs.reduce(function(data, struct) {
 				var value = struct.getValue(data);
+				
+				//if (value === undefined) { return data; }
 				//var transform = struct.transforms;
 				var fn    = struct.fn;
 console.log(struct.path, value);
