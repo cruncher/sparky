@@ -77,8 +77,6 @@
 	var set       = Fn.set;
 	var each      = Fn.each;
 
-	var getType   = get('type');
-
 	// Matches a sparky template tag, capturing (path, filter)
 	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
 	var rtags;
@@ -366,7 +364,7 @@ console.log('mounted:', node, structs.length);
 		default: noop
 	});
 
-	var mountInput = overload(getType, {
+	var mountInput = overload(get('type'), {
 		date: function(node) {
 			return mountAttributes(['min', 'max', 'step'], node);
 		},
