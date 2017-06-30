@@ -591,7 +591,7 @@
 
 		template: function(id) {
 			var fragment = fragments[id] || (fragments[id] = dom.fragmentFromId(id));
-			return fragment.cloneNode(true);
+			return dom.clone(fragment);
 		}
 	});
 
