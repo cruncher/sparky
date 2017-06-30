@@ -24,7 +24,12 @@
 		<option value="1">one</option>
 	</select>
 
-	<p>{[name]}</p>
+	<p>Goodness, {[name]}, I hope all is according to {[plan]}</p>
+	<p title="{[name]}, {[plan]}">
+
+	<script>
+	window.DEBUG = true;
+	</script>
 
 	<script src="modules/fn/polyfills/array.find.js"></script>
 	<script src="modules/fn/polyfills/array.from.js"></script>
@@ -57,14 +62,20 @@
 	<script src="js/sparky.filters.js"></script>
 
 	<script>
-	var choose  = Fn.choose;
-	var nothing = Fn.nothing;
-	var noop    = Fn.noop;
-	var curry   = Fn.curry;
-	var apply   = Fn.apply;
-	var get     = Fn.get;
-	var set     = Fn.set;
-	var each    = Fn.each;
+(function(window) {
+	"use strict";
+
+	var debug     = Fn.debug;
+	var getPath   = Fn.getPath;
+	var isDefined = Fn.isDefined;
+	var overload  = Fn.overload;
+	var nothing   = Fn.nothing;
+	var noop      = Fn.noop;
+	var curry     = Fn.curry;
+	var apply     = Fn.apply;
+	var get       = Fn.get;
+	var set       = Fn.set;
+	var each      = Fn.each;
 
 	// Matches a sparky template tag, capturing (path, filter)
 	var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
@@ -95,8 +106,6 @@
 	var rnumber = /[+-]?(?:\d*\.)?\d+/;
 	var rbool   = /true|false/;
 
-
-	var rpathsplit = /["']?\](?:$|\.|\[["']?)|\[["']?/;
 	var rtoken = /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g;
 
 
@@ -110,7 +119,6 @@
 		name: 'stephband'
 	};
 
-	var get    = Fn.get;
 	var invoke = Fn.invoke;
 
 	Sparky.fn['test-scope'] = function(node, scopes) {
@@ -165,26 +173,63 @@
 
 	//var attributes = ['href', 'title', 'id', 'style', 'src', 'alt'];
 
-	var mountType = choose(get('nodeType'), {
+	function toRenderString(value) {
+		var type = typeof value;
+
+		return value === null ? '' :
+			value === undefined ? '' :
+			type === 'string' ? value :
+			type === 'number' ?
+				Number.isNaN(value) ? '' :
+				value + '' :
+			type === 'boolean' ? value + '' :
+			// Beautify the .toString() result of functions
+			type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
+			// Use just the Class string in '[object Class]'
+			toClass(value) ;
+	}
+
+	function addClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.add.apply(classList, classes);
+	}
+
+	function removeClasses(classList, text) {
+		var classes = text.trim().split(rspaces);
+		classList.remove.apply(classList, classes);
+	}
+
+	function push(array, values) {
+		array.push.apply(array, values);
+	}
+
+
+	// Mount
+
+	var mountType = overload(get('nodeType'), {
 		// element
-		1: function(node) {		
-			var structs = Fn(node.childNodes)
-			.chain(mountType)
-			.concat(
-				parseClass(node),
-				parseAttribute('id', node),
-				parseAttribute('title', node),
-				parseAttribute('style', node),
-				mountTag(node)
-			).toArray();
-console.log('parsed:', node, structs);
+		1: function(node) {
+			var structs  = [];
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				push(structs, mountType(child));
+			}
+
+			push(structs, mountClass(node));
+			push(structs, mountAttributes(['id', 'title', 'style'], node));
+			push(structs, mountTag(node));
+
+console.log('mounted:', node, structs.length);
+
 			return structs;
 		},
 
 		// text
 		3: function(node) {
-			var structs = parse(node.nodeValue, set('nodeValue', node));
-			//console.log(node);
+			var structs = mountString(node.nodeValue, set('nodeValue', node));
 			return structs;
 		},
 
@@ -194,24 +239,25 @@ console.log('parsed:', node, structs);
 		}
 	});
 
-	var mountTag = choose(dom.tag, {
-		label: function(node) {
-			return parseAttribute('for', node);
-		},
+	var mountTag = overload(dom.tag, {
+		
+		// HTML
 
 		button: function(node) {
-			return parseBoolean('disabled', node);
+			return mountBoolean('disabled', node);
 		},
 
 		input: function(node) {
-			var type = node.type;
+			var structs = [];
+			var type    = node.type;
 
-			return Fn.of(
-				parseAttributes(['value', 'min', 'max', 'step'], node),
-				parseBoolean('disabled', node),
-				parseBoolean('required', node),
-				parseAttribute('name', node)
-			).join();
+			push(structs, mountBoolean('disabled', node));
+			push(structs, mountBoolean('required', node));
+			push(structs, mountAttributes(['value'], node));
+			push(structs, mountInput(node));
+			push(structs, mountAttribute('name', node));
+
+			return structs;
 
 			//var unbindName = type === 'number' || type === 'range' ?
 			//	// Only let numbers set the value of number and range inputs
@@ -225,16 +271,36 @@ console.log('parsed:', node, structs);
 
 			//if (unbindName) { unobservers.push(unbindName); }
 			
-			//parseAttribute(node, 'name', bind, unbind, get, unobservers);
+			//mountAttribute(node, 'name', bind, unbind, get, unobservers);
+		},
+
+		img: function(node) {
+			return mountAttribute('alt', node);
+		},
+
+		label: function(node) {
+			return mountAttribute('for', node);
+		},
+
+		option: function(node) {
+			var structs = [];
+
+			push(structs, mountBoolean('disabled', node));
+			push(structs, mountAttribute('value', node));
+
+			return structs;
 		},
 
 		select: function(node) {
-			return Fn.of(
-				parseAttribute('value', node),
-				parseBoolean('disabled', node),
-				parseBoolean('required', node),
-				parseAttribute('name', node)
-			).join();
+			var structs = [];
+
+			push(structs, mountBoolean('disabled', node));
+			push(structs, mountBoolean('required', node));
+			push(structs, mountAttribute('value', node));
+			// Two way bind here??
+			push(structs, mountAttribute('name', node));
+
+			return structs;
 
 			//bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
 
@@ -242,118 +308,110 @@ console.log('parsed:', node, structs);
 			//var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
 			//if (unbindName) { unobservers.push(unbindName); }
 			//
-			//parseAttribute(node, 'name', bind, unbind, get, unobservers);
-		},
-
-		option: function(node) {
-			return Fn.of(
-				parseAttribute('value', node),
-				parseBoolean('disabled', node)
-			).join();
-			
-			//bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
+			//mountAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
 		textarea: function(node) {
 			return Fn.of(
-				parseBoolean('disabled', node),
-				parseBoolean('required', node),
-				parseAttribute('name', node)
+				mountBoolean('disabled', node),
+				mountBoolean('required', node),
+				mountAttribute('name', node)
 			).join();
 
 			// Only let strings set the value of a textarea
 			//var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
 			//if (unbindName) { unobservers.push(unbindName); }
-			//parseAttribute('name', node);
+			//mountAttribute('name', node);
 		},
 
 		time: function(node)  {
-			return parseAttributes(['datetime'], node);
+			return mountAttributes(['datetime'], node);
 		},
 
+		//template: noop,
+		//script: noop,
+
+		// SVG
+
 		svg: function(node) {
-			return parseAttributes(['viewbox'], node);
+			return mountAttributes(['viewbox'], node);
 		},
 
 		g: function(node) {
-			return parseAttributes(['transform'],  node);
+			return mountAttributes(['transform'],  node);
 		},
 
 		path: function(node) {
-			return parseAttributes(['d', 'transform'], node);
+			return mountAttributes(['d', 'transform'], node);
 		},
 
 		line: function(node) {
-			return parseAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node);
+			return mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node);
 		},
 
 		rect: function(node) {
-			return parseAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node);
+			return mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node);
 		},
 
 		text: function(node) {
-			return parseAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node);
+			return mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node);
 		},
 
 		use: function(node) {
-			return parseAttributes(['href', 'transform'], node);
+			return mountAttributes(['href', 'transform'], node);
 		},
 
-		template: noop,
-		script: noop
+		default: noop
 	});
 
-	function addClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
-		classList.add.apply(classList, classes);
-	}
+	var mountInput = overload(get('type'), {
+		date: function(node) {
+			return mountAttributes(['min', 'max', 'step'], node);
+		},
 
-	function removeClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
-		classList.remove.apply(classList, classes);
-	}
+		number: function(node) {
+			return mountAttributes(['min', 'max', 'step'], node);
+		},
 
-	function makeReplaceText(get) {
-		return function replaceText($0, $1, $2, $3) {
-			var value = $3 ? applyFilters(get($2), $3) : get($2) ;
-			var type = typeof value;
+		range: function(node) {
+			return mountAttributes(['min', 'max', 'step'], node);
+		},
 
-			return !isDefined(value) ? '' :
-				type === 'string' ? value :
-				type === 'number' ? value :
-				type === 'boolean' ? value :
-				// Beautify the .toString() result of functions
-				type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
-				// Use just the Class string in '[object Class]'
-				toClass(value) ;
+		time: function(node) {
+			return mountAttributes(['min', 'max', 'step'], node);
+		},
+
+		checkbox: function() {
+			
+		},
+
+		radio: function() {
+			
+		},
+
+		default: noop
+	});
+
+	function mountAttributes(names, node) {
+		var structs = [];
+		var name;
+
+		while (name = names.shift()) {
+			push(structs, mountAttribute(name, node));
 		}
+
+		return structs;
 	}
 
-	function splitPath(path) {
-		// Split path, making sure whitespace is topped and tailed
-		var array = path.split(rpathsplit);
-		if (array[0] === '') { array.shift(); }
-		if (array[array.length - 1] === '') { array.pop(); }
-		return array;
-	}
-
-	function parseAttributes(names, node) {
-		return Fn(names)
-		.chain(function(name) {
-			return parseAttribute(name, node);
-		});
-	}
-
-	function parseAttribute(name, node) {
+	function mountAttribute(name, node) {
 		var text = dom.attribute(name, node);
 
-		return text ? parse(text, function update(value) {
+		return text ? mountString(text, function render(value) {
 			node.setAttribute(name, value);
 		}) : nothing ;
 	}
 
-	function parseBoolean(name, node) {
-		var tags = [];
+	function mountBoolean(name, node) {
 
 		// Look for data-attributes before attributes.
 		//
@@ -368,8 +426,9 @@ console.log('parsed:', node, structs);
 		// Remember SVG has case sensitive attributes.
 		var attr = node.getAttribute('data-' + name) || node.getAttribute(name) ;
 
-		if (!attr) { return tags; }
+		if (!attr) { return nothing; }
 
+		var structs = [];
 		var update = function updateBoolean(value) {
 			// Attribute is also a boolean property
 			if (attribute in node) { node[name] = !!value; }
@@ -381,11 +440,12 @@ console.log('parsed:', node, structs);
 		rtoken.lastIndex = 0;
 		var tokens = rtoken.exec(value.trim());
 
-		if (!tokens) { return tags; }
+		if (!tokens) { return structs; }
 
-		tags.push({
+		structs.push({
 			token: value.trim(),
-			path: splitPath(tokens[2]),
+			getValue: getPath(tokens[2]),
+			path: tokens[2],
 			transforms: tokens[3],
 			fn: update
 		});
@@ -398,16 +458,16 @@ console.log('parsed:', node, structs);
 		//	fn(value);
 		//}
 
-		return tags;
+		return structs;
 	}
 
-	function parseClass(node) {
-		var tags    = [];
+	function mountClass(node) {
 		var attr    = dom.attribute('class', node);
 
 		// If there are no classes, go no further
-		if (!attr) { return tags; }
+		if (!attr) { return nothing; }
 
+		var tags    = [];
 		var classes = dom.classes(node);
 		var prev    = '';
 
@@ -424,8 +484,9 @@ console.log('parsed:', node, structs);
 		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
 			tags.push({
 				token: $0,
-				path: splitPath($2),
 				transforms: $3,
+				path: $2,
+				getValue: getPath($2),
 				fn: update
 			});
 
@@ -437,64 +498,68 @@ console.log('parsed:', node, structs);
 		return tags;
 	}
 
-	function parse(text, set) {
-		var tags = [];
+	function mountStringToken(text, render, strings, structs, i, match) {
+		strings.push(text.slice(i, match.index));
+		strings.push('');
 
-		rtoken.lastIndex = 0;
-		text.replace(rtoken, function($0, $1, $2, $3, $4) {
-			tags.push({
-				token: $0,
-				path: splitPath($2),
-				transforms: $3,
-				fn: set
-			});
+		var j = strings.length - 1;
+
+		structs.push({
+			token: match[0],
+			getValue: getPath(match[2]),
+			path: match[2],
+			transforms: match[3],
+			fn: function renderText(value) {
+				strings[j] = toRenderString(value);
+				render(strings);
+			}
 		});
+	}
 
-		return tags;
+	function mountString(text, render) {
+		var strings = [];
+		var structs = [];
+		var i = rtoken.lastIndex = 0;
+		var match;
+
+		function renderStrings(strings) {
+			render(strings.join(''));
+		}
+
+		while (match = rtoken.exec(text)) {
+			mountStringToken(text, renderStrings, strings, structs, i, match);
+			i = rtoken.lastIndex;
+		}
+
+		return structs;
 	}
 
 	function Distribute(structs, getKey, getValue) {
-		var object = {};
-		var outputs = {};
+		return debug(function distribute(data) {
+			return structs.reduce(function(data, struct) {
+				var value = struct.getValue(data);
+				
+				//if (value === undefined) { return data; }
+				//var transform = struct.transforms;
+				var fn    = struct.fn;
+console.log(struct.path, value);
+				fn(value);
 
-		structs[structs.each ? 'each' : 'forEach'](function(struct) {
-			var key = struct.path.shift();
-
-			if (struct.path.length === 0) {
-				if (!outputs[key]) { outputs[key] = Stream.of().dedup(); }
-				outputs[key].clone().each(struct.fn);
-			}
-			else {
-				if (!objects[key]) { objects[key] = []; }
-				objects[key].push(struct);
-			}
+				return data;
+			}, data);
 		});
-
-		Object.keys(object).forEach(function(key) {
-			var distribute = Distribute(object[key], getKey, getValue);
-			outputs[key].clone().each(distribute);
-		});
-
-		return function distribute(data) {
-			Object.keys(data).forEach(function(key) {
-				var stream = outputs[key];
-				stream && stream.push(data[key]);
-			});
-
-			//var key    = getKey(data);
-			//var value  = getValue(data);
-			//var stream = outputs[key];
-			//stream.push(value);
-		};
 	}
 
 	var mount = curry(function(getKey, getValue, node) {
-		var structs    = mountType(node);
 
-		console.log('structs:', structs);
+console.groupCollapsed('Sparky: mount');
+
+		var structs    = mountType(node);
 		var distribute = Distribute(structs, getKey, getValue);
 
-		console.log('mounted:', node);
+console.groupEnd();
+console.table(structs, ["token", "path", "transform"]);
+
 		return Stream.of().throttle().each(distribute);
 	});
 
@@ -532,8 +597,9 @@ console.log('parsed:', node, structs);
 	window.s = mount(
 		function(data) { return data.key; },
 		function(data) { return data.value; },
-		dom.find('test-select')
+		dom.body
 	);
+})(this);
 	</script>
 </body>
 </html>
