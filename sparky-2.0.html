@@ -18,7 +18,7 @@
 </head>
 
 <body data-fn="test-scope">
-	<select class="{[hello]}" id="test-select" name="name">
+	<select data-fn="test-array" class="{[hello]}" id="test-select" name="name">
 		<option data-fn="each" id="test-option"></option>
 		<option value="{[key]}">{[value|multiply:7]}</option>
 		<option value="1">one</option>
@@ -48,33 +48,59 @@
 	<script src="modules/polyfills/window.console.group.js"></script>
 
 	<script src="modules/fn/js/fn.js"></script>
-	<script src="modules/fn/js/observe.js"></script>
+	<script src="modules/fn/js/observable.js"></script>
 	<script src="modules/fn/js/events.js"></script>
 	<script src="modules/fn/js/stream.js"></script>
+	<script src="modules/fn/js/stream.observe.js"></script>
 
 	<script src="modules/dom/js/dom.js"></script>
 
 	<script src="modules/collection/js/observe.js"></script>
 	<script src="modules/collection/js/collection.js"></script>
-	<script src="js/sparky-2.js"></script>
-	<script src="js/sparky.observe.js"></script>
-	<script src="js/render.js"></script>
 	<script src="js/mount.js"></script>
-	<script src="js/filters.js"></script>
+	<script src="js/sparky-2.js"></script>
+	<script src="js/sparky.transforms.js"></script>
+	<script src="js/sparky.observe.js"></script>
 	<script src="js/fn.js"></script>
 	<script src="js/fn.each.js"></script>
 	<script src="js/fn.value.js"></script>
 
 	<script>
+	var scope = window.scope = {
+		name: 'Mike',
+		plan: 'A',
+		hello: 'Nope'
+	};
+
+	var data = window.data = {
+		name: 'Stephen'
+	};
+
+	var array = [{
+		key: '0',
+		value: '0 - none'
+	}, {
+		key: '1',
+		value: '1 - one'
+	}];
+
+	Sparky.fn['test-array'] = function(node, stream) {
+		return Fn.of(array);
+	};
+
 	Sparky.fn['test-scope'] = function(node, stream) {
-		
+		return Fn.of(scope);
 	};
 
 	Sparky.fn['test-hello'] = function(node, stream) {
-		
+		return Fn.of(data);
 	};
 
 	var s = Sparky(dom.body);
+
+	s.push({
+		
+	});
 	</script>
 </body>
 </html>

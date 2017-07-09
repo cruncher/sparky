@@ -2,6 +2,7 @@
 	"use strict";
 
 	var Fn        = window.Fn;
+	var mount     = window.mount;
 
 	var debug     = Fn.debug;
 	var getPath   = Fn.getPath;
@@ -17,6 +18,23 @@
 	var each      = Fn.each;
 
 	var assign = Object.assign;
+
+	var settings = {
+		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
+
+		mount: function mount(child) {
+			if (!dom.attribute('data-fn', child)) { return; }
+
+			var sparky = Sparky(child);
+
+			return {
+				path: '',
+				token: 'Sparky',
+				getValue: id,
+				render: sparky.push
+			};
+		}
+	};
 
 	function resolveFn(node, fn, ctrl, instream) {
 		// The ctrl list can be a space-separated string of ctrl paths,
@@ -56,7 +74,9 @@
 
 				// Returning an object sets that object to
 				// be used as scope.
-				if (result !== undefined) { instream = result.each ? result : Fn.of(result) ; }
+				if (result !== undefined) {
+					instream = result.each ? result : Fn.of(result) ;
+				}
 			}
 
 			return instream;
@@ -82,39 +102,49 @@
 	}
 
 	function makeFn(string, ctrls, instream) {
-		if (!isDefined(string)) { return; }
+		if (!isDefined(string)) {
+			return function() { return instream; };
+		}
 		var paths = string.trim().split(Sparky.rspaces);
 		return makeDistributeFnFromPaths(paths, ctrls, instream);
 	}
 
-	function Sparky(node) {
+	function Sparky(node, data) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(node);
 		}
 
 		var instream = Stream.of();
-		var fns = Sparky.fn;
-		var dataFn = node.getAttribute && node.getAttribute('data-fn');
-
-		if (dataFn) {
-			var fn = makeFn(dataFn, fns, instream);
-		}
+		var fns      = Sparky.fn;
+		var dataFn   = dom.attribute('data-fn', node);
+		var fn       = makeFn(dataFn, fns, instream);
 
 		// If fn is to be called and a stream is returned, we use that.
-		var outstream = fn ? fn.call(this, node, instream) : instream ;
+		var outstream = fn.call(this, node);
+		var update = mount(node, settings);
 
-		this.push = instream.push;
+		if (instream === outstream) {
+			this.push = instream.push;
+		}
 
-		var distribute = Sparky.mount(node);
-		outstream.each(distribute);
+		outstream.each(update);
 	}
 
 	assign(Sparky.prototype, {
-		
+		push: noop
 	});
 
 	assign(Sparky, {
-		fn: {}
+		mount: mount,
+		fn:    {}
+	});
+
+	Object.defineProperties(Sparky, {
+		rtokens: {
+			get: function() { return settings.rtokens; },
+			enumerable: true,
+			configurable: true
+		}
 	});
 
 	window.Sparky = Sparky;
