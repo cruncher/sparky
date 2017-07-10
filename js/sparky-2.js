@@ -1,10 +1,14 @@
 (function(window) {
 	"use strict";
 
+	var DEBUG     = window.DEBUG;
+
 	var Fn        = window.Fn;
+	var dom       = window.dom;
 	var mount     = window.mount;
 
 	var debug     = Fn.debug;
+	var each      = Fn.each;
 	var getPath   = Fn.getPath;
 	var id        = Fn.id;
 	var isDefined = Fn.isDefined;
@@ -17,37 +21,42 @@
 	var set       = Fn.set;
 	var each      = Fn.each;
 
+	var remove    = dom.remove;
+
 	var assign = Object.assign;
 
 	var settings = {
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
 
-		mount: function mount(child) {
-			if (!dom.attribute('data-fn', child)) { return; }
+		mount: function mount(node) {
+			if (!dom.attribute('data-fn', node)) { return; }
 
-			var sparky = Sparky(child);
-
-			return {
-				path: '',
-				token: 'Sparky',
-				getValue: id,
+			var sparky = Sparky(node);
+			var structs = [{
+				token: '',
+				path:  '',
+				pipe:  '',
 				render: sparky.push
-			};
+			}];
+
+			if (DEBUG) { console.log('mounted:', node, structs.length); }
+
+			return structs;
 		}
 	};
 
-	function resolveFn(node, fn, ctrl, instream) {
+	function resolveFn(node, fn, ctrl, input) {
 		// The ctrl list can be a space-separated string of ctrl paths,
-		return typeof fn === 'string' ? makeFn(fn, ctrl, instream) :
+		return typeof fn === 'string' ? makeFn(fn, ctrl, input) :
 			// a function,
-			typeof fn === 'function' ? makeDistributeFn([fn], instream) :
+			typeof fn === 'function' ? makeDistributeFn([fn], input) :
 			// an array of functions,
-			typeof fn === 'object' ? makeDistributeFn(fn, instream) :
+			typeof fn === 'object' ? makeDistributeFn(fn, input) :
 			// or defined in the data-fn attribute
-			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, instream) ;
+			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, input) ;
 	}
 
-	function makeDistributeFn(list, instream) {
+	function makeDistributeFn(list, input) {
 		return function distributeFn(node) {
 			// Distributor controller
 			var l = list.length;
@@ -67,7 +76,7 @@
 
 			while (++n < l) {
 				// Call the list of ctrls, in order.
-				result = list[n].call(this, node, instream);
+				result = list[n].call(this, node, input);
 
 				// Returning false interrupts the fn calls.
 				if (flag) { return false; }
@@ -75,15 +84,15 @@
 				// Returning an object sets that object to
 				// be used as scope.
 				if (result !== undefined) {
-					instream = result.each ? result : Fn.of(result) ;
+					input = result.each ? result : Fn.of(result) ;
 				}
 			}
 
-			return instream;
+			return input;
 		};
 	}
 
-	function makeDistributeFnFromPaths(paths, ctrls, instream) {
+	function makeDistributeFnFromPaths(paths, ctrls, input) {
 		var list = [];
 		var l = paths.length;
 		var n = -1;
@@ -98,15 +107,15 @@
 			list.push(ctrl);
 		}
 
-		return makeDistributeFn(list, instream);
+		return makeDistributeFn(list, input);
 	}
 
-	function makeFn(string, ctrls, instream) {
+	function makeFn(string, ctrls, input) {
 		if (!isDefined(string)) {
-			return function() { return instream; };
+			return function() { return input; };
 		}
 		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeFnFromPaths(paths, ctrls, instream);
+		return makeDistributeFnFromPaths(paths, ctrls, input);
 	}
 
 	function Sparky(node, data) {
@@ -114,21 +123,39 @@
 			return new Sparky(node);
 		}
 
-		var instream = Stream.of();
-		var fns      = Sparky.fn;
-		var dataFn   = dom.attribute('data-fn', node);
-		var fn       = makeFn(dataFn, fns, instream);
+		node = typeof node === 'string' ? dom(node)[0] : node ;
+
+		var sparky = this;
+		var input  = Stream.of();
+		var fns    = Sparky.fn;
+		var dataFn = dom.attribute('data-fn', node);
+		var fn     = makeFn(dataFn, fns, input);
+
+		this.push   = input.push;
+		this[0]     = node;
+		this.length = 1;
 
 		// If fn is to be called and a stream is returned, we use that.
-		var outstream = fn.call(this, node);
+		var output = fn.call(this, node);
 
-		if (instream === outstream) {
-			this.push = instream.push;
-		}
+		// A controller returning false is telling us not to do data
+		// binding. We can skip the heavy work.
+		if (output === false) { return this; }
+
+		this.stop = function() {
+			output.stop && output.stop();
+			update(null);
+			return sparky;
+		};
+
+		this.remove = function() {
+			each(remove, this);
+			return sparky;
+		};
 
 		settings.transforms = Sparky.transforms;
 		var update = mount(node, settings);
-		outstream.each(update);
+		output.each(update);
 	}
 
 	assign(Sparky.prototype, {
@@ -140,7 +167,24 @@
 
 		transforms: {},
 
-		fn:         {}
+		fn:         {},
+
+		MarkerNode: function MarkerNode(node) {
+			// A text (or comment node in DEBUG mode) for marking a position
+			// in the DOM tree so it can be swapped out with some content node.
+
+			if (!DEBUG) {
+				return dom.create('text', '');
+			}
+
+			var attrScope = node && node.getAttribute('data-scope');
+			var attrCtrl  = node && node.getAttribute('data-fn');
+
+			return dom.create('comment',
+				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
+				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : '')
+			);
+		}
 	});
 
 	Object.defineProperties(Sparky, {

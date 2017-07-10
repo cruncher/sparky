@@ -475,12 +475,12 @@
 	function mount(node, options) {
 		options = assign({}, settings, options);
 
-		if (DEBUG) { console.groupCollapsed('Sparky: mount', node); }
+		if (DEBUG) { console.group('Sparky: mount', node); }
 
 		var structs = mountType(node, options);
 
+		if (DEBUG) { console.table(structs, ["token", "path", "pipe"]); }
 		if (DEBUG) { console.groupEnd(); }
-		if (DEBUG) { console.table(structs, ["token", "path", "transform"]); }
 
 		var stops = nothing;
 		var old;
