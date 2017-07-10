@@ -21,6 +21,8 @@
 	var overload  = Fn.overload;
 	var pipe      = Fn.pipe;
 	var set       = Fn.set;
+	var toClass   = Fn.toClass;
+	var toType    = Fn.toType;
 
 	// Matches a sparky template tag, capturing (path, filter)
 	//var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
@@ -35,7 +37,7 @@
 	//var rclasstags;
 
 	// Matches filter string, capturing (filter name, filter parameter string)
-	var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
+	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
 
 	// Matches anything with a space
 	var rspaces = /\s+/;
@@ -46,41 +48,51 @@
 	// Matches the arguments list in the result of a fn.toString()
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
-	var rpath   = /[\w\-\.]+/;
-	var rstring = /".*?"|'.*?'/;
-	var rnumber = /[+-]?(?:\d*\.)?\d+/;
-	var rbool   = /true|false/;
+	//var rpath   = /[\w\-\.]+/;
+	//var rstring = /".*?"|'.*?'/;
+	//var rnumber = /[+-]?(?:\d*\.)?\d+/;
+	//var rbool   = /true|false/;
 
 	var settings = {
-		mount:  noop,
+		mount:      noop,
 		transforms: {},
-		rtoken: /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+		rtoken:     /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
 
+	var renderValue = overload(toType, {
+		'boolean': function(value) {
+			return value + '';
+		},
+
+		'function': function(value) {
+			return (value.name || 'function')
+				+ (rarguments.exec(value.toString()) || [])[1];
+		},
+
+		'number': function(value) {
+			return Number.isNaN(value) ? '' : value + '' ;
+		},
+
+		'string': id,
+
+		'symbol': function(value) { return value.toString(); },
+
+		'undefined': function() { return ''; },
+
+		'default': JSON.stringify
+	});
 
 	function toRenderString(value) {
-		var type = typeof value;
-
-		return value === null ? '' :
-			value === undefined ? '' :
-			type === 'string' ? value :
-			type === 'number' ?
-				Number.isNaN(value) ? '' :
-				value + '' :
-			type === 'boolean' ? value + '' :
-			// Beautify the .toString() result of functions
-			type === 'function' ? (value.name || 'function') + (rarguments.exec(value.toString()) || [])[1] :
-			// Use just the Class string in '[object Class]'
-			toClass(value) ;
+		return value === null ? '' : renderValue(value) ;
 	}
 
 	function addClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
+		var classes = renderValue(text).trim().split(rspaces);
 		classList.add.apply(classList, classes);
 	}
 
 	function removeClasses(classList, text) {
-		var classes = text.trim().split(rspaces);
+		var classes = renderValue(text).trim().split(rspaces);
 		classList.remove.apply(classList, classes);
 	}
 
@@ -492,6 +504,9 @@
 			});
 		};
 	}
+
+
+	// Export
 
 	window.mount = mount;
 
