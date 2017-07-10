@@ -392,9 +392,9 @@
 			} ;
 
 		var structs = [{
-			token: value.trim(),
-			path: tokens[2],
-			pipe: tokens[3],
+			token:  value.trim(),
+			path:   tokens[2],
+			pipe:   tokens[3],
 			render: render
 		}];
 
@@ -423,9 +423,9 @@
 			}
 
 			structs.push({
-				token: $0,
-				path: $2,
-				pipe: $3,
+				token:  $0,
+				path:   $2,
+				pipe:   $3,
 				render: render
 			});
 
@@ -443,9 +443,9 @@
 		var j = strings.length - 1;
 
 		structs.push({
-			token: match[0],
-			path: match[2],
-			pipe: match[3],
+			token:  match[0],
+			path:   match[2],
+			pipe:   match[3],
 			render: function renderText(value) {
 				strings[j] = toRenderString(value);
 				render(strings);
@@ -475,12 +475,16 @@
 	function mount(node, options) {
 		options = assign({}, settings, options);
 
-		if (DEBUG) { console.group('Sparky: mount', node); }
+		if (DEBUG) {
+			console.groupCollapsed('Sparky: mount ', node);
+		}
 
 		var structs = mountType(node, options);
 
-		if (DEBUG) { console.table(structs, ["token", "path", "pipe"]); }
-		if (DEBUG) { console.groupEnd(); }
+		if (DEBUG) {
+			console.table(structs, ["token", "path", "pipe"]);
+			console.groupEnd();
+		}
 
 		var stops = nothing;
 		var old;
@@ -488,6 +492,11 @@
 		return function update(data) {
 			if (old === data) { return; }
 			old = data;
+
+			if (DEBUG) {
+				console.groupCollapsed('Sparky: update', node);
+				console.log(data);
+			}
 
 			var observable = Observable(data);
 
@@ -502,6 +511,10 @@
 				.each(struct.render)
 				.stop;
 			});
+
+			if (DEBUG) {
+				console.groupEnd();
+			}
 		};
 	}
 

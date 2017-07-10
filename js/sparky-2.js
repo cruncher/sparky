@@ -29,13 +29,14 @@
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
 
 		mount: function mount(node) {
-			if (!dom.attribute('data-fn', node)) { return; }
+			var dataFn = dom.attribute('data-fn', node);
+
+			if (!dataFn) { return; }
 
 			var sparky = Sparky(node);
 			var structs = [{
-				token: '',
+				token: dataFn,
 				path:  '',
-				pipe:  '',
 				render: sparky.push
 			}];
 
