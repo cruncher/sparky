@@ -19,6 +19,7 @@
 	var nothing   = Fn.nothing;
 	var noop      = Fn.noop;
 	var overload  = Fn.overload;
+	var pipe      = Fn.pipe;
 	var set       = Fn.set;
 
 	// Matches a sparky template tag, capturing (path, filter)
@@ -52,7 +53,8 @@
 
 	var settings = {
 		mount:  noop,
-		rtoken: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g
+		transforms: {},
+		rtoken: /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
 
 
@@ -87,6 +89,42 @@
 	}
 
 	function call(fn) { return fn(); }
+
+
+	// Transform
+
+	var rtransform = /\|\s*([\w\-]+)\s*(?::([^|]+))?/g;
+
+	function Transform(transforms, string) {
+		if (!string) { return id; }
+
+		var fns = [];
+		var token, name, fn, args;
+
+		rtransform.lastIndex = 0;
+
+		while (
+			rtransform.lastIndex < string.length
+			&& (token = rtransform.exec(string))
+		) {
+			name = token[1];
+			fn   = transforms[name];
+
+			if (!fn) {
+				throw new Error('Sparky: transform "' + name + '" not found');
+			}
+
+			if (token[2]) {
+				args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fns.push(fn.apply(null, args));
+			}
+			else {
+				fns.push(fn);
+			}
+		}
+
+		return pipe.apply(null, fns);
+	}
 
 
 	// Mount
@@ -343,9 +381,8 @@
 
 		var structs = [{
 			token: value.trim(),
-			getValue: getPath(tokens[2]),
 			path: tokens[2],
-			transforms: tokens[3],
+			pipe: tokens[3],
 			render: render
 		}];
 
@@ -375,9 +412,8 @@
 
 			structs.push({
 				token: $0,
-				transforms: $3,
 				path: $2,
-				getValue: getPath($2),
+				pipe: $3,
 				render: render
 			});
 
@@ -396,9 +432,8 @@
 
 		structs.push({
 			token: match[0],
-			getValue: getPath(match[2]),
 			path: match[2],
-			transforms: match[3],
+			pipe: match[3],
 			render: function renderText(value) {
 				strings[j] = toRenderString(value);
 				render(strings);
@@ -425,7 +460,7 @@
 		return structs;
 	}
 
-	window.mount = function(node, options) {
+	function mount(node, options) {
 		options = assign({}, settings, options);
 
 		if (DEBUG) { console.groupCollapsed('Sparky: mount', node); }
@@ -447,12 +482,17 @@
 			stops.forEach(call);
 
 			stops = structs.map(function(struct) {
+				struct.transform = struct.transform || Transform(options.transforms, struct.pipe);
+
 				return Stream
 				.observe(struct.path, observable)
+				.map(struct.transform)
 				.each(struct.render)
 				.stop;
 			});
 		};
-	};
+	}
+
+	window.mount = mount;
 
 })(this);

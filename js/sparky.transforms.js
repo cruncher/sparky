@@ -5,8 +5,10 @@
 	"use strict";
 
 	var Fn        = window.Fn;
+	var dom       = window.dom;
 	var Sparky    = window.Sparky;
 	
+	var assign    = Object.assign;
 	var curry     = Fn.curry;
 	var isDefined = Fn.isDefined;
 	var settings  = (Sparky.settings = Sparky.settings || {});
@@ -85,14 +87,69 @@
 			date ;
 	}
 
-	Sparky.transforms = {
-		add: function(value, n) {
-			var result = parseFloat(value) + n ;
-			if (Number.isNaN(result)) { return; }
-			return result;
-		},
+	assign(Sparky.transforms, {
 
-		append: Fn.append,
+		// Transforms from Fn's map functions
+
+		add:          Fn.add,
+		append:       Fn.append,
+		contains:     Fn.contains,
+		denormalise:  Fn.denormalise,
+		diff:         Fn.diff,
+		equals:       Fn.equals,
+		exp:          Fn.exp,
+		factorise:    Fn.factorise,
+		gcd:          Fn.gcd,
+		get:          Fn.get,
+		getPath:      Fn.getPath,
+		intersect:    Fn.intersect,
+		invoke:       Fn.invoke,
+		is:           Fn.is,
+		lcm:          Fn.lcm,
+		limit:        Fn.limit,
+		log:          Fn.log,
+		max:          Fn.max,
+		min:          Fn.min,
+		mod:          Fn.mod,
+		multiply:     Fn.multiply,
+		normalise:    Fn.normalise,
+		not:          Fn.not,
+		percent:      Fn.multiply(100),
+		pow:          Fn.pow,
+		prepend:      Fn.prepend,
+		rest:         Fn.rest,
+		root:         Fn.nthRoot,
+		slugify:      Fn.slugify,
+		sort:         Fn.sort,
+		take:         Fn.take,
+		toCartesian:  Fn.toCartesian,
+		toDb:         Fn.toDb,
+		toDeg:        Fn.toDeg,
+		toLevel:      Fn.toLevel,
+		toFixed:      Fn.toFixed,
+		toFloat:      Fn.toFloat,
+		toPolar:      Fn.toPolar,
+		toRad:        Fn.toRad,
+		toStringType: Fn.toStringType,
+		toType:       Fn.toType,
+		unique:       Fn.unique,
+		unite:        Fn.unite,
+
+
+		// Transforms from dom's map functions
+
+		escape:       dom.escape,
+		toPx:         dom.toPx,
+		toRem:        dom.toRem,
+
+
+		// Sparky transforms
+
+//		add: function(value, n) {
+//			var result = parseFloat(value) + n ;
+//			if (Number.isNaN(result)) { return; }
+//			return result;
+//		},
 
 		capfirst: function(value) {
 			return value.charAt(0).toUpperCase() + value.substring(1);
@@ -201,8 +258,6 @@
 			return value / n;
 		}),
 
-		escape: dom.escape,
-
 		'find-in': curry(function(path, id) {
 			if (!isDefined(id)) { return; }
 			var collection = Fn.getPath(path, Sparky.data);
@@ -221,22 +276,13 @@
 			return Math.floor(value);
 		},
 
-		get: function(value, name) {
-			return isDefined(value) ? Fn.get(name, value) : undefined ;
-		},
-
 		"greater-than": function(value1, value2) {
 			return value1 > value2;
 		},
 
-		contains: Fn.contains,
-
 		invert: function(value) {
 			return typeof value === 'number' ? 1 / value : !value ;
 		},
-
-		is:     Fn.is,
-		equals: Fn.equals,
 
 		join: curry(function(string, value) {
 			return Array.prototype.join.call(value, string);
@@ -288,18 +334,13 @@
 		},
 
 		map: curry(function(method, path, array) {
-			return array && array.map(Fn[method](path));
+			return array && array.map(Sparky.transforms[method](path));
 		}),
 
 		mod: curry(function(n, value) {
 			if (typeof value !== 'number') { return; }
 			return value % n;
 		}),
-
-		multiply: Fn.multiply,
-		not:      Fn.not,
-		parseint: Fn.toInt,
-		percent:  Fn.multiply(100),
 
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }
@@ -338,8 +379,6 @@
 			return array.join(char || ' ');
 		}),
 
-		prepend: Fn.prepend,
-
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},
@@ -370,8 +409,6 @@
 				value.slice(i0, i1) :
 				Array.prototype.slice.call(value, i0, i1) ;
 		}),
-
-		slugify: Fn.slugify,
 
 		//sort
 		//stringformat
@@ -465,5 +502,5 @@
 		yesno: curry(function(truthy, falsy, value) {
 			return value ? truthy : falsy ;
 		})
-	};
+	});
 })(this);

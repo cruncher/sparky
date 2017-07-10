@@ -121,6 +121,9 @@
 
 		// If fn is to be called and a stream is returned, we use that.
 		var outstream = fn.call(this, node);
+
+		settings.transforms = Sparky.transforms;
+
 		var update = mount(node, settings);
 
 		if (instream === outstream) {
@@ -135,8 +138,11 @@
 	});
 
 	assign(Sparky, {
-		mount: mount,
-		fn:    {}
+		mount:      mount,
+
+		transforms: {},
+
+		fn:         {}
 	});
 
 	Object.defineProperties(Sparky, {
