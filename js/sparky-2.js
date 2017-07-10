@@ -122,14 +122,12 @@
 		// If fn is to be called and a stream is returned, we use that.
 		var outstream = fn.call(this, node);
 
-		settings.transforms = Sparky.transforms;
-
-		var update = mount(node, settings);
-
 		if (instream === outstream) {
 			this.push = instream.push;
 		}
 
+		settings.transforms = Sparky.transforms;
+		var update = mount(node, settings);
 		outstream.each(update);
 	}
 
