@@ -1,189 +1,109 @@
 (function(window) {
 	"use strict";
 
-	var Fn     = window.Fn;
-	var dom    = window.dom;
-	var Sparky = window.Sparky;
+	var Fn         = window.Fn;
+	var dom        = window.dom;
+	var Observable = window.Observable;
+	var Sparky     = window.Sparky;
+
+	var before     = dom.before;
+	var clone      = dom.clone;
+	var noop       = Fn.noop;
+	var MarkerNode = Sparky.MarkerNode;
+	var observe    = Observable.observe;
+
+	var $object    = Symbol('object');
 
 	// We maintain a list of sparkies that are scheduled for destruction. This
 	// time determines how long we wait during periods of inactivity before
 	// destroying those sparkies.
 	var destroyDelay = 8000;
 
-	function createPlaceholder(node) {
-		if (!Sparky.debug) { return dom.create('text', ''); }
-
-		var attrScope = node.getAttribute('data-scope');
-		var attrCtrl = node.getAttribute('data-fn');
-
-		return dom.create('comment',
-			(attrScope ? ' data-scope="' + attrScope + '"' : '') +
-			(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : ''));
+	function createChild(node, object) {
+		var sparky = new Sparky(node, object);
+		sparky[$object] = object;
+		sparky.push(object);
+		return sparky;
 	}
 
-	Sparky.fn.each = function setupCollection(node, scopes) {
+	Sparky.fn.each = function each(node, scopes) {
 		var sparky   = this;
-		var data     = this.data;
 		var sparkies = [];
-		var cache    = [];
 
-		// We cannot use a WeakMap here: WeakMaps do not accept primitives as
-		// keys, and a Sparky scope may be a number or a string - although that
-		// is unusual and perhaps we should ban it.
-		var rejects  = new Map();
-		var scheduled = [];
-
-		var clone    = node.cloneNode(true);
+		var template = node.cloneNode(true);
 		var fns      = this.interrupt();
-		var placeholder = createPlaceholder(node);
-		var collection;
+		var marker   = MarkerNode(node);
 
-		function update() {
-			var n = -1;
-			var l = cache.length;
-			var map = {};
-			var i, object, t;
+		function update(array) {
+			var node = marker;
+			var n    = -1;
+			var sparky, object, i;
 
-			if (Sparky.debug) { t = window.performance.now(); }
+			while (++n < array.length) {
+				object = array[n];
+				sparky = sparkies[n];
 
-			// Compare the cached version of the collection against the
-			// collection and construct a map of found object positions.
-			while (l--) {
-				object = cache[l];
-				i = collection.indexOf(object);
-
-				if (i === -1) {
-					rejects.set(object, sparkies[l]);
-					dom.remove(sparkies[l][0]);
-					scheduled.push(object);
-				}
-				else {
-					map[i] = sparkies[l];
-				}
-			}
-
-			l = sparkies.length = cache.length = collection.length;
-
-			// Ignore any objects at the start of the collection that have
-			// not changed position. Optimises for the common case where we're
-			// pushing things on the end.
-			while(cache[++n] && cache[n] === collection[n]);
-			--n;
-
-			var changed = false;
-
-			// Loop through the collection, recaching objects and creating
-			// sparkies where needed.
-			while(++n < l) {
-				// While nothing has changed, do nothing
-				if (!changed && cache[n] === collection[n]) {
-					continue;
-				}
-				else {
-					changed = true;
-				}
-
-				object = cache[n] = collection[n];
-				removeScheduled(object);
-
-				sparkies[n] = rejects.get(object);
-
-				Sparky.log('sparky for object');
-				if (sparkies[n]) {
-					Sparky.log('    ...found in rejects')
-					rejects.delete(object);
-				}
-				else {
-					sparkies[n] = map[n] || sparky.create(clone.cloneNode(true), object, fns);
-				}
-
-				// If node before placeholder is a leftover reject
-				if (placeholder.previousSibling === sparkies[n][0]) {
-					Sparky.log('    ...already in dom position', sparkies[n][0]);
+				if (sparky && object === sparky[$object]) {
 					continue;
 				}
 
-				// We are in an animation frame. Go ahead and manipulate the dom.
-				dom.before(placeholder, sparkies[n][0]);
+				i = -1;
+				while (sparkies[++i] && sparkies[i][$object] !== object);
+				sparky = i === sparkies.length ?
+					createChild(clone(template), object) :
+					sparkies.splice(i, 1)[0];
+
+				sparkies.splice(n, 0, sparky);
 			}
 
-			Sparky.log(
-				'collection rendered (length: ' + collection.length +
-				', time: ' + (window.performance.now() - t) + 'ms)'
-			);
+			n = sparkies.length;
 
-			reschedule();
-		}
-
-		var throttle = Fn.throttle(update);
-		var timer;
-
-		fns.unshift(function() {
-			this.data = Object.create(data);
-		});
-
-		function reschedule() {
-			clearTimeout(timer);
-			timer = setTimeout(function() {
-				scheduled.forEach(function(object) {
-					var sparky = rejects.get(object);
-					// Todo: This should not occur. Object must be in rejects
-					// at this point. but it is occurring. Find out what is
-					// wrong.
-					if (!sparky) { return; }
-					sparky.destroy();
-					rejects.delete(object);
-				});
-				scheduled.length = 0;
-			}, destroyDelay);
-		}
-
-		function removeScheduled(object) {
-			var i = scheduled.indexOf(object);
-			if (i === -1) { return; }
-			scheduled.splice(i, 1);
-		}
-
-		function observeCollection() {
-			if (collection.on) {
-				collection.on('add remove sort', throttle);
-				// The first update should be performed immediately
-				update();
+			while (--n >= array.length) {
+				// Destroy
+				sparkies[n].stop().remove();
 			}
-			else {
-				Sparky.observe(collection, 'length', throttle);
+
+			sparkies.length = array.length;
+
+			var next, node;
+			n = -1;
+
+			while (++n < array.length) {
+				node = node.nextSibling;
+
+				if (sparkies[n][0] !== node) {
+					before(node, sparkies[n][0]);
+				}
 			}
 		}
 
-		function unobserveCollection() {
-			if (collection.on) {
-				collection.off('add remove sort', throttle);
-			}
-			else {
-				Sparky.unobserve(collection, 'length', throttle);
-			}
-		}
+		//var throttle = Fn.throttle(update);
+		//var timer;
+
+		//fns.unshift(function() {
+		//	this.data = Object.create(data);
+		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		clone.removeAttribute('data-scope');
-		clone.removeAttribute('data-fn');
+		template.removeAttribute('data-scope');
+		template.removeAttribute('data-fn');
 
-		// Put the placeholder in place and remove the node
-		dom.before(node, placeholder);
+		// Put the marker in place and remove the node
+		dom.before(node, marker);
 		dom.remove(node);
 
-		scopes
-		.dedup()
-		.each(function(scope) {
-			if (collection) { unobserveCollection(); }
-			collection = scope;
-			if (collection) { observeCollection(); }
+		var unobserve = noop;
+
+		scopes.each(function(scope) {
+			unobserve();
+			unobserve = observe(scope, '', update);
 		});
 
-		this
-		.on('destroy', function destroy() {
-			throttle.cancel();
-			unobserveCollection();
-		});
+		return false;
+
+		//this.on('stop', function destroy() {
+		//	throttle.cancel();
+		//	unobserve();
+		//});
 	};
 })(this);

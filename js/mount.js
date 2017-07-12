@@ -1,28 +1,28 @@
 (function(window) {
 	"use strict";
 
-	var DEBUG     = window.DEBUG;
+	var DEBUG      = window.DEBUG;
 
-	var Fn        = window.Fn;
-	var Stream    = window.Stream;
-	var Sparky    = window.Sparky;
+	var Fn         = window.Fn;
+	var Stream     = window.Stream;
+	var Sparky     = window.Sparky;
 
-	var assign    = Object.assign;
-	var apply     = Fn.apply;
-	var curry     = Fn.curry;
-	var debug     = Fn.debug;
-	var each      = Fn.each;
-	var get       = Fn.get;
-	var getPath   = Fn.getPath;
-	var id        = Fn.id;
-	var isDefined = Fn.isDefined;
-	var nothing   = Fn.nothing;
-	var noop      = Fn.noop;
-	var overload  = Fn.overload;
-	var pipe      = Fn.pipe;
-	var set       = Fn.set;
-	var toClass   = Fn.toClass;
-	var toType    = Fn.toType;
+	var assign     = Object.assign;
+	var apply      = Fn.apply;
+	var curry      = Fn.curry;
+	var debug      = Fn.debug;
+	var each       = Fn.each;
+	var get        = Fn.get;
+	var getPath    = Fn.getPath;
+	var id         = Fn.id;
+	var isDefined  = Fn.isDefined;
+	var nothing    = Fn.nothing;
+	var noop       = Fn.noop;
+	var overload   = Fn.overload;
+	var pipe       = Fn.pipe;
+	var set        = Fn.set;
+	var toClass    = Fn.toClass;
+	var toType     = Fn.toType;
 
 	// Matches a sparky template tag, capturing (path, filter)
 	//var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
