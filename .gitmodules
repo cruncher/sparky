@@ -1,0 +1,6 @@
+[submodule "fn"]
+	path = fn
+	url = https://github.com/stephband/Fn.git
+[submodule "dom"]
+	path = dom
+	url = https://github.com/stephband/dom.git
