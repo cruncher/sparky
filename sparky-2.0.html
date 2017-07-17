@@ -13,7 +13,12 @@
 	<link rel="icon" type="image/png" href="images/favicon.png" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-	<link rel="stylesheet" href="/bolt/package/css/bolt-0.9.8.css" />
+	<link rel="stylesheet" href="http://stephen.band/bolt/css/normalise.css" />
+	<link rel="stylesheet" href="http://stephen.band/bolt/css/text.css" />
+	<link rel="stylesheet" href="http://stephen.band/bolt/css/form.css" />
+	<link rel="stylesheet" href="http://stephen.band/bolt/css/dom.css" />
+
+	<link rel="stylesheet" href="fn/css/test.css" />
 	<!--link rel="stylesheet" href="css/grid.css" /-->
 </head>
 
@@ -34,25 +39,25 @@
 	window.DEBUG = true;
 	</script>
 
-	<script src="modules/fn/polyfills/array.find.js"></script>
-	<script src="modules/fn/polyfills/array.from.js"></script>
-	<script src="modules/fn/polyfills/array.of.js"></script>
-	<script src="modules/fn/polyfills/number.isnan.js"></script>
-	<script src="modules/fn/polyfills/math.log10.js"></script>
-	<script src="modules/fn/polyfills/symbol.js"></script>
-	<script src="modules/fn/polyfills/promise.js"></script>
-	<script src="modules/fn/polyfills/window.requestanimationframe.js"></script>
-	<script src="modules/dom/polyfills/window.customevent.js"></script>
-	<script src="modules/polyfills/window.performance.js"></script>
-	<script src="modules/polyfills/window.console.group.js"></script>
+	<script src="fn/polyfills/array.find.js"></script>
+	<script src="fn/polyfills/array.from.js"></script>
+	<script src="fn/polyfills/array.of.js"></script>
+	<script src="fn/polyfills/number.isnan.js"></script>
+	<script src="fn/polyfills/math.log10.js"></script>
+	<script src="fn/polyfills/symbol.js"></script>
+	<script src="fn/polyfills/promise.js"></script>
+	<script src="fn/polyfills/window.requestanimationframe.js"></script>
+	<script src="dom/polyfills/window.customevent.js"></script>
+	<script src="polyfills/window.performance.js"></script>
+	<script src="polyfills/window.console.group.js"></script>
 
-	<script src="modules/fn/js/fn.js"></script>
-	<script src="modules/fn/js/observable.js"></script>
-	<script src="modules/fn/js/events.js"></script>
-	<script src="modules/fn/js/stream.js"></script>
-	<script src="modules/fn/js/stream.observe.js"></script>
+	<script src="fn/js/fn.js"></script>
+	<script src="fn/js/observable.js"></script>
+	<script src="fn/js/events.js"></script>
+	<script src="fn/js/stream.js"></script>
+	<script src="fn/js/stream.observe.js"></script>
 
-	<script src="modules/dom/js/dom.js"></script>
+	<script src="dom/js/dom.js"></script>
 
 	<script src="js/mount.js"></script>
 	<script src="js/sparky.js"></script>
@@ -60,8 +65,7 @@
 	<script src="js/sparky.fn.each.js"></script>
 	<script src="js/sparky.transforms.js"></script>
 
-	<script src="test/module.js"></script>
-	<script src="test/sparky.test.js"></script>
+	<script src="fn/test/test.js"></script>
 
 	<script>
 	var scope = window.scope = {
@@ -100,5 +104,7 @@
 		
 	});
 	</script>
+
+	<script src="test/sparky.test.js"></script>
 </body>
 </html>

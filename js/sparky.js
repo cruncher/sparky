@@ -7,6 +7,8 @@
 	var dom       = window.dom;
 	var mount     = window.mount;
 
+	var assign    = Object.assign;
+
 	var debug     = Fn.debug;
 	var each      = Fn.each;
 	var getPath   = Fn.getPath;
@@ -23,7 +25,7 @@
 
 	var remove    = dom.remove;
 
-	var assign = Object.assign;
+	var rfn       = /\s*([-\w]+)(?:\(([^)]*)\))?/g;
 
 	var settings = {
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
@@ -57,66 +59,44 @@
 			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, input) ;
 	}
 
-	function makeDistributeFn(list, input) {
+	function makeDistributeFn(list, stream) {
 		return function distributeFn(node) {
-			// Distributor controller
-			var l = list.length;
-			var n = -1;
-			var result;
-			var flag = false;
-
-			// TODO: This is exposes solely so that ctrl
-			// 'observe-selected' can function in sound.io.
-			// Really naff. Find a better way.
-			this.ctrls = list;
-
 			this.interrupt = function interrupt() {
-				flag = true;
-				return list.slice(n + 1);
+				stream = false;
+				return list.splice(n + 1);
 			};
 
-			while (++n < l) {
-				// Call the list of ctrls, in order.
-				result = list[n].call(this, node, input);
-
-				// Returning false interrupts the fn calls.
-				if (flag) { return false; }
-
-				// Returning an object sets that object to
-				// be used as scope.
-				if (result !== undefined) {
-					input = result.each ? result : Fn.of(result) ;
-				}
+			var n = -1;
+			var entry;
+			while (entry = list[++n]) {
+				// Call the list of fns, in order.
+				stream = entry.fn.call(this, node, stream, entry.args) || stream;
 			}
 
-			return input;
+			return stream;
 		};
 	}
 
-	function makeDistributeFnFromPaths(paths, ctrls, input) {
-		var list = [];
-		var l = paths.length;
-		var n = -1;
-		var ctrl;
-
-		while (++n < l) {
-			ctrl = Fn.getPath(paths[n], ctrls);
-			if (!ctrl) {
-				throw new Error('Sparky: data-fn "' + paths[n] + '" not found in sparky.fn');
-			}
-
-			list.push(ctrl);
-		}
-
-		return makeDistributeFn(list, input);
-	}
-
-	function makeFn(string, ctrls, input) {
+	function makeFn(string, fns, stream) {
 		if (!isDefined(string)) {
-			return function() { return input; };
+			return function() { return stream; };
 		}
-		var paths = string.trim().split(Sparky.rspaces);
-		return makeDistributeFnFromPaths(paths, ctrls, input);
+
+		var list = [];
+		var n = -1;
+		var bits;
+
+		rfn.lastIndex = 0;
+
+		while (bits = rfn.exec(string)) {
+			list.push({
+				name: bits[1],
+				args: bits[2] && JSON.parse('[' + bits[2].replace(/'/g, '"') + ']'),
+				fn:   get(bits[1], fns)
+			});
+		}
+
+		return makeDistributeFn(list, stream);
 	}
 
 	function Sparky(node, data) {
@@ -164,12 +144,20 @@
 	});
 
 	assign(Sparky, {
-		fn:         {},
+		fn:         {
+			get: function(node, stream, args) {
+				return stream.map(getPath(args[0]));
+			}
+		},
+
 		transforms: {},
+
 		mount:      mount,
+
 		MarkerNode: function MarkerNode(node) {
-			// A text (or comment node in DEBUG mode) for marking a position
-			// in the DOM tree so it can be swapped out with some content node.
+			// A text node, or comment node in DEBUG mode, for marking a
+			// position in the DOM tree so it can be swapped out with some
+			// content node.
 
 			if (!DEBUG) {
 				return dom.create('text', '');

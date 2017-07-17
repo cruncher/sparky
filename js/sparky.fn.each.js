@@ -62,7 +62,7 @@
 				// Destroy
 				sparkies[n].stop().remove();
 			}
-
+console.log('>>', array)
 			sparkies.length = array.length;
 
 			var next, node;
