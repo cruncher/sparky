@@ -10,7 +10,7 @@ group('Controller', function(test, log, fixture) {
 		var sparky = Sparky(node);
 
 		requestAnimationFrame(function functionName() {
-			equals('peas', node.innerHTML, node.innerHTML);
+			equals('peas', node.innerHTML);
 			done(1);
 		});
 	});

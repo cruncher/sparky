@@ -6,11 +6,12 @@
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
 
+	var noop       = Fn.noop;
+	var toArray    = Fn.toArray;
 	var before     = dom.before;
 	var clone      = dom.clone;
-	var noop       = Fn.noop;
-	var MarkerNode = Sparky.MarkerNode;
 	var observe    = Observable.observe;
+	var MarkerNode = Sparky.MarkerNode;
 
 	var $object    = Symbol('object');
 
@@ -19,19 +20,18 @@
 	// destroying those sparkies.
 	var destroyDelay = 8000;
 
-	function createChild(node, object) {
-		var sparky = new Sparky(node, object);
+	function createChild(node, object, options) {
+		var sparky = new Sparky(node, object, options);
 		sparky[$object] = object;
-		sparky.push(object);
 		return sparky;
 	}
 
-	Sparky.fn.each = function each(node, scopes) {
+	Sparky.fn.each = function each(node, scopes, params, fns) {
 		var sparky   = this;
 		var sparkies = [];
 
 		var template = node.cloneNode(true);
-		var fns      = this.interrupt();
+		var options  = this.interrupt();
 		var marker   = MarkerNode(node);
 
 		function update(array) {
@@ -39,6 +39,7 @@
 			var n    = -1;
 			var sparky, object, i;
 
+			// Reorder sparkies
 			while (++n < array.length) {
 				object = array[n];
 				sparky = sparkies[n];
@@ -49,22 +50,26 @@
 
 				i = -1;
 				while (sparkies[++i] && sparkies[i][$object] !== object);
+
 				sparky = i === sparkies.length ?
-					createChild(clone(template), object) :
+					createChild(clone(template), object, options) :
 					sparkies.splice(i, 1)[0];
 
 				sparkies.splice(n, 0, sparky);
 			}
 
+			// Reordering has pushed all removed sparkies to the end of the
+			// array: remove them
 			n = sparkies.length;
 
 			while (--n >= array.length) {
 				// Destroy
 				sparkies[n].stop().remove();
 			}
-console.log('>>', array)
+
 			sparkies.length = array.length;
 
+			// Reoder nodes in the DOM
 			var next, node;
 			n = -1;
 
@@ -99,11 +104,12 @@ console.log('>>', array)
 			unobserve = observe(scope, '', update);
 		});
 
-		return false;
-
 		//this.on('stop', function destroy() {
 		//	throttle.cancel();
 		//	unobserve();
 		//});
+
+		// Returning false stops remaining fns from being run on this node
+		return false;
 	};
 })(this);

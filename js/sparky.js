@@ -18,14 +18,13 @@
 	var nothing   = Fn.nothing;
 	var noop      = Fn.noop;
 	var curry     = Fn.curry;
-	var apply     = Fn.apply;
 	var get       = Fn.get;
 	var set       = Fn.set;
 	var each      = Fn.each;
 
 	var remove    = dom.remove;
 
-	var rfn       = /\s*([-\w]+)(?:\(([^)]*)\))?/g;
+	var rfn       = /\s*([-\w]+)(?:\(([^)]*)\))?/;
 
 	var settings = {
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
@@ -48,105 +47,69 @@
 		}
 	};
 
-	function resolveFn(node, fn, ctrl, input) {
-		// The ctrl list can be a space-separated string of ctrl paths,
-		return typeof fn === 'string' ? makeFn(fn, ctrl, input) :
-			// a function,
-			typeof fn === 'function' ? makeDistributeFn([fn], input) :
-			// an array of functions,
-			typeof fn === 'object' ? makeDistributeFn(fn, input) :
-			// or defined in the data-fn attribute
-			node.getAttribute && makeFn(node.getAttribute('data-fn'), ctrl, input) ;
-	}
-
-	function makeDistributeFn(list, stream) {
-		return function distributeFn(node) {
-			this.interrupt = function interrupt() {
-				stream = false;
-				return list.splice(n + 1);
-			};
-
-			var n = -1;
-			var entry;
-			while (entry = list[++n]) {
-				// Call the list of fns, in order.
-				stream = entry.fn.call(this, node, stream, entry.args) || stream;
-			}
-
-			return stream;
-		};
-	}
-
-	function makeFn(string, fns, stream) {
-		if (!isDefined(string)) {
-			return function() { return stream; };
-		}
-
-		var list = [];
-		var n = -1;
-		var bits;
-
-		rfn.lastIndex = 0;
-
-		while (bits = rfn.exec(string)) {
-			list.push({
-				name: bits[1],
-				args: bits[2] && JSON.parse('[' + bits[2].replace(/'/g, '"') + ']'),
-				fn:   get(bits[1], fns)
-			});
-		}
-
-		return makeDistributeFn(list, stream);
-	}
-
-	function Sparky(node, data) {
+	function Sparky(node, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(node);
 		}
 
-		node = typeof node === 'string' ? dom(node)[0] : node ;
+		node = typeof node === 'string' ?
+			dom(node)[0] :
+			node ;
 
-		var sparky = this;
-		var input  = Stream.of();
-		var fns    = Sparky.fn;
-		var dataFn = dom.attribute('data-fn', node);
-		var fn     = makeFn(dataFn, fns, input);
+		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var calling  = true;
 
-		this.push   = input.push;
+		var sparky  = this;
+		var stream  = data ? Stream.of(data) : Stream.of() ;
+		var update  = noop;
+
 		this[0]     = node;
 		this.length = 1;
 
-		// If fn is to be called and a stream is returned, we use that.
-		var output = fn.call(this, node);
+		this.push   = stream.push;
 
-		// A controller returning false is telling us not to do data
-		// binding. We can skip the heavy work.
-		if (output === false) { return this; }
-
-		this.stop = function() {
-			output.stop && output.stop();
+		this.stop = function stop() {
+			stream.stop && stream.stop();
 			update(null);
 			return sparky;
 		};
 
-		this.remove = function() {
-			each(remove, this);
-			return sparky;
+		this.interrupt = function interrupt() {
+			calling = false;
+			return { fn: fnstring };
 		};
 
+		// Parse the fns and params to execute
+		var token, fn, params;
+
+		while (token = fnstring.match(rfn)) {
+			fn       = Sparky.fn[token[1]];
+			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+			fnstring = fnstring.slice(token[0].length);
+			stream   = fn.call(this, node, stream, params) || stream;
+
+			// If fns have been interrupted return the sparky without mounting
+			if (!calling) { return this; }
+		}
+
 		settings.transforms = Sparky.transforms;
-		var update = mount(node, settings);
-		output.each(update);
+		update = mount(node, settings);
+		stream.each(update);
 	}
 
 	assign(Sparky.prototype, {
-		push: noop
+		push: noop,
+
+		remove: function() {
+			each(remove, this);
+			return this;
+		}
 	});
 
 	assign(Sparky, {
 		fn:         {
-			get: function(node, stream, args) {
-				return stream.map(getPath(args[0]));
+			get: function(node, stream, params) {
+				return stream.map(getPath(params[0]));
 			}
 		},
 

@@ -59,7 +59,7 @@
 		rtoken:     /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
 
-	var renderValue = overload(toType, {
+	var toRenderString = overload(toType, {
 		'boolean': function(value) {
 			return value + '';
 		},
@@ -79,20 +79,20 @@
 
 		'undefined': function() { return ''; },
 
+		'object': function(value) {
+			return value === null ? '' : JSON.stringify(value);
+		},
+
 		'default': JSON.stringify
 	});
 
-	function toRenderString(value) {
-		return value === null ? '' : renderValue(value) ;
-	}
-
 	function addClasses(classList, text) {
-		var classes = renderValue(text).trim().split(rspaces);
+		var classes = toRenderString(text).trim().split(rspaces);
 		classList.add.apply(classList, classes);
 	}
 
 	function removeClasses(classList, text) {
-		var classes = renderValue(text).trim().split(rspaces);
+		var classes = toRenderString(text).trim().split(rspaces);
 		classList.remove.apply(classList, classes);
 	}
 
@@ -515,6 +515,8 @@
 			if (DEBUG) {
 				console.groupEnd();
 			}
+
+			return data;
 		};
 	}
 
