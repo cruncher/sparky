@@ -52,21 +52,19 @@
 			return new Sparky(node);
 		}
 
-		node = typeof node === 'string' ?
-			dom(node)[0] :
-			node ;
+		node = typeof node === 'string' ? dom(node)[0] : node ;
 
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
 
-		var sparky  = this;
-		var stream  = data ? Stream.of(data) : Stream.of() ;
-		var update  = noop;
+		var sparky   = this;
+		var stream   = data ? Stream.of(data) : Stream.of() ;
+		var update   = noop;
 
-		this[0]     = node;
-		this.length = 1;
+		this[0]      = node;
+		this.length  = 1;
 
-		this.push   = stream.push;
+		this.push    = stream.push;
 
 		this.stop = function stop() {
 			stream.stop && stream.stop();

@@ -20,13 +20,13 @@
 	// destroying those sparkies.
 	var destroyDelay = 8000;
 
-	function createChild(node, object, options) {
+	function create(node, object, options) {
 		var sparky = new Sparky(node, object, options);
 		sparky[$object] = object;
 		return sparky;
 	}
 
-	Sparky.fn.each = function each(node, scopes, params, fns) {
+	Sparky.fn.each = function each(node, scopes, params) {
 		var sparky   = this;
 		var sparkies = [];
 
@@ -52,7 +52,7 @@
 				while (sparkies[++i] && sparkies[i][$object] !== object);
 
 				sparky = i === sparkies.length ?
-					createChild(clone(template), object, options) :
+					create(clone(template), object, options) :
 					sparkies.splice(i, 1)[0];
 
 				sparkies.splice(n, 0, sparky);
@@ -108,8 +108,5 @@
 		//	throttle.cancel();
 		//	unobserve();
 		//});
-
-		// Returning false stops remaining fns from being run on this node
-		return false;
 	};
 })(this);
