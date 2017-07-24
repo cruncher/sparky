@@ -437,36 +437,45 @@
 	}
 
 	function mountStringToken(text, render, strings, structs, i, match) {
-		strings.push(text.slice(i, match.index));
-		strings.push('');
-
-		var j = strings.length - 1;
+		var i = strings.length;
+		strings[i] = '';
 
 		structs.push({
 			token:  match[0],
 			path:   match[2],
 			pipe:   match[3],
 			render: function renderText(value) {
-				strings[j] = toRenderString(value);
+				strings[i] = toRenderString(value);
 				render(strings);
 			}
 		});
 	}
 
 	function mountString(string, render, options) {
-		var strings = [];
-		var structs = [];
 		var rtoken  = options.rtoken;
 		var i       = rtoken.lastIndex = 0;
-		var match;
+		var match   = rtoken.exec(string)
 
-		function renderStrings(strings) {
+		if (!match) { return; }
+
+		var strings = [];
+		var structs = [];
+		var renderStrings = function(strings) {
 			render(strings.join(''));
+		};
+
+		if (match.index > 0) {
+			strings.push(string.slice(i, match.index));
 		}
 
-		while (match = rtoken.exec(string)) {
+		while (match) {
 			mountStringToken(string, renderStrings, strings, structs, i, match);
 			i = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i + 1) {
+			strings.push(string.slice(i));
 		}
 
 		return structs;
