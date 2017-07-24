@@ -505,11 +505,23 @@
 			stops = structs.map(function(struct) {
 				struct.transform = struct.transform || Transform(options.transforms, struct.pipe);
 
-				return Stream
-				.observe(struct.path, observable)
-				.map(struct.transform)
-				.each(struct.render)
-				.stop;
+				var stream = Stream.observe(struct.path, observable);
+				var value  = stream.latest().shift();
+
+				function update(value) {
+					struct.render(struct.transform(value));
+				}
+
+				// If there is an initial scope render it synchronously
+				if (value !== undefined) { update(value); }
+
+				var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
+				stream.each(throttle);
+
+				return function() {
+					throttle.cancel();
+					stream.stop();
+				};
 			});
 
 			if (DEBUG) {

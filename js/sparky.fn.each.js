@@ -10,6 +10,7 @@
 	var toArray    = Fn.toArray;
 	var before     = dom.before;
 	var clone      = dom.clone;
+	var tag        = dom.tag;
 	var observe    = Observable.observe;
 	var MarkerNode = Sparky.MarkerNode;
 
@@ -26,6 +27,52 @@
 		return sparky;
 	}
 
+	function reorderCache(template, options, array, sparkies) {
+		var n    = -1;
+		var sparky, object, i, value;
+
+		// Reorder sparkies
+		while (++n < array.length) {
+			object = array[n];
+			sparky = sparkies[n];
+
+			if (sparky && object === sparky[$object]) {
+				continue;
+			}
+
+			i = -1;
+			while (sparkies[++i] && sparkies[i][$object] !== object);
+
+			sparky = i === sparkies.length ?
+				create(clone(template), object, options) :
+				sparkies.splice(i, 1)[0];
+
+			sparkies.splice(n, 0, sparky);
+		}
+	}
+
+	function reorderNodes(node, array, sparkies) {
+		// Reordering has pushed all removed sparkies to the end of the
+		// sparkies. Remove them.
+		while (sparkies.length > array.length) {
+			// Destroy
+			sparkies.pop().stop().remove();
+		}
+
+		// Reorder nodes in the DOM
+		var l = sparkies.length;
+		var n = -1;
+
+		while (n < l) {
+			// Nore that node is null where nextSibling does not exist
+			node = node.nextSibling;
+
+			while (++n < l && sparkies[n][0] !== node) {
+				node.parentNode.insertBefore(sparkies[n][0], node);
+			}
+		}
+	}
+
 	Sparky.fn.each = function each(node, scopes, params) {
 		var sparky   = this;
 		var sparkies = [];
@@ -34,55 +81,28 @@
 		var options  = this.interrupt();
 		var marker   = MarkerNode(node);
 
+		var isSelect = tag(node) === 'option';
+
 		function update(array) {
-			var node = marker;
-			var n    = -1;
-			var sparky, object, i;
+			// Selects will lose their value if the selected option is removed
+			// from the DOM, even if there is another <option> of same value
+			// already in place. (Interestingly, value is not lost if the
+			// selected <option> is simply moved). Make an effort to have
+			// selects retain their value.
+			var value = isSelect ? marker.parentNode.value : undefined ;
 
-			// Reorder sparkies
-			while (++n < array.length) {
-				object = array[n];
-				sparky = sparkies[n];
+			reorderCache(template, options, array, sparkies);
+			reorderNodes(marker, array, sparkies);
 
-				if (sparky && object === sparky[$object]) {
-					continue;
-				}
-
-				i = -1;
-				while (sparkies[++i] && sparkies[i][$object] !== object);
-
-				sparky = i === sparkies.length ?
-					create(clone(template), object, options) :
-					sparkies.splice(i, 1)[0];
-
-				sparkies.splice(n, 0, sparky);
-			}
-
-			// Reordering has pushed all removed sparkies to the end of the
-			// array: remove them
-			n = sparkies.length;
-
-			while (--n >= array.length) {
-				// Destroy
-				sparkies[n].stop().remove();
-			}
-
-			sparkies.length = array.length;
-
-			// Reoder nodes in the DOM
-			var next, node;
-			n = -1;
-
-			while (++n < array.length) {
-				node = node.nextSibling;
-
-				if (sparkies[n][0] !== node) {
-					before(node, sparkies[n][0]);
-				}
+			// A fudgy workaround because observe() callbacks (like this update
+			// function) are not batched to ticks.
+			// TODO: batch observe callbacks to ticks.
+			if (isSelect && value !== undefined) {
+				marker.parentNode.value = value;
 			}
 		}
 
-		//var throttle = Fn.throttle(update);
+		var throttle = Fn.throttle(update, requestAnimationFrame, noop);
 		//var timer;
 
 		//fns.unshift(function() {
@@ -98,10 +118,15 @@
 		dom.remove(node);
 
 		var unobserve = noop;
+		var initial = scopes.latest().shift();
+
+		if (initial) {
+			observe(initial, '', update);
+		}
 
 		scopes.each(function(scope) {
 			unobserve();
-			unobserve = observe(scope, '', update);
+			unobserve = observe(scope, '', throttle);
 		});
 
 		//this.on('stop', function destroy() {

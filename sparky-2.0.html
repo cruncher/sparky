@@ -23,17 +23,6 @@
 </head>
 
 <body data-fn="test-scope">
-	<select data-fn="test-array" class="{[length|prepend:'length-']}" id="test-select" name="name">
-		<option data-fn="each" value="{[key]}">{[value|multiply:7]}</option>
-		<option value="1">one</option>
-	</select>
-
-	<p data-fn="test-hello">
-		Hello, {[name]}.
-	</p>
-
-	<p>Goodness, {[name]}, I hope all is according to {[plan|uppercase]}</p>
-	<p title="{[name]}, {[plan]}" class="{[name]} some-other-class {[plan]}"></p>
 
 	<script>
 	window.DEBUG = true;
@@ -66,45 +55,7 @@
 	<script src="js/sparky.transforms.js"></script>
 
 	<script src="fn/test/test.js"></script>
-
-	<script>
-	var scope = window.scope = {
-		name: 'Mike',
-		plan: 'Arsehole',
-		hello: 'Nope'
-	};
-
-	var data = window.data = {
-		name: 'Stephen'
-	};
-
-	var array = [{
-		key: '0',
-		value: 0
-	}, {
-		key: '1',
-		value: 1
-	}];
-
-	Sparky.fn['test-array'] = function(node, stream) {
-		return Fn.of(array);
-	};
-
-	Sparky.fn['test-scope'] = function(node, stream) {
-		return Fn.of(scope);
-	};
-
-	Sparky.fn['test-hello'] = function(node, stream) {
-		return Fn.of(data);
-	};
-
-	var s = Sparky(dom.body);
-
-	s.push({
-		
-	});
-	</script>
-
 	<script src="test/sparky.test.js"></script>
+	<script src="test/sparky.select-test.js"></script>
 </body>
 </html>

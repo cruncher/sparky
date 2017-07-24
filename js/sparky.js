@@ -49,10 +49,11 @@
 
 	function Sparky(node, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
-			return new Sparky(node);
+			return new Sparky(node, data, options);
 		}
 
 		node = typeof node === 'string' ? dom(node)[0] : node ;
+		data = data && Observable(data);
 
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;

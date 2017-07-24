@@ -3,7 +3,7 @@ Sparky.fn['ctrl'] = function(node, scopes) {
 	return Fn.of({ property: 'peas' });
 };
 
-group('Controller', function(test, log, fixture) {
+group('Render scope from data-fn', function(test, log, fixture) {
 	var node = fixture.children[0];
 
 	test("ctrl found in Sparky.fn and {[tag]} replaced with scope property", function(equals, done) {
@@ -11,37 +11,15 @@ group('Controller', function(test, log, fixture) {
 
 		requestAnimationFrame(function functionName() {
 			equals('peas', node.innerHTML);
-			done(1);
+			equals(true, !!node.getAttribute('class').match(/peas/));
+			done(2);
 		});
 	});
 }, function() {/*
 
-<div data-fn="ctrl">{[property]}</div>
+<div data-fn="ctrl" class=" nothing {[property]} ">{[property]}</div>
 
 */});
-
-
-//group('Static tags', function(test, log, fixture) {
-//	asyncTest("{[{tag]}} is replaced with model property", function() {
-//		
-//
-//		var node = fixture.querySelector('div');
-//
-//		Sparky.data['test-model'] = { property: 'juice' };
-//		Sparky(node);
-//
-//		window.requestAnimationFrame(function() {
-//			assert.ok(node.innerHTML === 'juice', 'node.innerHTML expected "juice", actually "' + node.innerHTML + '"');
-//			done();
-//		});
-//	});
-//}, function() {/*
-//
-//<div data-scope="test-model">{[{property]}}</div>
-//
-//*/});
-
-
 
 group('Child sparky', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
@@ -74,27 +52,23 @@ group('Child sparky', function(test, log, fixture) {
 		var sparky = Sparky(div);
 
 		frame(function() {
-			log('frame 1');
-
 			equals('value1', p1.innerHTML);
 			equals('value2', p2.innerHTML);
 			equals('prop1',  p3.innerHTML);
 			equals('prop2',  p4.innerHTML);
 
-			obj1.property = 'newprop1';
+			Observable(obj1).property = 'newprop1';
 
 			frame(function() {
-				log('frame 2');
-
 				equals('newprop1', p3.innerHTML);
 				equals('prop2',  p4.innerHTML);
 
 				sparky.stop();
-				obj1.property = 'stopprop1';
+
+				Observable(obj1).property = 'stopprop1';
+				Observable(obj2).property = 'stopprop2';
 
 				frame(function() {
-					log('frame 3');
-
 					equals('newprop1', p3.innerHTML);
 					equals('prop2',  p4.innerHTML);				
 					done(8);
@@ -114,36 +88,37 @@ group('Child sparky', function(test, log, fixture) {
 
 */});
 
-//group('Test tags in class attributes...', function(test, log, fixture) {
-//	log('Test tags in class attributes...');
-//
-//	test("Tags is class attributes", function(equals, done) {
-//		var node = fixture.querySelector('div');
-//		var model = { property: 'peas' };
-//
-//		Sparky.data.model = model;
-//		Sparky(node, model);
-//		node.classList.add('hello');
-//
-//		window.requestAnimationFrame(function() {
-//			equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: ' + node.getAttribute('class'));
-//			equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
-//
-//			model.property = 'ice';
-//
-//			window.requestAnimationFrame(function() {
-//				equals(true, !node.classList.contains('peas'), 'Classes expected to not contain "peas", actual: "' + node.getAttribute('class') + '"');
-//				equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
-//				done(4);
-//			});
-//		});
-//	});
-//}, function() {/*
-//
-//<div data-scope="model" class="class-1 class-2 {[ property ]}">{[property]}</div>
-//
-//*/});
-//
+group('Tokens in class attributes', function(test, log, fixture) {
+	log('Test tags in class attributes...');
+
+	test("Tags is class attributes", function(equals, done) {
+		var node = fixture.querySelector('div');
+		var model = Observable({ property: 'peas' });
+
+		Sparky(node, model);
+		equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
+
+		node.classList.add('hello');
+
+		window.requestAnimationFrame(function() {
+			equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
+			equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: ' + node.getAttribute('class'));
+
+			model.property = 'ice';
+
+			window.requestAnimationFrame(function() {
+				equals(true, !node.classList.contains('peas'), 'Classes expected to not contain "peas", actual: "' + node.getAttribute('class') + '"');
+				equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
+				done(5);
+			});
+		});
+	});
+}, function() {/*
+
+<div class="class-1 class-2 {[property]}">{[property]}</div>
+
+*/});
+
 //group('Test tags in class attributes...', function(test, log, fixture) {
 //	test("Tags is class attributes", function(equals, done) {
 //		var node = fixture.querySelector('div');
