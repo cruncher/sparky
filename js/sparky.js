@@ -1,4 +1,9 @@
 (function(window) {
+	if (!window.console || !window.console.log) { return; }
+	console.log('Sparky      - https://github.com/cruncher/sparky');
+})(this);
+
+(function(window) {
 	"use strict";
 
 	var DEBUG     = window.DEBUG;
