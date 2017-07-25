@@ -4,15 +4,6 @@
 (function(window) {
 	var Sparky = window.Sparky;
 
-	// Stops Sparky from parsing the node.
-	Sparky.fn.ignore = function ignore() {
-		this.interrupt();
-	};
-})(this);
-
-(function(window) {
-	var Sparky = window.Sparky;
-
 	// Detect IE
 	var isIE = !!(document.all && document.compatMode || window.navigator.msPointerEnabled);
 
@@ -104,21 +95,11 @@
 	};
 
 	Object.assign(Sparky.fn, {
-		"prevent-click": function(node) {
-			node.addEventListener('click', preventDefault);
-			this.on('destroy', function() {
-				node.removeEventListener('click', preventDefault);
-			});
+		"prevent": function(node, scopes, params) {
+			node.addEventListener(params[0], preventDefault);
 		},
 
-		"prevent-submit": function(node) {
-			node.addEventListener('submit', preventDefault);
-			this.on('destroy', function() {
-				node.removeEventListener('submit', preventDefault);
-			});
-		},
-
-		"ajax-on-submit": function(node, scopes) {
+		"ajax-on-submit": function(node, scopes, params) {
 			var method = node.getAttribute('method') || 'POST';
 			var url = node.getAttribute('action');
 
@@ -132,6 +113,7 @@
 
 			scopes.tap(function(scope) {
 				if (submit) { node.removeEventListener(submit); }
+
 				submit = function(e) {
 					jQuery.ajax({
 						type: method.toLowerCase(),
@@ -143,13 +125,14 @@
 						console.log(value);
 					});
 				};
+
 				node.addEventListener('submit', submit);
 			})
 
-			this
-			.on('destroy', function() {
-				node.removeEventListener('submit', submit);
-			});
+			//this
+			//.on('destroy', function() {
+			//	node.removeEventListener('submit', submit);
+			//});
 		},
 
 		"scope": function(node, scopes) {

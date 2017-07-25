@@ -111,10 +111,43 @@
 	});
 
 	assign(Sparky, {
-		fn:         {
+		fn: {
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
-			}
+			},
+
+			interrupt: function ignore(node, stream) {
+				console.log(this.interrupt(), node, stream);
+			},
+
+			log: (function(isIE) {
+				// Logs nodes, scopes and data.
+				return function(node, scopes) {
+					var sparky = this;
+
+					// In IE11 and probably below, and possibly Edge, who knows,
+					// console.groups can arrive in really weird orders. They
+					// are not at all useful for debugging as a result. Rely on
+					// console.log.
+
+					function log(scope) {
+						console[isIE ? 'log' : 'group']('Sparky: scope', node);
+						console.log('data ', sparky.data);
+						console.log('scope', scope);
+						console.log('fn   ', sparky.fn);
+						console[isIE ? 'log' : 'groupEnd']('---');
+					}
+
+					console[isIE ? 'log' : 'group']('Sparky: run  ', node);
+					console.log('data ', sparky.data);
+					console[isIE ? 'log' : 'groupEnd']('---');
+
+					return scopes.tap(log);
+				};
+			})(
+				// Detect IE
+				!!(document.all && document.compatMode || window.navigator.msPointerEnabled)
+			)
 		},
 
 		transforms: {},
