@@ -115,6 +115,7 @@
 				if (submit) { node.removeEventListener(submit); }
 
 				submit = function(e) {
+					// TODO: Shall we try and use fetch or some other lean AJAX lib?
 					jQuery.ajax({
 						type: method.toLowerCase(),
 						url:  url,
