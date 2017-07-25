@@ -206,7 +206,7 @@
 			push(structs, mountBoolean('required', node, options));
 			push(structs, mountAttributes(['value'], node, options));
 			push(structs, mountInput(node, options));
-			push(structs, mountName('name', options));
+			push(structs, mountName(node, options));
 
 			return structs;
 
@@ -445,14 +445,26 @@
 		return structs;
 	}
 
-	function mountName(name, node, options) {
-		var text = node.name;
+	function mountName(node, options) {
+		var string = node.name;
+		var rtoken = options.rtoken;
 
-		console.log('Mount name', text);
+		rtoken.lastIndex = 0;
 
-		//return text ? mountString(text, function render(value) {
-		//	node.setAttribute(name, value);
-		//}, options) : nothing ;
+		var match = rtoken.exec(string);
+
+		if (!match) { return; }
+
+		console.log('Mount name', string);
+
+		return [{
+			token:  match[0],
+			path:   match[2],
+			pipe:   match[3],
+			render: function(value) {
+				node.value = value;
+			}
+		}];
 	}
 
 	function mountStringToken(text, render, strings, structs, i, match) {
@@ -473,7 +485,7 @@
 	function mountString(string, render, options) {
 		var rtoken  = options.rtoken;
 		var i       = rtoken.lastIndex = 0;
-		var match   = rtoken.exec(string)
+		var match   = rtoken.exec(string);
 
 		if (!match) { return; }
 

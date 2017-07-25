@@ -48,15 +48,13 @@
 				template: template
 			});
 
-			var structs = [{
+			if (DEBUG) { console.log('mounted:', node); }
+
+			return [{
 				token: fn,
 				path:  '',
 				render: sparky.push
 			}];
-
-			if (DEBUG) { console.log('mounted:', node, structs.length); }
-
-			return structs;
 		}
 	};
 
