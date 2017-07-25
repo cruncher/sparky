@@ -27,6 +27,9 @@
 	var set       = Fn.set;
 	var each      = Fn.each;
 
+	var append    = dom.append;
+	var empty     = dom.empty;
+	var fragmentFromId = dom.fragmentFromId;
 	var remove    = dom.remove;
 
 	var rfn       = /\s*([-\w]+)(?:\(([^)]*)\))?/;
@@ -96,9 +99,35 @@
 			if (!calling) { return this; }
 		}
 
+		// Find a better way to pass these in
 		settings.transforms = Sparky.transforms;
-		update = mount(node, settings);
-		stream.each(update);
+
+		var template = options && options.template
+			|| dom.attribute('data-template', node)
+			|| '' ;
+
+		stream
+		.take(1)
+		.each(template ? function(scope) {
+			var fragment = fragmentFromId(template);
+			
+			if (!fragment) {
+				throw new Error('Sparky: data-template="' + template + '" not found in DOM');
+			}
+
+			// Replace node content with fragment
+			empty(node);
+			append(node, fragment);
+
+			// Update
+			update = mount(node, settings);
+			update(scope);
+			stream.each(update);
+		} : function(scope) {
+			update = mount(node, settings);
+			update(scope);
+			stream.each(update);
+		});
 	}
 
 	assign(Sparky.prototype, {

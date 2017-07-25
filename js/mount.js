@@ -175,7 +175,16 @@
 
 		// fragment
 		11: function(node, options) {
-			
+			var structs  = [];
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				push(structs, options.mount(child) || mountType(child, options));
+			}
+
+			return structs;
 		},
 
 		default: noop
