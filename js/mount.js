@@ -206,7 +206,7 @@
 			push(structs, mountBoolean('required', node, options));
 			push(structs, mountAttributes(['value'], node, options));
 			push(structs, mountInput(node, options));
-			push(structs, mountAttribute('name', node, options));
+			push(structs, mountName('name', options));
 
 			return structs;
 
@@ -249,7 +249,7 @@
 			push(structs, mountBoolean('required', node, options));
 			push(structs, mountAttribute('value', node, options));
 			// Two way bind here??
-			push(structs, mountAttribute('name', node, options));
+			push(structs, mountName(node, options));
 
 			return structs;
 
@@ -266,7 +266,7 @@
 			return Fn.of(
 				mountBoolean('disabled', node, options),
 				mountBoolean('required', node, options),
-				mountAttribute('name', node, options)
+				mountName(node, options)
 			).join();
 
 			// Only let strings set the value of a textarea
@@ -443,6 +443,16 @@
 
 		node.setAttribute('class', text);
 		return structs;
+	}
+
+	function mountName(name, node, options) {
+		var text = node.name;
+
+		console.log('Mount name', text);
+
+		//return text ? mountString(text, function render(value) {
+		//	node.setAttribute(name, value);
+		//}, options) : nothing ;
 	}
 
 	function mountStringToken(text, render, strings, structs, i, match) {

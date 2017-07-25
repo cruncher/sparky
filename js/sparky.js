@@ -38,13 +38,18 @@
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
 
 		mount: function mount(node) {
-			var dataFn = dom.attribute('data-fn', node);
+			var fn       = dom.attribute('data-fn', node);
+			var template = dom.attribute('data-template', node);
 
-			if (!dataFn) { return; }
+			if (!fn && !template) { return; }
 
-			var sparky = Sparky(node);
+			var sparky = Sparky(node, undefined, {
+				fn: fn,
+				template: template
+			});
+
 			var structs = [{
-				token: dataFn,
+				token: fn,
 				path:  '',
 				render: sparky.push
 			}];
@@ -102,7 +107,7 @@
 		// Find a better way to pass these in
 		settings.transforms = Sparky.transforms;
 
-		var template = options && options.template
+		var template = (options && options.template)
 			|| dom.attribute('data-template', node)
 			|| '' ;
 
@@ -110,7 +115,7 @@
 		.take(1)
 		.each(template ? function(scope) {
 			var fragment = fragmentFromId(template);
-			
+
 			if (!fragment) {
 				throw new Error('Sparky: data-template="' + template + '" not found in DOM');
 			}
