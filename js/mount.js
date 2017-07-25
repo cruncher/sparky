@@ -263,11 +263,13 @@
 		},
 
 		textarea: function(node, options) {
-			return Fn.of(
-				mountBoolean('disabled', node, options),
-				mountBoolean('required', node, options),
-				mountName(node, options)
-			).join();
+			var structs = [];
+
+			push(structs, mountBoolean('disabled', node, options));
+			push(structs, mountBoolean('required', node, options));
+			push(structs, mountName(node, options));
+
+			return structs;
 
 			// Only let strings set the value of a textarea
 			//var unbindName = parseName(node, get, set, bind, unbind, identity, identity);
@@ -455,14 +457,25 @@
 
 		if (!match) { return; }
 
-		console.log('Mount name', string);
-
 		return [{
 			token:  match[0],
 			path:   match[2],
 			pipe:   match[3],
+
 			render: function(value) {
+console.log('RENDER', string, value);
+				// Avoid updating with the same value as it sends the cursor to
+				// the end of the field (in Chrome, at least).
+				if (value === node.value) { return; }
 				node.value = value;
+			},
+
+			input: function(fn) {
+				dom
+				.on('input', node)
+				.map(get('target'))
+				.map(get('value'))
+				.each(fn);
 			}
 		}];
 	}
@@ -557,6 +570,12 @@
 
 				var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 				stream.each(throttle);
+
+
+				// Listen to changes
+				if (struct.input) {
+					struct.input(stream.push);
+				}
 
 				return function() {
 					throttle.cancel();
