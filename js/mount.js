@@ -21,6 +21,7 @@
 	var overload   = Fn.overload;
 	var pipe       = Fn.pipe;
 	var set        = Fn.set;
+	var setPath    = Fn.setPath;
 	var toClass    = Fn.toClass;
 	var toType     = Fn.toType;
 
@@ -102,6 +103,10 @@
 
 	function call(fn) { return fn(); }
 
+	function getTargetValue(object) {
+		return object.target.value;
+	}
+
 
 	// Transform
 
@@ -138,10 +143,13 @@
 		return pipe.apply(null, fns);
 	}
 
+	function InverseTransform(transforms, string) {
+		return id;
+	}
 
 	// Mount
 
-	var mountType = overload(get('nodeType'), {
+	var mountNode = overload(get('nodeType'), {
 		// element
 		1: function(node, options) {
 			var structs  = [];
@@ -150,7 +158,7 @@
 			var child;
 
 			while (child = children[++n]) {
-				push(structs, options.mount(child) || mountType(child, options));
+				push(structs, options.mount(child) || mountNode(child, options));
 			}
 
 			push(structs, mountClass(node, options));
@@ -181,7 +189,7 @@
 			var child;
 
 			while (child = children[++n]) {
-				push(structs, options.mount(child) || mountType(child, options));
+				push(structs, options.mount(child) || mountNode(child, options));
 			}
 
 			return structs;
@@ -447,6 +455,66 @@
 		return structs;
 	}
 
+	var mountType = overload(get('type'), {
+		checkbox: function(node, options, match) {
+			return [{
+				token:  match[0],
+				path:   match[2],
+				pipe:   match[3],
+
+				render: function(value) {
+					// Where value="" is defined check against it, otherwise
+					// value is "on", uselessly: set checked state directly.
+					node.checked = isDefined(node.getAttribute('value')) ?
+						value === node.value :
+						!!value ;
+				},
+
+				listen: function(fn) {
+					// Radios and checkboxes do not fire 'input' events, as
+					// their value does not change.
+					node.addEventListener('change', function(e) {
+						var value = isDefined(node.getAttribute('value')) ?
+							node.value :
+							node.checked ;
+
+						fn(value);
+					});
+
+					return function unlisten() {
+						node.removeEventListener('change', fn);
+					};
+				}
+			}];
+		},
+
+		default: function(node, options, match) {
+			return [{
+				token:  match[0],
+				path:   match[2],
+				pipe:   match[3],
+
+				render: function(value) {
+					// Avoid updating with the same value as it sends the cursor to
+					// the end of the field (in Chrome, at least).
+					if (value === node.value) { return; }
+					node.value = value;
+				},
+
+				listen: function(fn) {
+					node.addEventListener('input', function(e) {
+						var value = e.target.value;
+						fn(value);
+					});
+
+					return function unlisten() {
+						node.removeEventListener('input', fn);
+					};
+				}
+			}];
+		}
+	});
+
 	function mountName(node, options) {
 		var string = node.name;
 		var rtoken = options.rtoken;
@@ -457,27 +525,7 @@
 
 		if (!match) { return; }
 
-		return [{
-			token:  match[0],
-			path:   match[2],
-			pipe:   match[3],
-
-			render: function(value) {
-console.log('RENDER', string, value);
-				// Avoid updating with the same value as it sends the cursor to
-				// the end of the field (in Chrome, at least).
-				if (value === node.value) { return; }
-				node.value = value;
-			},
-
-			input: function(fn) {
-				dom
-				.on('input', node)
-				.map(get('target'))
-				.map(get('value'))
-				.each(fn);
-			}
-		}];
+		return mountType(node, options, match);
 	}
 
 	function mountStringToken(text, render, strings, structs, i, match) {
@@ -532,7 +580,7 @@ console.log('RENDER', string, value);
 			console.groupCollapsed('Sparky: mount ', node);
 		}
 
-		var structs = mountType(node, options);
+		var structs = mountNode(node, options);
 
 		if (DEBUG) {
 			console.table(structs, ["token", "path", "pipe"]);
@@ -552,34 +600,58 @@ console.log('RENDER', string, value);
 			}
 
 			var observable = Observable(data);
+			var transform, update;
 
 			stops.forEach(call);
 
 			stops = structs.map(function(struct) {
-				struct.transform = struct.transform || Transform(options.transforms, struct.pipe);
+				// TODO: I think much of this logic can be moved into the mount
+				// cycle. We delay the mount cycle until first scope arrives
+				// anyway, after all.
 
-				var stream = Stream.observe(struct.path, observable);
-				var value  = stream.latest().shift();
+				var render = struct.render;
 
-				function update(value) {
-					struct.render(struct.transform(value));
-				}
+				var transform = struct.transform = struct.transform
+					|| Transform(options.transforms, struct.pipe);
+
+				var update = struct.update = struct.update
+					|| function(value) { render(transform(value)); };
+
+				var output = Stream.observe(struct.path, observable);
+				var value  = output.latest().shift();
+
+				var throttle = struct.throttle =
+					struct.throttle || Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
 				// If there is an initial scope render it synchronously
 				if (value !== undefined) { update(value); }
 
-				var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
-				stream.each(throttle);
-
+				// Render future scopes at browser frame rate
+				output.each(throttle);
 
 				// Listen to changes
-				if (struct.input) {
-					struct.input(stream.push);
+				if (struct.listen) {
+					var node = struct.node;
+
+					var invert = struct.inverseTransform = struct.inverseTransform
+						|| InverseTransform(options.transforms, struct.pipe);
+
+					// TODO: We may want to use data rather than observable here,
+					// meaning we would not have to worry about the observed
+					// change going back to the input...
+					var set = setPath(struct.path, observable);
+
+					var change = function(value) {
+						set(invert(value));
+					};
+
+					var unlisten = struct.listen(change);
 				}
 
 				return function() {
 					throttle.cancel();
-					stream.stop();
+					output.stop();
+					if (struct.listen) { unlisten(); }
 				};
 			});
 
