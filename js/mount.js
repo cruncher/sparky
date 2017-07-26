@@ -147,6 +147,7 @@
 		return id;
 	}
 
+
 	// Mount
 
 	var mountNode = overload(get('nodeType'), {
@@ -475,8 +476,42 @@
 					// their value does not change.
 					node.addEventListener('change', function(e) {
 						var value = isDefined(node.getAttribute('value')) ?
-							node.value :
+							node.checked ? node.value : undefined :
 							node.checked ;
+
+						fn(value);
+					});
+
+					return function unlisten() {
+						node.removeEventListener('change', fn);
+					};
+				}
+			}];
+		},
+
+		radio: function(node, options, match) {
+			return [{
+				token:  match[0],
+				path:   match[2],
+				pipe:   match[3],
+
+				render: function(value) {
+					// Where value="" is defined check against it, otherwise
+					// value is "on", uselessly: set checked state directly.
+					node.checked = isDefined(node.getAttribute('value')) ?
+						value === node.value :
+						!!value ;
+				},
+
+				listen: function(fn) {
+					// Radios and checkboxes do not fire 'input' events, as
+					// their value does not change.
+					node.addEventListener('change', function(e) {
+						if (!node.checked) { return; }
+
+						var value = isDefined(node.getAttribute('value')) ?
+							node.value :
+							true ;
 
 						fn(value);
 					});
