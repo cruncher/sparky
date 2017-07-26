@@ -101,7 +101,7 @@
 
 		"ajax-on-submit": function(node, scopes, params) {
 			var method = node.getAttribute('method') || 'POST';
-			var url = node.getAttribute('action');
+			var url    = node.getAttribute('action');
 
 			if (!Fn.isDefined(url)) {
 				throw new Error('Sparky: fn ajax-on-submit requires an action="url" attribute.');
