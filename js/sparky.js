@@ -102,8 +102,9 @@
 			if (!calling) { return this; }
 		}
 
-		// Find a better way to pass these in
+		// TEMP: Find a better way to pass these in
 		settings.transforms = Sparky.transforms;
+		settings.transformers = Sparky.transformers;
 
 		var template = (options && options.template)
 			|| dom.attribute('data-template', node)

@@ -9,6 +9,7 @@
 
 	var assign     = Object.assign;
 	var apply      = Fn.apply;
+	var compose    = Fn.compose;
 	var curry      = Fn.curry;
 	var debug      = Fn.debug;
 	var each       = Fn.each;
@@ -16,6 +17,7 @@
 	var getPath    = Fn.getPath;
 	var id         = Fn.id;
 	var isDefined  = Fn.isDefined;
+	var isNaN      = Number.isNaN;
 	var nothing    = Fn.nothing;
 	var noop       = Fn.noop;
 	var overload   = Fn.overload;
@@ -25,13 +27,6 @@
 	var toClass    = Fn.toClass;
 	var toType     = Fn.toType;
 
-	// Matches a sparky template tag, capturing (path, filter)
-	//var rtagstemplate = /({{0}})\s*([\w\-\.]+)\s*(?:\|([^\}]+))?\s*{{1}}/g;
-	//var rtags;
-
-	// Matches a simple sparky template tag, capturing (path)
-	//var rsimpletagstemplate = /{{0}}\s*([\w\-\.\[\]]+)\s*{{1}}/g;
-	//var rsimpletags;
 
 	// Matches tags plus any directly adjacent text
 	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
@@ -48,11 +43,6 @@
 
 	// Matches the arguments list in the result of a fn.toString()
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
-
-	//var rpath   = /[\w\-\.]+/;
-	//var rstring = /".*?"|'.*?'/;
-	//var rnumber = /[+-]?(?:\d*\.)?\d+/;
-	//var rbool   = /true|false/;
 
 	var settings = {
 		mount:      noop,
@@ -108,6 +98,29 @@
 	}
 
 
+	// Tokens
+
+	function listenChange(fn) {
+		var node = this.node;
+
+		node.addEventListener('change', fn);
+
+		return function unlisten() {
+			node.removeEventListener('change', fn);
+		};
+	}
+
+	function listenInput(fn) {
+		var node = this.node;
+
+		node.addEventListener('input', fn);
+
+		return function unlisten() {
+			node.removeEventListener('input', fn);
+		};
+	}
+
+
 	// Transform
 
 	var rtransform = /\|\s*([\w\-]+)\s*(?::([^|]+))?/g;
@@ -143,8 +156,35 @@
 		return pipe.apply(null, fns);
 	}
 
-	function InverseTransform(transforms, string) {
-		return id;
+	function InverseTransform(transformers, string) {
+		if (!string) { return id; }
+
+		var fns = [];
+		var token, name, fn, args;
+
+		rtransform.lastIndex = 0;
+
+		while (
+			rtransform.lastIndex < string.length
+			&& (token = rtransform.exec(string))
+		) {
+			name = token[1];
+			fn   = transformers[name].invert;
+
+			if (!fn) {
+				throw new Error('Sparky: transformers "' + name + '" not found');
+			}
+
+			if (token[2]) {
+				args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fns.unshift(fn.apply(null, args));
+			}
+			else {
+				fns.unshift(fn);
+			}
+		}
+
+		return pipe.apply(null, fns);
 	}
 
 
@@ -359,7 +399,7 @@
 		var name;
 
 		while (name = names.shift()) {
-			push(structs, mountAttribute(options, name, node));
+			push(structs, mountAttribute(name, node, options));
 		}
 
 		return structs;
@@ -457,95 +497,130 @@
 	}
 
 	var mountType = overload(get('type'), {
-		checkbox: function(node, options, match) {
+		'checkbox': function(node, options, match) {
 			return [{
-				token:  match[0],
-				path:   match[2],
-				pipe:   match[3],
+				node: node,
+				token: match[0],
+				path: match[2],
+				pipe: match[3],
 
-				render: function(value) {
-					// Where value="" is defined check against it, otherwise
-					// value is "on", uselessly: set checked state directly.
-					node.checked = isDefined(node.getAttribute('value')) ?
-						value === node.value :
-						!!value ;
+				read: function read() {
+					return isDefined(node.getAttribute('value')) ?
+						node.checked ? node.value : undefined :
+						node.checked ;
 				},
 
-				listen: function(fn) {
-					// Radios and checkboxes do not fire 'input' events, as
-					// their value does not change.
-					node.addEventListener('change', function(e) {
-						var value = isDefined(node.getAttribute('value')) ?
-							node.checked ? node.value : undefined :
-							node.checked ;
+				render: function render(value) {
+					// Where value is defined check against it, otherwise
+					// value is "on", uselessly. Set checked state directly.
+					node.checked = isDefined(node.getAttribute('value')) ?
+						value === node.value :
+						value === true ;
+				},
 
-						fn(value);
-					});
-
-					return function unlisten() {
-						node.removeEventListener('change', fn);
-					};
-				}
+				listen: listenChange
 			}];
 		},
 
-		radio: function(node, options, match) {
+		'radio': function(node, options, match) {
 			return [{
-				token:  match[0],
-				path:   match[2],
-				pipe:   match[3],
+				node: node,
+				token: match[0],
+				path: match[2],
+				pipe: match[3],
 
-				render: function(value) {
+				read: function read() {
+					if (!node.checked) { return; }
+
+					return isDefined(node.getAttribute('value')) ?
+						node.value :
+						true ;
+				},
+
+				render: function render(value) {
 					// Where value="" is defined check against it, otherwise
 					// value is "on", uselessly: set checked state directly.
 					node.checked = isDefined(node.getAttribute('value')) ?
 						value === node.value :
-						!!value ;
+						value === true ;
 				},
 
-				listen: function(fn) {
-					// Radios and checkboxes do not fire 'input' events, as
-					// their value does not change.
-					node.addEventListener('change', function(e) {
-						if (!node.checked) { return; }
+				listen: listenChange
+			}];
+		},
 
-						var value = isDefined(node.getAttribute('value')) ?
-							node.value :
-							true ;
+		'number': function(node, options, match) {
+			return [{
+				node: node,
+				token: match[0],
+				path: match[2],
+				pipe: match[3],
 
-						fn(value);
-					});
+				read: function read() {
+					return node.value ? parseFloat(node.value) : undefined ;
+				},
+				
+				render: function render(value) {
+					// Avoid updating with the same value as it sends the cursor to
+					// the end of the field (in Chrome, at least).
+					if (value === parseFloat(node.value)) { return; }
+				
+					node.value = typeof value === 'number' && !isNaN(value) ?
+						value :
+						'' ;
+				},
 
-					return function unlisten() {
-						node.removeEventListener('change', fn);
-					};
-				}
+				listen: listenInput
+			}];
+		},
+
+		'range': function(node, options, match) {
+			return [{
+				node: node,
+				token: match[0],
+				path: match[2],
+				pipe: match[3],
+
+				read: function read() {
+					return node.value ? parseFloat(node.value) : undefined ;
+				},
+				
+				render: function render(value) {
+					// Avoid updating with the same value as it sends the cursor to
+					// the end of the field (in Chrome, at least).
+					if (value === parseFloat(node.value)) { return; }
+				
+					node.value = typeof value === 'number' && !isNaN(value) ?
+						value :
+						'' ;
+				},
+
+				listen: listenInput
 			}];
 		},
 
 		default: function(node, options, match) {
 			return [{
+				node:   node,
 				token:  match[0],
 				path:   match[2],
 				pipe:   match[3],
 
-				render: function(value) {
+				read:   function read() {
+					return node.value;
+				},
+
+				render: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === node.value) { return; }
-					node.value = value;
+				
+					node.value = typeof value === 'string' ?
+						value :
+						'' ;
 				},
 
-				listen: function(fn) {
-					node.addEventListener('input', function(e) {
-						var value = e.target.value;
-						fn(value);
-					});
-
-					return function unlisten() {
-						node.removeEventListener('input', fn);
-					};
-				}
+				listen: listenInput
 			}];
 		}
 	});
@@ -666,21 +741,18 @@
 
 				// Listen to changes
 				if (struct.listen) {
-					var node = struct.node;
-
-					var invert = struct.inverseTransform = struct.inverseTransform
-						|| InverseTransform(options.transforms, struct.pipe);
-
 					// TODO: We may want to use data rather than observable here,
 					// meaning we would not have to worry about the observed
 					// change going back to the input...
-					var set = setPath(struct.path, observable);
+					var set    = setPath(struct.path, observable);
 
-					var change = function(value) {
-						set(invert(value));
-					};
+					var invert = struct.inverseTransform = struct.inverseTransform
+						|| InverseTransform(options.transformers, struct.pipe);
 
+					var change = pipe(function() { return struct.read(); }, invert, set);
 					var unlisten = struct.listen(change);
+
+					if (value === undefined) { change(); }
 				}
 
 				return function() {

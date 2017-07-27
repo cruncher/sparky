@@ -6,7 +6,7 @@ Sparky.fn['ctrl'] = function(node, scopes) {
 group('Render scope from data-fn', function(test, log, fixture) {
 	var node = fixture.children[0];
 
-	test("ctrl found in Sparky.fn and {[tag]} replaced with scope property", function(equals, done) {
+	test("[data-fn]", function(equals, done) {
 		var sparky = Sparky(node);
 
 		requestAnimationFrame(function functionName() {
@@ -42,7 +42,7 @@ group('Child sparky', function(test, log, fixture) {
 		});
 	};
 
-	test('Children instantiated with correct controllers and models', function(equals, done) {
+	test('[data-fn] > [data-fn]', function(equals, done) {
 		var div = fixture.querySelector('[data-fn="ctrl"]');
 		var p1  = fixture.querySelector('[data-fn="ctrl-1"]');
 		var p2  = fixture.querySelector('[data-fn="ctrl-2"]');
@@ -88,10 +88,8 @@ group('Child sparky', function(test, log, fixture) {
 
 */});
 
-group('Tokens in class attributes', function(test, log, fixture) {
-	log('Test tags in class attributes...');
-
-	test("Tags is class attributes", function(equals, done) {
+group('[class]', function(test, log, fixture) {
+	test("[class]", function(equals, done) {
 		var node = fixture.querySelector('div');
 		var model = Observable({ property: 'peas' });
 

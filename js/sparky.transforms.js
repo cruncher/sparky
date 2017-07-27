@@ -87,6 +87,15 @@
 			date ;
 	}
 
+	assign(Sparky.transformers = {}, {
+		add:      { transform: Fn.add,      invert: curry(function(m, n) { return n - m; }) },
+		decibels: { transform: Fn.todB,     invert: Fn.toLevel },
+		multiply: { transform: Fn.multiply, invert: curry(function(d, n) { return n / d; }) },
+		degrees:  { transform: Fn.toDeg,    invert: Fn.toRad },
+		radians:  { transform: Fn.toRad,    invert: Fn.toDeg },
+		decimals: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
+	});
+
 	assign(Sparky.transforms, {
 
 		// Transforms from Fn's map functions
@@ -237,17 +246,17 @@
 				Z: function(date) { return -date.getTimezoneOffset() * 60; }
 			};
 
-			return function formatDate(value, format, lang) {
+			return curry(function formatDate(format, value) {
 				if (!value) { return; }
 
 				var date = value instanceof Date ? value : createDate(value) ;
 
-				lang = lang || settings.lang;
+				lang = settings.lang;
 
 				return format.replace(rletter, function($0, $1) {
 					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
 				});
-			};
+			});
 		})(settings),
 
 		decibels: Fn.todB,
