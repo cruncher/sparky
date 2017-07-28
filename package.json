@@ -19,9 +19,11 @@
   "bugs": {
     "url": "https://github.com/cruncher/sparky/issues"
   },
-  "licenses": [{
+  "licenses": [
+    {
       "type": "MIT"
-  }],
+    }
+  ],
   "devDependencies": {
     "grunt-contrib-concat": "latest",
     "grunt-contrib-uglify": "latest",
