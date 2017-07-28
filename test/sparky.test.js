@@ -46,8 +46,8 @@ group('Child sparky', function(test, log, fixture) {
 		var div = fixture.querySelector('[data-fn="ctrl"]');
 		var p1  = fixture.querySelector('[data-fn="ctrl-1"]');
 		var p2  = fixture.querySelector('[data-fn="ctrl-2"]');
-		var p3  = fixture.querySelector('[data-fn="get(\'sub-1\')"]');
-		var p4  = fixture.querySelector('[data-fn="get(\'sub-2\')"]');
+		var p3  = fixture.querySelector('[data-fn="get:\'sub-1\'"]');
+		var p4  = fixture.querySelector('[data-fn="get:\'sub-2\'"]');
 
 		var sparky = Sparky(div);
 
@@ -82,8 +82,8 @@ group('Child sparky', function(test, log, fixture) {
 <div data-fn="ctrl">
 	<p data-fn="ctrl-1">{[property]}</p>
 	<p data-fn="ctrl-2">{[property]}</p>
-	<p data-fn="get('sub-1')">{[property]}</p>
-	<p data-fn="get('sub-2')">{[property]}</p>
+	<p data-fn="get:'sub-1'">{[property]}</p>
+	<p data-fn="get:'sub-2'">{[property]}</p>
 </div>
 
 */});

@@ -30,8 +30,9 @@ group('[data-fn]', function(test, log, fixture) {
 			});
 		};
 
-		Sparky.fn['ctrl-3'] = function(node, scopes) {
+		Sparky.fn['ctrl-3'] = function(node, scopes, params) {
 			equals(sparky, this, 'Functions should share sparky *this* context.');
+			equals([0,'1',true,[]], params);
 
 			return scopes.map(function(scope) {
 				equals(object2, scope);
@@ -45,11 +46,11 @@ group('[data-fn]', function(test, log, fixture) {
 			equals('value-3', p.innerHTML);
 			done();
 		});
-	}, 7);
+	}, 8);
 }, function() {/*
 
 <div>
-	<p data-fn="ctrl-1 ctrl-2 ctrl-3">{[property]}</p>
+	<p data-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, []">{[property]}</p>
 </div>
 
 */});

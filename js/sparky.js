@@ -32,7 +32,8 @@
 	var fragmentFromId = dom.fragmentFromId;
 	var remove    = dom.remove;
 
-	var rfn       = /\s*([-\w]+)(?:\(([^)]*)\))?/;
+	// Matches:     xxxx: xxx, "xxx", 'xxx'
+	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
 		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
