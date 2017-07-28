@@ -1,4 +1,4 @@
-module('Sparky.filter', function(test) {
+group('Sparky.transformers', function(test, log) {
 	var key, filter;
 	var expected = {
 		add:     { '': undefined, '5.5, 3.5': 9},
@@ -8,46 +8,46 @@ module('Sparky.filter', function(test) {
 	console.log('Test filters...');
 
 	for (key in expected) {
-		filter = Sparky.filter[key];
+		filter = Sparky.transforms[key];
 
 		(function(key, result, expect) {
-			test("Sparky.filter." + key + "()", function(assert, done, fixture) {
-				assert.ok(result === expect, "Returns '" + result + "', expected '" + expect + "'");
+			test("Sparky.transformers." + key + "()", function(equals, done) {
+				equals(result === expect, "Returns '" + result + "', expected '" + expect + "'");
 				done();
 			});
 		})(key, filter(), expected[key]['']);
 	}
 
-	test("Sparky.filter.add", function(assert, done, fixture) {
-		assert.ok(Sparky.filter.add('5.5', 3.5) === 9);
+	test("Sparky.transformers.add", function(equals, done) {
+		equals(9, Sparky.transforms.add('5.5', 3.5));
 		done();
 	});
 
-	test("Sparky.filter.slugify", function(assert, done, fixture) {
-		assert.ok(Sparky.filter.slugify('Pardon Me sir') === 'pardon-me-sir');
+	test("Sparky.transformers.slugify", function(equals, done) {
+		equals('pardon-me-sir', Sparky.transforms.slugify('Pardon Me sir'));
 		done();
 	});
 
-	test("Sparky.filter.yesno", function(assert, done, fixture) {
-		assert.ok(Sparky.filter.yesno(true, '1', '2') === '1');
-		assert.ok(Sparky.filter.yesno({}, '1', '2') === '1');
-		assert.ok(Sparky.filter.yesno(false, '1', '2') === '2');
-		assert.ok(Sparky.filter.yesno(undefined, '1', '2') === '2');
-		assert.ok(Sparky.filter.yesno(null, '1', '2') === '2');
+	test("Sparky.transformers.yesno", function(equals, done) {
+		equals('1', Sparky.transforms.yesno(true, '1', '2'));
+		equals('1', Sparky.transforms.yesno({}, '1', '2'));
+		equals('2', Sparky.transforms.yesno(false, '1', '2'));
+		equals('2', Sparky.transforms.yesno(undefined, '1', '2'));
+		equals('2', Sparky.transforms.yesno(null, '1', '2'));
 		done();
 	});
 
-	test("Sparky.filter.prepad", function(assert, done, fixture) {
-		assert.ok(Sparky.filter.prepad('barf', '9') === '     barf');
+	test("Sparky.transformers.prepad", function(equals, done) {
+		equals(Sparky.transforms.prepad('barf', '9') === '     barf');
 		// TODO: This is failing - FIX in filter fn!
-		//ok(Sparky.filter.prepad('barf', '2') === 'barf');
+		//ok(Sparky.transformers.prepad('barf', '2') === 'barf');
 		done();
 	});
 
-	test("Sparky.filter.postpad", function(assert, done, fixture) {
-		assert.ok(Sparky.filter.postpad('barf', '9') === 'barf     ');
-		assert.ok(Sparky.filter.postpad('barf', '4') === 'barf');
-		assert.ok(Sparky.filter.postpad('barf', '2') === 'ba');
+	test("Sparky.transformers.postpad", function(equals, done) {
+		equals('barf     ', Sparky.transforms.postpad('barf', '9'));
+		equals('barf', Sparky.transforms.postpad('barf', '4'));
+		equals('ba', Sparky.transforms.postpad('barf', '2'));
 		done();
 	});
 });

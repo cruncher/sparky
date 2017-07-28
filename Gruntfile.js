@@ -2,25 +2,19 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		concat: {
 			'package/sparky.js': [
-				'modules/fn/polyfills/object.assign.js',
-				'modules/fn/polyfills/number.isnan.js',
-				'modules/fn/polyfills/math.log10.js',
-				'modules/fn/polyfills/window.customevent.js',
-				'modules/fn/polyfills/window.requestanimationframe.js',
-				'modules/fn/js/fn.js',
-				'modules/fn/js/events.js',
-				'modules/collection/js/observe.js',
-				'modules/collection/js/collection.js',
+				'config-package.js'
+
+				'fn/js/fn.js',
+				'fn/js/observable.js',
+				'fn/js/stream.js',
+				'fn/js/stream.observe.js',
+				'dom/js/dom.js',
+
+				'js/mount.js',
 				'js/sparky.js',
-				'js/sparky.dom.js',
-				'js/sparky.observe.js',
-				'js/sparky.render.js',
-				'js/sparky.parse.js',
 				'js/sparky.fn.js',
 				'js/sparky.fn.each.js',
-				'js/sparky.fn.value.js',
-				'js/sparky.filters.js',
-				'config-package.js'
+				'js/sparky.transforms.js',
 			]
 		},
 
