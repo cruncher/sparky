@@ -115,16 +115,28 @@
 				if (submit) { node.removeEventListener(submit); }
 
 				submit = function(e) {
-					// TODO: Shall we try and use fetch or some other lean AJAX lib?
-					jQuery.ajax({
-						type: method.toLowerCase(),
-						url:  url,
-						data: JSON.stringify(scope),
-						dataType: 'json'
+					// Axios
+					axios
+					.post(url, scope, {
+						headers: { "X-CSRFToken": getCookie('csrftoken') }
 					})
-					.then(function(value) {
-						console.log(value);
+					.then(function (response) {
+						console.log(response);
+					})
+					.catch(function (error) {
+						console.log(error);
 					});
+
+					// jQuery
+					//jQuery.ajax({
+					//	//type: method.toLowerCase(),
+					//	//url:  url,
+					//	//data: JSON.stringify(scope),
+					//	//dataType: 'json'
+					//})
+					//.then(function(value) {
+					//	console.log(value);
+					//});
 				};
 
 				node.addEventListener('submit', submit);
