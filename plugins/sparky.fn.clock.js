@@ -3,20 +3,16 @@
 
 	var Sparky     = window.Sparky;
 	var Observable = window.Observable;
+	var Fn         = window.Fn;
 
 	Sparky.fn.clock = function(node, scopes, params) {
-		var seconds = params ? params[0] : 1 ;
-
-		var scope = {
+		var observable = Observable({
 			time: new Date()
-		};
+		});
 
-		var observable = Observable(scope);
-
-		setInterval(function() {
+		return Stream.clock(params && params[0] || 1).map(function() {
 			observable.time = new Date();
-		}, seconds * 1000);
-
-		return Fn.of(observable);
+			return observable;
+		});
 	};
 })(this);
