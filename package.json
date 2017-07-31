@@ -2,7 +2,7 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Live data binding templating library for the DOM.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
