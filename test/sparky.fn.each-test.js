@@ -23,7 +23,7 @@ group('[data-fn="each"]', function(test, log, fixture) {
 				equals('2', lis[1] && lis[1].innerHTML, "Second li content from array");
 				
 				Observable(array).push({ property: 3 });
-
+//console.log('>>', JSON.stringify(array));
 				requestAnimationFrame(function() {
 					var lis = ul.querySelectorAll('li');
 					equals(3, ul.querySelectorAll('li').length);
