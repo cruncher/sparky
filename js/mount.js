@@ -640,8 +640,7 @@
 
 	function mountStringToken(text, render, strings, structs, i, match) {
 		var i = strings.length;
-		strings[i] = '';
-
+		strings.push('');
 		structs.push({
 			token:  match[0],
 			path:   match[2],
@@ -662,15 +661,16 @@
 
 		var strings = [];
 		var structs = [];
+
 		var renderStrings = function(strings) {
 			render(strings.join(''));
 		};
 
-		if (match.index > 0) {
-			strings.push(string.slice(i, match.index));
-		}
-
 		while (match) {
+			if (match.index > i) {
+				strings.push(string.slice(i, match.index));
+			}
+
 			mountStringToken(string, renderStrings, strings, structs, i, match);
 			i = rtoken.lastIndex;
 			match = rtoken.exec(string);
