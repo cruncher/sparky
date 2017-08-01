@@ -28,9 +28,13 @@
 	var each      = Fn.each;
 
 	var append    = dom.append;
+	var children  = dom.children;
 	var empty     = dom.empty;
 	var fragmentFromId = dom.fragmentFromId;
+	var fragmentFromTemplate = dom.fragmentFromTemplate;
 	var remove    = dom.remove;
+	var tag       = dom.tag;
+
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
@@ -73,6 +77,17 @@
 		var sparky   = this;
 		var stream   = data ? Stream.of(data) : Stream.of() ;
 		var update   = noop;
+
+
+		// TODO: Fudge. 
+		if (tag(node) === 'template') {
+			var fragment = fragmentFromTemplate(node).cloneNode(true);
+			assign(this, fragment.childNodes);
+			node = children(fragment)[0];
+		}
+		else {
+			this[0] = node;
+		}
 
 		this[0]      = node;
 		this.length  = 1;

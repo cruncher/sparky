@@ -224,6 +224,7 @@
 
 		// fragment
 		11: function(node, options) {
+console.log(node);
 			var structs  = [];
 			var children = node.childNodes;
 			var n = -1;
