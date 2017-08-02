@@ -346,10 +346,10 @@
 			return array && array.map(Sparky.transforms[method](path));
 		}),
 
-		mod: curry(function(n, value) {
-			if (typeof value !== 'number') { return; }
-			return value % n;
-		}),
+		//mod: curry(function(n, value) {
+		//	if (typeof value !== 'number') { return; }
+		//	return value % n;
+		//}),
 
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }
