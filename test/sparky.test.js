@@ -10,14 +10,14 @@ group('Render scope from data-fn', function(test, log, fixture) {
 		var sparky = Sparky(node);
 
 		requestAnimationFrame(function functionName() {
-			equals('peas', node.innerHTML);
+			equals('peas some text peas some text', node.innerHTML);
 			equals(true, !!node.getAttribute('class').match(/peas/));
 			done(2);
 		});
 	});
 }, function() {/*
 
-<div data-fn="ctrl" class=" nothing {[property]} ">{[property]}</div>
+<div data-fn="ctrl" class=" nothing {[property]} ">{[property]} some text {[property]} some text</div>
 
 */});
 
