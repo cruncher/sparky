@@ -224,7 +224,6 @@
 
 		// fragment
 		11: function(node, options) {
-console.log(node);
 			var structs  = [];
 			var children = node.childNodes;
 			var n = -1;
@@ -241,8 +240,12 @@ console.log(node);
 	});
 
 	var mountTag = overload(dom.tag, {
-		
+
 		// HTML
+
+		a: function(node, options) {
+			return mountAttribute('href', node, options);
+		},
 
 		button: function(node, options) {
 			return mountBoolean('disabled', node, options);

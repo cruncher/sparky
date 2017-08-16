@@ -62,13 +62,14 @@
 		// Reorder nodes in the DOM
 		var l = sparkies.length;
 		var n = -1;
+		var parent = node.parentNode;
 
 		while (n < l) {
-			// Nore that node is null where nextSibling does not exist
-			node = node.nextSibling;
+			// Note that node is null where nextSibling does not exist
+			node = node ? node.nextSibling : null ;
 
 			while (++n < l && sparkies[n][0] !== node) {
-				node.parentNode.insertBefore(sparkies[n][0], node);
+				parent.insertBefore(sparkies[n][0], node);
 			}
 		}
 	}
