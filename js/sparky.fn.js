@@ -1,6 +1,8 @@
 
 // Sparky.fn
 
+Sparky.nodeToString = Fn.id;
+
 (function(window) {
 	var Sparky = window.Sparky;
 
