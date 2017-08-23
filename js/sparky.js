@@ -69,15 +69,13 @@
 		}
 
 		node = typeof node === 'string' ? dom(node)[0] : node ;
-		data = data && Observable(data);
 
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
 
 		var sparky   = this;
-		var stream   = data ? Stream.of(data) : Stream.of() ;
+		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
 		var update   = noop;
-
 
 		// TODO: Fudge. 
 		if (tag(node) === 'template') {
@@ -107,7 +105,6 @@
 
 		// Parse the fns and params to execute
 		var token, fn, params;
-
 		while (token = fnstring.match(rfn)) {
 			fn       = Sparky.fn[token[1]];
 			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
@@ -119,7 +116,7 @@
 		}
 
 		// TEMP: Find a better way to pass these in
-		settings.transforms = Sparky.transforms;
+		settings.transforms   = Sparky.transforms;
 		settings.transformers = Sparky.transformers;
 
 		var template = (options && options.template)
