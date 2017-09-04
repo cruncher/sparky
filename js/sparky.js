@@ -63,32 +63,58 @@
 		}
 	};
 
+	function callReducer(object, fn) {
+		fn(object);
+		return object;
+	}
+
+	function createUpdate(sparky, settings) {
+		var updates = [];
+		var n = -1;
+
+		while (sparky[++n]) {
+			updates.push(mount(sparky[n], settings));
+		} 
+
+		return function update(scope) {
+			return updates.reduce(callReducer, scope);
+		};
+	}
+
+	function escapeSelector(selector) {
+		return selector.replace(/\//g, '\\\/');
+	}
+
 	function Sparky(node, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(node, data, options);
 		}
 
-		node = typeof node === 'string' ? dom(node)[0] : node ;
+		node = typeof node === 'string' ?
+			document.querySelector(escapeSelector(node)) :
+			node ;
 
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
-
 		var sparky   = this;
 		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
 		var update   = noop;
 
-		// TODO: Fudge. 
 		if (tag(node) === 'template') {
 			var fragment = fragmentFromTemplate(node).cloneNode(true);
-			assign(this, fragment.childNodes);
+			var nodes    = fragment.childNodes;
+			var n        = -1;
+
+			// assign doesn't seem to work on node collections
+			while (nodes[++n]) { this[n] = nodes[n]; }
+			this.length  = nodes.length;
+
 			node = children(fragment)[0];
 		}
 		else {
 			this[0] = node;
+			this.length  = 1;
 		}
-
-		this[0]      = node;
-		this.length  = 1;
 
 		this.push    = stream.push;
 
@@ -107,6 +133,11 @@
 		var token, fn, params;
 		while (token = fnstring.match(rfn)) {
 			fn       = Sparky.fn[token[1]];
+
+if (!fn) {
+	throw new Error('Sparky: fn "'+ token[1] +'" not found in Sparky.fn')
+}
+
 			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
 			fnstring = fnstring.slice(token[0].length);
 			stream   = fn.call(this, node, stream, params) || stream;
@@ -123,28 +154,30 @@
 			|| dom.attribute('data-template', node)
 			|| '' ;
 
-		stream
-		.take(1)
-		.each(template ? function(scope) {
-			var fragment = fragmentFromId(template);
-
-			if (!fragment) {
-				throw new Error('Sparky: data-template="' + template + '" not found in DOM');
-			}
-
-			// Replace node content with fragment
-			empty(node);
-			append(node, fragment);
-
-			// Update
-			update = mount(node, settings);
-			update(scope);
+		if (template) {
+			stream
+			.take(1)
+			.each(function(scope) {
+				var fragment = fragmentFromId(template);
+			
+				if (!fragment) {
+					throw new Error('Sparky: data-template="' + template + '" not found in DOM');
+				}
+			
+				// Replace node content with fragment
+				empty(node);
+				append(node, fragment);
+			
+				// Update
+				update = createUpdate(sparky, settings);
+				update(scope);
+				stream.each(update);
+			});
+		}
+		else {
+			update = createUpdate(sparky, settings);
 			stream.each(update);
-		} : function(scope) {
-			update = mount(node, settings);
-			update(scope);
-			stream.each(update);
-		});
+		}
 	}
 
 	assign(Sparky.prototype, {
@@ -162,7 +195,7 @@
 				return stream.map(getPath(params[0]));
 			},
 
-			interrupt: function ignore(node, stream) {
+			ignore: function ignore(node, stream) {
 				console.log(this.interrupt(), node, stream);
 			},
 
