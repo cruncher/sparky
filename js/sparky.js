@@ -94,27 +94,28 @@
 			document.querySelector(escapeSelector(node)) :
 			node ;
 
-		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
-		var calling  = true;
-		var sparky   = this;
-		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
-		var update   = noop;
-
 		if (tag(node) === 'template') {
 			var fragment = fragmentFromTemplate(node).cloneNode(true);
 			var nodes    = fragment.childNodes;
 			var n        = -1;
 
 			// assign doesn't seem to work on node collections
-			while (nodes[++n]) { this[n] = nodes[n]; }
-			this.length  = nodes.length;
-
+			while (nodes[++n]) {
+				this[n] = nodes[n];
+			}
+			this.length = nodes.length;
 			node = children(fragment)[0];
 		}
 		else {
 			this[0] = node;
 			this.length  = 1;
 		}
+
+		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var calling  = true;
+		var sparky   = this;
+		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
+		var update   = noop;
 
 		this.push    = stream.push;
 
