@@ -18,16 +18,16 @@ Sparky.nodeToString = Fn.id;
 		// useful for debugging as a result. Rely on console.log.
 
 		function log(scope) {
-			console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
-			console.log('data ', sparky.data);
-			console.log('scope', scope);
-			console.log('fn   ', sparky.fn);
-			console[isIE ? 'log' : 'groupEnd']('---');
+			//console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
+			//console.log('data ', sparky.data);
+			console.log('Sparky node:', node, 'scope:', scope);
+			//console.log('fn   ', node, sparky.fn);
+			//console[isIE ? 'log' : 'groupEnd']('---');
 		}
 
-		console[isIE ? 'log' : 'group']('Sparky: run   ' + Sparky.nodeToString(node));
-		console.log('data ', sparky.data);
-		console[isIE ? 'log' : 'groupEnd']('---');
+		//console[isIE ? 'log' : 'group']('Sparky: run   ' + Sparky.nodeToString(node));
+		//console.log('data ', sparky.data);
+		//console[isIE ? 'log' : 'groupEnd']('---');
 
 		return scopes.tap(log);
 	};

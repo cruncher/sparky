@@ -213,8 +213,7 @@
 
 		// text
 		3: function(node, options) {
-			var structs = mountString(node.nodeValue, set('nodeValue', node), options);
-			return structs;
+			return mountString(node.nodeValue, set('nodeValue', node), options) || nothing;
 		},
 
 		// Comment
@@ -234,9 +233,7 @@
 			}
 
 			return structs;
-		},
-
-		default: noop
+		}
 	});
 
 	var mountTag = overload(dom.tag, {
