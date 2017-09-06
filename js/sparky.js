@@ -110,6 +110,11 @@
 
 		while (token = fnstring.match(rfn)) {
 			fn       = Sparky.fn[token[1]];
+
+			if (!fn) {
+				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
+			}
+
 			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
 			fnstring = fnstring.slice(token[0].length);
 			stream   = fn.call(this, node, stream, params) || stream;
