@@ -819,7 +819,10 @@
 	}
 
 	function parseName(node, get, set, bind, unbind, to, from) {
-		if (Sparky.debug === "verbose" && !node.name) {
+		var dataValue = node.getAttribute('data-value');
+		var name      = dataValue || node.name;
+
+		if (Sparky.debug === "verbose" && !name) {
 			console.warn('Sparky: Cannot bind value of node with empty name.', node);
 			return;
 		}
@@ -832,10 +835,16 @@
 		var tag, fn;
 
 		Sparky.rtags.lastIndex = 0;
-		while ((tag = Sparky.rtags.exec(node.name))) {
+		while ((tag = Sparky.rtags.exec(name))) {
 			if (tag[1].length === 2) {
 				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
-				node.name = node.name.replace(tag[0], tag[2]);
+
+				if (!dataValue) {
+					// Only in the case where data-value does not exist do we
+					// want to be re-renderering the name attribute.
+					node.name = name.replace(tag[0], tag[2]);
+				}
+
 				break;
 			}
 		}
