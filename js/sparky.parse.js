@@ -118,7 +118,7 @@
 		input: function(node, bind, unbind, get, set, setup, create, unobservers) {
 			var type = node.type;
 
-			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindAttribute(node, 'min', bind, unbind, get, unobservers);
 			bindAttribute(node, 'max', bind, unbind, get, unobservers);
 			bindAttribute(node, 'step', bind, unbind, get, unobservers);
@@ -141,7 +141,7 @@
 		},
 
 		select: function(node, bind, unbind, get, set, setup, create, unobservers) {
-			bindAttribute(node, 'value', bind, unbind, get, unobservers);
+//			bindAttribute(node, 'value', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'disabled', bind, unbind, get, unobservers);
 			bindBooleanAttribute(node, 'required', bind, unbind, get, unobservers);
 			bindNodes(node, bind, unbind, get, set, setup, create, unobservers);
@@ -384,7 +384,7 @@
 			node.getAttribute(attr) ;
 
 		if (!value) { return; }
-		if (alias) { node.removeAttribute('data-' + attribute); }
+		//if (alias) { node.removeAttribute('data-' + attribute); }
 		if (Sparky.debug === 'verbose') { console.log('Sparky: checking ' + attr + '="' + value + '"'); }
 
 		var update = setAttributeHTML.bind(null, node, attr) ;
