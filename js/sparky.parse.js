@@ -839,7 +839,10 @@
 			if (tag[1].length === 2) {
 				fn = bindValue(node, get, set, bind, unbind, tag[2], to, from);
 
-				if (!dataValue) {
+				if (dataValue) {
+					node.setAttribute('data-value', name.replace(tag[0], tag[2]));
+				}
+				else {
 					// Only in the case where data-value does not exist do we
 					// want to be re-renderering the name attribute.
 					node.name = name.replace(tag[0], tag[2]);
