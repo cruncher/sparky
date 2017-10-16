@@ -23,6 +23,7 @@
 	var empty      = dom.empty;
 	var fragmentFromId = dom.fragmentFromId;
 	var fragmentFromTemplate = dom.fragmentFromTemplate;
+	var preventDefault = dom.preventDefault;
 	var remove     = dom.remove;
 	var tag        = dom.tag;
 
@@ -31,8 +32,6 @@
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
-		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
-
 		mount: function mount(node) {
 			var fn       = dom.attribute('data-fn', node);
 			var template = dom.attribute('data-template', node);
@@ -184,6 +183,13 @@
 	assign(Sparky, {
 		fn: {
 			scope: function(node, stream, params) {
+				var scope = getPath(params[0], window);
+
+				if (!scope) {
+					console.warn('Sparky: no object at path ' + params[0], data.cuts[110]);
+					return Fn.of();
+				}
+
 				return Fn.of(getPath(params[0], window));
 			},
 
@@ -193,6 +199,16 @@
 
 			ignore: function ignore(node, stream) {
 				console.log(this.interrupt(), node, stream);
+			},
+
+			prevent: function preventSubmitCtrl(node, stream, params) {
+				node.addEventListener(params[0], preventDefault);
+
+				// TODO: Work out how Sparky 2 is to handle teardowns
+
+				//this.on('destroy', function() {
+				//	node.removeEventListener('submit', preventDefault);
+				//});
 			},
 
 			log: (function(isIE) {
@@ -249,8 +265,9 @@
 	});
 
 	Object.defineProperties(Sparky, {
-		rtokens: {
-			get: function() { return settings.rtokens; },
+		rtoken: {
+			get: function() { return settings.rtoken; },
+			set: function(rtoken) { settings.rtoken = rtoken; },
 			enumerable: true,
 			configurable: true
 		}

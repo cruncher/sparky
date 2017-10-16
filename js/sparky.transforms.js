@@ -7,7 +7,7 @@
 	var Fn        = window.Fn;
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
-	
+
 	var assign    = Object.assign;
 	var curry     = Fn.curry;
 	var isDefined = Fn.isDefined;
@@ -93,10 +93,18 @@
 		multiply: { transform: Fn.multiply, invert: curry(function(d, n) { return n / d; }) },
 		degrees:  { transform: Fn.toDeg,    invert: Fn.toRad },
 		radians:  { transform: Fn.toRad,    invert: Fn.toDeg },
+		int:      { transform: Fn.toString, invert: Fn.toInt },
+		float:    { transform: Fn.toString, invert: Fn.toFloat },
 		decimals: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
 	});
 
 	assign(Sparky.transforms, {
+
+		// Transforms copied from transformers (to temporarily support the new
+		// system).
+
+		int:          Fn.toInt,
+		float:        Fn.toFloat,
 
 		// Transforms from Fn's map functions
 
@@ -459,7 +467,7 @@
 
 			return function(value) {
 				var translations = Sparky.data.translations;
-	
+
 				if (!translations) {
 					if (!warned.missingTranslations) {
 						console.warn('Sparky: Missing lookup object Sparky.data.translations');
@@ -467,18 +475,18 @@
 					}
 					return value;
 				}
-	
+
 				var text = translations[value] ;
-	
+
 				if (!text) {
 					if (!warned[value]) {
 						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
 						warned[value] = true;
 					}
-	
+
 					return value;
 				}
-	
+
 				return text ;
 			};
 		})(),
