@@ -157,6 +157,28 @@
 
 	// Mount
 
+
+	// TODO: replace with dom.requestEvent
+	function listenChange(fn) {
+		var node = this.node;
+
+		node.addEventListener('change', fn);
+
+		return function unlisten() {
+			node.removeEventListener('change', fn);
+		};
+	}
+
+	function listenInput(fn) {
+		var node = this.node;
+
+		node.addEventListener('input', fn);
+
+		return function unlisten() {
+			node.removeEventListener('input', fn);
+		};
+	}
+
 	function mountStringToken(text, render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
