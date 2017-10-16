@@ -4,17 +4,12 @@
 	var DEBUG      = window.DEBUG;
 
 	var Fn         = window.Fn;
+	var Observable = window.Observable;
 	var Stream     = window.Stream;
-	var Sparky     = window.Sparky;
+	var dom        = window.dom;
 
 	var assign     = Object.assign;
-	var apply      = Fn.apply;
-	var compose    = Fn.compose;
-	var curry      = Fn.curry;
-	var debug      = Fn.debug;
-	var each       = Fn.each;
 	var get        = Fn.get;
-	var getPath    = Fn.getPath;
 	var id         = Fn.id;
 	var isDefined  = Fn.isDefined;
 	var isNaN      = Number.isNaN;
@@ -24,7 +19,6 @@
 	var pipe       = Fn.pipe;
 	var set        = Fn.set;
 	var setPath    = Fn.setPath;
-	var toClass    = Fn.toClass;
 	var toType     = Fn.toType;
 
 
@@ -92,33 +86,6 @@
 	}
 
 	function call(fn) { return fn(); }
-
-	function getTargetValue(object) {
-		return object.target.value;
-	}
-
-
-	// Tokens
-
-	function listenChange(fn) {
-		var node = this.node;
-
-		node.addEventListener('change', fn);
-
-		return function unlisten() {
-			node.removeEventListener('change', fn);
-		};
-	}
-
-	function listenInput(fn) {
-		var node = this.node;
-
-		node.addEventListener('input', fn);
-
-		return function unlisten() {
-			node.removeEventListener('input', fn);
-		};
-	}
 
 
 	// Transform
@@ -190,7 +157,164 @@
 
 	// Mount
 
-	var mountNode = overload(get('nodeType'), {
+	function mountStringToken(text, render, strings, structs, match) {
+		var i = strings.length;
+		strings.push('');
+		structs.push({
+			token:  match[0],
+			path:   match[2],
+			pipe:   match[3],
+			render: function renderText(value) {
+				strings[i] = toRenderString(value);
+				render(strings);
+			}
+		});
+	}
+
+	function mountString(string, render, options) {
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
+
+		if (!match) { return; }
+
+		var strings = [];
+		var structs = [];
+
+		var renderStrings = function(strings) {
+			render(strings.join(''));
+		};
+
+		while (match) {
+			if (match.index > i) {
+				strings.push(string.slice(i, match.index));
+			}
+
+			mountStringToken(string, renderStrings, strings, structs, match);
+			i = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i + 1) {
+			strings.push(string.slice(i));
+		}
+
+		return structs;
+	}
+
+	function mountAttributes(names, node, options) {
+		var structs = [];
+		var name;
+
+		while (name = names.shift()) {
+			push(structs, mountAttribute(name, node, options));
+		}
+
+		return structs;
+	}
+
+	function mountAttribute(name, node, options) {
+		var text   = dom.attribute(name, node);
+
+		return text ? mountString(text, function render(value) {
+			node.setAttribute(name, value);
+		}, options) : nothing ;
+	}
+
+	function mountBoolean(name, node, options) {
+		var rtoken = options.rtoken;
+
+		// Look for data-attributes before attributes.
+		//
+		// In FF, the disabled attribute is set to the previous value that the
+		// element had when the page is refreshed, so it contains no sparky
+		// tags. The proper way to address this problem is to set
+		// autocomplete="off" on the parent form or on the field.
+		//
+		// Remember SVG has case sensitive attributes.
+
+		var attr = node.getAttribute('data-' + name) || node.getAttribute(name) ;
+		if (!attr) { return nothing; }
+
+		rtoken.lastIndex = 0;
+		var tokens = rtoken.exec(attr.trim());
+		if (!tokens) { return nothing; }
+
+		var render = name in node ?
+			// Attribute is also a boolean property
+			function render(value) {
+				node[name] = !!value;
+			} :
+
+			// Attribute is not also a boolean property
+			function render(value) {
+				if (value) {
+					node.setAttribute(name, name);
+				}
+				else {
+					node.removeAttribute(name);
+				}
+			} ;
+
+		var structs = [{
+			token:  attr.trim(),
+			path:   tokens[2],
+			pipe:   tokens[3],
+			render: render
+		}];
+
+		return structs;
+	}
+
+	function mountClass(node, options) {
+		var rtoken = options.rtoken;
+		var attr   = dom.attribute('class', node);
+
+		// If there are no classes, go no further
+		if (!attr) { return nothing; }
+
+		var structs = [];
+		var classes = dom.classes(node);
+
+		// Extract the tags and overwrite the class with remaining text
+		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
+			var prev    = '';
+
+			// Create an update function for keeping sparky's classes up-to-date
+			function render(string) {
+				if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
+				if (string && rtext.test(string)) { addClasses(classes, string); }
+				prev = string;
+			}
+
+			structs.push({
+				token:  $0,
+				path:   $2,
+				pipe:   $3,
+				render: render
+			});
+
+			return '';
+		});
+
+		node.setAttribute('class', text);
+		return structs;
+	}
+
+	function mountName(node, options) {
+		var string = node.name;
+		var rtoken = options.rtoken;
+
+		rtoken.lastIndex = 0;
+
+		var match = rtoken.exec(string);
+
+		if (!match) { return; }
+
+		return mountNameByType(node, options, match);
+	}
+
+	var types = {
 		// element
 		1: function(node, options) {
 			var structs  = [];
@@ -234,10 +358,9 @@
 
 			return structs;
 		}
-	});
+	};
 
-	var mountTag = overload(dom.tag, {
-
+	var tags = {
 		// HTML
 
 		a: function(node, options) {
@@ -250,7 +373,6 @@
 
 		input: function(node, options) {
 			var structs = [];
-			var type    = node.type;
 
 			push(structs, mountBoolean('disabled', node, options));
 			push(structs, mountBoolean('required', node, options));
@@ -271,7 +393,7 @@
 			//	parseName(node, get, set, bind, unbind, identity, identity) ;
 
 			//if (unbindName) { unobservers.push(unbindName); }
-			
+
 			//mountAttribute(node, 'name', bind, unbind, get, unobservers);
 		},
 
@@ -365,9 +487,9 @@
 		},
 
 		default: noop
-	});
+	};
 
-	var mountInput = overload(get('type'), {
+	var inputs = {
 		date: function(node, options) {
 			return mountAttributes(['min', 'max', 'step'], node, options);
 		},
@@ -384,121 +506,15 @@
 			return mountAttributes(['min', 'max', 'step'], node, options);
 		},
 
-		checkbox: function() {
-			
-		},
+		checkbox: function() {},
 
-		radio: function() {
-			
-		},
+		radio: function() {},
 
 		default: noop
-	});
+	};
 
-	function mountAttributes(names, node, options) {
-		var structs = [];
-		var name;
-
-		while (name = names.shift()) {
-			push(structs, mountAttribute(name, node, options));
-		}
-
-		return structs;
-	}
-
-	function mountAttribute(name, node, options) {
-		var text   = dom.attribute(name, node);
-
-		return text ? mountString(text, function render(value) {
-			node.setAttribute(name, value);
-		}, options) : nothing ;
-	}
-
-	function mountBoolean(name, node, options) {
-		var rtoken = options.rtoken;
-
-		// Look for data-attributes before attributes.
-		//
-		// In IE, the style attribute does not return invalid CSS text content,
-		// so Sparky can't read tags in it.
-		//
-		// In FF, the disabled attribute is set to the previous value that the
-		// element had when the page is refreshed, so it contains no sparky
-		// tags. The proper way to address this problem is to set
-		// autocomplete="off" on the parent form or on the field.
-		//
-		// Remember SVG has case sensitive attributes.
-
-		var attr = node.getAttribute('data-' + name) || node.getAttribute(name) ;
-		if (!attr) { return nothing; }
-
-		rtoken.lastIndex = 0;
-		var tokens = rtoken.exec(attr.trim());
-		if (!tokens) { return nothing; }
-
-		var render = name in node ?
-			// Attribute is also a boolean property
-			function render(value) {
-				node[name] = !!value;
-			} :
-
-			// Attribute is not also a boolean property
-			function render(value) {
-				if (value) {
-					node.setAttribute(name, name);
-				}
-				else {
-					node.removeAttribute(name);
-				}
-			} ;
-
-		var structs = [{
-			token:  value.trim(),
-			path:   tokens[2],
-			pipe:   tokens[3],
-			render: render
-		}];
-
-		return structs;
-	}
-
-	function mountClass(node, options) {
-		var rtoken = options.rtoken;
-		var attr   = dom.attribute('class', node);
-
-		// If there are no classes, go no further
-		if (!attr) { return nothing; }
-
-		var structs = [];
-		var classes = dom.classes(node);
-
-		// Extract the tags and overwrite the class with remaining text
-		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-			var prev    = '';
-
-			// Create an update function for keeping sparky's classes up-to-date
-			function render(string) {
-				if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
-				if (string && rtext.test(string)) { addClasses(classes, string); }
-				prev = string;
-			}
-
-			structs.push({
-				token:  $0,
-				path:   $2,
-				pipe:   $3,
-				render: render
-			});
-
-			return '';
-		});
-
-		node.setAttribute('class', text);
-		return structs;
-	}
-
-	var mountType = overload(get('type'), {
-		'checkbox': function(node, options, match) {
+	var namedInputs = {
+		checkbox: function(node, options, match) {
 			return [{
 				node: node,
 				token: match[0],
@@ -523,7 +539,7 @@
 			}];
 		},
 
-		'radio': function(node, options, match) {
+		radio: function(node, options, match) {
 			return [{
 				node: node,
 				token: match[0],
@@ -550,7 +566,7 @@
 			}];
 		},
 
-		'number': function(node, options, match) {
+		number: function(node, options, match) {
 			return [{
 				node: node,
 				token: match[0],
@@ -560,12 +576,12 @@
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
 				},
-				
+
 				render: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === parseFloat(node.value)) { return; }
-				
+
 					node.value = typeof value === 'number' && !isNaN(value) ?
 						value :
 						'' ;
@@ -575,7 +591,7 @@
 			}];
 		},
 
-		'range': function(node, options, match) {
+		range: function(node, options, match) {
 			return [{
 				node: node,
 				token: match[0],
@@ -585,12 +601,12 @@
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
 				},
-				
+
 				render: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === parseFloat(node.value)) { return; }
-				
+
 					node.value = typeof value === 'number' && !isNaN(value) ?
 						value :
 						'' ;
@@ -615,7 +631,7 @@
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === node.value) { return; }
-				
+
 					node.value = typeof value === 'string' ?
 						value :
 						'' ;
@@ -624,65 +640,12 @@
 				listen: listenInput
 			}];
 		}
-	});
+	};
 
-	function mountName(node, options) {
-		var string = node.name;
-		var rtoken = options.rtoken;
-
-		rtoken.lastIndex = 0;
-
-		var match = rtoken.exec(string);
-
-		if (!match) { return; }
-
-		return mountType(node, options, match);
-	}
-
-	function mountStringToken(text, render, strings, structs, i, match) {
-		var i = strings.length;
-		strings.push('');
-		structs.push({
-			token:  match[0],
-			path:   match[2],
-			pipe:   match[3],
-			render: function renderText(value) {
-				strings[i] = toRenderString(value);
-				render(strings);
-			}
-		});
-	}
-
-	function mountString(string, render, options) {
-		var rtoken  = options.rtoken;
-		var i       = rtoken.lastIndex = 0;
-		var match   = rtoken.exec(string);
-
-		if (!match) { return; }
-
-		var strings = [];
-		var structs = [];
-
-		var renderStrings = function(strings) {
-			render(strings.join(''));
-		};
-
-		while (match) {
-			if (match.index > i) {
-				strings.push(string.slice(i, match.index));
-			}
-
-			mountStringToken(string, renderStrings, strings, structs, i, match);
-			i = rtoken.lastIndex;
-			match = rtoken.exec(string);
-		}
-
-		if (string.length > i + 1) {
-			strings.push(string.slice(i));
-		}
-
-		return structs;
-	}
+	var mountNode  = overload(get('nodeType'), types);
+	var mountTag   = overload(dom.tag, tags);
+	var mountInput = overload(get('type'), inputs);
+	var mountNameByType = overload(get('type'), namedInputs);
 
 	function mount(node, options) {
 		options = assign({}, settings, options);
@@ -711,7 +674,6 @@
 			}
 
 			var observable = Observable(data);
-			var transform, update;
 
 			stops.forEach(call);
 
@@ -740,18 +702,20 @@
 				// Render future scopes at browser frame rate
 				output.each(throttle);
 
+				var set, invert, change, unlisten;
+
 				// Listen to changes
 				if (struct.listen) {
 					// TODO: We may want to use data rather than observable here,
 					// meaning we would not have to worry about the observed
 					// change going back to the input...
-					var set    = setPath(struct.path, observable);
+					set    = setPath(struct.path, observable);
 
-					var invert = struct.inverseTransform = struct.inverseTransform
+					invert = struct.inverseTransform = struct.inverseTransform
 						|| InverseTransform(options.transformers, struct.pipe);
 
-					var change = pipe(function() { return struct.read(); }, invert, set);
-					var unlisten = struct.listen(change);
+					change = pipe(function() { return struct.read(); }, invert, set);
+					unlisten = struct.listen(change);
 
 					if (value === undefined) { change(); }
 				}
@@ -773,6 +737,12 @@
 
 
 	// Export
+
+	mount.types  = types;
+	mount.tags   = tags;
+	mount.inputs = inputs;
+	mount.mountAttribute = mountAttribute;
+	mount.mountBoolean   = mountBoolean;
 
 	window.mount = mount;
 

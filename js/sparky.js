@@ -6,34 +6,25 @@
 (function(window) {
 	"use strict";
 
-	var DEBUG     = window.DEBUG;
+	var DEBUG      = window.DEBUG;
 
-	var Fn        = window.Fn;
-	var dom       = window.dom;
-	var mount     = window.mount;
+	var Fn         = window.Fn;
+	var Observable = window.Observable;
+	var Stream     = window.Stream;
+	var dom        = window.dom;
+	var mount      = window.mount;
 
-	var assign    = Object.assign;
-
-	var debug     = Fn.debug;
-	var each      = Fn.each;
-	var getPath   = Fn.getPath;
-	var id        = Fn.id;
-	var isDefined = Fn.isDefined;
-	var overload  = Fn.overload;
-	var nothing   = Fn.nothing;
-	var noop      = Fn.noop;
-	var curry     = Fn.curry;
-	var get       = Fn.get;
-	var set       = Fn.set;
-	var each      = Fn.each;
-
-	var append    = dom.append;
-	var children  = dom.children;
-	var empty     = dom.empty;
+	var assign     = Object.assign;
+	var each       = Fn.each;
+	var getPath    = Fn.getPath;
+	var noop       = Fn.noop;
+	var append     = dom.append;
+	var children   = dom.children;
+	var empty      = dom.empty;
 	var fragmentFromId = dom.fragmentFromId;
 	var fragmentFromTemplate = dom.fragmentFromTemplate;
-	var remove    = dom.remove;
-	var tag       = dom.tag;
+	var remove     = dom.remove;
+	var tag        = dom.tag;
 
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
@@ -74,7 +65,7 @@
 
 		while (sparky[++n]) {
 			updates.push(mount(sparky[n], settings));
-		} 
+		}
 
 		return function update(scope) {
 			return updates.reduce(callReducer, scope);
@@ -160,15 +151,15 @@
 			.take(1)
 			.each(function(scope) {
 				var fragment = fragmentFromId(template);
-			
+
 				if (!fragment) {
 					throw new Error('Sparky: data-template="' + template + '" not found in DOM');
 				}
-			
+
 				// Replace node content with fragment
 				empty(node);
 				append(node, fragment);
-			
+
 				// Update
 				update = createUpdate(sparky, settings);
 				update(scope);
