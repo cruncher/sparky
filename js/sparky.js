@@ -183,6 +183,10 @@
 
 	assign(Sparky, {
 		fn: {
+			scope: function(node, stream, params) {
+				return Fn.of(getPath(params[0], window));
+			},
+
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
 			},

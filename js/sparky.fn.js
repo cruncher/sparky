@@ -150,7 +150,7 @@ Sparky.nodeToString = Fn.id;
 			//});
 		},
 
-		"scope": function(node, scopes) {
+		"expose-scope": function(node, scopes) {
 			scopes.tap(function(scope) {
 				Sparky.setScope(node, scope);
 			});
