@@ -743,6 +743,8 @@
 	mount.inputs = inputs;
 	mount.mountAttribute = mountAttribute;
 	mount.mountBoolean   = mountBoolean;
+	mount.mountInput     = mountInput;
+	mount.mountName      = mountName;
 
 	window.mount = mount;
 
