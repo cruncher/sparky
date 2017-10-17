@@ -88,34 +88,36 @@
 	}
 
 	assign(Sparky.transformers = {}, {
-		add:      { transform: Fn.add,      invert: curry(function(m, n) { return n - m; }) },
-		decibels: { transform: Fn.todB,     invert: Fn.toLevel },
-		multiply: { transform: Fn.multiply, invert: curry(function(d, n) { return n / d; }) },
-		degrees:  { transform: Fn.toDeg,    invert: Fn.toRad },
-		radians:  { transform: Fn.toRad,    invert: Fn.toDeg },
-		int:      { transform: Fn.toString, invert: Fn.toInt },
-		float:    { transform: Fn.toString, invert: Fn.toFloat },
-		decimals: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
-		floatformat: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
+		add:         { transform: Fn.add,         invert: curry(function(m, n) { return n - m; }) },
+		decibels:    { transform: Fn.todB,        invert: Fn.toLevel },
+		multiply:    { transform: Fn.multiply,    invert: curry(function(d, n) { return n / d; }) },
+		degrees:     { transform: Fn.toDeg,       invert: Fn.toRad },
+		radians:     { transform: Fn.toRad,       invert: Fn.toDeg },
+		pow:         { transform: Fn.pow,         invert: curry(function(n, x) { return Fn.pow(1/n, x); }) },
+		exp:         { transform: Fn.exp,         invert: Fn.log },
+		log:         { transform: Fn.log,         invert: Fn.exp },
+		int:         { transform: Fn.toFixed(0),  invert: Fn.toInt },
+		float:       { transform: Fn.toString,    invert: Fn.toFloat },
+		normalise:   { transform: Fn.normalise,   invert: Fn.denormalise },
+		denormalise: { transform: Fn.denormalise, invert: Fn.normalise },
+		floatformat: { transform: Fn.toFixed,     invert: curry(function(n, str) { return parseFloat(str); }) },
+	});
+
+	assign(Sparky.transformers, {
+		// Aliases
+		decimals: Sparky.transformers.floatformat
 	});
 
 	assign(Sparky.transforms, {
-
-		// Transforms copied from transformers (to temporarily support the new
-		// system).
-
-		int:          Fn.toInt,
-		float:        Fn.toFloat,
 
 		// Transforms from Fn's map functions
 
 		add:          Fn.add,
 		append:       Fn.append,
 		contains:     Fn.contains,
-		denormalise:  Fn.denormalise,
 		diff:         Fn.diff,
 		equals:       Fn.equals,
-		exp:          Fn.exp,
+		//exp:          Fn.exp,
 		factorise:    Fn.factorise,
 		gcd:          Fn.gcd,
 		get:          Fn.get,
@@ -125,15 +127,12 @@
 		is:           Fn.is,
 		lcm:          Fn.lcm,
 		limit:        Fn.limit,
-		log:          Fn.log,
+		//log:          Fn.log,
 		max:          Fn.max,
 		min:          Fn.min,
 		mod:          Fn.mod,
-		multiply:     Fn.multiply,
-		normalise:    Fn.normalise,
 		not:          Fn.not,
 		percent:      Fn.multiply(100),
-		pow:          Fn.pow,
 		prepend:      Fn.prepend,
 		rest:         Fn.rest,
 		root:         Fn.nthRoot,

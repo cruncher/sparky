@@ -39,9 +39,10 @@
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var settings = {
-		mount:      noop,
-		transforms: {},
-		rtoken:     /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+		mount:        noop,
+		transforms:   {},
+		transformers: {},
+		rtoken:       /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
 
 	var toRenderString = overload(toType, {
@@ -92,7 +93,7 @@
 
 	var rtransform = /\|\s*([\w\-]+)\s*(?::([^|]+))?/g;
 
-	function Transform(transforms, string) {
+	function Transform(transforms, transformers, string) {
 		if (!string) { return id; }
 
 		var fns = [];
@@ -105,7 +106,7 @@
 			&& (token = rtransform.exec(string))
 		) {
 			name = token[1];
-			fn   = transforms[name];
+			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
 
 			if (!fn) {
 				throw new Error('Sparky: transform "' + name + '" not found');
@@ -711,7 +712,7 @@
 				var render = struct.render;
 
 				var transform = struct.transform = struct.transform
-					|| Transform(options.transforms, struct.pipe);
+					|| Transform(options.transforms, options.transformers, struct.pipe);
 
 				var update = struct.update = struct.update
 					|| function(value) { render(transform(value)); };
