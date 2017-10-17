@@ -96,6 +96,7 @@
 		int:      { transform: Fn.toString, invert: Fn.toInt },
 		float:    { transform: Fn.toString, invert: Fn.toFloat },
 		decimals: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
+		floatformat: { transform: Fn.toFixed,  invert: curry(function(n, str) { return parseFloat(str); }) },
 	});
 
 	assign(Sparky.transforms, {
@@ -140,7 +141,7 @@
 		sort:         Fn.sort,
 		take:         Fn.take,
 		toCartesian:  Fn.toCartesian,
-		toDb:         Fn.toDb,
+		todB:         Fn.todB,
 		toDeg:        Fn.toDeg,
 		toLevel:      Fn.toLevel,
 		toFixed:      Fn.toFixed,
@@ -283,19 +284,19 @@
 
 		first: Fn.get(0),
 
-		floatformat: function(value, n) {
+		floatformat: curry(function(n, value) {
 			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
 				!isDefined(value) ? '' :
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-		},
+		}),
 
 		floor: function(value) {
 			return Math.floor(value);
 		},
 
-		"greater-than": function(value1, value2) {
-			return value1 > value2;
-		},
+		"greater-than": curry(function(value1, value2) {
+			return value2 > value1;
+		}),
 
 		invert: function(value) {
 			return typeof value === 'number' ? 1 / value : !value ;

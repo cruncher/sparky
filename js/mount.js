@@ -118,6 +118,10 @@
 			else {
 				fns.push(fn);
 			}
+
+			if (!(typeof fns[fns.length - 1] === 'function')) {
+				throw new Error('Sparky: transform "' + name + '" not resulting in fn');
+			}
 		}
 
 		return pipe.apply(null, fns);
@@ -692,7 +696,7 @@
 
 			if (DEBUG) {
 				console.groupCollapsed('Sparky: update', node);
-				console.log(data);
+				console.log(data, data.total);
 			}
 
 			var observable = Observable(data);

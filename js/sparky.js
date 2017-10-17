@@ -43,7 +43,7 @@
 				template: template
 			});
 
-			if (DEBUG) { console.log('mounted:', node); }
+			if (DEBUG) { console.log('mounted:', node, fn, template); }
 
 			return [{
 				token: fn,
@@ -211,34 +211,28 @@
 				//});
 			},
 
-			log: (function(isIE) {
-				// Logs nodes, scopes and data.
-				return function(node, scopes) {
-					var sparky = this;
+			log: function(node, scopes) {
+				var sparky = this;
 
-					// In IE11 and probably below, and possibly Edge, who knows,
-					// console.groups can arrive in really weird orders. They
-					// are not at all useful for debugging as a result. Rely on
-					// console.log.
+				// In IE11 and probably below, and possibly Edge, who knows,
+				// console.groups can arrive in really weird orders. They
+				// are not at all useful for debugging as a result. Rely on
+				// console.log.
 
-					function log(scope) {
-						console[isIE ? 'log' : 'group']('Sparky: scope', node);
-						console.log('data ', sparky.data);
-						console.log('scope', scope);
-						console.log('fn   ', sparky.fn);
-						console[isIE ? 'log' : 'groupEnd']('---');
-					}
-
-					console[isIE ? 'log' : 'group']('Sparky: run  ', node);
+				function log(scope) {
+					console.group('Sparky: scope', node);
 					console.log('data ', sparky.data);
-					console[isIE ? 'log' : 'groupEnd']('---');
+					console.log('scope', scope);
+					console.log('fn   ', sparky.fn);
+					console.groupEnd('---');
+				}
 
-					return scopes.tap(log);
-				};
-			})(
-				// Detect IE
-				!!(document.all && document.compatMode || window.navigator.msPointerEnabled)
-			)
+				console.group('Sparky: run  ', node);
+				console.log('data ', sparky.data);
+				console.groupEnd('---');
+
+				return scopes.tap(log);
+			}
 		},
 
 		transforms: {},
