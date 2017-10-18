@@ -13,7 +13,6 @@ group('[data-fn="each"]', function(test, log, fixture) {
 
 		requestAnimationFrame(function() {
 			equals(0, ul.querySelectorAll('li').length);
-
 			sparky.push(array);
 
 			requestAnimationFrame(function() {
@@ -21,7 +20,7 @@ group('[data-fn="each"]', function(test, log, fixture) {
 				equals(2, ul.querySelectorAll('li').length);
 				equals('1', lis[0] && lis[0].innerHTML, "First li content from array");
 				equals('2', lis[1] && lis[1].innerHTML, "Second li content from array");
-				
+
 				Observable(array).push({ property: 3 });
 //console.log('>>', JSON.stringify(array));
 				requestAnimationFrame(function() {
@@ -39,13 +38,24 @@ group('[data-fn="each"]', function(test, log, fixture) {
 						var lis = ul.querySelectorAll('li');
 						equals(0, ul.querySelectorAll('li').length);
 						equals('1', li && li.innerHTML, "First li content");
-						
+
 						done();
 					});
 				});
 			});
 		});
 	}, 8);
+
+}, function() {/*
+
+<ul>
+	<li class="li-{[property]}" data-fn="each">{[property]}</li>
+</ul>
+
+*/});
+
+
+group('[data-fn="each"]', function(test, log, fixture) {
 
 	test('[data-fn="each"] empty array', function(equals, done) {
 		var ul = fixture.querySelector('[data-fn="nothing"]');
@@ -54,7 +64,7 @@ group('[data-fn="each"]', function(test, log, fixture) {
 			return Fn.of([]);
 		};
 
-		var sparky = Sparky(ul);
+		Sparky(ul);
 
 		requestAnimationFrame(function() {
 			equals(0, ul.querySelectorAll('li').length);
@@ -62,38 +72,8 @@ group('[data-fn="each"]', function(test, log, fixture) {
 		});
 	}, 1);
 
-	test('[data-fn="each"] populated array', function(equals, done) {
-		var ul = fixture.querySelector('[data-fn="items"]');
-
-		Sparky.fn['items'] = function(node, model) {
-			return Fn.of([
-				{ property: 1 },
-				{ property: 2 }
-			]);
-		};
-
-		var sparky = Sparky(ul);
-
-		requestAnimationFrame(function() {
-			var lis = ul.querySelectorAll('li');
-			equals(2, lis.length, 'Two <li>s expected in the DOM');
-			equals('1', lis[0] && lis[0].innerHTML, "First li content from array");
-			equals('2', lis[1] && lis[1].innerHTML, "Second li content from array");
-			done();
-		});
-	}, 3);
 }, function() {/*
-
-<ul>
-	<li class="li-{[property]}" data-fn="each">{[property]}</li>
-</ul>
-
 <ul data-fn="nothing">
 	<li class="li-{[property]}" data-fn="each">{[property]}</li>
 </ul>
-
-<ul data-fn="items">
-	<li class="li-{[property]}" data-fn="each">{[property]}</li>
-</ul>
-
 */});

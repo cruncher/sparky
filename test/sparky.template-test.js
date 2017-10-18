@@ -2,7 +2,7 @@ group('[data-template]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
 
-	test('', function(equals, done) {
+	test('[data-template="id"]', function(equals, done) {
 		equals('Default content.', node.innerHTML);
 
 		sparky.push(Observable({
@@ -30,7 +30,7 @@ group('svg > [data-template]', function(test, log, fixture) {
 	var svg    = fixture.children[0];
 	var sparky = Sparky(svg);
 
-	test('', function(equals, done) {
+	test('svg > [data-template="id"]', function(equals, done) {
 		sparky.push(Observable({}));
 
 		requestAnimationFrame(function() {
