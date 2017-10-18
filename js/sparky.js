@@ -49,8 +49,6 @@
 
 			sparky.token = fn;
 			sparky.path  = '';
-			sparky.stream = sparky;
-
 			return sparky;
 		}
 	};
