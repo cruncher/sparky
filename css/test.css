@@ -75,3 +75,14 @@
 			border-radius: 50%;
 		}
 
+.test-bubble {
+	top: 5.625rem;
+	position: absolute;
+	padding: 0.25rem;
+	border: 1px solid currentcolor;
+	border-radius: 0.5625rem;
+}
+
+.test-bubble + .test-bubble {
+	top: 130px;
+}
