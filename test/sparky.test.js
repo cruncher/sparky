@@ -1,25 +1,25 @@
 
-Sparky.fn['ctrl'] = function(node, scopes) {
-	return Fn.of({ property: 'peas' });
-};
-
-group('Render scope from data-fn', function(test, log, fixture) {
-	var node = fixture.children[0];
-
-	test("[data-fn]", function(equals, done) {
-		var sparky = Sparky(node);
-
-		requestAnimationFrame(function functionName() {
-			equals('peas some text peas some text', node.innerHTML);
-			equals(true, !!node.getAttribute('class').match(/peas/));
-			done(2);
-		});
-	});
-}, function() {/*
-
-<div data-fn="ctrl" class=" nothing {[property]} ">{[property]} some text {[property]} some text</div>
-
-*/});
+//Sparky.fn['ctrl'] = function(node, scopes) {
+//	return Fn.of({ property: 'peas' });
+//};
+//
+//group('Render scope from data-fn', function(test, log, fixture) {
+//	var node = fixture.children[0];
+//
+//	test("[data-fn]", function(equals, done) {
+//		var sparky = Sparky(node);
+//
+//		requestAnimationFrame(function functionName() {
+//			equals('peas some text peas some text', node.innerHTML);
+//			equals(true, !!node.getAttribute('class').match(/peas/));
+//			done(2);
+//		});
+//	});
+//}, function() {/*
+//
+//<div data-fn="ctrl" class=" nothing {[property]} ">{[property]} some text {[property]} some text</div>
+//
+//*/});
 
 group('Child sparky', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
@@ -61,7 +61,7 @@ group('Child sparky', function(test, log, fixture) {
 
 			frame(function() {
 				equals('newprop1', p3.innerHTML);
-				equals('prop2',  p4.innerHTML);
+				equals('prop2',    p4.innerHTML);
 
 				sparky.stop();
 
@@ -70,12 +70,12 @@ group('Child sparky', function(test, log, fixture) {
 
 				frame(function() {
 					equals('newprop1', p3.innerHTML);
-					equals('prop2',  p4.innerHTML);				
-					done(8);
+					equals('prop2',    p4.innerHTML);
+					done();
 				});
 			});
 		});
-	});
+	}, 8);
 
 }, function() {/*
 
@@ -88,34 +88,34 @@ group('Child sparky', function(test, log, fixture) {
 
 */});
 
-group('[class]', function(test, log, fixture) {
-	test("[class]", function(equals, done) {
-		var node = fixture.querySelector('div');
-		var model = Observable({ property: 'peas' });
-
-		Sparky(node, model);
-		equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
-
-		node.classList.add('hello');
-
-		window.requestAnimationFrame(function() {
-			equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
-			equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: ' + node.getAttribute('class'));
-
-			model.property = 'ice';
-
-			window.requestAnimationFrame(function() {
-				equals(true, !node.classList.contains('peas'), 'Classes expected to not contain "peas", actual: "' + node.getAttribute('class') + '"');
-				equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
-				done(5);
-			});
-		});
-	});
-}, function() {/*
-
-<div class="class-1 class-2 {[property]}">{[property]}</div>
-
-*/});
+//group('[class]', function(test, log, fixture) {
+//	test("[class]", function(equals, done) {
+//		var node = fixture.querySelector('div');
+//		var model = Observable({ property: 'peas' });
+//
+//		Sparky(node, model);
+//		equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
+//
+//		node.classList.add('hello');
+//
+//		window.requestAnimationFrame(function() {
+//			equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
+//			equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: ' + node.getAttribute('class'));
+//
+//			model.property = 'ice';
+//
+//			window.requestAnimationFrame(function() {
+//				equals(true, !node.classList.contains('peas'), 'Classes expected to not contain "peas", actual: "' + node.getAttribute('class') + '"');
+//				equals(true, !!node.classList.contains('hello'), 'Classes expected to contain "hello", actual: "' + node.getAttribute('class') + '"');
+//				done(5);
+//			});
+//		});
+//	});
+//}, function() {/*
+//
+//<div class="class-1 class-2 {[property]}">{[property]}</div>
+//
+//*/});
 
 //group('Test tags in class attributes...', function(test, log, fixture) {
 //	test("Tags is class attributes", function(equals, done) {

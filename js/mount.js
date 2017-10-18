@@ -191,7 +191,7 @@
 			token:  match[0],
 			path:   match[2],
 			pipe:   match[3],
-			render: function renderText(value) {
+			push: function renderText(value) {
 				strings[i] = toRenderString(value);
 				render(strings);
 			}
@@ -284,10 +284,10 @@
 			} ;
 
 		var structs = [{
-			token:  attr.trim(),
-			path:   tokens[2],
-			pipe:   tokens[3],
-			render: render
+			token: attr.trim(),
+			path:  tokens[2],
+			pipe:  tokens[3],
+			push:  render
 		}];
 
 		return structs;
@@ -315,10 +315,10 @@
 			}
 
 			structs.push({
-				token:  $0,
-				path:   $2,
-				pipe:   $3,
-				render: render
+				token: $0,
+				path:  $2,
+				pipe:  $3,
+				push:  render
 			});
 
 			return '';
@@ -543,10 +543,10 @@
 	var namedInputs = {
 		checkbox: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return isDefined(node.getAttribute('value')) ?
@@ -554,7 +554,7 @@
 						node.checked ;
 				},
 
-				render: function render(value) {
+				push: function render(value) {
 					// Where value is defined check against it, otherwise
 					// value is "on", uselessly. Set checked state directly.
 					node.checked = isDefined(node.getAttribute('value')) ?
@@ -568,10 +568,10 @@
 
 		radio: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					if (!node.checked) { return; }
@@ -581,7 +581,7 @@
 						true ;
 				},
 
-				render: function render(value) {
+				push: function render(value) {
 					// Where value="" is defined check against it, otherwise
 					// value is "on", uselessly: set checked state directly.
 					node.checked = isDefined(node.getAttribute('value')) ?
@@ -595,16 +595,16 @@
 
 		number: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
 				},
 
-				render: function render(value) {
+				push: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === parseFloat(node.value)) { return; }
@@ -620,16 +620,16 @@
 
 		range: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
 				},
 
-				render: function render(value) {
+				push: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === parseFloat(node.value)) { return; }
@@ -645,16 +645,16 @@
 
 		default: function(node, options, match) {
 			return [{
-				node:   node,
-				token:  match[0],
-				path:   match[2],
-				pipe:   match[3],
+				node:  node,
+				token: match[0],
+				path:  match[2],
+				pipe:  match[3],
 
-				read:   function read() {
+				read: function read() {
 					return node.value;
 				},
 
-				render: function render(value) {
+				push: function render(value) {
 					// Avoid updating with the same value as it sends the cursor to
 					// the end of the field (in Chrome, at least).
 					if (value === node.value) { return; }
@@ -697,7 +697,6 @@
 
 			if (DEBUG) {
 				console.groupCollapsed('Sparky: update', node);
-				console.log(data, data.total);
 			}
 
 			var observable = Observable(data);
@@ -709,13 +708,11 @@
 				// cycle. We delay the mount cycle until first scope arrives
 				// anyway, after all.
 
-				var render = struct.render;
-
 				var transform = struct.transform = struct.transform
 					|| Transform(options.transforms, options.transformers, struct.pipe);
 
 				var update = struct.update = struct.update
-					|| function(value) { render(transform(value)); };
+					|| function(value) { struct.push(transform(value)); };
 
 				var output = Stream.observe(struct.path, observable);
 				var value  = output.latest().shift();
@@ -750,6 +747,7 @@
 				return function() {
 					throttle.cancel();
 					output.stop();
+					if (struct.stop) { struct.stop(); }
 					if (struct.listen) { unlisten(); }
 				};
 			});

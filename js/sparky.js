@@ -45,11 +45,11 @@
 
 			if (DEBUG) { console.log('mounted:', node, fn, template); }
 
-			return [{
-				token: fn,
-				path:  '',
-				render: sparky.push
-			}];
+			sparky.token = fn;
+			sparky.path  = '';
+			sparky.stream = sparky;
+
+			return [sparky];
 		}
 	};
 
