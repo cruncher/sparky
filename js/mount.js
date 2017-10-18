@@ -9,6 +9,7 @@
 	var dom        = window.dom;
 
 	var assign     = Object.assign;
+	var compose    = Fn.compose;
 	var get        = Fn.get;
 	var id         = Fn.id;
 	var isDefined  = Fn.isDefined;
@@ -86,7 +87,10 @@
 		array.push.apply(array, values);
 	}
 
-	function call(fn) { return fn(); }
+	function callReducer(value, fn) {
+		fn(value);
+		return value;
+	}
 
 
 	// Transform
@@ -347,10 +351,20 @@
 			var structs  = [];
 			var children = node.childNodes;
 			var n = -1;
-			var child;
+			var child, renderer;
 
 			while (child = children[++n]) {
-				push(structs, options.mount(child) || mountNode(child, options));
+				// Test to see if it needs a full Sparky mounting
+				renderer = options.mount(child);
+
+				if (renderer) {
+					// Sparky mounted it
+					structs.push(renderer);
+				}
+				else {
+					// It's a plain old node with no data-fn
+					push(structs, mountNode(child, options));
+				}
 			}
 
 			push(structs, mountClass(node, options));
@@ -543,10 +557,10 @@
 	var namedInputs = {
 		checkbox: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return isDefined(node.getAttribute('value')) ?
@@ -568,10 +582,10 @@
 
 		radio: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					if (!node.checked) { return; }
@@ -595,10 +609,10 @@
 
 		number: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
@@ -620,10 +634,10 @@
 
 		range: function(node, options, match) {
 			return [{
-				node: node,
+				node:  node,
 				token: match[0],
-				path: match[2],
-				pipe: match[3],
+				path:  match[2],
+				pipe:  match[3],
 
 				read: function read() {
 					return node.value ? parseFloat(node.value) : undefined ;
@@ -645,12 +659,12 @@
 
 		default: function(node, options, match) {
 			return [{
-				node:   node,
-				token:  match[0],
-				path:   match[2],
-				pipe:   match[3],
+				node:  node,
+				token: match[0],
+				path:  match[2],
+				pipe:  match[3],
 
-				read:   function read() {
+				read: function read() {
 					return node.value;
 				},
 
@@ -674,6 +688,89 @@
 	var mountInput = overload(get('type'), inputs);
 	var mountNameByType = overload(get('type'), namedInputs);
 
+	function setupStruct(struct, options) {
+		var transform = Transform(options.transforms, options.transformers, struct.pipe);
+		struct.push = compose(struct.render, transform);
+		struct.throttle = Fn.throttle(struct.push, requestAnimationFrame, cancelAnimationFrame) ;
+	}
+
+	function RenderStream(structs, options, node) {
+		var old;
+
+		return {
+			/* A read-only stream. */
+			shift: noop,
+
+			stop: function stopRenderer() {
+				structs.forEach(function(struct) {
+					struct.unbind && struct.unbind();
+					struct.stop && struct.stop();
+				});
+			},
+
+			push: function pushRenderer(data) {
+				if (old === data) { return; }
+				old = data;
+
+				if (DEBUG) {
+					console.groupCollapsed('Sparky: update', node);
+				}
+
+				var observable = Observable(data);
+
+				// Rebind structs
+				structs.forEach(function(struct) {
+					// Unbind Structs
+					struct.unbind && struct.unbind();
+
+					// Set up struct. Sparky objects, which masquerade as structs,
+					// already have a .push() method. They don't need to be set
+					// up. Also, they don't need to be throttled
+					if (!struct.push) {
+						setupStruct(struct, options);
+					}
+
+					// Rebind struct
+					var input = struct.input = Stream.observe(struct.path, observable);
+					var value = input.latest().shift();
+
+					// If there is an initial scope render it synchronously, as
+					// it is assumed we are already working inside an animation
+					// frame
+					if (value !== undefined) { struct.push(value); }
+
+					// Render future scopes at throttled frame rate, where
+					// throttle is defined
+					input.each(struct.throttle || struct.push);
+
+					var set, invert, change, unlisten;
+
+					// Listen to changes
+					if (struct.listen) {
+						set = setPath(struct.path, observable);
+						invert = InverseTransform(options.transformers, struct.pipe);
+						change = pipe(function() { return struct.read(); }, invert, set);
+						unlisten = struct.listen(change);
+
+						if (value === undefined) { change(); }
+					}
+
+					struct.unbind = function(data) {
+						struct.throttle && struct.throttle.cancel();
+						struct.input.stop();
+						if (struct.listen) { unlisten(); }
+					};
+				});
+
+				if (DEBUG) {
+					console.groupEnd();
+				}
+
+				return data;
+			}
+		}
+	}
+
 	function mount(node, options) {
 		options = assign({}, settings, options);
 
@@ -688,78 +785,7 @@
 			console.groupEnd();
 		}
 
-		var stops = nothing;
-		var old;
-
-		return function update(data) {
-			if (old === data) { return; }
-			old = data;
-
-			if (DEBUG) {
-				console.groupCollapsed('Sparky: update', node);
-				console.log(data, data.total);
-			}
-
-			var observable = Observable(data);
-
-			stops.forEach(call);
-
-			stops = structs.map(function(struct) {
-				// TODO: I think much of this logic can be moved into the mount
-				// cycle. We delay the mount cycle until first scope arrives
-				// anyway, after all.
-
-				var render = struct.render;
-
-				var transform = struct.transform = struct.transform
-					|| Transform(options.transforms, options.transformers, struct.pipe);
-
-				var update = struct.update = struct.update
-					|| function(value) { render(transform(value)); };
-
-				var output = Stream.observe(struct.path, observable);
-				var value  = output.latest().shift();
-
-				var throttle = struct.throttle =
-					struct.throttle || Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
-
-				// If there is an initial scope render it synchronously
-				if (value !== undefined) { update(value); }
-
-				// Render future scopes at browser frame rate
-				output.each(throttle);
-
-				var set, invert, change, unlisten;
-
-				// Listen to changes
-				if (struct.listen) {
-					// TODO: We may want to use data rather than observable here,
-					// meaning we would not have to worry about the observed
-					// change going back to the input...
-					set    = setPath(struct.path, observable);
-
-					invert = struct.inverseTransform = struct.inverseTransform
-						|| InverseTransform(options.transformers, struct.pipe);
-
-					change = pipe(function() { return struct.read(); }, invert, set);
-					unlisten = struct.listen(change);
-
-					if (value === undefined) { change(); }
-				}
-
-				return function() {
-					throttle.cancel();
-					output.stop();
-					if (struct.listen) { unlisten(); }
-				};
-			});
-
-			if (DEBUG) {
-				console.groupEnd();
-			}
-
-			return data;
-		};
+		return RenderStream(structs, options, node);
 	}
 
 

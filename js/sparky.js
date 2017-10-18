@@ -17,7 +17,9 @@
 	var assign     = Object.assign;
 	var each       = Fn.each;
 	var getPath    = Fn.getPath;
+	var invoke     = Fn.invoke;
 	var noop       = Fn.noop;
+	var nothing    = Fn.nothing;
 	var append     = dom.append;
 	var children   = dom.children;
 	var empty      = dom.empty;
@@ -45,11 +47,11 @@
 
 			if (DEBUG) { console.log('mounted:', node, fn, template); }
 
-			return [{
-				token: fn,
-				path:  '',
-				render: sparky.push
-			}];
+			sparky.token = fn;
+			sparky.path  = '';
+			sparky.stream = sparky;
+
+			return sparky;
 		}
 	};
 
@@ -58,16 +60,24 @@
 		return object;
 	}
 
-	function createUpdate(sparky, settings) {
-		var updates = [];
+	function createRenderStream(sparky, settings) {
+		var streams = [];
 		var n = -1;
 
 		while (sparky[++n]) {
-			updates.push(mount(sparky[n], settings));
+			streams.push(mount(sparky[n], settings));
 		}
 
-		return function update(scope) {
-			return updates.reduce(callReducer, scope);
+		// An aggragate stream for all the mounted streams. How many nested
+		// streams do we need in this project?
+		return {
+			stop: function stop() {
+				return streams.forEach(invoke('stop', arguments));
+			},
+
+			push: function push() {
+				return streams.forEach(invoke('push', arguments));
+			}
 		};
 	}
 
@@ -105,13 +115,13 @@
 		var calling  = true;
 		var sparky   = this;
 		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
-		var update   = noop;
+		var renderer = nothing;
 
 		this.push    = stream.push;
 
 		this.stop = function stop() {
 			stream.stop && stream.stop();
-			update(null);
+			renderer.stop && renderer.stop();
 			return sparky;
 		};
 
@@ -160,14 +170,14 @@
 				append(node, fragment);
 
 				// Update
-				update = createUpdate(sparky, settings);
-				update(scope);
-				stream.each(update);
+				renderer = createRenderStream(sparky, settings);
+				renderer.push(scope);
+				stream.each(renderer.push);
 			});
 		}
 		else {
-			update = createUpdate(sparky, settings);
-			stream.each(update);
+			renderer = createRenderStream(sparky, settings);
+			stream.each(renderer.push);
 		}
 	}
 
