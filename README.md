@@ -24,37 +24,48 @@ Install node modules for building and testing:
 
 ## API
 
-### Sparky(node, scope, fn)
+### Sparky(selector, scope, options)
 
-    var sparky = Sparky(node, scope, fn)
+Sparky takes this:
 
-To bind a node call <code>Sparky</code> with a node or id, a scope
-object and/or a function.
+    <div data-fn="scope:'data'" class="user {[.|yesno:'active']}">
+        <a class="thumb" style="background-image: url('{[avatar]}')">{[name]}</a>
+    </div>
 
-<code>node   </code>node | document fragment | selector
+    window.data = {
+        avatar: '/username/avatar.png',
+        name: 'Godfrey'
+    };
 
-Required parameter. If it is a DOM node or document fragment, Sparky parses it
-for tags. If it is a selector string Sparky selects a node (only `#id`
-selectors currently supported) and parses that for tags.
+    Sparky('.user');
 
-<code>scope  </code>object | string | undefined
+And renders this:
 
-An object who's properties are used to render tags in the node. (Sparky's scope
-may also be replaced at a later time via <code>sparky.scope(object)</code>.) If
-the <code>scope</code> parameter is a string it defines path to an object in the <code>Sparky.data</code>.
+    <div data-fn="scope:'data'" class="user active">
+        <a class="thumb" style="background-image: url('/username/avatar.png')">Godfrey</a>
+    </div>
 
-<code>fn     </code>function | string | undefined
+The Sparky constructor takes a DOM fragment or a DOM node or a selector.
 
-A function to run upon instantiating the node, or a string defining a name or
-names of function(s) stored in <code>sparky.fn</code> or in
-<code>Sparky.fn</code>. Log <code>Sparky.fn</code> in the console to see the
-default functions available.
+    var fragment = document.createDocumentFragment();
+    Sparky(fragment);
 
-<code>sparky</code>
+    var node = document.querySelector('.user');
+    Sparky(node);
+
+    Sparky('.user');
+
+The Sparky constructor takes an optional 2nd argument, scope.
+
+    Sparky('.user', {
+        avatar: '/username/avatar.png',
+        name: 'Godfrey'
+    });
+
+And a third, an options object.
 
 A sparky object is an array-like object of DOM nodes that have been bound to
-data models. It emits lifecycle events and exposes a few methods for
-interacting with the template.
+scopes. It is a stream with methods to control the flow of scopes.
 
 ### Methods
 
@@ -68,10 +79,12 @@ Parameters are the same as for the <code>Sparky()</code> constructor. Child
 sparkies inherit <code>data</code> and <code>fn</code> objects, and are updated
 and destroyed along with their parents.
 
+<!--
 #### .destroy()
 
 The nuke option. Destroys the data bindings, removes nodes from the DOM and
 removes any event handlers. Also destroys any child sparkies.
+-->
 
 #### .render(path1, path2, ...)
 
