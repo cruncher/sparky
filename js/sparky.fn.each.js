@@ -5,6 +5,7 @@
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
+	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
 	var clone      = dom.clone;
@@ -53,8 +54,7 @@
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
-			// Destroy
-			sparkies.pop().stop().remove();
+			A.forEach.call(sparkies.pop().stop(), dom.remove);
 		}
 
 		// Reorder nodes in the DOM

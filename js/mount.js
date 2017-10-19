@@ -607,8 +607,11 @@
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		struct.push = compose(struct.render, transform);
-		struct.throttle = Fn.throttle(struct.push, requestAnimationFrame, cancelAnimationFrame) ;
+		var update    = compose(struct.render, transform);
+		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
+
+		struct.update = update;
+		struct.push = throttle;
 	}
 
 	function RenderStream(structs, options, node) {
@@ -649,7 +652,9 @@
 					}
 
 					struct.unbind = struct.unbind || function(data) {
-						struct.throttle && struct.throttle.cancel();
+						// If the struct is not a Sparky it's .push() is a
+						// throttle and must be cancelled. TODO: dodgy.
+						struct.push.cancel && struct.push.cancel();
 						struct.input.stop();
 						if (struct.listen) { unlisten(); }
 					};
@@ -661,11 +666,11 @@
 					// If there is an initial scope render it synchronously, as
 					// it is assumed we are already working inside an animation
 					// frame
-					if (value !== undefined) { struct.push(value); }
+					if (value !== undefined) { (struct.update || struct.push)(value); }
 
 					// Render future scopes at throttled frame rate, where
 					// throttle is defined
-					input.each(struct.throttle || struct.push);
+					input.each(struct.push);
 
 					var set, invert, change;
 

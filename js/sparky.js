@@ -112,16 +112,37 @@
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
+		var input    = this;
 		var renderer = nothing;
 
-		this.push    = stream.push;
+		Stream.call(this, function Source(notify, stop) {
+			this.shift = function() {
+				var object;
 
-		this.stop = function stop() {
-			stream.stop && stream.stop();
-			renderer.stop && renderer.stop();
-			return sparky;
-		};
+				if (data !== undefined) {
+					object = Observable(data);
+					data   = undefined;
+					return object;
+				}
+
+				//notify('pull');
+			};
+
+			this.push = function() {
+				data = arguments[arguments.length - 1];
+				notify('push');
+			};
+
+			this.stop = function() {
+				input.stop && input.stop !== sparky.stop && input.stop();
+				renderer.stop && renderer.stop();
+
+				// Schedule stop, if data is waiting to be collected make
+				// sure we get it
+				stop(data ? 1 : 0);
+			};
+		});
+
 
 		this.interrupt = function interrupt() {
 			calling = false;
@@ -139,7 +160,7 @@
 
 			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
 			fnstring = fnstring.slice(token[0].length);
-			stream   = fn.call(this, node, stream, params) || stream;
+			input    = fn.call(this, node, input, params) || input;
 
 			// If fns have been interrupted return the sparky without mounting
 			if (!calling) { return this; }
@@ -154,7 +175,7 @@
 			|| '' ;
 
 		if (template) {
-			stream
+			input
 			.take(1)
 			.each(function(scope) {
 				var fragment = fragmentFromId(template);
@@ -170,23 +191,16 @@
 				// Update
 				renderer = createRenderStream(sparky, settings);
 				renderer.push(scope);
-				stream.each(renderer.push);
+				input.each(renderer.push);
 			});
 		}
 		else {
 			renderer = createRenderStream(sparky, settings);
-			stream.each(renderer.push);
+			input.each(renderer.push);
 		}
 	}
 
-	assign(Sparky.prototype, {
-		push: noop,
-
-		remove: function() {
-			each(remove, this);
-			return this;
-		}
-	});
+	Sparky.prototype = Object.create(Stream.prototype);
 
 	assign(Sparky, {
 		fn: {

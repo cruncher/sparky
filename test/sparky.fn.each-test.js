@@ -4,10 +4,10 @@ group('[data-fn="each"]', function(test, log, fixture) {
 		var ul     = fixture.querySelector('ul:not([data-fn])');
 		var sparky = Sparky(ul);
 		var nothing = [];
-		var array   = [
+		var array   = Observable([
 			{ property: 1 },
 			{ property: 2 }
-		];
+		]);
 
 		sparky.push(nothing);
 
@@ -21,17 +21,18 @@ group('[data-fn="each"]', function(test, log, fixture) {
 				equals('1', lis[0] && lis[0].innerHTML, "First li content from array");
 				equals('2', lis[1] && lis[1].innerHTML, "Second li content from array");
 
-				Observable(array).push({ property: 3 });
-//console.log('>>', JSON.stringify(array));
+				array.push({ property: 3 });
+
 				requestAnimationFrame(function() {
 					var lis = ul.querySelectorAll('li');
+
 					equals(3, ul.querySelectorAll('li').length);
 					equals('3', lis[2] && lis[2].innerHTML, "Third li content from array");
 
 					var li = lis[0];
 					var object = array[0];
 
-					Observable(array).length = 0;
+					array.length = 0;
 					object.property = 0;
 
 					requestAnimationFrame(function() {
@@ -44,7 +45,7 @@ group('[data-fn="each"]', function(test, log, fixture) {
 				});
 			});
 		});
-	}, 8);
+	});
 
 }, function() {/*
 
@@ -55,7 +56,7 @@ group('[data-fn="each"]', function(test, log, fixture) {
 */});
 
 
-group('[data-fn="each"]', function(test, log, fixture) {
+Fn.noop('[data-fn="each"]', function(test, log, fixture) {
 
 	test('[data-fn="each"] empty array', function(equals, done) {
 		var ul = fixture.querySelector('[data-fn="nothing"]');
