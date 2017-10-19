@@ -75,7 +75,16 @@
 			border-radius: 50%;
 		}
 
+.js .test-bubble {
+	visibility: visible;
+	opacity: 1;
+	width: 5rem;
+	transition: none;
+}
+
 .test-bubble {
+	visibility: visible;
+	opacity: 1;
 	top: 5.625rem;
 	position: absolute;
 	padding: 0.25rem;
