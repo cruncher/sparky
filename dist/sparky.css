@@ -1,0 +1,23 @@
+
+/*
+Transition
+
+.notransition - cancels transitions on an element (and any slide, tab, pop,
+layer or tip descendents).
+
+Styleguide: zutilities.transition
+*/
+
+.notransition,
+.notransition .swipeable,
+.notransition .switchable,
+.notransition .popable,
+.notransition .toggleable {
+	-webkit-transition: none !important;
+	   -moz-transition: none !important;
+	     -o-transition: all 0 linear 0 !important;
+	        transition: none !important;
+}
+.sparky-hidden {
+	display: none !important;
+}
