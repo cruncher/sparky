@@ -1967,7 +1967,6 @@
 		}
 
 		var stream  = this;
-		var args    = arguments;
 		var getSource;
 
 		var promise = new Promise(function(resolve, reject) {
@@ -7716,8 +7715,11 @@ function getPositionParent(node) {
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		struct.push = compose(struct.render, transform);
-		struct.throttle = Fn.throttle(struct.push, requestAnimationFrame, cancelAnimationFrame) ;
+		var update    = compose(struct.render, transform);
+		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
+
+		struct.update = update;
+		struct.push = throttle;
 	}
 
 	function RenderStream(structs, options, node) {
@@ -7758,7 +7760,9 @@ function getPositionParent(node) {
 					}
 
 					struct.unbind = struct.unbind || function(data) {
-						struct.throttle && struct.throttle.cancel();
+						// If the struct is not a Sparky it's .push() is a
+						// throttle and must be cancelled. TODO: dodgy.
+						struct.push.cancel && struct.push.cancel();
 						struct.input.stop();
 						if (struct.listen) { unlisten(); }
 					};
@@ -7770,11 +7774,11 @@ function getPositionParent(node) {
 					// If there is an initial scope render it synchronously, as
 					// it is assumed we are already working inside an animation
 					// frame
-					if (value !== undefined) { struct.push(value); }
+					if (value !== undefined) { (struct.update || struct.push)(value); }
 
 					// Render future scopes at throttled frame rate, where
 					// throttle is defined
-					input.each(struct.throttle || struct.push);
+					input.each(struct.push);
 
 					var set, invert, change;
 
@@ -7944,16 +7948,37 @@ function getPositionParent(node) {
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
+		var input    = this;
 		var renderer = nothing;
 
-		this.push    = stream.push;
+		Stream.call(this, function Source(notify, stop) {
+			this.shift = function() {
+				var object;
 
-		this.stop = function stop() {
-			stream.stop && stream.stop();
-			renderer.stop && renderer.stop();
-			return sparky;
-		};
+				if (data !== undefined) {
+					object = Observable(data);
+					data   = undefined;
+					return object;
+				}
+
+				//notify('pull');
+			};
+
+			this.push = function() {
+				data = arguments[arguments.length - 1];
+				notify('push');
+			};
+
+			this.stop = function() {
+				input.stop && input.stop !== sparky.stop && input.stop();
+				renderer.stop && renderer.stop();
+
+				// Schedule stop, if data is waiting to be collected make
+				// sure we get it
+				stop(data ? 1 : 0);
+			};
+		});
+
 
 		this.interrupt = function interrupt() {
 			calling = false;
@@ -7971,7 +7996,7 @@ function getPositionParent(node) {
 
 			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
 			fnstring = fnstring.slice(token[0].length);
-			stream   = fn.call(this, node, stream, params) || stream;
+			input    = fn.call(this, node, input, params) || input;
 
 			// If fns have been interrupted return the sparky without mounting
 			if (!calling) { return this; }
@@ -7986,7 +8011,7 @@ function getPositionParent(node) {
 			|| '' ;
 
 		if (template) {
-			stream
+			input
 			.take(1)
 			.each(function(scope) {
 				var fragment = fragmentFromId(template);
@@ -8002,23 +8027,16 @@ function getPositionParent(node) {
 				// Update
 				renderer = createRenderStream(sparky, settings);
 				renderer.push(scope);
-				stream.each(renderer.push);
+				input.each(renderer.push);
 			});
 		}
 		else {
 			renderer = createRenderStream(sparky, settings);
-			stream.each(renderer.push);
+			input.each(renderer.push);
 		}
 	}
 
-	assign(Sparky.prototype, {
-		push: noop,
-
-		remove: function() {
-			each(remove, this);
-			return this;
-		}
-	});
+	Sparky.prototype = Object.create(Stream.prototype);
 
 	assign(Sparky, {
 		fn: {
@@ -8328,6 +8346,7 @@ Sparky.nodeToString = Fn.id;
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
+	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
 	var clone      = dom.clone;
@@ -8376,8 +8395,7 @@ Sparky.nodeToString = Fn.id;
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
-			// Destroy
-			sparkies.pop().stop().remove();
+			A.forEach.call(sparkies.pop().stop(), dom.remove);
 		}
 
 		// Reorder nodes in the DOM
