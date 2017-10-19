@@ -1,26 +1,35 @@
-<h1>Sparky</h1>
+
+# Sparky
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
 
-<strong>Sparky is a live data binding templating engine that enhances the DOM with declarative tags and composeable templates, updating tags and rendering changes in batches at the browser frame rate for performance.</strong>
+<strong>Sparky is a live data binding templating engine that enhances the DOM
+with declarative tags and composeable templates, updating tags and rendering
+changes in batches at the browser frame rate for performance.</strong>
 
 <a href="http://labs.cruncher.ch/sparky/">labs.cruncher.ch/sparky/</a>
 
+## Latest build 2.0.3
 
-## Setup
+* <a href="http://labs.cruncher.ch/sparky/dist/sparky.js">http://labs.cruncher.ch/sparky/dist/sparky.js</a> (~120k, includes dependencies)
+* <a href="http://labs.cruncher.ch/sparky/dist/sparky.min.js">http://labs.cruncher.ch/sparky/dist/sparky.min.js</a> (~50k, includes dependencies)
 
-If you just want to clone the repo to use Sparky in a project:
+## Getting started
 
-    git clone https://github.com/cruncher/sparky.git
+Clone the repo:
 
-If you're going to develop it, Sparky has submodules. Clone the repo recursively:
+    git clone git@github.com/cruncher/sparky.git
+    cd sparky/
+    git submodule update --init
 
-    git clone https://github.com/cruncher/sparky.git --recursive
-
-Install node modules for building and testing:
+Install node modules:
 
     npm install
 
+Build <code>dist/dom.js</code>:
+
+    npm run build-nodeps    // Omit dependencies
+    npm run build           // Include dependencies
 
 ## API
 
