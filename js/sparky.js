@@ -36,16 +36,17 @@
 	var settings = {
 		mount: function mount(node) {
 			var fn       = dom.attribute('data-fn', node);
-			var template = dom.attribute('data-template', node);
+//			var template = dom.attribute('data-template', node);
 
-			if (!fn && !template) { return; }
+			if (!fn) { return; }
+//			if (!fn && !template) { return; }
 
 			var sparky = Sparky(node, undefined, {
 				fn: fn,
-				template: template
+//				template: template
 			});
 
-			if (DEBUG) { console.log('mounted:', node, fn, template); }
+			if (DEBUG) { console.log('mounted:', node, fn/*, template*/); }
 
 			sparky.token = fn;
 			sparky.path  = '';
@@ -92,22 +93,22 @@
 			document.querySelector(escapeSelector(node)) :
 			node ;
 
-		if (tag(node) === 'template') {
-			var fragment = fragmentFromTemplate(node).cloneNode(true);
-			var nodes    = fragment.childNodes;
-			var n        = -1;
+//		if (tag(node) === 'template') {
+//			var fragment = fragmentFromTemplate(node).cloneNode(true);
+//			var nodes    = fragment.childNodes;
+//			var n        = -1;
 
-			// assign doesn't seem to work on node collections
-			while (nodes[++n]) {
-				this[n] = nodes[n];
-			}
-			this.length = nodes.length;
-			node = children(fragment)[0];
-		}
-		else {
+//			// assign doesn't seem to work on node collections
+//			while (nodes[++n]) {
+//				this[n] = nodes[n];
+//			}
+//			this.length = nodes.length;
+//			node = children(fragment)[0];
+//		}
+//		else {
 			this[0] = node;
 			this.length  = 1;
-		}
+//		}
 
 		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
 		var calling  = true;
@@ -149,55 +150,59 @@
 			return { fn: fnstring };
 		};
 
-		// Parse the fns and params to execute
-		var token, fn, params;
-		while (token = fnstring.match(rfn)) {
-			fn       = Sparky.fn[token[1]];
+		this.continue = function() {
+			// Parse the fns and params to execute
+			var token, fn, params;
+			while (token = fnstring.match(rfn)) {
+				fn       = Sparky.fn[token[1]];
 
-			if (!fn) {
-				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
-			}
-
-			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-			fnstring = fnstring.slice(token[0].length);
-			input    = fn.call(this, node, input, params) || input;
-
-			// If fns have been interrupted return the sparky without mounting
-			if (!calling) { return this; }
-		}
-
-		// TEMP: Find a better way to pass these in
-		settings.transforms   = Sparky.transforms;
-		settings.transformers = Sparky.transformers;
-
-		var template = (options && options.template)
-			|| dom.attribute('data-template', node)
-			|| '' ;
-
-		if (template) {
-			input
-			.take(1)
-			.each(function(scope) {
-				var fragment = fragmentFromId(template);
-
-				if (!fragment) {
-					throw new Error('Sparky: data-template="' + template + '" not found in DOM');
+				if (!fn) {
+					throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 				}
 
-				// Replace node content with fragment
-				empty(node);
-				append(node, fragment);
+				params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fnstring = fnstring.slice(token[0].length);
+				input    = fn.call(this, node, input, params) || input;
 
-				// Update
+				// If fns have been interrupted return the sparky without mounting
+				if (!calling) { return this; }
+			}
+
+			// TEMP: Find a better way to pass these in
+			settings.transforms   = Sparky.transforms;
+			settings.transformers = Sparky.transformers;
+
+//			var template = (options && options.template)
+//				|| dom.attribute('data-template', node)
+//				|| '' ;
+
+//			if (template) {
+//				input
+//				.take(1)
+//				.each(function(scope) {
+//					var fragment = fragmentFromId(template);
+
+//					if (!fragment) {
+//						throw new Error('Sparky: data-template="' + template + '" not found in DOM');
+//					}
+
+//					// Replace node content with fragment
+//					empty(node);
+//					append(node, fragment);
+
+//					// Update
+//					renderer = createRenderStream(sparky, settings);
+//					renderer.push(scope);
+//					input.each(renderer.push);
+//				});
+//			}
+//			else {
 				renderer = createRenderStream(sparky, settings);
-				renderer.push(scope);
 				input.each(renderer.push);
-			});
-		}
-		else {
-			renderer = createRenderStream(sparky, settings);
-			input.each(renderer.push);
-		}
+//			}
+		};
+
+		this.continue();
 	}
 
 	Sparky.prototype = Object.create(Stream.prototype);
