@@ -1,14 +1,14 @@
 (function(window) {
-	"use strict";
+    "use strict";
 
-	var dom        = window.dom;
-	var Sparky     = window.Sparky;
+    var dom        = window.dom;
+    var Sparky     = window.Sparky;
 
-	var append     = dom.append;
-	var clone      = dom.clone;
-	var empty      = dom.empty;
+    var append     = dom.append;
+    var clone      = dom.clone;
+    var empty      = dom.empty;
 
-	Sparky.fn.template = function each(node, scopes, params) {
+    Sparky.fn.template = function each(node, scopes, params) {
         var id = params[0];
         var template = dom.fragmentFromId(id);
 
@@ -20,15 +20,15 @@
         sparky.interrupt();
 
         scopes
-		.clone()
-		.take(1)
+        .clone()
+        .take(1)
         .each(function(scope) {
             var fragment = clone(template);
             empty(node);
             append(node, fragment);
-			sparky.continue();
+            sparky.continue();
         });
 
-		return scopes;
-	};
+        return scopes;
+    };
 })(this);

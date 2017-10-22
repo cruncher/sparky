@@ -29,12 +29,10 @@
 
 	var settings = {
 		mount: function mount(node) {
-			var fn       = dom.attribute('data-fn', node);
-
+			var fn = dom.attribute('data-fn', node);
 			if (!fn) { return; }
 
 			var sparky = Sparky(node, undefined, { fn: fn });
-
 			if (DEBUG) { console.log('mounted:', node, fn); }
 
 			sparky.token = fn;
@@ -83,8 +81,47 @@
 		var input    = this;
 		var renderer = nothing;
 
-		this[0] = node;
+		this[0]      = node;
 		this.length  = 1;
+
+		function interrupt() {
+			calling = false;
+			return { fn: fnstring };
+		}
+
+		function render() {
+			// TEMP: Find a better way to pass these in
+			settings.transforms   = Sparky.transforms;
+			settings.transformers = Sparky.transformers;
+
+			// Launch rendering
+			renderer = createRenderStream(sparky, settings);
+			input.each(renderer.push);
+		}
+
+		function start() {
+			// Parse the fns and params to execute
+			var token = fnstring.match(rfn);
+
+			if (!token) {
+				sparky.continue = noop;
+				render();
+				return;
+			}
+
+			var fn = Sparky.fn[token[1]];
+
+			if (!fn) {
+				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
+			}
+
+			var params = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+			fnstring   = fnstring.slice(token[0].length);
+			input      = fn.call(sparky, node, input, params) || input;
+
+			// If fns have been interrupted calling is false
+			return calling && start();
+		}
 
 		Stream.call(this, function Source(notify, stop) {
 			this.shift = function() {
@@ -114,42 +151,9 @@
 			};
 		});
 
-
-		this.interrupt = function interrupt() {
-			calling = false;
-			return { fn: fnstring };
-		};
-
-		this.continue = function() {
-			// Parse the fns and params to execute
-			var token, fn, params;
-			while (token = fnstring.match(rfn)) {
-				fn       = Sparky.fn[token[1]];
-
-				if (!fn) {
-					throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
-				}
-
-				params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-				fnstring = fnstring.slice(token[0].length);
-				input    = fn.call(this, node, input, params) || input;
-
-				// If fns have been interrupted return the sparky without mounting
-				if (!calling) { return this; }
-			}
-
-			// TEMP: Find a better way to pass these in
-			settings.transforms   = Sparky.transforms;
-			settings.transformers = Sparky.transformers;
-
-			// Launch rendering
-			renderer = createRenderStream(sparky, settings);
-			input.each(renderer.push);
-
-			sparky.continue = noop;
-		};
-
-		this.continue();
+		this.interrupt = interrupt;
+		this.continue  = start;
+		start();
 	}
 
 	Sparky.prototype = Object.create(Stream.prototype);

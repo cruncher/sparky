@@ -166,7 +166,7 @@
 		};
 	}, true);
 
-	function mountStringToken(text, render, strings, structs, match) {
+	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
 		structs.push({
@@ -198,12 +198,12 @@
 				strings.push(string.slice(i, match.index));
 			}
 
-			mountStringToken(string, renderStrings, strings, structs, match);
+			mountStringToken(renderStrings, strings, structs, match);
 			i = rtoken.lastIndex;
 			match = rtoken.exec(string);
 		}
 
-		if (string.length > i + 1) {
+		if (string.length > i) {
 			strings.push(string.slice(i));
 		}
 	}
