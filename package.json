@@ -2,7 +2,7 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Live data binding templating library for the DOM.",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
@@ -42,6 +42,6 @@
     "test":          "karma start",
     "build-nodeps":  "cat js/mount.js js/sparky.js js/sparky.fn.js js/sparky.fn.template.js js/sparky.fn.each.js js/sparky.transforms.js > dist/sparky-nodeps.js && minify dist/sparky-nodeps.js",
     "build":         "npm run build-nodeps && cat fn/js/fn.js fn/js/stream.js fn/js/observable.js fn/js/stream.observe.js dom/js/dom.js dom/polyfills/customevent.js dom/polyfills/document.scrollingelement.js dom/dist/dom-nodeps.js dist/sparky-nodeps.js > dist/sparky.js && minify dist/sparky.js && cat dom/css/dom.css css/sparky.css > dist/sparky.css",
-    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.0.3.js && cp dist/sparky.min.js dist/sparky-2.0.3.min.js && cp dist/sparky.css dist/sparky-2.0.3.css"
+    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.1.0.js && cp dist/sparky.min.js dist/sparky-2.1.0.min.js && cp dist/sparky.css dist/sparky-2.1.0.css"
   }
 }
