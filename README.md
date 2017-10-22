@@ -11,8 +11,8 @@ changes in batches at the browser frame rate for performance.</strong>
 
 ## Latest build 2.1.0
 
-* <a href="http://labs.cruncher.ch/sparky/dist/sparky.js">http://labs.cruncher.ch/sparky/dist/sparky.js</a> (~120k, includes dependencies)
-* <a href="http://labs.cruncher.ch/sparky/dist/sparky.min.js">http://labs.cruncher.ch/sparky/dist/sparky.min.js</a> (~50k, includes dependencies)
+* <a href="http://labs.cruncher.ch/sparky/dist/sparky.js">http://labs.cruncher.ch/sparky/dist/sparky.js</a> (~120k/60k gzipped, includes dependencies)
+* <a href="http://labs.cruncher.ch/sparky/dist/sparky.min.js">http://labs.cruncher.ch/sparky/dist/sparky.min.js</a> (~90k/30k gzipped, includes dependencies)
 
 ## Getting started
 
