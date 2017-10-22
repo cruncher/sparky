@@ -1,7 +1,6 @@
 (function(window) {
 	"use strict";
 
-	var Fn         = window.Fn;
 	var dom        = window.dom;
 	var Sparky     = window.Sparky;
 
