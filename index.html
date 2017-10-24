@@ -21,7 +21,24 @@
 	<link rel="stylesheet" href="css/test.css" />
 </head>
 
-<body data-fn="test-scope">
+<body>
+	<header class="grid-block block" id="header">
+		<h1 class="block @2-grid-left-1/15 @3-grid-left-1/9 text-1" data-fn="load:'package.json'">
+			{[title]}
+			<span class="text-6">{[version]}</span>
+		</h1>
+	</header>
+
+	<div class="spaced-grid-block grid-block block">
+		<article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+			<h2 class="block">Sparky(selector)</h2>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="of">
+				<h3 class="text-5"><a href="#of"><code class="js">Fn.of(list)</code></a></h3>
+				<p>Creates a functor of a list of values, where <code class="js">list</code> can be an array, an array-like object, or functor.</p>
+			</div>
+		</article>
+	</div>
 
 	<script>
 	//window.DEBUG = true;
@@ -44,16 +61,17 @@
 
 	<!-- Dependencies -->
 
+	<script src="axios/dist/axios.js"></script>
 	<script src="fn/js/fn.js"></script>
 	<script src="fn/js/observable.js"></script>
 
-	<script title="no-proxy">
+	<!--script title="no-proxy">
 		// Browsers lacking Proxy support need the old observation system
 		if (!window.Proxy) {
 			document.write('<' + 'script src=\"fn/js/observe.js\"><' + '/script>');
 			document.write('<' + 'script src=\"fn/js/observable-no-proxy.js\"><' + '/script>');
 		}
-	</script>
+	</script-->
 
 	<script src="fn/js/stream.js"></script>
 	<script src="fn/js/stream.observe.js"></script>
@@ -66,7 +84,14 @@
 	<script src="js/sparky.fn.js"></script>
 	<script src="js/sparky.fn.each.js"></script>
 	<script src="js/sparky.fn.template.js"></script>
+	<script src="js/sparky.fn.load-axios.js"></script>
 	<script src="js/sparky.transforms.js"></script>
+
+	<!-- Initialise -->
+
+	<script>
+		window.Sparky('#header');
+	</script>
 
 	<!-- Tests -->
 
@@ -79,6 +104,7 @@
 	<script src="test/sparky.fn-test.js"></script>
 	<script src="test/sparky.fn.each-test.js"></script>
 	<script src="test/sparky.fn.template-test.js"></script>
+	<script src="test/sparky.fn.load-test.js"></script>
 	<!--script src="test/sparky.transforms-test.js"></script-->
 
 	<!-- Plugins -->
