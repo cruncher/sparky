@@ -9,7 +9,7 @@
 	<title>Sparky</title>
 
 	<script>
-		document.documentElement.className = 'js loading';
+		document.documentElement.className = 'js';
 		//window.DEBUG = true;
 	</script>
 
@@ -17,25 +17,283 @@
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 	<link rel="stylesheet" href="http://stephen.band/bolt/dist/bolt.min.css" />
+	<link rel="stylesheet" href="../bolt/dist/bolt.min.css" />
+	<link rel="stylesheet" href="fn/css/grid.css" />
+	<link rel="stylesheet" href="fn/css/docs.css" />
 	<link rel="stylesheet" href="fn/css/test.css" />
+	<link rel="stylesheet" href="dom/css/dom.css" />
 	<link rel="stylesheet" href="css/test.css" />
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
+
+	<style>
+body{color:#136073;}
+script[type="text"] {
+	white-space: pre;
+	border-width: 0;
+	padding: 0;
+	line-height: inherit;
+	tab-size: 2;
+	margin-left: -4.875rem;
+	margin-top: -1.5rem;
+	margin-bottom: -1.5rem;
+}
+	</style>
 </head>
 
 <body>
 	<header class="grid-block block" id="header">
-		<h1 class="block @2-grid-left-1/15 @3-grid-left-1/9 text-1" data-fn="load:'package.json'">
+		<h1 class="block @2-grid-left-1/15 @3-grid-left-1/9" data-fn="load:'package.json'">
 			{[title]}
 			<span class="text-6">{[version]}</span>
 		</h1>
 	</header>
 
 	<div class="spaced-grid-block grid-block block">
-		<article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+		<article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
 			<h2 class="block">Sparky(selector)</h2>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="of">
-				<h3 class="text-5"><a href="#of"><code class="js">Fn.of(list)</code></a></h3>
-				<p>Creates a functor of a list of values, where <code class="js">list</code> can be an array, an array-like object, or functor.</p>
+			<div class="block grid-1/1">
+				<pre class="text-5"><code>Sparky('#id');</code></pre>
+				<p>Mount selected element as a Sparky template.</p>
+				<pre class="text-5"><code>Sparky('#id', data);</code></pre>
+				<p>Mount selected element as a template and render it
+				immediately using <code>data</code> as scope.</p>
+				<!--pre>Sparky('#id', data, settings);</pre>
+				<p>Mount selected element as a template also passing in a
+				settings object. You will not normally require this.</p-->
+				<pre class="text-5"><code>var sparky = Sparky('#id');</code></pre>
+				<p>The constructor returns a <code>sparky</code> object that
+				is both an array-like object of DOM nodes and a pushable
+				stream of data.</p>
+			</div>
+		</article
+
+		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+			<h3 class="block">methods.</h3>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-push">
+				<h4 class="text-5 dot-indent"><a href="#sparky-push"><code>.push(data)</code></a></h4>
+				<p>Push data into <code>sparky</code> to be rendered as template
+				scope on the next animation frame.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-stop">
+				<h4 class="text-5 dot-indent"><a href="#sparky-stop"><code>.stop()</code></a></h4>
+				<p>Unmount the template, disconnecting its tags from scope
+				updates. Tags and nodes are left in the DOM in their stopped state.</p>
+				<p class="tip-block block">Tip: you could remove them with <code>sparky.forEach(dom.remove)</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-then">
+				<h4 class="text-5 dot-indent"><a href="#sparky-then"><code>.then(fn)</code></a></h4>
+				<p>Call <code>fn</code> after <cade>sparky</cade> is stopped.</p>
+			</div>
+
+			<h3 class="block">properties.</h3>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-status">
+				<h4 class="text-5 dot-indent"><a href="#sparky-status"><code>.status</code></a></h4>
+				<p>Sparky is in one of two states:
+				<code>"active"</code> or <code>"done"</code>.</p>
+			</div>
+		</article
+
+		><article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9" style="display: block">
+			<h2 class="block">Sparky templates</h2>
+
+			<div class="block grid-1/1">
+				<p>Sparky templates are made of plain old HTML enhanced with
+				<strong>functions</strong> and <strong>tags</strong>.</p>
+
+				<p class="text-5"><code><script type="text">
+				<p data-fn="load:'package.json'">Latest: {[version]}</p>
+				</script></code></p>
+
+				<p>Here the <strong>load</strong> function fetches 'package.json',
+				and when Sparky renders it the <code>{[version]}</code> tag is
+				updated. The result?</p>
+
+				<p data-fn="load:'package.json'" id="template-demo-1">
+					Latest: {[version]}
+				</p>
+			</div>
+		</article
+
+		><article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
+			<h3 class="block">functions.</h3>
+
+			<div class="block grid-1/1">
+				<p>Functions, declared in the <code>data-fn</code> attribute, are
+				run before the template is mounted. They have two parts. A <strong>name</strong>, followed
+				by 0 or more <strong>parameters</strong>.</p>
+
+				<p class="text-5"><code><script type="text">
+				data-fn="each"
+				data-fn="load:'package.json'"
+				</script></code></p>
+
+				<p>Functions can observe and mutate the DOM as well as the
+				render scope. They are view-controllers, and you are going to
+				want to write your own, but first let's have a look at some
+				built-ins.</p>
+
+				<p>We have seen the <strong>load</strong> function in
+				action, but the example has a problem: if package.json took a
+				long time to load – if the user has a dodgy connection or no JS
+				at all – we would see unrendered template before Sparky
+				updates the node. It would be nice to put something useful there.</p>
+
+				<p>Sparky has a function for importing a template: the
+				<strong>template</strong> function. It performs the import only
+				when the first scope is available, so it can be used to provide
+				initial content.</p>
+
+				<p class="text-5"><code><script type="text">
+				<p data-fn="load:'package.json' template:'latest'">
+					Version info at github.com/cruncher/sparky.
+				</p>
+
+				<template id="latest">
+				    Latest: {[version]}
+				</template>
+				</script></code></p>
+
+				<p>The third function worth a special mention is
+				<strong>each</strong>. It copies and remounts the node for each
+				object found in scope, where scope must be an array or array-like.
+				</p>
+
+				<p class="text-5"><code><script type="text">
+				<p data-fn="load:'package.json' get:'keywords' each">{[.]}</p>
+				</script></code></p>
+
+				<p>Result:</p>
+
+				<p data-fn="load:'package.json' get:'keywords' each" id="template-demo-2">{[.]}</p>
+			</div>
+		</article
+
+		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+			<h3 class="block">data-fn</h3>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-post-on-submit">
+				<h3 class="text-5"><a href="#fn-post-on-submit"><code class="js">post-on-submit</code></a></h3>
+				<p>Posts the content of a form as JSON.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-each">
+				<h3 class="text-5"><a href="#fn-each"><code class="js">each</code></a></h3>
+				<p>Where scope is an array or array-like, duplicates the element for each object in scope.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-each">
+				<h3 class="text-5"><a href="#fn-each"><code class="js">get:path</code></a></h3>
+				<p>Gets the value of <code>path</code> on the current scope.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-html">
+				<h3 class="text-5"><a href="#fn-html"><code class="js">html</code></a></h3>
+				<p>When scope is a string, replaces the content of the current element with scope by setting <code>.innerHTML</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-load">
+				<h3 class="text-5"><a href="#fn-load"><code class="js">load:url</code></a></h3>
+				<p>Loads JSON data from <code>url</code> and pushes it to the template scope.</p>
+				<p>Sparky has plugins for both jQuery and Axios versions of <code>load</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-log">
+				<h3 class="text-5"><a href="#fn-log"><code class="js">log</code></a></h3>
+				<p>For debugging. Logs node and scopes to the console.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-scope">
+				<h3 class="text-5"><a href="#fn-scope"><code class="js">scope:path</code></a></h3>
+				<p>Gets an object from <code>path</code> in the global scope (<code>window</code>) and pushes it to the template scope.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-prevent">
+				<h3 class="text-5"><a href="#fn-prevent"><code class="js">prevent:type</code></a></h3>
+				<p>Calls <code>.preventDefault()</code> on events of
+				<code>type</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-stop">
+				<h3 class="text-5"><a href="#fn-stop"><code class="js">stop</code></a></h3>
+				<p>Stops sparkifying the element. No more functions are run, and
+				the contents of the element are not parsed.</p>
+				<p>Use <code>stop</code> to ignore blocks of static HTML inside
+				a Sparky template.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-template">
+				<h3 class="text-5"><a href="#fn-template"><code class="js">template:id</code></a></h3>
+				<p>Replaces the content of the current element with the
+				cloned, mounted content of element id=<code>id</code> when
+				scope first becomes available.</p>
+				<p>Note that the <i>original</i> content of the current element
+				is never mounted.</p>
+			</div>
+		</article
+
+		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+			<h3 class="block">tags.</h3>
+
+			<div class="block grid-1/1">
+				<p>Tags, found in the attributes and content of the node and
+				its descendants, are rendered with values from the scope.</p>
+
+				<pre>{[name|truncate:6|uppercase]}</pre>
+
+				<p>A tag may have three parts. A <strong>path</strong>, followed
+				by any number of pipe-seperated <strong>transfoms</strong> and their
+				<strong>parameters</strong>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
+				<h3 class="text-5"><a href="#tn-add"><code class="js">add:n</code></a></h3>
+				<p>Adds n to value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-decibels">
+				<h3 class="text-5"><a href="#tn-decibels"><code class="js">decibels</code></a></h3>
+				<p>Converts value to decibels.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-degrees">
+				<h3 class="text-5"><a href="#tn-degrees"><code class="js">degrees</code></a></h3>
+				<p>Converts a numeric value from radians to degrees.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-denormalise">
+				<h3 class="text-5"><a href="#tn-denormalise"><code class="js">denormalise:min,max</code></a></h3>
+				<p>Converts numeric values in the range <code>0-1</code> to
+				the range <code>min-max</code>.</p>
+				<p>See also <code><a href="#tn-normalise">normalise:min,max</a></code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-floatformat">
+				<h3 class="text-5"><a href="#tn-floatformat"><code class="js">floatformat:n</code></a></h3>
+				<p>Converts numeric values to strings with <code>n</code> decimal places.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-date">
+				<h3 class="text-5"><a href="#tn-date"><code class="js">date:format</code></a></h3>
+				<p>Maps either JSON date strings or JS date objects to
+				human-readable date strings in a format defined by
+				<code>format</code></p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-get">
+				<h3 class="text-5"><a href="#fn-get"><code class="js">get:property</code></a></h3>
+				<p>Gets the value of <code>property</code> in the current object.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-normalise">
+				<h3 class="text-5"><a href="#tn-normalise"><code class="js">normalise:min,max</code></a></h3>
+				<p>Converts numeric values in the range <code>min-max</code> to
+				the range <code>0-1</code>.</p>
+				<p>See also <code><a href="#tn-denormalise">denormalise:min,max</a></code>.</p>
 			</div>
 		</article>
 	</div>
@@ -76,6 +334,9 @@
 	<script src="fn/js/stream.js"></script>
 	<script src="fn/js/stream.observe.js"></script>
 	<script src="dom/js/dom.js"></script>
+	<script src="dom/js/dom-activate.js"></script>
+	<script src="dom/js/dom.toggleable.js"></script>
+	<script src="dom/js/dom.root.js"></script>
 
 	<!-- Sparky -->
 
@@ -90,7 +351,21 @@
 	<!-- Initialise -->
 
 	<script>
+		window.Sparky('#template-demo-1');
+		window.Sparky('#template-demo-2');
 		window.Sparky('#header');
+
+		// Prevent orphans at the end of paragraphs
+		dom('p, li')
+		.map(Fn.get('childNodes'))
+		.map(Fn.last)
+		.filter(dom.isTextNode)
+		.forEach(function(node) {
+			node.textContent = node.textContent.replace(/(\s+)([\S]+)$/, function($0, $1, $2) {
+				// Insert no breaking space
+				return '\u00A0' + $2;
+			});
+		});
 	</script>
 
 	<!-- Tests -->
