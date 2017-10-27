@@ -1,9 +1,9 @@
 
-group('[data-fn="template"]', function(test, log, fixture) {
+group('[data-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
 
-	test('[data-fn="template"]', function(equals, done) {
+	test('[data-fn="template:hash"]', function(equals, done) {
 		equals('Default content.', node.innerHTML);
 
 		sparky.push(Observable({
@@ -18,20 +18,20 @@ group('[data-fn="template"]', function(test, log, fixture) {
 	}, 3);
 }, function() {/*
 
-	<p class="{[property]}" data-fn="template:'test-template'">Default content.</p>
+	<p class="{[property]}" data-fn="template:'#test-template'">Default content.</p>
 	<template id="test-template">Template: {[property]}</template>
 
 */});
 
 
-group('svg > [data-fn="template"]', function(test, log, fixture) {
+group('svg > [data-fn="template:hash"]', function(test, log, fixture) {
 	// Note that this tests something that cannot be done – inserting SVG
 	// elements from a <template>. Template children will always be HTML.
 
 	var svg    = fixture.children[0];
 	var sparky = Sparky(svg);
 
-	test('svg > [data-fn="template"]', function(equals, done) {
+	test('svg > [data-fn="template:hash"]', function(equals, done) {
 		sparky.push(Observable({}));
 
 		requestAnimationFrame(function() {
@@ -43,7 +43,7 @@ group('svg > [data-fn="template"]', function(test, log, fixture) {
 }, function() {/*
 
 <svg viewbox="0 0 100 100">
-	<g data-fn="template:'g-template'">
+	<g data-fn="template:'#g-template'">
 		<circle cx="50" cy="50" r="50"></circle>
 	</g>
 </svg>
@@ -54,10 +54,10 @@ group('svg > [data-fn="template"]', function(test, log, fixture) {
 
 */});
 
-group('[data-fn="template"] nested templates', function(test, log, fixture) {
+group('[data-fn="template:hash"] nested templates', function(test, log, fixture) {
 	var Observable = window.Observable;
 
-	test('[data-fn="template"] nested templates', function(equals, done) {
+	test('[data-fn="template:hash"] nested templates', function(equals, done) {
 		var node   = fixture.children[0];
 		var sparky = Sparky(node);
 		var data   = Observable({
@@ -78,7 +78,7 @@ group('[data-fn="template"] nested templates', function(test, log, fixture) {
 		});
 	}, 3);
 
-	test('[data-fn="template"] nested templates, async sub-data', function(equals, done) {
+	test('[data-fn="template:hash"] nested templates, async sub-data', function(equals, done) {
 		var node   = fixture.children[1];
 		var sparky = Sparky(node);
 		var data   = Observable({
@@ -104,13 +104,33 @@ group('[data-fn="template"] nested templates', function(test, log, fixture) {
 		});
 	}, 4);
 }, function() {/*
-	<p class="{[property]}" data-fn="template:'test-template-1'">Default content.</p>
-	<p class="{[property]}" data-fn="template:'test-template-1'">Default content.</p>
+	<p class="{[property]}" data-fn="template:'#test-template-1'">Default content.</p>
+	<p class="{[property]}" data-fn="template:'#test-template-1'">Default content.</p>
 
 	<template id="test-template-1">
 		Template: {[property]}<br/>
-		<span data-fn="get:'scope' template:'test-template-2'">Template 1 content.</span>
+		<span data-fn="get:'scope' template:'#test-template-2'">Template 1 content.</span>
 	</template>
 
 	<template id="test-template-2">Template 2 content: {[message]}.</template>
+*/});
+
+group('[data-fn="template:url"]', function(test, log, fixture) {
+	var node   = fixture.children[0];
+	var sparky = Sparky(node);
+
+	test('[data-fn="template:url"]', function(equals, done) {
+		equals('Default content.', node.innerHTML);
+
+		sparky.push({});
+
+		setTimeout(function() {
+			equals('Hello', node.innerHTML);
+			done();
+		}, 2000);
+	}, 2);
+}, function() {/*
+
+	<p class="{[property]}" data-fn="template:'example.html#example-template'">Default content.</p>
+
 */});
