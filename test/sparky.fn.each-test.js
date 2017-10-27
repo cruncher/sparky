@@ -1,7 +1,7 @@
-group('[data-fn="each"]', function(test, log, fixture) {
+group('[sparky-fn="each"]', function(test, log, fixture) {
 
-	test('[data-fn="each"]', function(equals, done) {
-		var ul     = fixture.querySelector('ul:not([data-fn])');
+	test('[sparky-fn="each"]', function(equals, done) {
+		var ul     = fixture.querySelector('ul:not([sparky-fn])');
 		var sparky = Sparky(ul);
 		var nothing = [];
 		var array   = Observable([
@@ -50,16 +50,16 @@ group('[data-fn="each"]', function(test, log, fixture) {
 }, function() {/*
 
 <ul>
-	<li class="li-{[property]}" data-fn="each">{[property]}</li>
+	<li class="li-{[property]}" sparky-fn="each">{[property]}</li>
 </ul>
 
 */});
 
 
-Fn.noop('[data-fn="each"]', function(test, log, fixture) {
+Fn.noop('[sparky-fn="each"]', function(test, log, fixture) {
 
-	test('[data-fn="each"] empty array', function(equals, done) {
-		var ul = fixture.querySelector('[data-fn="nothing"]');
+	test('[sparky-fn="each"] empty array', function(equals, done) {
+		var ul = fixture.querySelector('[sparky-fn="nothing"]');
 
 		Sparky.fn['nothing'] = function(node, model) {
 			return Fn.of([]);
@@ -74,7 +74,7 @@ Fn.noop('[data-fn="each"]', function(test, log, fixture) {
 	}, 1);
 
 }, function() {/*
-<ul data-fn="nothing">
-	<li class="li-{[property]}" data-fn="each">{[property]}</li>
+<ul sparky-fn="nothing">
+	<li class="li-{[property]}" sparky-fn="each">{[property]}</li>
 </ul>
 */});

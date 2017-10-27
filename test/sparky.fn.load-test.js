@@ -1,9 +1,9 @@
 
-group('data-fn="load:url"', function(test, log, fixture) {
+group('sparky-fn="load:url"', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
 
-	test('[data-fn="load:url"]', function(equals, done) {
+	test('[sparky-fn="load:url"]', function(equals, done) {
 		equals('name: {[name]}', node.children[0].innerHTML);
 
 		setTimeout(function() {
@@ -12,7 +12,7 @@ group('data-fn="load:url"', function(test, log, fixture) {
 		}, 1000);
 	}, 2);
 }, function() {/*
-	<ul data-fn="load:'package.json'" style="font-size:0.875rem; font-family: 'Fira Mono', monospace;">
+	<ul sparky-fn="load:'package.json'" style="font-size:0.875rem; font-family: 'Fira Mono', monospace;">
         <li>name: {[name]}</li>
         <li>version: {[version]}</li>
         <li>description: {[description]}</li>

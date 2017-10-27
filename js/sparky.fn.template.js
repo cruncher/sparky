@@ -116,7 +116,7 @@
 
 
             if (DEBUG && !path) {
-                throw new Error('Sparky: data-fn="import:url" requires a url.');
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
             }
 
             var sparky = this;

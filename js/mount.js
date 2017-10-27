@@ -9,6 +9,7 @@
 	var dom        = window.dom;
 
 	var assign     = Object.assign;
+	var attribute  = dom.attribute;
 	var compose    = Fn.compose;
 	var curry      = Fn.curry;
 	var get        = Fn.get;
@@ -41,39 +42,12 @@
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var settings = {
-		prefix:       'data-',
-		mount:        noop,
-		transforms:   {},
-		transformers: {},
-		rtoken:       /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+		attributePrefix: 'data-',
+		mount:           noop,
+		transforms:      {},
+		transformers:    {},
+		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
-
-	var toRenderString = overload(toType, {
-		'boolean': function(value) {
-			return value + '';
-		},
-
-		'function': function(value) {
-			return (value.name || 'function')
-				+ (rarguments.exec(value.toString()) || [])[1];
-		},
-
-		'number': function(value) {
-			return Number.isNaN(value) ? '' : value + '' ;
-		},
-
-		'string': id,
-
-		'symbol': function(value) { return value.toString(); },
-
-		'undefined': function() { return ''; },
-
-		'object': function(value) {
-			return value === null ? '' : JSON.stringify(value);
-		},
-
-		'default': JSON.stringify
-	});
 
 	function addClasses(classList, text) {
 		var classes = toRenderString(text).trim().split(rspaces);
@@ -166,6 +140,33 @@
 		};
 	}, true);
 
+	var toRenderString = overload(toType, {
+		'boolean': function(value) {
+			return value + '';
+		},
+
+		'function': function(value) {
+			return (value.name || 'function')
+				+ (rarguments.exec(value.toString()) || [])[1];
+		},
+
+		'number': function(value) {
+			return Number.isNaN(value) ? '' : value + '' ;
+		},
+
+		'string': id,
+
+		'symbol': function(value) { return value.toString(); },
+
+		'undefined': function() { return ''; },
+
+		'object': function(value) {
+			return value === null ? '' : JSON.stringify(value);
+		},
+
+		'default': JSON.stringify
+	});
+
 	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -236,7 +237,7 @@
 		//
 		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.prefix + name) || node.getAttribute(name) ;
+		var attr = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
 		if (!attr) { return; }
 
 		rtoken.lastIndex = 0;
@@ -296,15 +297,16 @@
 		node.setAttribute('class', text);
 	}
 
-	function mountName(node, options, structs) {
-		var string = node.name;
+	function mountValue(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node) ||
+			attribute('value', node) ;
 		var rtoken = options.rtoken;
 		rtoken.lastIndex = 0;
 
 		var match = rtoken.exec(string);
 		if (!match) { return; }
 
-		return mountNameByType(node, options, match, structs);
+		return mountValueByType(node, options, match, structs);
 	}
 
 	var types = {
@@ -378,9 +380,9 @@
 		input: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttributes(['value'], node, options, structs);
+			mountAttribute('name', node, options, structs);
 			mountInput(node, options, structs);
-			mountName(node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		img: function(node, options, structs) {
@@ -399,15 +401,15 @@
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttribute('value', node, options, structs);
-			// Two way bind here??
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		textarea: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		time: function(node, options, structs)  {
@@ -480,6 +482,7 @@
 				pipe:  match[3],
 
 				read: function read() {
+					// TODO: Why do we check attribute here?
 					return isDefined(node.getAttribute('value')) ?
 						node.checked ? node.value : undefined :
 						node.checked ;
@@ -600,10 +603,10 @@
 		}
 	};
 
-	var mountNode       = overload(get('nodeType'), types);
-	var mountTag        = overload(dom.tag, tags);
-	var mountInput      = overload(get('type'), inputs);
-	var mountNameByType = overload(get('type'), inputTypes);
+	var mountNode        = overload(get('nodeType'), types);
+	var mountTag         = overload(dom.tag, tags);
+	var mountInput       = overload(get('type'), inputs);
+	var mountValueByType = overload(get('type'), inputTypes);
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
@@ -714,14 +717,25 @@
 
 
 	// Export
-
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
 	mount.mountAttribute = mountAttribute;
 	mount.mountBoolean   = mountBoolean;
 	mount.mountInput     = mountInput;
-	mount.mountName      = mountName;
+	mount.mountValue     = mountValue;
+
+	// Legacy pre 2.0.3
+	mount.mountName = function mountName(node, options, structs) {
+		var string = node.name;
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+
+		var match = rtoken.exec(string);
+		if (!match) { return; }
+
+		return mountValueByType(node, options, match, structs);
+	};
 
 	window.mount = mount;
 

@@ -41,7 +41,7 @@
             var path  = params[0];
 
             if (DEBUG && !path) {
-                throw new Error('Sparky: data-fn="load:url" requires a url.');
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
             }
 
             var scopes = Stream.of();
@@ -59,7 +59,7 @@
             var path  = params[0];
 
             if (DEBUG && !path) {
-                throw new Error('Sparky: data-fn="import:url" requires a url.');
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
             }
 
             // If the resource is cached, return it as an shiftable

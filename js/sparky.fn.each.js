@@ -106,8 +106,8 @@
 		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		template.removeAttribute('data-scope');
-		template.removeAttribute('data-fn');
+		//template.removeAttribute('data-scope');
+		template.removeAttribute(Sparky.attributePrefix + 'fn');
 
 		// Put the marker in place and remove the node
 		dom.before(node, marker);

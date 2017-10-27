@@ -3,10 +3,10 @@
 //	return Fn.of({ property: 'peas' });
 //};
 //
-//group('Render scope from data-fn', function(test, log, fixture) {
+//group('Render scope from sparky-fn', function(test, log, fixture) {
 //	var node = fixture.children[0];
 //
-//	test("[data-fn]", function(equals, done) {
+//	test("[sparky-fn]", function(equals, done) {
 //		var sparky = Sparky(node);
 //
 //		requestAnimationFrame(function functionName() {
@@ -17,7 +17,7 @@
 //	});
 //}, function() {/*
 //
-//<div data-fn="ctrl" class=" nothing {[property]} ">{[property]} some text {[property]} some text</div>
+//<div sparky-fn="ctrl" class=" nothing {[property]} ">{[property]} some text {[property]} some text</div>
 //
 //*/});
 
@@ -42,12 +42,12 @@ group('Child sparky', function(test, log, fixture) {
 		});
 	};
 
-	test('[data-fn] > [data-fn]', function(equals, done) {
-		var div = fixture.querySelector('[data-fn="ctrl"]');
-		var p1  = fixture.querySelector('[data-fn="ctrl-1"]');
-		var p2  = fixture.querySelector('[data-fn="ctrl-2"]');
-		var p3  = fixture.querySelector('[data-fn="get:\'sub-1\'"]');
-		var p4  = fixture.querySelector('[data-fn="get:\'sub-2\'"]');
+	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
+		var div = fixture.querySelector('[sparky-fn="ctrl"]');
+		var p1  = fixture.querySelector('[sparky-fn="ctrl-1"]');
+		var p2  = fixture.querySelector('[sparky-fn="ctrl-2"]');
+		var p3  = fixture.querySelector('[sparky-fn="get:\'sub-1\'"]');
+		var p4  = fixture.querySelector('[sparky-fn="get:\'sub-2\'"]');
 
 		var sparky = Sparky(div);
 
@@ -79,11 +79,11 @@ group('Child sparky', function(test, log, fixture) {
 
 }, function() {/*
 
-<div data-fn="ctrl">
-	<p data-fn="ctrl-1">{[property]}</p>
-	<p data-fn="ctrl-2">{[property]}</p>
-	<p data-fn="get:'sub-1'">{[property]}</p>
-	<p data-fn="get:'sub-2'">{[property]}</p>
+<div sparky-fn="ctrl">
+	<p sparky-fn="ctrl-1">{[property]}</p>
+	<p sparky-fn="ctrl-2">{[property]}</p>
+	<p sparky-fn="get:'sub-1'">{[property]}</p>
+	<p sparky-fn="get:'sub-2'">{[property]}</p>
 </div>
 
 */});
@@ -140,7 +140,7 @@ group('Child sparky', function(test, log, fixture) {
 //	});
 //}, function() {/*
 //
-//<div data-scope="model" class="class-1 class-2 {[ property ]}">{[property]}</div>
+//<div sparky-scope="model" class="class-1 class-2 {[ property ]}">{[property]}</div>
 //
 //*/});
 //

@@ -1,5 +1,5 @@
-group('[data-fn]', function(test, log, fixture) {
-	test('[data-fn]', function(equals, done) {
+group('[sparky-fn]', function(test, log, fixture) {
+	test('[sparky-fn]', function(equals, done) {
 		var sparky;
 		var scope = { property: 'value-1' };
 		var p = fixture.querySelector('p');
@@ -50,7 +50,7 @@ group('[data-fn]', function(test, log, fixture) {
 }, function() {/*
 
 <div>
-	<p data-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, []">{[property]}</p>
+	<p sparky-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, []">{[property]}</p>
 </div>
 
 */});

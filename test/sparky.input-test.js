@@ -45,8 +45,8 @@ group('input[type="text"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="text" name="{[property]}" />
-<input class="node-2" type="text" name="{[property]}" value="blabla" />
+<input class="node-1" type="text" sparky-value="{[property]}" />
+<input class="node-2" type="text" sparky-value="{[property]}" value="blabla" />
 
 */});
 
@@ -132,9 +132,9 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="checkbox" name="{[property]}" />
-<input class="node-2" type="checkbox" name="{[property]}" checked="checked" />
-<input class="node-3" type="checkbox" name="{[property]}" checked="checked" value="good" />
+<input class="node-1" type="checkbox" sparky-value="{[property]}" />
+<input class="node-2" type="checkbox" sparky-value="{[property]}" checked="checked" />
+<input class="node-3" type="checkbox" sparky-value="{[property]}" checked="checked" value="good" />
 
 */});
 
@@ -205,9 +205,9 @@ group('input[type="number"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="number" name="{[property]}" />
-<input class="node-2" type="number" name="{[property]}" value="0" />
-<input class="node-3" type="number" name="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="number" sparky-value="{[property]}" />
+<input class="node-2" type="number" sparky-value="{[property]}" value="0" />
+<input class="node-3" type="number" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});
 
@@ -285,9 +285,9 @@ group('input[type="range"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="range" name="{[property]}" />
-<input class="node-2" type="range" name="{[property]}" value="0" />
-<input class="node-3" type="range" name="{[property]}" value="0" min="{[min]}" max="{[max]}" />
-<input class="node-4" type="range" name="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="range" sparky-value="{[property]}" />
+<input class="node-2" type="range" sparky-value="{[property]}" value="0" />
+<input class="node-3" type="range" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-4" type="range" sparky-value="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});

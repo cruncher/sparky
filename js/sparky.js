@@ -28,8 +28,9 @@
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
+		// Child mounting function
 		mount: function mount(node) {
-			var fn = dom.attribute('data-fn', node);
+			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
 			var sparky = Sparky(node, undefined, { fn: fn });
@@ -75,7 +76,7 @@
 			document.querySelector(escapeSelector(node)) :
 			node ;
 
-		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
 		var input    = this;
@@ -91,8 +92,9 @@
 
 		function render() {
 			// TEMP: Find a better way to pass these in
-			settings.transforms   = Sparky.transforms;
-			settings.transformers = Sparky.transformers;
+			settings.attributePrefix = Sparky.attributePrefix;
+			settings.transforms      = Sparky.transforms;
+			settings.transformers    = Sparky.transformers;
 
 			// Launch rendering
 			renderer = createRenderStream(sparky, settings);
@@ -159,8 +161,10 @@
 	Sparky.prototype = Object.create(Stream.prototype);
 
 	assign(Sparky, {
+		attributePrefix: 'sparky-',
+
 		fn: {
-			scope: function(node, stream, params) {
+			find: function(node, stream, params) {
 				var scope = getPath(params[0], window);
 
 				if (!scope) {
@@ -170,6 +174,10 @@
 
 				return Fn.of(getPath(params[0], window));
 			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
@@ -212,19 +220,17 @@
 
 		transforms: {},
 
-		mount:      mount,
-
 		MarkerNode: function MarkerNode(node) {
 			// A text node, or comment node in DEBUG mode, for marking a
 			// position in the DOM tree so it can be swapped out with some
-			// content node.
+			// content in the future.
 
 			if (!DEBUG) {
 				return dom.create('text', '');
 			}
 
-			var attrFn  = node && node.getAttribute('data-fn');
-			return dom.create('comment', tag(node) + (attrFn ? ' data-fn="' + attrFn + '"' : ''));
+			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
 		}
 	});
 
