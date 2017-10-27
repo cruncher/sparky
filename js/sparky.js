@@ -33,8 +33,8 @@
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
-			var sparky = Sparky(node, undefined, { fn: fn });
-			if (DEBUG) { console.log('mounted:', node, fn); }
+			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
+			//if (DEBUG) { console.log('mounted:', node, fn); }
 
 			sparky.token = fn;
 			sparky.path  = '';
@@ -67,14 +67,14 @@
 		return selector.replace(/\//g, '\\\/');
 	}
 
-	function Sparky(node, data, options) {
+	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
-			return new Sparky(node, data, options);
+			return new Sparky(selector, data, options);
 		}
 
-		node = typeof node === 'string' ?
-			document.querySelector(escapeSelector(node)) :
-			node ;
+		var node = typeof selector === 'string' ?
+			document.querySelector(escapeSelector(selector)) :
+			selector ;
 
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
@@ -97,8 +97,10 @@
 			settings.transformers    = Sparky.transformers;
 
 			// Launch rendering
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
 			input.each(renderer.push);
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
 
 		function start() {
@@ -108,7 +110,7 @@
 			if (!token) {
 				sparky.continue = noop;
 				render();
-				return;
+				return sparky;
 			}
 
 			var fn = Sparky.fn[token[1]];
@@ -125,7 +127,7 @@
 			return calling && start();
 		}
 
-		Stream.call(this, function Source(notify, stop) {
+		function Source(notify, stop) {
 			this.shift = function() {
 				var object;
 
@@ -151,14 +153,17 @@
 				// sure we get it
 				stop(data ? 1 : 0);
 			};
-		});
+		}
+
+		Stream.call(this, Source);
 
 		this.interrupt = interrupt;
 		this.continue  = start;
+
 		start();
 	}
 
-	Sparky.prototype = Object.create(Stream.prototype);
+	Sparky.prototype = Stream.prototype;
 
 	assign(Sparky, {
 		attributePrefix: 'sparky-',
@@ -195,7 +200,7 @@
 				node.addEventListener(params[0], preventDefault);
 
 				this.then(function() {
-					node.removeEventListener('submit', preventDefault);
+					node.removeEventListener(params[0], preventDefault);
 				});
 			},
 

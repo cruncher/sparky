@@ -125,7 +125,7 @@
 			unobserve = observe(scope, '', throttle);
 		});
 
-		this.on('then', function destroy() {
+		this.then(function destroy() {
 			throttle.cancel();
 			unobserve();
 		});

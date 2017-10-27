@@ -114,9 +114,8 @@
                 id    = parts[1] || '';
             }
 
-
-            if (DEBUG && !path) {
-                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+            if (DEBUG && !id) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
             }
 
             var sparky = this;

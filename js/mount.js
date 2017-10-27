@@ -80,7 +80,7 @@
 			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
 
 			if (!fn) {
-				throw new Error('Sparky: transform "' + name + '" not found');
+				throw new Error('mount: transform "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -92,7 +92,7 @@
 			}
 
 			if (!(typeof fns[fns.length - 1] === 'function')) {
-				throw new Error('Sparky: transform "' + name + '" not resulting in fn');
+				throw new Error('mount: transform "' + name + '" not resulting in fn');
 			}
 		}
 
@@ -115,7 +115,7 @@
 			fn   = transformers[name].invert;
 
 			if (!fn) {
-				throw new Error('Sparky: transformers "' + name + '" not found');
+				throw new Error('mount: transformers "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -317,15 +317,15 @@
 			var child, renderer;
 
 			while (child = children[++n]) {
-				// Test to see if it needs a full Sparky mounting
+				// If we have a rendererer interested in this child
 				renderer = options.mount(child);
 
 				if (renderer) {
-					// Sparky mounted it
+					// ...add it to structs
 					structs.push(renderer);
 				}
 				else {
-					// It's a plain old node with no data-fn
+					// otherwise mount the node normally
 					mountNode(child, options, structs);
 				}
 			}
@@ -333,8 +333,6 @@
 			mountClass(node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
 			mountTag(node, options, structs);
-
-			if (DEBUG) { console.log('mounted:', node, structs.length); }
 		},
 
 		// text
@@ -635,9 +633,7 @@
 				if (old === data) { return; }
 				old = data;
 
-				if (DEBUG) {
-					console.groupCollapsed('Sparky: update', node);
-				}
+				if (DEBUG) { console.group('update:', node); }
 
 				var observable = Observable(data);
 				var unlisten;
@@ -647,9 +643,8 @@
 					// Unbind Structs
 					struct.unbind && struct.unbind();
 
-					// Set up struct. Sparky objects, which masquerade as structs,
-					// already have a .push() method. They don't need to be set
-					// up. Also, they don't need to be throttled
+					// Set up structs to be pushable. Renderers already have
+					// a push method and should not be throttled.
 					if (!struct.push) {
 						setupStruct(struct, options);
 					}
@@ -688,9 +683,7 @@
 					}
 				});
 
-				if (DEBUG) {
-					console.groupEnd();
-				}
+				if (DEBUG) { console.groupEnd(); }
 
 				return data;
 			}
@@ -701,7 +694,7 @@
 		options = assign({}, settings, options);
 
 		if (DEBUG) {
-			console.groupCollapsed('Sparky: mount ', node);
+			console.group('mount:', node);
 		}
 
 		var structs = [];
