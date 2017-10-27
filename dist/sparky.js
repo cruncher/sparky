@@ -393,9 +393,7 @@
 	var isIn = flip(contains);
 
 	function map(fn, object) {
-		return object.map ?
-			object.map(fn) :
-			A.map.call(object, fn) ;
+		return object && object.map ? object.map(fn) : A.map.call(object, fn) ;
 	}
 
 	function each(fn, object) {
@@ -531,6 +529,10 @@
 	function sort(fn, object) {
 		return object.sort ? object.sort(fn) : A.sort.call(object, fn);
 	}
+
+	var tap = curry(function tap(fn, object) {
+		return object === undefined ? undefined : (fn(object), object) ;
+	}, true);
 
 
 	// Objects
@@ -1418,11 +1420,7 @@
 
 		tap: function(fn) {
 			// Overwrite shift to copy values to tap fn
-			this.shift = Fn.compose(function(value) {
-				if (value !== undefined) { fn(value); }
-				return value;
-			}, this.shift);
-
+			this.shift = Fn.compose(tap(fn), this.shift);
 			return this;
 		},
 
@@ -1490,6 +1488,23 @@
 		of: function() { return Fn.from(arguments); },
 
 		from: function(object) {
+			var i;
+
+			// object is an array or array-like object. Iterate over it without
+			// mutating it.
+			if (typeof object.length === 'number') {
+				i = -1;
+
+				return new Fn(function shiftArray() {
+					// Ignore undefined holes in arrays
+					return ++i >= object.length ?
+						undefined :
+					object[i] === undefined ?
+						shiftArray() :
+						object[i] ;
+				});
+			}
+
 			// object is an object with a shift function
 			if (typeof object.shift === "function" && object.length === undefined) {
 				return new Fn(function shiftObject() {
@@ -1511,18 +1526,7 @@
 				});
 			}
 
-			// object is an array or array-like object. Iterate over it without
-			// mutating it.
-			var i = -1;
-
-			return new Fn(function shiftArray() {
-				// Ignore undefined holes in arrays
-				return ++i >= object.length ?
-					undefined :
-				object[i] === undefined ?
-					shiftArray() :
-					object[i] ;
-			});
+			throw new Error('Fn: from(object) object is not a list of a known kind (array, functor, stream, iterator).')
 		},
 
 		Timer:    Timer,
@@ -1635,6 +1639,7 @@
 		last:      last,
 		latest:    latest,
 		map:       curry(map, true),
+		tap:       curry(tap),
 		reduce:    curry(reduce, true),
 		remove:    curry(remove, true),
 		rest:      curry(rest, true),
@@ -3238,7 +3243,12 @@
 		var n = names.length;
 
 		while (n--) {
-			node.setAttribute(names[n], attributes[names[n]]);
+			if (names[n] in node) {
+				node[names[n]] = attributes[names[n]];
+			}
+			else {
+				node.setAttribute(names[n], attributes[names[n]]);
+			}
 		}
 	}
 
@@ -3252,10 +3262,10 @@
 	}
 
 	function create(name) {
-		// create(name)
-		// create(name, text)
-		// create(name, attributes)
-		// create(name, text, attributes)
+		// create(type)
+		// create(type, text)
+		// create(tag, attributes)
+		// create(tag, text, attributes)
 
 		if (constructors[name]) {
 			return constructors[name](arguments[1]);
@@ -4004,6 +4014,8 @@ function getPositionParent(node) {
 	}
 
 	function parse(type, string) {
+		if (!string) { return; }
+
 		var mimetype = mimetypes[type];
 		var xml;
 
@@ -4110,7 +4122,7 @@ function getPositionParent(node) {
 	}
 
 	function animateScroll(value) {
-		return animate(0.6, pow(2), 'scrollTop', dom.viewport, toPx(value));
+		return animate(0.6, pow(2), 'scrollTop', dom.view, toPx(value));
 	}
 
 	function scrollRatio(node) {
@@ -4363,7 +4375,11 @@ function getPositionParent(node) {
 		root: { value: document.documentElement, enumerable: true },
 		head: { value: document.head, enumerable: true },
 		body: { get: function() { return document.body; }, enumerable: true	},
-		viewport: { get: function() { return document.scrollingElement; }, enumerable: true }
+		view: { get: function() { return document.scrollingElement; }, enumerable: true },
+		viewport: { get: function() {
+			console.warn('Deprecated: dom.viewport is now dom.view');
+			return document.scrollingElement;
+		}, enumerable: true }
 	});
 
 
@@ -4704,7 +4720,12 @@ if (!('scrollingElement' in document)) (function() {
 		var n = names.length;
 
 		while (n--) {
-			node.setAttribute(names[n], attributes[names[n]]);
+			if (names[n] in node) {
+				node[names[n]] = attributes[names[n]];
+			}
+			else {
+				node.setAttribute(names[n], attributes[names[n]]);
+			}
 		}
 	}
 
@@ -4718,10 +4739,10 @@ if (!('scrollingElement' in document)) (function() {
 	}
 
 	function create(name) {
-		// create(name)
-		// create(name, text)
-		// create(name, attributes)
-		// create(name, text, attributes)
+		// create(type)
+		// create(type, text)
+		// create(tag, attributes)
+		// create(tag, text, attributes)
 
 		if (constructors[name]) {
 			return constructors[name](arguments[1]);
@@ -5576,7 +5597,7 @@ function getPositionParent(node) {
 	}
 
 	function animateScroll(value) {
-		return animate(0.6, pow(2), 'scrollTop', dom.viewport, toPx(value));
+		return animate(0.6, pow(2), 'scrollTop', dom.view, toPx(value));
 	}
 
 	function scrollRatio(node) {
@@ -5829,7 +5850,11 @@ function getPositionParent(node) {
 		root: { value: document.documentElement, enumerable: true },
 		head: { value: document.head, enumerable: true },
 		body: { get: function() { return document.body; }, enumerable: true	},
-		viewport: { get: function() { return document.scrollingElement; }, enumerable: true }
+		view: { get: function() { return document.scrollingElement; }, enumerable: true },
+		viewport: { get: function() {
+			console.warn('Deprecated: dom.viewport is now dom.view');
+			return document.scrollingElement;
+		}, enumerable: true }
 	});
 
 
@@ -5849,6 +5874,7 @@ function getPositionParent(node) {
 	var on        = dom.events.on;
 	var off       = dom.events.off;
 	var trigger   = dom.events.trigger;
+	var curry     = Fn.curry;
 	var isDefined = Fn.isDefined;
 	var overload  = Fn.overload;
 
@@ -5860,6 +5886,15 @@ function getPositionParent(node) {
 
 	var store     = new WeakMap();
 
+	var apply = curry(function apply(node, fn) {
+		return fn(node);
+	});
+
+
+	// We need a place to register node matchers for activate events
+	Object.defineProperties(dom, {
+		activeMatchers: { value: [] }
+	});
 
 	function findButtons(id) {
 		return dom
@@ -6126,12 +6161,8 @@ function getPositionParent(node) {
 
 		// Is the node popable, switchable or toggleable?
 		var classes = dom.classes(node);
-		if (classes.contains('popable') ||
-			classes.contains('switchable') ||
-			classes.contains('toggleable') ||
-			classes.contains('focusable') ||
-			classes.contains('removeable') ||
-			classes.contains('locateable')) {
+
+		if (dom.activeMatchers.find(apply(node))) {
 			activate(e, node);
 		}
 		// A bit of a fudge, but smooth scrolling is so project-dependent it is
@@ -6165,7 +6196,7 @@ function getPositionParent(node) {
 	}
 
 	// Clicks on buttons toggle activate on their hash
-	on(document, 'click', dom.delegate('[href]', activateHref));
+	on(document, 'click', dom.delegate('a[href]', activateHref));
 
 	// Clicks on buttons toggle activate on their targets
 	on(document, 'click', dom.delegate('a[target]', activateTarget));
@@ -6523,8 +6554,8 @@ function getPositionParent(node) {
 (function(window) {
 
 	var dom     = window.dom;
-	var name    = "popable";
 	var trigger = dom.events.trigger;
+	var matches = dom.matches('.popable, [popable]');
 
 	function activate(e) {
 		// Use method detection - e.defaultPrevented is not set in time for
@@ -6532,8 +6563,7 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var node    = e.target;
-		var classes = dom.classes(node);
-		if (!classes.contains(name)) { return; }
+		if (!matches(node)) { return; }
 
 		// Make user actions outside node deactivat the node
 
@@ -6561,12 +6591,13 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 		e.default();
 	}
 
 	document.addEventListener('dom-activate', activate);
 	document.addEventListener('dom-deactivate', deactivate);
+	dom.activeMatchers.push(matches);
 })(this);
 // dom.toggleable
 
@@ -6577,7 +6608,7 @@ function getPositionParent(node) {
 
 	// Define
 
-	var name = 'toggleable';
+	var matches = dom.matches('.toggleable, [toggleable]');
 
 	// Functions
 
@@ -6606,11 +6637,11 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 
 		var id = dom.identify(target);
 
-		dom('[href$="#' + id + '"]')
+		dom('a[href$="#' + id + '"]')
 		.forEach(function(node) {
 			on(node, 'click', click, e.target);
 		});
@@ -6622,11 +6653,11 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 
-		var id = dom.identify(e.target);
+		var id = e.target.id;
 
-		dom('[href$="#' + id + '"]')
+		dom('a[href$="#' + id + '"]')
 		.forEach(function(node) {
 			off(node, 'click', click);
 		});
@@ -6636,6 +6667,8 @@ function getPositionParent(node) {
 
 	on(document, 'dom-activate', activate);
 	on(document, 'dom-deactivate', deactivate);
+
+	dom.activeMatchers.push(matches);
 })(this);
 // dom.switchable
 //
@@ -6652,15 +6685,15 @@ function getPositionParent(node) {
 
 	// Define
 
-	var name = 'switchable';
-	var on   = dom.events.on;
+	var matches = dom.matches('.switchable, [switchable]');
+	var on      = dom.events.on;
 	var triggerDeactivate = dom.trigger('dom-deactivate');
 
 	function activate(e) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 
 		var nodes = dom.query('.switchable', target.parentNode);
 		var i     = nodes.indexOf(target);
@@ -6680,13 +6713,14 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 
 		e.default();
 	}
 
 	on(document, 'dom-activate', activate);
 	on(document, 'dom-deactivate', deactivate);
+	dom.activeMatchers.push(matches);
 })(this);
 (function(window) {
 	"use strict";
@@ -6792,8 +6826,8 @@ function getPositionParent(node) {
 	});
 
 	function transform(node, active) {
-		var l1 = dom.viewportLeft(node);
-		var l2 = dom.viewportLeft(active);
+		var l1 = dom.box(node).left;
+		var l2 = dom.box(active).left;
 
 		// Round the translation - without rounding images and text become
 		// slightly fuzzy as they are antialiased.
@@ -6845,8 +6879,8 @@ function getPositionParent(node) {
 		classes.remove('notransition');
 		document.documentElement.clientWidth;
 
-		var l1 = dom.viewportLeft(node);
-		var l2 = dom.viewportLeft(parent);
+		var l1 = dom.box(node).left;
+		var l2 = dom.box(parent).left;
 		var l  = l1 - l2 - dom.style('margin-left', node);
 
 		parent.style.transform = 'translate(' + (-l) + 'px, 0px)';
@@ -6855,12 +6889,11 @@ function getPositionParent(node) {
 })(this);
 (function(window) {
 	"use strict";
-	
+
 	var Fn      = window.Fn;
 	var dom     = window.dom;
 
 	var noop          = Fn.noop;
-	var requestTick   = Fn.requestTick;
 	var on            = dom.events.on;
 	var off           = dom.events.off;
 	var trigger       = dom.events.trigger;
@@ -6869,7 +6902,7 @@ function getPositionParent(node) {
 	var trapFocus     = dom.trapFocus;
 	var untrapFocus   = noop;
 
-	var matches = dom.matches('.focusable');
+	var matches = dom.matches('.focusable, [focusable]');
 	var delay   = 600;
 
 	on(document, 'dom-activate', function(e) {
@@ -6928,6 +6961,8 @@ function getPositionParent(node) {
 		on(e.target, 'transitionend', untrap);
 		enableScroll(dom.root);
 	});
+
+	dom.activeMatchers.push(matches);
 })(this);
 // dom.toggleable
 
@@ -6935,10 +6970,11 @@ function getPositionParent(node) {
 	"use strict";
 
 	// Import
-	var dom     = window.dom;
+	var dom         = window.dom;
 
 	// Define
-	var name    = 'removeable';
+	var matches     = dom.matches('.removeable, [removeable]');
+
 	// Max duration of deactivation transition in seconds
 	var maxDuration = 1;
 
@@ -6951,7 +6987,7 @@ function getPositionParent(node) {
 		if (!e.default) { return; }
 
 		var target = e.target;
-		if (!dom.classes(target).contains(name)) { return; }
+		if (!matches(target)) { return; }
 
 		function update() {
 			clearTimeout(timer);
@@ -6967,7 +7003,7 @@ function getPositionParent(node) {
 
 	on(document, 'dom-deactivate', deactivate);
 })(this);
-// dom.popable
+// dom.locateable
 //
 // Extends the default behaviour of events for the .tip class.
 
@@ -6980,12 +7016,10 @@ function getPositionParent(node) {
     var noop     = Fn.noop;
     var powOut   = Fn.exponentialOut;
     var animate  = dom.animate;
-    var classes  = dom.classes;
     var box      = dom.box;
     var offset   = dom.offset;
     var on       = dom.events.on;
-
-    var name     = "locateable";
+    var matches  = dom.matches(".locateable, [locateable]");
 
     // Time after scroll event to consider the document is scrolling
     var idleTime = 90;
@@ -7004,7 +7038,7 @@ function getPositionParent(node) {
         if (!e.default) { return; }
 
         var target = e.target;
-        if (!classes(target).contains(name)) { return; }
+        if (!matches(target)) { return; }
 
         // If node is already active, ignore
         if (target === activeNode) { return; }
@@ -7027,10 +7061,10 @@ function getPositionParent(node) {
         // was the last scroll event ages ago ?
         // TODO: test on iOS
         if (scrollTime > t || t > scrollTime + idleTime) {
-            coords     = offset(dom.viewport, target);
+            coords     = offset(dom.view, target);
             safeTop    = dom.safe.top;
             scrollTime = t + scrollDuration * 1000;
-            cancel     = animate(scrollDuration, scrollTransform, 'scrollTop', dom.viewport, coords[1] - safeTop);
+            cancel     = animate(scrollDuration, scrollTransform, 'scrollTop', dom.view, coords[1] - safeTop);
         }
 
         e.default();
@@ -7042,7 +7076,7 @@ function getPositionParent(node) {
 
         var target = e.target;
 
-        if (!classes(target).contains(name)) { return; }
+        if (!matches(target)) { return; }
 
         e.default();
 
@@ -7105,6 +7139,156 @@ function getPositionParent(node) {
     on(document, 'dom-deactivate', deactivate);
     on(window, 'scroll', scroll);
     update();
+    dom.activeMatchers.push(matches);
+})(this);
+(function(window) {
+	"use strict";
+
+	var assign         = Object.assign;
+	var Fn             = window.Fn;
+	var Stream         = window.Stream;
+	var dom            = window.dom;
+
+	var get            = Fn.get;
+	var invoke         = Fn.invoke;
+	var nothing        = Fn.nothing;
+	var once           = Fn.once;
+
+	var after          = dom.after;
+	var attribute      = dom.attribute;
+	var classes        = dom.classes;
+    var matches        = dom.matches;
+    var next           = dom.next;
+	var remove         = dom.remove;
+
+    var isValidateable = matches('.validateable, .validateable input, .validateable textarea, .validateable select');
+	var isErrorLabel   = matches('.error-label');
+	var validatedClass = 'validated';
+
+	var types = {
+		patternMismatch: 'pattern',
+		rangeOverflow:   'max',
+		rangeUnderflow:  'min',
+		stepMismatch:    'step',
+		tooLong:         'maxlength',
+		typeMismatch:    'type',
+		valueMissing:    'required'
+	};
+
+	function negate(fn) {
+		return function() {
+			return !fn.apply(this, arguments);
+		};
+	}
+
+	function isValid(node) {
+		return node.validity ? node.validity.valid : true ;
+	}
+
+	function isShowingMessage(node) {
+		return node.nextElementSibling && isErrorLabel(node.nextElementSibling);
+	}
+
+	function toError(input) {
+		var node     = input;
+		var validity = node.validity;
+        var name, text;
+
+		for (name in validity) {
+			if (name !== 'valid' && validity[name]) {
+				text = dom.validation[types[name]];
+
+				if (text) {
+					input.setCustomValidity(text);
+				}
+
+				return {
+					type: name,
+					attr: types[name],
+					name: input.name,
+					text: node.validationMessage,
+					node: input
+				};
+			}
+		}
+	}
+
+	function renderError(error) {
+		var input  = error.node;
+		var node   = input;
+
+		while (node.nextElementSibling && isErrorLabel(node.nextElementSibling)) {
+			node = node.nextElementSibling;
+		}
+
+        var label = dom.create('label')
+        dom.assign(label, {
+            textContent: error.text,
+			for:         input.id,
+            class:       'error-label'
+		});
+
+		after(node, label);
+	}
+
+	function addValidatedClass(input) {
+		classes(input).add(validatedClass);
+	}
+
+	function removeMessages(input) {
+		var node = input;
+
+		while ((node = next(node)) && isErrorLabel(node)) {
+			remove(node);
+		}
+	}
+
+	// Clear validation on new input
+	dom
+	.event('input', document)
+	.map(get('target'))
+    .filter(isValidateable)
+	.tap(invoke('setCustomValidity', ['']))
+	.filter(isValid)
+	.each(removeMessages);
+
+	// Check validity on focus out
+	dom
+	.event('focusout', document)
+	.map(get('target'))
+	.filter(isValidateable)
+	.each(invoke('checkValidity', nothing));
+
+	// Check validation on form submit
+	// TODO doesnt work because 'submit' is not received if the validity
+	// check shows the form is invalid
+    dom
+	.event('submit', document)
+	.map(get('target'))
+	.filter(isValidateable)
+	.each(addValidatedClass);
+
+	// Add error labels after invalid inputs. Listen to events in the
+	// capture phase.
+	document.addEventListener(
+		'invalid',
+
+		// Push to stream
+		Stream.of()
+		.map(get('target'))
+        .filter(isValidateable)
+		.tap(addValidatedClass)
+		.filter(negate(isShowingMessage))
+		.map(toError)
+		.each(renderError)
+		.push,
+
+		// Capture phase
+		true
+	);
+
+    dom.validation = dom.validation || {};
+
 })(this);
 (function(window) {
 	"use strict";
@@ -7117,6 +7301,7 @@ function getPositionParent(node) {
 	var dom        = window.dom;
 
 	var assign     = Object.assign;
+	var attribute  = dom.attribute;
 	var compose    = Fn.compose;
 	var curry      = Fn.curry;
 	var get        = Fn.get;
@@ -7149,39 +7334,12 @@ function getPositionParent(node) {
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var settings = {
-		prefix:       'data-',
-		mount:        noop,
-		transforms:   {},
-		transformers: {},
-		rtoken:       /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+		attributePrefix: 'data-',
+		mount:           noop,
+		transforms:      {},
+		transformers:    {},
+		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
-
-	var toRenderString = overload(toType, {
-		'boolean': function(value) {
-			return value + '';
-		},
-
-		'function': function(value) {
-			return (value.name || 'function')
-				+ (rarguments.exec(value.toString()) || [])[1];
-		},
-
-		'number': function(value) {
-			return Number.isNaN(value) ? '' : value + '' ;
-		},
-
-		'string': id,
-
-		'symbol': function(value) { return value.toString(); },
-
-		'undefined': function() { return ''; },
-
-		'object': function(value) {
-			return value === null ? '' : JSON.stringify(value);
-		},
-
-		'default': JSON.stringify
-	});
 
 	function addClasses(classList, text) {
 		var classes = toRenderString(text).trim().split(rspaces);
@@ -7274,6 +7432,33 @@ function getPositionParent(node) {
 		};
 	}, true);
 
+	var toRenderString = overload(toType, {
+		'boolean': function(value) {
+			return value + '';
+		},
+
+		'function': function(value) {
+			return (value.name || 'function')
+				+ (rarguments.exec(value.toString()) || [])[1];
+		},
+
+		'number': function(value) {
+			return Number.isNaN(value) ? '' : value + '' ;
+		},
+
+		'string': id,
+
+		'symbol': function(value) { return value.toString(); },
+
+		'undefined': function() { return ''; },
+
+		'object': function(value) {
+			return value === null ? '' : JSON.stringify(value);
+		},
+
+		'default': JSON.stringify
+	});
+
 	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -7344,7 +7529,7 @@ function getPositionParent(node) {
 		//
 		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.prefix + name) || node.getAttribute(name) ;
+		var attr = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
 		if (!attr) { return; }
 
 		rtoken.lastIndex = 0;
@@ -7404,15 +7589,16 @@ function getPositionParent(node) {
 		node.setAttribute('class', text);
 	}
 
-	function mountName(node, options, structs) {
-		var string = node.name;
+	function mountValue(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node) ||
+			attribute('value', node) ;
 		var rtoken = options.rtoken;
 		rtoken.lastIndex = 0;
 
 		var match = rtoken.exec(string);
 		if (!match) { return; }
 
-		return mountNameByType(node, options, match, structs);
+		return mountValueByType(node, options, match, structs);
 	}
 
 	var types = {
@@ -7486,9 +7672,9 @@ function getPositionParent(node) {
 		input: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttributes(['value'], node, options, structs);
+			mountAttribute('name', node, options, structs);
 			mountInput(node, options, structs);
-			mountName(node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		img: function(node, options, structs) {
@@ -7507,15 +7693,15 @@ function getPositionParent(node) {
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttribute('value', node, options, structs);
-			// Two way bind here??
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		textarea: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		time: function(node, options, structs)  {
@@ -7588,6 +7774,7 @@ function getPositionParent(node) {
 				pipe:  match[3],
 
 				read: function read() {
+					// TODO: Why do we check attribute here?
 					return isDefined(node.getAttribute('value')) ?
 						node.checked ? node.value : undefined :
 						node.checked ;
@@ -7708,10 +7895,10 @@ function getPositionParent(node) {
 		}
 	};
 
-	var mountNode       = overload(get('nodeType'), types);
-	var mountTag        = overload(dom.tag, tags);
-	var mountInput      = overload(get('type'), inputs);
-	var mountNameByType = overload(get('type'), inputTypes);
+	var mountNode        = overload(get('nodeType'), types);
+	var mountTag         = overload(dom.tag, tags);
+	var mountInput       = overload(get('type'), inputs);
+	var mountValueByType = overload(get('type'), inputTypes);
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
@@ -7822,14 +8009,25 @@ function getPositionParent(node) {
 
 
 	// Export
-
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
 	mount.mountAttribute = mountAttribute;
 	mount.mountBoolean   = mountBoolean;
 	mount.mountInput     = mountInput;
-	mount.mountName      = mountName;
+	mount.mountValue     = mountValue;
+
+	// Legacy pre 2.0.3
+	mount.mountName = function mountName(node, options, structs) {
+		var string = node.name;
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+
+		var match = rtoken.exec(string);
+		if (!match) { return; }
+
+		return mountValueByType(node, options, match, structs);
+	};
 
 	window.mount = mount;
 
@@ -7864,8 +8062,9 @@ function getPositionParent(node) {
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
+		// Child mounting function
 		mount: function mount(node) {
-			var fn = dom.attribute('data-fn', node);
+			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
 			var sparky = Sparky(node, undefined, { fn: fn });
@@ -7911,7 +8110,7 @@ function getPositionParent(node) {
 			document.querySelector(escapeSelector(node)) :
 			node ;
 
-		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
 		var input    = this;
@@ -7927,8 +8126,9 @@ function getPositionParent(node) {
 
 		function render() {
 			// TEMP: Find a better way to pass these in
-			settings.transforms   = Sparky.transforms;
-			settings.transformers = Sparky.transformers;
+			settings.attributePrefix = Sparky.attributePrefix;
+			settings.transforms      = Sparky.transforms;
+			settings.transformers    = Sparky.transformers;
 
 			// Launch rendering
 			renderer = createRenderStream(sparky, settings);
@@ -7995,8 +8195,10 @@ function getPositionParent(node) {
 	Sparky.prototype = Object.create(Stream.prototype);
 
 	assign(Sparky, {
+		attributePrefix: 'sparky-',
+
 		fn: {
-			scope: function(node, stream, params) {
+			find: function(node, stream, params) {
 				var scope = getPath(params[0], window);
 
 				if (!scope) {
@@ -8006,6 +8208,10 @@ function getPositionParent(node) {
 
 				return Fn.of(getPath(params[0], window));
 			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
@@ -8048,19 +8254,17 @@ function getPositionParent(node) {
 
 		transforms: {},
 
-		mount:      mount,
-
 		MarkerNode: function MarkerNode(node) {
 			// A text node, or comment node in DEBUG mode, for marking a
 			// position in the DOM tree so it can be swapped out with some
-			// content node.
+			// content in the future.
 
 			if (!DEBUG) {
 				return dom.create('text', '');
 			}
 
-			var attrFn  = node && node.getAttribute('data-fn');
-			return dom.create('comment', tag(node) + (attrFn ? ' data-fn="' + attrFn + '"' : ''));
+			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
 		}
 	});
 
@@ -8160,7 +8364,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.setScope = function(node, scope) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		window.jQuery && jQuery.data(node, 'scope', scope);
@@ -8168,7 +8372,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.getScope = function(node) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		return jQuery.data(node, 'scope');
@@ -8241,7 +8445,7 @@ Sparky.nodeToString = Fn.id;
 	"use strict";
 
 	Sparky.fn['x-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-x-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'x-scroll-master');
 		var master;
 
 		function update() {
@@ -8267,7 +8471,7 @@ Sparky.nodeToString = Fn.id;
 	};
 
 	Sparky.fn['y-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-y-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'y-scroll-master');
 		var master = document.getElementById(name);
 
 		if (!master) {
@@ -8290,36 +8494,147 @@ Sparky.nodeToString = Fn.id;
 (function(window) {
     "use strict";
 
-    var dom        = window.dom;
-    var Sparky     = window.Sparky;
+    var DEBUG   = window.DEBUG;
+    var axios   = window.axios;
+    var jQuery  = window.jQuery;
+    var Fn      = window.Fn;
+    var dom     = window.dom;
+    var Sparky  = window.Sparky;
 
-    var append     = dom.append;
-    var clone      = dom.clone;
-    var empty      = dom.empty;
+    var assign  = Object.assign;
+    var fetch   = window.fetch;
+    var get     = Fn.get;
+    var getData = get('data');
+    var parseHTML = dom.parse('html');
 
-    Sparky.fn.template = function each(node, scopes, params) {
-        var id = params[0];
-        var template = dom.fragmentFromId(id);
+    var cache   = {
+        '': {
+            '': document
+        }
+    };
 
+    var request = axios ? function axiosRequest(url, id) {
+        return axios
+        .get(url)
+        .then(getData)
+        .then(parseHTML);
+    } :
+
+    // TODO test these functions
+
+    jQuery ? function jQueryRequest(url, id) {
+        return jQuery
+        .get(url)
+        .then(getData)
+        .then(parseHTML);
+    } :
+
+    fetch ? function fetchRequest(url, id) {
+        return fetch(url)
+        .then(getData)
+        .then(parseHTML)
+        .then(function() {
+
+        });
+    } :
+
+    function errorRequest(url, id) {
+        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + url + '"');
+    } ;
+
+    function insertTemplate(sparky, node, scopes, id, template) {
         if (!template) {
             throw new Error('Sparky: template ' + id + ' not found.');
         }
-
-        var sparky = this;
-        sparky.interrupt();
 
         scopes
         .clone()
         .take(1)
         .each(function(scope) {
-            var fragment = clone(template);
-            empty(node);
-            append(node, fragment);
+            var fragment = dom.clone(template);
+            dom.empty(node);
+            dom.append(node, fragment);
             sparky.continue();
         });
+    }
 
-        return scopes;
-    };
+    function templateFromCache(sparky, node, scopes, path, id, template) {
+        var doc, elem;
+
+        if (!template) {
+            doc  = cache[path][''];
+            elem = doc.getElementById(id);
+
+            template = cache[path][id] = doc === document ?
+                dom.fragmentFromId(id) :
+                elem && dom.fragmentFromHTML(elem.innerHTML) ;
+        }
+
+        insertTemplate(sparky, node, scopes, id, template);
+    }
+
+    function templateFromDocument(sparky, node, scopes, path, id, doc) {
+        var template, elem;
+
+        cache[path] = { '': doc };
+
+        if (id) {
+            elem = doc.getElementById(id);
+            template = cache[path][id] = elem && dom.fragmentFromHTML(elem.innerHTML);
+        }
+        else {
+            throw new Error('Sparky: template url has no hash id ' + path);
+        }
+
+        insertTemplate(sparky, node, scopes, id, template);
+    }
+
+    assign(Sparky.fn, {
+        template: function(node, scopes, params) {
+            var url   = params[0];
+            var parts, path, id;
+
+            // Support legacy ids instead of urls for just now
+            if (!/#/.test(url)) {
+                console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
+                path = '';
+                id   = url;
+            }
+            // Parse urls
+            else {
+                parts = url.split('#');
+                path  = parts[0] || '';
+                id    = parts[1] || '';
+            }
+
+
+            if (DEBUG && !path) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+            }
+
+            var sparky = this;
+            var template;
+
+            sparky.interrupt();
+
+            // If the resource is cached, return it as an shiftable
+            if (cache[path]) {
+                templateFromCache(sparky, node, scopes, path, id, cache[path][id]);
+            }
+            else {
+                request(path)
+                .then(function(doc) {
+                    if (!doc) { return; }
+                    templateFromDocument(sparky, node, scopes, path, id, doc);
+                })
+                .catch(function(error) {
+                    console.warn(error);
+                });
+            }
+
+            return scopes;
+        }
+    });
 })(this);
 (function(window) {
 	"use strict";
@@ -8429,8 +8744,8 @@ Sparky.nodeToString = Fn.id;
 		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		template.removeAttribute('data-scope');
-		template.removeAttribute('data-fn');
+		//template.removeAttribute('data-scope');
+		template.removeAttribute(Sparky.attributePrefix + 'fn');
 
 		// Put the marker in place and remove the node
 		dom.before(node, marker);

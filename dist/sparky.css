@@ -18,6 +18,12 @@ Styleguide: zutilities.transition
 	     -o-transition: all 0 linear 0 !important;
 	        transition: none !important;
 }
+
+/* Respond to device input classes. */
+
+.mouse *:focus {
+	outline: none !important;
+}
 .sparky-hidden {
 	display: none !important;
 }

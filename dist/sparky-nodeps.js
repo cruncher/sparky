@@ -9,6 +9,7 @@
 	var dom        = window.dom;
 
 	var assign     = Object.assign;
+	var attribute  = dom.attribute;
 	var compose    = Fn.compose;
 	var curry      = Fn.curry;
 	var get        = Fn.get;
@@ -41,39 +42,12 @@
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var settings = {
-		prefix:       'data-',
-		mount:        noop,
-		transforms:   {},
-		transformers: {},
-		rtoken:       /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+		attributePrefix: 'data-',
+		mount:           noop,
+		transforms:      {},
+		transformers:    {},
+		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 	};
-
-	var toRenderString = overload(toType, {
-		'boolean': function(value) {
-			return value + '';
-		},
-
-		'function': function(value) {
-			return (value.name || 'function')
-				+ (rarguments.exec(value.toString()) || [])[1];
-		},
-
-		'number': function(value) {
-			return Number.isNaN(value) ? '' : value + '' ;
-		},
-
-		'string': id,
-
-		'symbol': function(value) { return value.toString(); },
-
-		'undefined': function() { return ''; },
-
-		'object': function(value) {
-			return value === null ? '' : JSON.stringify(value);
-		},
-
-		'default': JSON.stringify
-	});
 
 	function addClasses(classList, text) {
 		var classes = toRenderString(text).trim().split(rspaces);
@@ -166,6 +140,33 @@
 		};
 	}, true);
 
+	var toRenderString = overload(toType, {
+		'boolean': function(value) {
+			return value + '';
+		},
+
+		'function': function(value) {
+			return (value.name || 'function')
+				+ (rarguments.exec(value.toString()) || [])[1];
+		},
+
+		'number': function(value) {
+			return Number.isNaN(value) ? '' : value + '' ;
+		},
+
+		'string': id,
+
+		'symbol': function(value) { return value.toString(); },
+
+		'undefined': function() { return ''; },
+
+		'object': function(value) {
+			return value === null ? '' : JSON.stringify(value);
+		},
+
+		'default': JSON.stringify
+	});
+
 	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -236,7 +237,7 @@
 		//
 		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.prefix + name) || node.getAttribute(name) ;
+		var attr = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
 		if (!attr) { return; }
 
 		rtoken.lastIndex = 0;
@@ -296,15 +297,16 @@
 		node.setAttribute('class', text);
 	}
 
-	function mountName(node, options, structs) {
-		var string = node.name;
+	function mountValue(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node) ||
+			attribute('value', node) ;
 		var rtoken = options.rtoken;
 		rtoken.lastIndex = 0;
 
 		var match = rtoken.exec(string);
 		if (!match) { return; }
 
-		return mountNameByType(node, options, match, structs);
+		return mountValueByType(node, options, match, structs);
 	}
 
 	var types = {
@@ -378,9 +380,9 @@
 		input: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttributes(['value'], node, options, structs);
+			mountAttribute('name', node, options, structs);
 			mountInput(node, options, structs);
-			mountName(node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		img: function(node, options, structs) {
@@ -399,15 +401,15 @@
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountAttribute('value', node, options, structs);
-			// Two way bind here??
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		textarea: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
-			mountName(node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValue(node, options, structs);
 		},
 
 		time: function(node, options, structs)  {
@@ -480,6 +482,7 @@
 				pipe:  match[3],
 
 				read: function read() {
+					// TODO: Why do we check attribute here?
 					return isDefined(node.getAttribute('value')) ?
 						node.checked ? node.value : undefined :
 						node.checked ;
@@ -600,10 +603,10 @@
 		}
 	};
 
-	var mountNode       = overload(get('nodeType'), types);
-	var mountTag        = overload(dom.tag, tags);
-	var mountInput      = overload(get('type'), inputs);
-	var mountNameByType = overload(get('type'), inputTypes);
+	var mountNode        = overload(get('nodeType'), types);
+	var mountTag         = overload(dom.tag, tags);
+	var mountInput       = overload(get('type'), inputs);
+	var mountValueByType = overload(get('type'), inputTypes);
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
@@ -714,14 +717,25 @@
 
 
 	// Export
-
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
 	mount.mountAttribute = mountAttribute;
 	mount.mountBoolean   = mountBoolean;
 	mount.mountInput     = mountInput;
-	mount.mountName      = mountName;
+	mount.mountValue     = mountValue;
+
+	// Legacy pre 2.0.3
+	mount.mountName = function mountName(node, options, structs) {
+		var string = node.name;
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+
+		var match = rtoken.exec(string);
+		if (!match) { return; }
+
+		return mountValueByType(node, options, match, structs);
+	};
 
 	window.mount = mount;
 
@@ -756,8 +770,9 @@
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
+		// Child mounting function
 		mount: function mount(node) {
-			var fn = dom.attribute('data-fn', node);
+			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
 			var sparky = Sparky(node, undefined, { fn: fn });
@@ -803,7 +818,7 @@
 			document.querySelector(escapeSelector(node)) :
 			node ;
 
-		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
 		var input    = this;
@@ -819,8 +834,9 @@
 
 		function render() {
 			// TEMP: Find a better way to pass these in
-			settings.transforms   = Sparky.transforms;
-			settings.transformers = Sparky.transformers;
+			settings.attributePrefix = Sparky.attributePrefix;
+			settings.transforms      = Sparky.transforms;
+			settings.transformers    = Sparky.transformers;
 
 			// Launch rendering
 			renderer = createRenderStream(sparky, settings);
@@ -887,8 +903,10 @@
 	Sparky.prototype = Object.create(Stream.prototype);
 
 	assign(Sparky, {
+		attributePrefix: 'sparky-',
+
 		fn: {
-			scope: function(node, stream, params) {
+			find: function(node, stream, params) {
 				var scope = getPath(params[0], window);
 
 				if (!scope) {
@@ -898,6 +916,10 @@
 
 				return Fn.of(getPath(params[0], window));
 			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
@@ -940,19 +962,17 @@
 
 		transforms: {},
 
-		mount:      mount,
-
 		MarkerNode: function MarkerNode(node) {
 			// A text node, or comment node in DEBUG mode, for marking a
 			// position in the DOM tree so it can be swapped out with some
-			// content node.
+			// content in the future.
 
 			if (!DEBUG) {
 				return dom.create('text', '');
 			}
 
-			var attrFn  = node && node.getAttribute('data-fn');
-			return dom.create('comment', tag(node) + (attrFn ? ' data-fn="' + attrFn + '"' : ''));
+			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
 		}
 	});
 
@@ -1052,7 +1072,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.setScope = function(node, scope) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		window.jQuery && jQuery.data(node, 'scope', scope);
@@ -1060,7 +1080,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.getScope = function(node) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		return jQuery.data(node, 'scope');
@@ -1133,7 +1153,7 @@ Sparky.nodeToString = Fn.id;
 	"use strict";
 
 	Sparky.fn['x-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-x-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'x-scroll-master');
 		var master;
 
 		function update() {
@@ -1159,7 +1179,7 @@ Sparky.nodeToString = Fn.id;
 	};
 
 	Sparky.fn['y-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-y-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'y-scroll-master');
 		var master = document.getElementById(name);
 
 		if (!master) {
@@ -1182,36 +1202,147 @@ Sparky.nodeToString = Fn.id;
 (function(window) {
     "use strict";
 
-    var dom        = window.dom;
-    var Sparky     = window.Sparky;
+    var DEBUG   = window.DEBUG;
+    var axios   = window.axios;
+    var jQuery  = window.jQuery;
+    var Fn      = window.Fn;
+    var dom     = window.dom;
+    var Sparky  = window.Sparky;
 
-    var append     = dom.append;
-    var clone      = dom.clone;
-    var empty      = dom.empty;
+    var assign  = Object.assign;
+    var fetch   = window.fetch;
+    var get     = Fn.get;
+    var getData = get('data');
+    var parseHTML = dom.parse('html');
 
-    Sparky.fn.template = function each(node, scopes, params) {
-        var id = params[0];
-        var template = dom.fragmentFromId(id);
+    var cache   = {
+        '': {
+            '': document
+        }
+    };
 
+    var request = axios ? function axiosRequest(url, id) {
+        return axios
+        .get(url)
+        .then(getData)
+        .then(parseHTML);
+    } :
+
+    // TODO test these functions
+
+    jQuery ? function jQueryRequest(url, id) {
+        return jQuery
+        .get(url)
+        .then(getData)
+        .then(parseHTML);
+    } :
+
+    fetch ? function fetchRequest(url, id) {
+        return fetch(url)
+        .then(getData)
+        .then(parseHTML)
+        .then(function() {
+
+        });
+    } :
+
+    function errorRequest(url, id) {
+        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + url + '"');
+    } ;
+
+    function insertTemplate(sparky, node, scopes, id, template) {
         if (!template) {
             throw new Error('Sparky: template ' + id + ' not found.');
         }
-
-        var sparky = this;
-        sparky.interrupt();
 
         scopes
         .clone()
         .take(1)
         .each(function(scope) {
-            var fragment = clone(template);
-            empty(node);
-            append(node, fragment);
+            var fragment = dom.clone(template);
+            dom.empty(node);
+            dom.append(node, fragment);
             sparky.continue();
         });
+    }
 
-        return scopes;
-    };
+    function templateFromCache(sparky, node, scopes, path, id, template) {
+        var doc, elem;
+
+        if (!template) {
+            doc  = cache[path][''];
+            elem = doc.getElementById(id);
+
+            template = cache[path][id] = doc === document ?
+                dom.fragmentFromId(id) :
+                elem && dom.fragmentFromHTML(elem.innerHTML) ;
+        }
+
+        insertTemplate(sparky, node, scopes, id, template);
+    }
+
+    function templateFromDocument(sparky, node, scopes, path, id, doc) {
+        var template, elem;
+
+        cache[path] = { '': doc };
+
+        if (id) {
+            elem = doc.getElementById(id);
+            template = cache[path][id] = elem && dom.fragmentFromHTML(elem.innerHTML);
+        }
+        else {
+            throw new Error('Sparky: template url has no hash id ' + path);
+        }
+
+        insertTemplate(sparky, node, scopes, id, template);
+    }
+
+    assign(Sparky.fn, {
+        template: function(node, scopes, params) {
+            var url   = params[0];
+            var parts, path, id;
+
+            // Support legacy ids instead of urls for just now
+            if (!/#/.test(url)) {
+                console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
+                path = '';
+                id   = url;
+            }
+            // Parse urls
+            else {
+                parts = url.split('#');
+                path  = parts[0] || '';
+                id    = parts[1] || '';
+            }
+
+
+            if (DEBUG && !path) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+            }
+
+            var sparky = this;
+            var template;
+
+            sparky.interrupt();
+
+            // If the resource is cached, return it as an shiftable
+            if (cache[path]) {
+                templateFromCache(sparky, node, scopes, path, id, cache[path][id]);
+            }
+            else {
+                request(path)
+                .then(function(doc) {
+                    if (!doc) { return; }
+                    templateFromDocument(sparky, node, scopes, path, id, doc);
+                })
+                .catch(function(error) {
+                    console.warn(error);
+                });
+            }
+
+            return scopes;
+        }
+    });
 })(this);
 (function(window) {
 	"use strict";
@@ -1321,8 +1452,8 @@ Sparky.nodeToString = Fn.id;
 		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		template.removeAttribute('data-scope');
-		template.removeAttribute('data-fn');
+		//template.removeAttribute('data-scope');
+		template.removeAttribute(Sparky.attributePrefix + 'fn');
 
 		// Put the marker in place and remove the node
 		dom.before(node, marker);
