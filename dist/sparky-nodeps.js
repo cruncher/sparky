@@ -80,7 +80,7 @@
 			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
 
 			if (!fn) {
-				throw new Error('Sparky: transform "' + name + '" not found');
+				throw new Error('mount: transform "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -92,7 +92,7 @@
 			}
 
 			if (!(typeof fns[fns.length - 1] === 'function')) {
-				throw new Error('Sparky: transform "' + name + '" not resulting in fn');
+				throw new Error('mount: transform "' + name + '" not resulting in fn');
 			}
 		}
 
@@ -115,7 +115,7 @@
 			fn   = transformers[name].invert;
 
 			if (!fn) {
-				throw new Error('Sparky: transformers "' + name + '" not found');
+				throw new Error('mount: transformers "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -317,15 +317,15 @@
 			var child, renderer;
 
 			while (child = children[++n]) {
-				// Test to see if it needs a full Sparky mounting
+				// If we have a rendererer interested in this child
 				renderer = options.mount(child);
 
 				if (renderer) {
-					// Sparky mounted it
+					// ...add it to structs
 					structs.push(renderer);
 				}
 				else {
-					// It's a plain old node with no data-fn
+					// otherwise mount the node normally
 					mountNode(child, options, structs);
 				}
 			}
@@ -333,8 +333,6 @@
 			mountClass(node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
 			mountTag(node, options, structs);
-
-			if (DEBUG) { console.log('mounted:', node, structs.length); }
 		},
 
 		// text
@@ -635,9 +633,7 @@
 				if (old === data) { return; }
 				old = data;
 
-				if (DEBUG) {
-					console.groupCollapsed('Sparky: update', node);
-				}
+				if (DEBUG) { console.group('update:', node); }
 
 				var observable = Observable(data);
 				var unlisten;
@@ -647,9 +643,8 @@
 					// Unbind Structs
 					struct.unbind && struct.unbind();
 
-					// Set up struct. Sparky objects, which masquerade as structs,
-					// already have a .push() method. They don't need to be set
-					// up. Also, they don't need to be throttled
+					// Set up structs to be pushable. Renderers already have
+					// a push method and should not be throttled.
 					if (!struct.push) {
 						setupStruct(struct, options);
 					}
@@ -688,9 +683,7 @@
 					}
 				});
 
-				if (DEBUG) {
-					console.groupEnd();
-				}
+				if (DEBUG) { console.groupEnd(); }
 
 				return data;
 			}
@@ -701,7 +694,7 @@
 		options = assign({}, settings, options);
 
 		if (DEBUG) {
-			console.groupCollapsed('Sparky: mount ', node);
+			console.group('mount:', node);
 		}
 
 		var structs = [];
@@ -775,8 +768,8 @@
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
-			var sparky = Sparky(node, undefined, { fn: fn });
-			if (DEBUG) { console.log('mounted:', node, fn); }
+			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
+			//if (DEBUG) { console.log('mounted:', node, fn); }
 
 			sparky.token = fn;
 			sparky.path  = '';
@@ -809,14 +802,14 @@
 		return selector.replace(/\//g, '\\\/');
 	}
 
-	function Sparky(node, data, options) {
+	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
-			return new Sparky(node, data, options);
+			return new Sparky(selector, data, options);
 		}
 
-		node = typeof node === 'string' ?
-			document.querySelector(escapeSelector(node)) :
-			node ;
+		var node = typeof selector === 'string' ?
+			document.querySelector(escapeSelector(selector)) :
+			selector ;
 
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
@@ -839,8 +832,10 @@
 			settings.transformers    = Sparky.transformers;
 
 			// Launch rendering
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
 			input.each(renderer.push);
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
 
 		function start() {
@@ -850,7 +845,7 @@
 			if (!token) {
 				sparky.continue = noop;
 				render();
-				return;
+				return sparky;
 			}
 
 			var fn = Sparky.fn[token[1]];
@@ -867,7 +862,7 @@
 			return calling && start();
 		}
 
-		Stream.call(this, function Source(notify, stop) {
+		function Source(notify, stop) {
 			this.shift = function() {
 				var object;
 
@@ -893,14 +888,17 @@
 				// sure we get it
 				stop(data ? 1 : 0);
 			};
-		});
+		}
+
+		Stream.call(this, Source);
 
 		this.interrupt = interrupt;
 		this.continue  = start;
+
 		start();
 	}
 
-	Sparky.prototype = Object.create(Stream.prototype);
+	Sparky.prototype = Stream.prototype;
 
 	assign(Sparky, {
 		attributePrefix: 'sparky-',
@@ -937,7 +935,7 @@
 				node.addEventListener(params[0], preventDefault);
 
 				this.then(function() {
-					node.removeEventListener('submit', preventDefault);
+					node.removeEventListener(params[0], preventDefault);
 				});
 			},
 
@@ -1200,6 +1198,91 @@ Sparky.nodeToString = Fn.id;
 	};
 })();
 (function(window) {
+    var DEBUG   = window.DEBUG;
+    var axios   = window.axios;
+    var jQuery  = window.jQuery;
+    var Fn      = window.Fn;
+    var Sparky  = window.Sparky;
+    var Stream  = window.Stream;
+
+    var assign  = Object.assign;
+    var fetch   = window.fetch;
+    var get     = Fn.get;
+    var getData = get('data');
+
+    var cache   = {};
+
+    var request = axios ? function axiosRequest(path) {
+        return axios
+        .get(path)
+        .then(getData);
+    } :
+
+    // TODO test these functions
+
+    jQuery ? function jQueryRequest(path) {
+        return jQuery
+        .get(path)
+        .then(getData);
+    } :
+
+    fetch ? function fetchRequest(path) {
+        return fetch(path)
+        .then(getData);
+    } :
+
+    function errorRequest(path) {
+        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + path + '"');
+    } ;
+
+    assign(Sparky.fn, {
+        load: function load(node, stream, params) {
+            var path  = params[0];
+
+            if (DEBUG && !path) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
+            }
+
+            var scopes = Stream.of();
+
+            request(path)
+            .then(scopes.push)
+            .catch(function (error) {
+                console.warn(error);
+            });
+
+            return scopes;
+        },
+
+        import: function(node, stream, params) {
+            var path  = params[0];
+
+            if (DEBUG && !path) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+            }
+
+            // If the resource is cached, return it as an shiftable
+            if (cache[path]) {
+                return Stream.of(cache[path]);
+            }
+
+            var scopes = Stream.of();
+
+            request(path)
+            .then(function(data) {
+                if (!data) { return; }
+                cache[path] = data;
+                scopes.push(data);
+            })
+            .catch(function(error) {
+                console.warn(error);
+            });
+
+            return scopes;
+        }
+    });
+})(this);
+(function(window) {
     "use strict";
 
     var DEBUG   = window.DEBUG;
@@ -1315,9 +1398,8 @@ Sparky.nodeToString = Fn.id;
                 id    = parts[1] || '';
             }
 
-
-            if (DEBUG && !path) {
-                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+            if (DEBUG && !id) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
             }
 
             var sparky = this;
@@ -1471,7 +1553,7 @@ Sparky.nodeToString = Fn.id;
 			unobserve = observe(scope, '', throttle);
 		});
 
-		this.on('then', function destroy() {
+		this.then(function destroy() {
 			throttle.cancel();
 			unobserve();
 		});
