@@ -6,78 +6,60 @@
 (function(window) {
 	"use strict";
 
-	var DEBUG     = window.DEBUG;
+	var DEBUG      = window.DEBUG;
 
-	var Fn        = window.Fn;
-	var dom       = window.dom;
-	var mount     = window.mount;
+	var Fn         = window.Fn;
+	var Observable = window.Observable;
+	var Stream     = window.Stream;
+	var dom        = window.dom;
+	var mount      = window.mount;
 
-	var assign    = Object.assign;
-
-	var debug     = Fn.debug;
-	var each      = Fn.each;
-	var getPath   = Fn.getPath;
-	var id        = Fn.id;
-	var isDefined = Fn.isDefined;
-	var overload  = Fn.overload;
-	var nothing   = Fn.nothing;
-	var noop      = Fn.noop;
-	var curry     = Fn.curry;
-	var get       = Fn.get;
-	var set       = Fn.set;
-	var each      = Fn.each;
-
-	var append    = dom.append;
-	var children  = dom.children;
-	var empty     = dom.empty;
-	var fragmentFromId = dom.fragmentFromId;
-	var fragmentFromTemplate = dom.fragmentFromTemplate;
-	var remove    = dom.remove;
-	var tag       = dom.tag;
+	var assign     = Object.assign;
+	var deprecate  = Fn.deprecate;
+	var getPath    = Fn.getPath;
+	var invoke     = Fn.invoke;
+	var noop       = Fn.noop;
+	var nothing    = Fn.nothing;
+	var tag        = dom.tag;
+	var preventDefault = dom.preventDefault;
 
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
 	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
 
 	var settings = {
-		rtokens: /(\{\[)\s*(.*?)(?:\s*\|\s*(.*?))?\s*(\]\})/g,
-
+		// Child mounting function
 		mount: function mount(node) {
-			var fn       = dom.attribute('data-fn', node);
-			var template = dom.attribute('data-template', node);
+			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
+			if (!fn) { return; }
 
-			if (!fn && !template) { return; }
+			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
+			//if (DEBUG) { console.log('mounted:', node, fn); }
 
-			var sparky = Sparky(node, undefined, {
-				fn: fn,
-				template: template
-			});
-
-			if (DEBUG) { console.log('mounted:', node); }
-
-			return [{
-				token: fn,
-				path:  '',
-				render: sparky.push
-			}];
+			sparky.token = fn;
+			sparky.path  = '';
+			return sparky;
 		}
 	};
 
-	function callReducer(object, fn) {
-		fn(object);
-		return object;
-	}
-
-	function createUpdate(sparky, settings) {
-		var updates = [];
+	function createRenderStream(sparky, settings) {
+		var streams = [];
 		var n = -1;
 
 		while (sparky[++n]) {
-			updates.push(mount(sparky[n], settings));
-		} 
+			streams.push(mount(sparky[n], settings));
+		}
 
-		return function update(scope) {
-			return updates.reduce(callReducer, scope);
+		// An aggragate stream for all the mounted streams. How many nested
+		// streams do we need in this project?
+		return {
+			stop: function stop() {
+				return streams.forEach(invoke('stop', arguments));
+			},
+
+			push: function push() {
+				return streams.forEach(invoke('push', arguments));
+			}
 		};
 	}
 
@@ -85,177 +67,182 @@
 		return selector.replace(/\//g, '\\\/');
 	}
 
-	function Sparky(node, data, options) {
+	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
-			return new Sparky(node, data, options);
+			return new Sparky(selector, data, options);
 		}
 
-		node = typeof node === 'string' ?
-			document.querySelector(escapeSelector(node)) :
-			node ;
+		var node = typeof selector === 'string' ?
+			document.querySelector(escapeSelector(selector)) :
+			selector ;
 
-		if (tag(node) === 'template') {
-			var fragment = fragmentFromTemplate(node).cloneNode(true);
-			var nodes    = fragment.childNodes;
-			var n        = -1;
-
-			// assign doesn't seem to work on node collections
-			while (nodes[++n]) {
-				this[n] = nodes[n];
-			}
-			this.length = nodes.length;
-			node = children(fragment)[0];
-		}
-		else {
-			this[0] = node;
-			this.length  = 1;
-		}
-
-		var fnstring = options && options.fn || dom.attribute('data-fn', node) || '';
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var stream   = data ? Stream.of(Observable(data) || data) : Stream.of() ;
-		var update   = noop;
+		var input    = this;
+		var renderer = nothing;
 
-		this.push    = stream.push;
+		this[0]      = node;
+		this.length  = 1;
 
-		this.stop = function stop() {
-			stream.stop && stream.stop();
-			update(null);
-			return sparky;
-		};
-
-		this.interrupt = function interrupt() {
+		function interrupt() {
 			calling = false;
 			return { fn: fnstring };
-		};
+		}
 
-		// Parse the fns and params to execute
-		var token, fn, params;
-		while (token = fnstring.match(rfn)) {
-			fn       = Sparky.fn[token[1]];
+		function render() {
+			// TEMP: Find a better way to pass these in
+			settings.attributePrefix = Sparky.attributePrefix;
+			settings.transforms      = Sparky.transforms;
+			settings.transformers    = Sparky.transformers;
+
+			// Launch rendering
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
+			renderer = createRenderStream(sparky, settings);
+			input.each(renderer.push);
+			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
+		}
+
+		function start() {
+			// Parse the fns and params to execute
+			var token = fnstring.match(rfn);
+
+			if (!token) {
+				sparky.continue = noop;
+				render();
+				return sparky;
+			}
+
+			var fn = Sparky.fn[token[1]];
 
 			if (!fn) {
 				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 			}
 
-			params   = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-			fnstring = fnstring.slice(token[0].length);
-			stream   = fn.call(this, node, stream, params) || stream;
+			var params = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+			fnstring   = fnstring.slice(token[0].length);
+			input      = fn.call(sparky, node, input, params) || input;
 
-			// If fns have been interrupted return the sparky without mounting
-			if (!calling) { return this; }
+			// If fns have been interrupted calling is false
+			return calling && start();
 		}
 
-		// TEMP: Find a better way to pass these in
-		settings.transforms   = Sparky.transforms;
-		settings.transformers = Sparky.transformers;
+		function Source(notify, stop) {
+			this.shift = function() {
+				var object;
 
-		var template = (options && options.template)
-			|| dom.attribute('data-template', node)
-			|| '' ;
-
-		if (template) {
-			stream
-			.take(1)
-			.each(function(scope) {
-				var fragment = fragmentFromId(template);
-			
-				if (!fragment) {
-					throw new Error('Sparky: data-template="' + template + '" not found in DOM');
+				if (data !== undefined) {
+					object = Observable(data);
+					data   = undefined;
+					return object;
 				}
-			
-				// Replace node content with fragment
-				empty(node);
-				append(node, fragment);
-			
-				// Update
-				update = createUpdate(sparky, settings);
-				update(scope);
-				stream.each(update);
-			});
+
+				//notify('pull');
+			};
+
+			this.push = function() {
+				data = arguments[arguments.length - 1];
+				notify('push');
+			};
+
+			this.stop = function() {
+				input.stop && input.stop !== sparky.stop && input.stop();
+				renderer.stop && renderer.stop();
+
+				// Schedule stop, if data is waiting to be collected make
+				// sure we get it
+				stop(data ? 1 : 0);
+			};
 		}
-		else {
-			update = createUpdate(sparky, settings);
-			stream.each(update);
-		}
+
+		Stream.call(this, Source);
+
+		this.interrupt = interrupt;
+		this.continue  = start;
+
+		start();
 	}
 
-	assign(Sparky.prototype, {
-		push: noop,
-
-		remove: function() {
-			each(remove, this);
-			return this;
-		}
-	});
+	Sparky.prototype = Stream.prototype;
 
 	assign(Sparky, {
+		attributePrefix: 'sparky-',
+
 		fn: {
+			find: function(node, stream, params) {
+				var scope = getPath(params[0], window);
+
+				if (!scope) {
+					console.warn('Sparky: scope:path – no object at path ' + params[0]);
+					return Fn.of();
+				}
+
+				return Fn.of(getPath(params[0], window));
+			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
+
 			get: function(node, stream, params) {
 				return stream.map(getPath(params[0]));
 			},
 
-			ignore: function ignore(node, stream) {
+			stop: function ignore(node, stream) {
 				console.log(this.interrupt(), node, stream);
 			},
 
-			log: (function(isIE) {
-				// Logs nodes, scopes and data.
-				return function(node, scopes) {
-					var sparky = this;
+			ignore: deprecate(function ignore(node, stream) {
+				console.log(this.interrupt(), node, stream);
+			}, 'Sparky: fn "ignore" renamed "stop".'),
 
-					// In IE11 and probably below, and possibly Edge, who knows,
-					// console.groups can arrive in really weird orders. They
-					// are not at all useful for debugging as a result. Rely on
-					// console.log.
+			prevent: function preventSubmitCtrl(node, stream, params) {
+				node.addEventListener(params[0], preventDefault);
 
-					function log(scope) {
-						console[isIE ? 'log' : 'group']('Sparky: scope', node);
-						console.log('data ', sparky.data);
-						console.log('scope', scope);
-						console.log('fn   ', sparky.fn);
-						console[isIE ? 'log' : 'groupEnd']('---');
-					}
+				this.then(function() {
+					node.removeEventListener(params[0], preventDefault);
+				});
+			},
 
-					console[isIE ? 'log' : 'group']('Sparky: run  ', node);
+			log: function(node, scopes) {
+				var sparky = this;
+
+				function log(scope) {
+					console.group('Sparky: scope', node);
 					console.log('data ', sparky.data);
-					console[isIE ? 'log' : 'groupEnd']('---');
+					console.log('scope', scope);
+					console.log('fn   ', sparky.fn);
+					console.groupEnd('---');
+				}
 
-					return scopes.tap(log);
-				};
-			})(
-				// Detect IE
-				!!(document.all && document.compatMode || window.navigator.msPointerEnabled)
-			)
+				console.group('Sparky: run  ', node);
+				console.log('data ', sparky.data);
+				console.groupEnd('---');
+
+				return scopes.tap(log);
+			}
 		},
 
 		transforms: {},
 
-		mount:      mount,
-
 		MarkerNode: function MarkerNode(node) {
 			// A text node, or comment node in DEBUG mode, for marking a
 			// position in the DOM tree so it can be swapped out with some
-			// content node.
+			// content in the future.
 
 			if (!DEBUG) {
 				return dom.create('text', '');
 			}
 
-			var attrScope = node && node.getAttribute('data-scope');
-			var attrCtrl  = node && node.getAttribute('data-fn');
-
-			return dom.create('comment',
-				(attrScope ? ' data-scope="' + attrScope + '"' : '') +
-				(attrCtrl ? ' data-fn="' + attrCtrl + '" ' : '')
-			);
+			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
 		}
 	});
 
 	Object.defineProperties(Sparky, {
-		rtokens: {
-			get: function() { return settings.rtokens; },
+		rtoken: {
+			get: function() { return settings.rtoken; },
+			set: function(rtoken) { settings.rtoken = rtoken; },
 			enumerable: true,
 			configurable: true
 		}

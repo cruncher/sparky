@@ -5,6 +5,8 @@
 // All own enumerable properties are copied from the source
 // objects to the target object.
 
+console.warn('This file is going away!');
+
 (Object.assign || (function(Object) {
 	"use strict";
 
@@ -74,7 +76,7 @@ if (!Number.isNaN) {
 
 	(function(globalIsNaN) {
 		"use strict";
-	
+
 		Object.defineProperty(Number, 'isNaN', {
 			value: function isNaN(value) {
 				return typeof value === 'number' && globalIsNaN(value);
@@ -431,7 +433,7 @@ if (!Math.log10) {
 
 	// Throttle
 
-	// Returns a function 
+	// Returns a function
 
 	var requestAnimationFrame = window.requestAnimationFrame;
 
@@ -1342,7 +1344,7 @@ if (!Math.log10) {
 			var l1 = arr1.length, l2 = arr2.length,
 			    i1 = 0, i2 = 0,
 			    arr3 = [];
-		
+
 			while (i1 < l1 && i2 < l2) {
 				if (arr1[i1] === arr2[i2]) {
 					arr3.push(arr1[i1]);
@@ -1356,7 +1358,7 @@ if (!Math.log10) {
 					++i2;
 				}
 			}
-		
+
 			return arr3;
 		}),
 
@@ -1365,30 +1367,30 @@ if (!Math.log10) {
 			var l1 = arr1.length, l2 = arr2.length,
 			    i1 = 0, i2 = 0,
 			    arr3 = [], n;
-		
+
 			while (i1 < l1) {
 				while (i2 < l2 && arr1[i1] > arr2[i2]) {
 					arr3.push(arr2[i2]);
 					++i2;
 				}
-		
+
 				if (arr1[i1] !== arr2[i2]) {
 					arr3.push(arr1[i1]);
 				}
-		
+
 				n = arr1[i1];
 				while (n === arr1[i1] && ++i1 < l1);
 				while (n === arr2[i2] && ++i2 < l2);
 			}
-		
+
 			while (i2 < l2) {
 				arr3.push(arr2[i2]);
 				++i2;
 			}
-		
+
 			return arr3;
 		}),
-	
+
 		unite: curry(function unite(arr1, arr2) {
 			return arr1.concat(arr2).filter(unique).sort(Fn.byGreater);
 		}),
@@ -1614,7 +1616,7 @@ if (!Math.log10) {
 		while ((v = source.shift()) !== undefined) {
 			value = v;
 		}
-		
+
 		return value;
 	}
 
@@ -1789,7 +1791,7 @@ if (!Math.log10) {
 		var reset  = options.reset  || Fn.noop;
 		var isIdle = options.isIdle;
 		var store = [];
-	
+
 		// Todo: This is bad! It keeps a reference to the pools hanging around,
 		// accessible from the global scope, so even if the pools are forgotten
 		// they are never garbage collected!
@@ -3638,7 +3640,7 @@ if (!Math.log10) {
 				root.off('add remove sort', updateSelection);
 			};
 		}
-			
+
 		Sparky.observe(root, prop, updateProperty, true);
 		notify = true;
 		return function() {
@@ -4568,7 +4570,7 @@ if (!Math.log10) {
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will be
 						// called and the scope updated from the default value.
-						
+
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
 						//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
@@ -5865,7 +5867,7 @@ if (!Math.log10) {
 
 			return function(value) {
 				var translations = Sparky.data.translations;
-	
+
 				if (!translations) {
 					if (!warned.missingTranslations) {
 						console.warn('Sparky: Missing lookup object Sparky.data.translations');
@@ -5873,18 +5875,18 @@ if (!Math.log10) {
 					}
 					return value;
 				}
-	
+
 				var text = translations[value] ;
-	
+
 				if (!text) {
 					if (!warned[value]) {
 						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
 						warned[value] = true;
 					}
-	
+
 					return value;
 				}
-	
+
 				return text ;
 			};
 		})(),

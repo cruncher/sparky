@@ -8,7 +8,7 @@ group('select > option|each', function(test, log, fixture) {
 		{ key: '2', value: 2 }
 	]);
 
-	Sparky.fn['array-scope'] = function(node, stream) {	
+	Sparky.fn['array-scope'] = function(node, stream) {
 		return Fn.of(array);
 	};
 
@@ -24,14 +24,14 @@ group('select > option|each', function(test, log, fixture) {
 
 	test("Array scope mutation", function(equals, done) {
 		node.value = '2';
-	
+
 		array.length = 0;
 		array.push(
 			{ key: '2', value: 2 },
 			{ key: '3', value: 3 },
 			{ key: '4', value: 4 }
 		);
-	
+
 		requestAnimationFrame(function() {
 			equals('2', node.value, 'Select should keep its value when items in scope replaced with items containing same value');
 			equals('Infinity', node.children[node.children.length - 1].getAttribute('value'), 'Order of child <option>s is wrong.');
@@ -40,8 +40,8 @@ group('select > option|each', function(test, log, fixture) {
 	}, 2);
 }, function() {/*
 
-	<select data-fn="array-scope" class="{[length|add:1|prepend:'length-']}" id="test-select" name="name">
-		<option data-fn="each" value="{[key]}">{[value]}</option>
+	<select sparky-fn="array-scope" class="{[length|add:1|prepend:'length-']}" id="test-select" name="name">
+		<option sparky-fn="each" value="{[key]}">{[value]}</option>
 		<option value="Infinity">Infinity</option>
 	</select>
 

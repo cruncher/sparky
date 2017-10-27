@@ -82,7 +82,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.setScope = function(node, scope) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		window.jQuery && jQuery.data(node, 'scope', scope);
@@ -90,7 +90,7 @@ Sparky.nodeToString = Fn.id;
 
 	Sparky.getScope = function(node) {
 		if (!window.jQuery) {
-			throw new Error('data-fn="store-scope" requires jQuery.');
+			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
 		}
 
 		return jQuery.data(node, 'scope');
@@ -150,7 +150,7 @@ Sparky.nodeToString = Fn.id;
 			//});
 		},
 
-		"scope": function(node, scopes) {
+		"expose-scope": function(node, scopes) {
 			scopes.tap(function(scope) {
 				Sparky.setScope(node, scope);
 			});
@@ -163,7 +163,7 @@ Sparky.nodeToString = Fn.id;
 	"use strict";
 
 	Sparky.fn['x-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-x-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'x-scroll-master');
 		var master;
 
 		function update() {
@@ -189,7 +189,7 @@ Sparky.nodeToString = Fn.id;
 	};
 
 	Sparky.fn['y-scroll-slave'] = function(node) {
-		var name = node.getAttribute('data-y-scroll-master');
+		var name = node.getAttribute(Sparky.attributePrefix + 'y-scroll-master');
 		var master = document.getElementById(name);
 
 		if (!master) {

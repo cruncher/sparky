@@ -5,10 +5,9 @@
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
+	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
-	var toArray    = Fn.toArray;
-	var before     = dom.before;
 	var clone      = dom.clone;
 	var tag        = dom.tag;
 	var observe    = Observable.observe;
@@ -29,7 +28,7 @@
 
 	function reorderCache(template, options, array, sparkies) {
 		var n    = -1;
-		var sparky, object, i, value;
+		var sparky, object, i;
 
 		// Reorder sparkies
 		while (++n < array.length) {
@@ -55,8 +54,7 @@
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
-			// Destroy
-			sparkies.pop().stop().remove();
+			A.forEach.call(sparkies.pop().stop(), dom.remove);
 		}
 
 		// Reorder nodes in the DOM
@@ -75,13 +73,10 @@
 	}
 
 	Sparky.fn.each = function each(node, scopes, params) {
-		var sparky   = this;
 		var sparkies = [];
-
 		var template = node.cloneNode(true);
 		var options  = this.interrupt();
 		var marker   = MarkerNode(node);
-
 		var isSelect = tag(node) === 'option';
 
 		function update(array) {
@@ -111,8 +106,8 @@
 		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		template.removeAttribute('data-scope');
-		template.removeAttribute('data-fn');
+		//template.removeAttribute('data-scope');
+		template.removeAttribute(Sparky.attributePrefix + 'fn');
 
 		// Put the marker in place and remove the node
 		dom.before(node, marker);
@@ -130,9 +125,9 @@
 			unobserve = observe(scope, '', throttle);
 		});
 
-		//this.on('stop', function destroy() {
-		//	throttle.cancel();
-		//	unobserve();
-		//});
+		this.then(function destroy() {
+			throttle.cancel();
+			unobserve();
+		});
 	};
 })(this);

@@ -1,14 +1,12 @@
 (function(window) {
 	"use strict";
-	
+
 	var Fn        = window.Fn;
 	var dom       = window.dom;
 
 	var compose   = Fn.compose;
 	var get       = Fn.get;
-	var is        = Fn.is;
 	var normalise = Fn.normalise;
-	var pipe      = Fn.pipe;
 	var throttle  = Fn.throttle;
 
 	var map = {};
@@ -38,10 +36,10 @@
 	}
 
 	function add(id, fn) {
-		// If map has no keys, set it up
-		if (Object.keys(map).length === 0) { setup(); }
 		var fns = map[id] || (map[id] = []);
-		fns.push(throttle(compose(fn, toNormalisedValue)));
+		var update = compose(fn, toNormalisedValue);
+		fns.push(throttle(update));
+		update(dom.get(id));
 	}
 
 	function remove(id, fn) {
@@ -56,11 +54,16 @@
 		stream.stop();
 	}
 
-	Sparky.fn['range-handle'] = function(node, scopes) {
+	Sparky.fn['range-handle'] = function(node) {
 		var id = node.getAttribute('for');
 
 		if (!id) {
 			throw new Error('Sparky.fn.range: node has no for attribute', node);
+		}
+
+		// If map has no keys, set it up
+		if (Object.keys(map).length === 0) {
+			setup();
 		}
 
 		add(id, function(ratio) {
