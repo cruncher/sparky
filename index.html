@@ -362,10 +362,72 @@ id:   {[id]}
 		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
 			<h3 class="block">transforms.</h3>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
-				<h3 class="text-5"><a href="#tn-add"><code class="js">add:n</code></a></h3>
-				<p>Adds n to value.</p>
+			<!-- Objects -->
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-get">
+				<h3 class="text-5"><a href="#tn-get"><code class="js">get:name</code></a></h3>
+				<p>Get property <code>name</code> from value.</p>
 			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-invoke">
+				<h3 class="text-5"><a href="#tn-invoke"><code class="js">invoke:name,params</code></a></h3>
+				<p>Returns the result of invoking method <code>name</code> with <code>params</code> on an object.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-is">
+				<h3 class="text-5"><a href="#tn-is"><code class="js">is:n</code></a></h3>
+				<p>Returns the (boolean) result of a strict equality check between <code>n</code> and value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-type">
+				<h3 class="text-5"><a href="#tn-type"><code class="js">type</code></a></h3>
+				<p>Returns <code>typeof value</code>.</p>
+			</div>
+
+			<!-- Strings -->
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-append">
+				<h3 class="text-5"><a href="#tn-append"><code class="js">append:string</code></a></h3>
+				<p>Appends <code>string</code> to value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-lowercase">
+				<h3 class="text-5"><a href="#tn-lowercase"><code class="js">lowercase</code></a></h3>
+				<p>Converts value to lowercase.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-postpad">
+				<h3 class="text-5"><a href="#tn-postpad"><code class="js">postpad:n,string</code></a></h3>
+				<p>Appends <code>string</code> to value to output a string of length <code>n</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-prepad">
+				<h3 class="text-5"><a href="#tn-prepad"><code class="js">prepad:n,string</code></a></h3>
+				<p>Prepends <code>string</code> to value to output a string of length <code>n</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-prepend">
+				<h3 class="text-5"><a href="#tn-prepend"><code class="js">prepend:string</code></a></h3>
+				<p>Prepends <code>string</code> to value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-slugify">
+				<h3 class="text-5"><a href="#tn-slugify"><code class="js">slugify</code></a></h3>
+				<p>Outputs slug of value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-translate">
+				<h3 class="text-5"><a href="#tn-translate"><code class="js">translate</code></a></h3>
+				<p>Looks up value in <code>Sparky.translations</code> and outputs it. If a translation does
+				not	exist, warns the console and outputs the original value.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-uppercase">
+				<h3 class="text-5"><a href="#tn-uppercase"><code class="js">uppercase</code></a></h3>
+				<p>Converts value to uppercase.</p>
+			</div>
+
+			<!-- Numbers -->
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-decibels">
 				<h3 class="text-5"><a href="#tn-decibels"><code class="js">decibels</code></a></h3>
@@ -389,16 +451,9 @@ id:   {[id]}
 				<p>Converts numeric values to strings with <code>n</code> decimal places.</p>
 			</div>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-date">
-				<h3 class="text-5"><a href="#tn-date"><code class="js">date:format</code></a></h3>
-				<p>Maps either JSON date strings or JS date objects to
-				human-readable date strings in a format defined by
-				<code>format</code></p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-get">
-				<h3 class="text-5"><a href="#tn-get"><code class="js">get:property</code></a></h3>
-				<p>Gets the value of <code>property</code> in the current object.</p>
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
+				<h3 class="text-5"><a href="#tn-add"><code class="js">localise:n</code></a></h3>
+				<p>Returns localised number string with <code>n</code> decimal places.</p>
 			</div>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-normalise">
@@ -407,6 +462,42 @@ id:   {[id]}
 				the range <code>0-1</code>.</p>
 				<p>See also <code><a href="#tn-denormalise">denormalise:min,max</a></code>.</p>
 			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
+				<h3 class="text-5"><a href="#tn-add"><code class="js">pluralise:str1,str2,lang</code></a></h3>
+				<p>Takes a number and outputs <code>str1</code> or <code>str2</code> depending on whether
+				that number is considered plural in <code>lang</code>. Currently there are 4 languages
+				supported out-of-the-box – EN, DE, FR, IT – but it is easy to add more.</p>
+			</div>
+
+			<!-- Dates and times -->
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-date">
+				<h3 class="text-5"><a href="#tn-date"><code class="js">date:format</code></a></h3>
+				<p>Maps either JSON date strings or JS date objects to
+				human-readable date strings in a format defined by
+				<code>format</code>, where format describes the output in
+				a Django/PHP-style date format strings.</p>
+				<p>Deprecated, will remain supported as an add-on.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
+				<h3 class="text-5"><a href="#tn-add"><code class="js">dateformat:format</code></a></h3>
+				<p>Maps either JSON date strings or JS date objects to
+				human-readable date strings in a format defined by
+				<code>format</code></p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
+				<h3 class="text-5"><a href="#tn-add"><code class="js">timeformat:format</code></a></h3>
+				<p>Converts Date or JSON time string to string in <code>format</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-yesno">
+				<h3 class="text-5"><a href="#tn-yesno"><code class="js">yesno:value1,value2</code></a></h3>
+				<p>Returns <code>value1</code> where value is truthy, otherwise <code>value2</code>.</p>
+			</div>
+
 		</article>
 	</div>
 

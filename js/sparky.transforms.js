@@ -136,14 +136,14 @@
 		take:         Fn.take,
 		toCartesian:  Fn.toCartesian,
 		todB:         Fn.todB,
+		decibels:     Fn.todB,
 		toDeg:        Fn.toDeg,
 		toLevel:      Fn.toLevel,
-		toFixed:      Fn.toFixed,
 		toFloat:      Fn.toFloat,
 		toPolar:      Fn.toPolar,
 		toRad:        Fn.toRad,
 		toStringType: Fn.toStringType,
-		toType:       Fn.toType,
+		typeof:       Fn.toType,
 		unique:       Fn.unique,
 		unite:        Fn.unite,
 
@@ -151,8 +151,8 @@
 		// Transforms from dom's map functions
 
 		escape:       dom.escape,
-		toPx:         dom.toPx,
-		toRem:        dom.toRem,
+		px:           dom.toPx,
+		rem:          dom.toRem,
 
 
 		// Sparky transforms
@@ -171,7 +171,7 @@
 			return Sparky.filter.replace(value, string, '');
 		},
 
-		formatdate: (function(settings) {
+		dateformat: (function(settings) {
 			var formatters = {
 				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
 				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
@@ -202,7 +202,7 @@
 			};
 		})(settings),
 
-		formattime: function(value, format, lang) {
+		timeformat: function(value, format, lang) {
 			return Time(value).render(format, lang);
 		},
 
@@ -262,9 +262,6 @@
 			});
 		})(settings),
 
-		decibels: Fn.todB,
-		decimals: Fn.toFixed,
-
 		divide: curry(function(n, value) {
 			if (typeof value !== 'number') { return; }
 			return value / n;
@@ -308,9 +305,9 @@
 			return value[value.length - 1];
 		},
 
-		length: function(value) {
-			return value.length;
-		},
+		//length: function(value) {
+		//	return value.length;
+		//},
 
 		"less-than": curry(function(value2, str1, str2, value1) {
 			return value1 < value2 ? str1 : str2 ;
@@ -367,6 +364,10 @@
 				value === 1 ? str1 : str2 ;
 		}),
 
+
+
+		// TODO: these should copy postpadding and preppadding from Fn
+
 		postpad: curry(function(n, value) {
 			var string = isDefined(value) ? value.toString() : '' ;
 			var l = string.length;
@@ -390,6 +391,9 @@
 			array.push(string);
 			return array.join(char || ' ');
 		}),
+
+
+
 
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
@@ -439,16 +443,6 @@
 			return arguments[value + 1];
 		},
 
-		symbolise: function(value) {
-			// Takes infinity values and convert them to infinity symbol
-			var string = value + '';
-			var infinity = Infinity + '';
-
-			if (string === infinity) { return '∞'; }
-			if (string === ('-' + infinity)) { return '-∞'; }
-			return value;
-		},
-
 		time: function() {
 
 		},
@@ -457,15 +451,15 @@
 		//timeuntil
 		//title
 
-		trans: (function() {
+		translate: (function() {
 			var warned = {};
 
 			return function(value) {
-				var translations = Sparky.data.translations;
+				var translations = Sparky.translations;
 
 				if (!translations) {
 					if (!warned.missingTranslations) {
-						console.warn('Sparky: Missing lookup object Sparky.data.translations');
+						console.warn('Sparky: Missing lookup object Sparky.translations');
 						warned.missingTranslations = true;
 					}
 					return value;
@@ -475,7 +469,7 @@
 
 				if (!text) {
 					if (!warned[value]) {
-						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
+						console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
 						warned[value] = true;
 					}
 
@@ -514,5 +508,13 @@
 		yesno: curry(function(truthy, falsy, value) {
 			return value ? truthy : falsy ;
 		})
+	});
+
+	// Deprecated
+	assign(Sparky.transforms, {
+		trans:      Fn.deprecate(Sparky.transforms.translate,   'Sparky: |trans is now |translate'),
+		formatdate: Fn.deprecate(Sparky.transforms.dateformat,  'Sparky: |formatdate is now |dateformat'),
+		formattime: Fn.deprecate(Sparky.transforms.timeformat,  'Sparky: |formattime is now |timeformat'),
+		decimals:   Fn.deprecate(Sparky.transforms.floatformat, 'Sparky: |decimals is now |floatformat'),
 	});
 })(this);

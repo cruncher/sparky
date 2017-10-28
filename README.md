@@ -26,18 +26,18 @@ Install node modules:
 
     npm install
 
-Build <code>dist/dom.js</code>:
+Build <code>dist/sparky.js</code>:
 
     npm run build-nodeps    // Omit dependencies
     npm run build           // Include dependencies
 
 ## API
 
-### Sparky(selector, scope, options)
+### Sparky(selector)
 
 Sparky takes this:
 
-    <div data-fn="scope:'data'" class="user {[.|yesno:'active']}">
+    <div data-fn="find:'data'" class="user {[.|yesno:'active']}">
         <a class="thumb" style="background-image: url('{[avatar]}')">{[name]}</a>
     </div>
 

@@ -146,12 +146,16 @@
 		},
 
 		'function': function(value) {
+			// Print function and parameters
 			return (value.name || 'function')
 				+ (rarguments.exec(value.toString()) || [])[1];
 		},
 
 		'number': function(value) {
-			return Number.isNaN(value) ? '' : value + '' ;
+			// Convert NaN to empty string and Infinity to ∞ symbol
+			return Number.isNaN(value) ? '' :
+				Number.isFinite(value) ? value + '' :
+				value < 0 ? '-∞' : '∞';
 		},
 
 		'string': id,
@@ -161,7 +165,7 @@
 		'undefined': function() { return ''; },
 
 		'object': function(value) {
-			return value === null ? '' : JSON.stringify(value);
+			return value ? JSON.stringify(value) : '';
 		},
 
 		'default': JSON.stringify
