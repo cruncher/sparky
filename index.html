@@ -51,6 +51,8 @@ body{
 	color: #2d2d2d;
 	color: #272a2b;
 	background-color: #b9d819;
+
+	padding-top: 3.75rem;
 }
 
 .test-block {
@@ -84,8 +86,8 @@ line { stroke-width: 1; stroke: inherit; }
 </head>
 
 <body>
-	<header class="grid-block block" id="header">
-		<div class="block @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:'package.json'">
+	<header class="grid-block block grid-1/1 @2-span-1/1" id="header">
+		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:'package.json'">
 			<h1>{[title]}
 			<span class="text-6">{[version]}</span></h1>
 
@@ -95,32 +97,11 @@ line { stroke-width: 1; stroke: inherit; }
 			rendering changes to the browser frame rate.</p>
 		</div
 
-		><img class="block @2-grid-6/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" src="images/sparky-logo-dark.svg" />
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		<!--img class="block @2-grid-3/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" src="images/sparky-logo.png" /-->
+		><img class="block @2-grid-3/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" src="images/sparky-logo-dark.svg" />
 	</header>
 
-	<div class="spaced-grid-block grid-block block">
-		<article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
+	<div class="spaced-grid-block grid-block block grid-1/1 @2-span-1/1">
+		<article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
 			<h2 class="block">Sparky(selector)</h2>
 
 			<div class="block grid-1/1">
@@ -139,7 +120,7 @@ line { stroke-width: 1; stroke: inherit; }
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
 			<h3 class="block">methods.</h3>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-push">
@@ -169,7 +150,7 @@ line { stroke-width: 1; stroke: inherit; }
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9" style="display: block">
+		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9" style="display: block">
 			<h2 class="block">Sparky templates</h2>
 
 			<div class="block grid-1/1">
@@ -199,7 +180,7 @@ line { stroke-width: 1; stroke: inherit; }
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
+		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
 			<h3 class="block">sparky-fn</h3>
 
 			<div class="block grid-1/1">
@@ -269,16 +250,16 @@ line { stroke-width: 1; stroke: inherit; }
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
 			<h3 class="block">functions.</h3>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-each">
 				<h3 class="text-5"><a href="#fn-each"><code class="js">each</code></a></h3>
 				<p>Where scope is an array or array-like, duplicates the element for each object in scope.</p>
 
-<code class="block js">
-<div class="line" data-screen-row="540"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span> <span class="syntax--entity syntax--other syntax--attribute-name syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>import:'example.json'<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="541"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="invisible-character hard-tab leading-whitespace">    </span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--inline syntax--any syntax--html">li</span> <span class="syntax--entity syntax--other syntax--attribute-name syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>get:'path.to.array' each<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">name</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--inline syntax--any syntax--html">li</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="542"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div>
-</code>
+				<code class="block js">
+					<div class="line" data-screen-row="540"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span> <span class="syntax--entity syntax--other syntax--attribute-name syntax--html">sparky-fn</span>=<span 	class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>import:'example.json'<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" 	data-screen-row="541"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="invisible-character hard-tab leading-whitespace">    </span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--inline syntax--any syntax--html">li</span> <span class="syntax--entity syntax--other 	syntax--attribute-name syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>get:'path.to.array' each<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="syntax--entity 	syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">name</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--inline 	syntax--any syntax--html">li</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="542"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin 	syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div>
+				</code>
 
 				<ul sparky-fn="import:'example.json'">
 					<li sparky-fn="get:'path.to.array' each">{[name]}</li>
@@ -296,9 +277,9 @@ line { stroke-width: 1; stroke: inherit; }
 				<p>Gets the value of <code>path</code> of the current scope.</p>
 				<code class="block js">
 
-<div class="line" data-screen-row="552"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">pre</span> <span class="syntax--entity syntax--other syntax--attribute-name syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>import:'example.json' get:'path.to.array[0]'<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="553"><span class="null"><span class="syntax--text syntax--html syntax--django">name: <span class="syntax--meta syntax--scope syntax--django syntax--template syntax--tag"><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">name</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="554"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="invisible-character hard-tab leading-whitespace"></span>id:   <span class="syntax--meta syntax--scope syntax--django syntax--template syntax--tag"><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">id</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="555"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">pre</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div>
+					<div class="line" data-screen-row="552"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">pre</span> <span class="syntax--entity syntax--other syntax--attribute-name 	syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>import:'example.json' get:'path.to.array[0]'<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character 	eol"> </span></span></span></div><div class="line" data-screen-row="553"><span class="null"><span class="syntax--text syntax--html syntax--django">name: <span class="syntax--meta syntax--scope syntax--django syntax--template syntax--tag"><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">name</span><span class="syntax--entity syntax--other syntax--django 	syntax--tagbraces">]}</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="554"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="invisible-character hard-tab leading-whitespace"></span>id:   <span class="syntax--meta syntax--scope syntax--django syntax--template syntax--tag"><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string 	syntax--unquoted syntax--django syntax--template syntax--tag">id</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="555"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin 	syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">pre</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div>
 
-</code>
+				</code>
 
 <pre sparky-fn="import:'example.json' get:'path.to.array[0]'">
 name: {[name]}
@@ -363,7 +344,7 @@ id:   {[id]}
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
+		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
 			<h3 class="block">{[tag]}</h3>
 
 			<div class="block grid-1/1">
@@ -378,7 +359,7 @@ id:   {[id]}
 			</div>
 		</article
 
-		><article class="grid-block block @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
 			<h3 class="block">transforms.</h3>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
@@ -415,8 +396,8 @@ id:   {[id]}
 				<code>format</code></p>
 			</div>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-get">
-				<h3 class="text-5"><a href="#fn-get"><code class="js">get:property</code></a></h3>
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-get">
+				<h3 class="text-5"><a href="#tn-get"><code class="js">get:property</code></a></h3>
 				<p>Gets the value of <code>property</code> in the current object.</p>
 			</div>
 
