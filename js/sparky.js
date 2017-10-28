@@ -29,7 +29,7 @@
 
 	var settings = {
 		// Child mounting function
-		mount: function mount(node) {
+		mount: function mount(node, options, structs) {
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
@@ -38,7 +38,7 @@
 
 			sparky.token = fn;
 			sparky.path  = '';
-			return sparky;
+			structs.push(sparky);
 		}
 	};
 

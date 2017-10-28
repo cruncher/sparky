@@ -311,23 +311,14 @@
 
 	var types = {
 		// element
-		1: function(node, options, structs) {
+		1: function mountElement(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
-			var child, renderer;
+			var child;
 
 			while (child = children[++n]) {
-				// If we have a rendererer interested in this child
-				renderer = options.mount(child);
-
-				if (renderer) {
-					// ...add it to structs
-					structs.push(renderer);
-				}
-				else {
-					// otherwise mount the node normally
-					mountNode(child, options, structs);
-				}
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
 			}
 
 			mountClass(node, options, structs);
@@ -336,15 +327,30 @@
 		},
 
 		// text
-		3: function(node, options, structs) {
+		3: function mountText(node, options, structs) {
 			mountString(node.nodeValue, set('nodeValue', node), options, structs);
 		},
 
-		// Comment
+		// comment
 		8: noop,
 
+		// document
+		9: function mountDocument(node, options, structs) {
+			var children = node.childNodes;
+			var n = -1;
+			var child, renderer;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		},
+
+		// doctype
+		10: noop,
+
 		// fragment
-		11: function(node, options, structs) {
+		11: function mountFragment(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
 			var child, struct;
