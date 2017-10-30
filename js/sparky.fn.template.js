@@ -119,7 +119,6 @@
             }
 
             var sparky = this;
-            var template;
 
             sparky.interrupt();
 

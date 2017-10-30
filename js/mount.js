@@ -357,18 +357,11 @@
 		11: function mountFragment(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
-			var child, struct;
+			var child;
 
 			while (child = children[++n]) {
-				// If the optional mounter returns a struct
-				struct = options.mount(child);
-
-				if (struct) {
-					structs.push(struct);
-				}
-				else {
-					mountNode(child, options, structs);
-				}
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
 			}
 		}
 	};
@@ -684,6 +677,7 @@
 
 					// Listen to changes
 					if (struct.listen) {
+if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); };
 						set = setPath(struct.path, observable);
 						invert = InverseTransform(options.transformers, struct.pipe);
 						change = pipe(function() { return struct.read(); }, invert, set);
@@ -719,7 +713,7 @@
 	}
 
 
-	// Export
+	// Export (temporary)
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;

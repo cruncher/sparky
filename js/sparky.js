@@ -29,16 +29,23 @@
 
 	var settings = {
 		// Child mounting function
-		mount: function mount(node, options, structs) {
+		mount: function mount(node, options, streams) {
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
 			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
 			//if (DEBUG) { console.log('mounted:', node, fn); }
 
+			// This is just some help for logging mounted tags
 			sparky.token = fn;
 			sparky.path  = '';
-			structs.push(sparky);
+
+			// Mount must push write streams into streams. A write stream
+			// must have the methods .push() and .stop()
+			streams.push(sparky);
+
+			// Tell the mounter we've got ths one
+			return true;
 		}
 	};
 
@@ -66,12 +73,12 @@
 	function escapeSelector(selector) {
 		return selector.replace(/\//g, '\\\/');
 	}
-
+var i = 0;
 	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
-
+var id = ++i;
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
@@ -159,7 +166,6 @@
 
 		this.interrupt = interrupt;
 		this.continue  = start;
-
 		start();
 	}
 
