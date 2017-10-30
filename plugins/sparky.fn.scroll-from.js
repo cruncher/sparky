@@ -9,10 +9,16 @@
         var target = params[0] === 'window' ? dom.view :
             params[0] === 'this' ? node :
             dom.query(params[0])[0] ;
+
+        if (!target) {
+            throw new Error('Sparky.fn.scroll-from: no element found for selector "' + params[0] + '"');
+        }
+
         var eventTarget = params[0] === 'window' ? window : target ;
-
-
-        var scope  = Observable({});
+        var scope  = Observable({
+            scrollTop:  target.scrollTop,
+            scrollLeft: target.scrollLeft
+        });
 
         dom
         .event('scroll', eventTarget)
