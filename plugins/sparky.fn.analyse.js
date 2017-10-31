@@ -3,9 +3,8 @@
 	"use strict";
 
 	var Fn      = window.Fn;
-	var dom     = window.dom;
 	var Sparky  = window.Sparky;
-	var rspaces = Fn.rspaces;
+	var rest    = Fn.rest;
 
 	function analyse(category, action, label, value) {
 		window.ga && window.ga('send', 'event', category, action, label, value);
@@ -17,39 +16,9 @@
 		window.ga && window.ga('send', 'timing', category, action, time, label);
 	}
 
-	function dashesToSpaces(string) {
-		return string.replace('-', ' ');
-	}
-
-	Sparky.fn['analyse-on-click'] = function stickToTop(node, scopes) {
-		node.addEventListener('click', function(e) {
-			var node     = dom.closest('[data-analyse]', e.target);
-
-			if (!node) {
-				console.warn('Sparky: data-fn="analyse-on-click" requires data-analyse="category action label"');
-				return;
-			}
-
-			var property = dom.attribute('data-analyse', node);
-			var labels   = property.split(rspaces).map(dashesToSpaces);
-
-			analyse.apply(null, labels);
-		});
-	};
-
-	Sparky.fn['analyse-on-change'] = function stickToTop(node, scopes) {
-		node.addEventListener('change', function(e) {
-			var node     = e.target;
-			var property = dom.attribute('data-analyse', node);
-
-			if (!property) {
-				console.warn('Sparky: data-fn="analyse-on-change" requires data-analyse="category action label"');
-				return;
-			}
-
-			var labels   = property.split(rspaces).map(dashesToSpaces);
-
-			analyse.apply(null, labels);
+	Sparky.fn['analyse-on'] = function stickToTop(node, scopes, params) {
+		node.addEventListener(params[0], function(e) {
+			analyse.apply(null, rest(1, params));
 		});
 	};
 })(this);

@@ -80,7 +80,7 @@
 			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
 
 			if (!fn) {
-				throw new Error('mount: transform "' + name + '" not found');
+				throw new Error('mount:  transform "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -92,7 +92,7 @@
 			}
 
 			if (!(typeof fns[fns.length - 1] === 'function')) {
-				throw new Error('mount: transform "' + name + '" not resulting in fn');
+				throw new Error('mount:  transform "' + name + '" not resulting in fn');
 			}
 		}
 
@@ -115,7 +115,7 @@
 			fn   = transformers[name].invert;
 
 			if (!fn) {
-				throw new Error('mount: transformers "' + name + '" not found');
+				throw new Error('mount:  transformers "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -636,7 +636,7 @@
 				if (old === data) { return; }
 				old = data;
 
-				if (DEBUG) { console.group('update:', node); }
+				if (DEBUG) { console.groupCollapsed('update:', node); }
 
 				var observable = Observable(data);
 				var unlisten;
@@ -677,7 +677,7 @@
 
 					// Listen to changes
 					if (struct.listen) {
-if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); };
+if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
 						set = setPath(struct.path, observable);
 						invert = InverseTransform(options.transformers, struct.pipe);
 						change = pipe(function() { return struct.read(); }, invert, set);
@@ -698,7 +698,7 @@ if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); };
 		options = assign({}, settings, options);
 
 		if (DEBUG) {
-			console.group('mount:', node);
+			console.groupCollapsed('mount: ', node);
 		}
 
 		var structs = [];
