@@ -126,7 +126,11 @@ var id = ++i;
 				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 			}
 
-			var params = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+			// Gaurantee that params exists, at least.
+			var params = token[2] ?
+				JSON.parse('[' + token[2].replace(/'/g, '"') + ']') :
+				nothing ;
+
 			fnstring   = fnstring.slice(token[0].length);
 			input      = fn.call(sparky, node, input, params) || input;
 

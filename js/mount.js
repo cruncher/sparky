@@ -133,6 +133,10 @@
 
 	// Mount
 
+	var cased = {
+		viewbox: 'viewBox'
+	};
+
 	var listen = curry(function(node, type, fn) {
 		node.addEventListener(type, fn);
 		return function unlisten() {
@@ -222,11 +226,20 @@
 	}
 
 	function mountAttribute(name, node, options, structs) {
-		var text   = dom.attribute(name, node);
+		var text = node.getAttribute(options.attributePrefix + name);
 
-		return text ? mountString(text, function render(value) {
-			node.setAttribute(name, value);
-		}, options, structs) : nothing ;
+		if (!text) {
+			text = node.getAttribute(cased[name] || name);
+		}
+		else {
+			// Remove the sparky attribute, just to keep the DOM clean.
+			// Not entirely necessary, perhaps limit to DEBUG mode?
+			node.removeAttribute(options.attributePrefix + name);
+		}
+
+		return text && mountString(text, function render(value) {
+			node.setAttribute(cased[name] || name, value);
+		}, options, structs);
 	}
 
 	function mountBoolean(name, node, options, structs) {
