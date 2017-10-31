@@ -9,7 +9,7 @@ changes in batches at the browser frame rate for performance.</strong>
 
 <a href="http://labs.cruncher.ch/sparky/">labs.cruncher.ch/sparky/</a>
 
-## Latest build 2.2.0
+## Latest build 2.2.1
 
 * <a href="http://labs.cruncher.ch/sparky/dist/sparky.js">http://labs.cruncher.ch/sparky/dist/sparky.js</a> (~120k/60k gzipped, includes dependencies)
 * <a href="http://labs.cruncher.ch/sparky/dist/sparky.min.js">http://labs.cruncher.ch/sparky/dist/sparky.min.js</a> (~90k/30k gzipped, includes dependencies)
