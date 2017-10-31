@@ -51,7 +51,7 @@
 		if (!target) {
 			throw new Error('Sparky.fn.value-from: no element found for id "' + params[0] + '"');
 		}
-console.log('Normal from', params)
+
         return valueFrom(normaliseValue, this, node, stream, target, params[1] || 'normal');
 	};
 })()
