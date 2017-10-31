@@ -1,0 +1,148 @@
+:root,
+html {
+	background-color: #141B1E;
+}
+body {
+	color: #8BB5CC;
+	background-color: #20292d;
+}
+
+header {
+	/*color: #cde5f3;*/
+}
+input[type],
+.boolean-label {
+	font-size: 0.8125rem;
+	font-weight: 300;
+	display: inline-block;
+	width: 5rem;
+	line-height: 1.375rem;
+	height: 1.375rem;
+	min-height: 1.375rem;
+	color: #cde5f3;
+	background-color: #141B1E;
+	border-width: 0;
+	border-radius: 0.25rem;
+	padding-left: 0;
+	text-indent: 0.375rem;
+}
+
+.string-input[type],
+.number-input[type],
+.date-input[type] {
+	width: 13.125rem; /* 210px */
+	min-width: 1rem;
+	padding-right: 0;
+}
+
+.number-input[type] {
+	color: #FE267E;
+	-webkit-appearance: none;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+  margin: 0;
+}
+
+.boolean-label {
+	width: 3.25rem;
+}
+
+.type-button {
+	font-size: 0.625rem;
+	line-height: 0.75rem;
+	padding: 0.125rem 0.25rem;
+	height: auto;
+	min-height: 0;
+	color: black;
+	background-color: #666666;
+	visibility: hidden;
+}
+
+.type-button.on {
+	color: white;
+}
+
+.type-button:first-child {
+	border-top-left-radius: 0.25rem;
+	border-bottom-left-radius: 0.25rem;
+}
+
+.type-button:last-child {
+	border-top-right-radius: 0.25rem;
+	border-bottom-right-radius: 0.25rem;
+}
+
+.type-button + .type-button {
+	margin-left: 1px;
+}
+
+span:hover > span > .type-button {
+	visibility: visible;
+}
+
+:focus ~ span > .type-button {
+	visibility: visible;
+}
+
+
+
+.masked + label { margin-top: 0; }
+
+button {
+	font-size: 0.75rem;
+}
+/*
+.boolean-label::before {
+	content: 'false';
+}
+
+:checked + .boolean-label::before {
+	content: 'true';
+}
+*/
+/* More important because of input[type] rule somewhere... */
+input.string-input { color: #B2CB3A; }
+.boolean-label { color: #c678dd; }
+
+.name-editor {
+	display: inline-block;
+	font-size: 0.875rem;
+	min-width: 6.5625rem;
+
+}
+
+.name-input[type] {
+	width: 6rem;
+	padding: 0;
+	text-indent: 0;
+	background-color: transparent;
+	vertical-align: baseline;
+}
+
+.name-input[type]:focus,
+.string-input[type]:focus,
+.date-input[type]:focus,
+.number-input[type]:focus,
+.boolean-input[type]:focus {
+	box-shadow: none;
+}
+
+.add-button {
+	font-size: 0.75rem;
+	padding: 0 0.1875rem;
+	line-height: 0.875rem;
+	height: 0.875rem;
+	min-height: 0.875rem;
+	color: black;
+	background-color: #8BB5CC;
+	background-color: #63ACDD;
+	border-radius: 0.25rem;
+	vertical-align: baseline;
+}
+
+span {
+	height: fit-content;
+}

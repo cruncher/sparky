@@ -6,7 +6,7 @@
 	<meta name="description" content="" />
 	<meta name="viewport" content="width=device-width" />
 
-	<title>Sparky</title>
+	<title>Sparky object editor</title>
 
 	<script>
 		document.documentElement.className = 'js';
@@ -23,185 +23,57 @@
 	<link rel="stylesheet" href="fn/css/syntax-atom.css" />
 	<link rel="stylesheet" href="dom/css/dom.css" />
 	<link rel="stylesheet" href="css/docs.css" />
+	<link rel="stylesheet" href="css/editor.css" />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
 
-	<style>
-:root,
-html {
-	background-color: #141B1E;
-}
-body {
-	color: #8BB5CC;
-	background-color: #20292d;
+<style>
+.array-name-editor {
+	min-width: 0;
 }
 
-header {
-	/*color: #cde5f3;*/
-}
-input[type],
-.boolean-label {
-	font-size: 0.8125rem;
-	font-weight: 300;
-	display: inline-block;
-	width: 5rem;
-	line-height: 1.375rem;
-	height: 1.375rem;
-	min-height: 1.375rem;
-	color: #cde5f3;
-	background-color: #141B1E;
-	border-width: 0;
-	border-radius: 0.25rem;
-	padding-left: 0;
-	text-indent: 0.375rem;
-}
-
-.string-input[type],
-.number-input[type],
-.date-input[type] {
-	width: 13.125rem; /* 210px */
-	min-width: 1rem;
-	padding-right: 0;
-}
-
-.number-input[type] {
-	color: #FE267E;
-	-webkit-appearance: none;
-}
-
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-	-webkit-appearance: none;
-  margin: 0;
-}
-
-.boolean-label {
-	width: 3.25rem;
-}
-
-.type-button {
-	font-size: 0.625rem;
-	line-height: 0.75rem;
-	padding: 0.125rem 0.25rem;
-	height: auto;
-	min-height: 0;
-	color: black;
-	background-color: #666666;
-	visibility: hidden;
-}
-
-.type-button.on {
-	color: white;
-}
-
-.type-button:first-child {
-	border-top-left-radius: 0.25rem;
-	border-bottom-left-radius: 0.25rem;
-}
-
-.type-button:last-child {
-	border-top-right-radius: 0.25rem;
-	border-bottom-right-radius: 0.25rem;
-}
-
-.type-button + .type-button {
-	margin-left: 1px;
-}
-
-span:hover > span > .type-button {
-	visibility: visible;
-}
-
-:focus ~ span > .type-button {
-	visibility: visible;
-}
-
-
-
-.masked + label { margin-top: 0; }
-
-button {
-	font-size: 0.75rem;
-}
-/*
-.boolean-label::before {
-	content: 'false';
-}
-
-:checked + .boolean-label::before {
-	content: 'true';
-}
-*/
-/* More important because of input[type] rule somewhere... */
-input.string-input { color: #B2CB3A; }
-.boolean-label { color: #c678dd; }
-
-.name-editor {
-	display: inline-block;
-	font-size: 0.875rem;
-	min-width: 5.25rem;
-
-}
-
-.name-input[type] {
-	width: 6rem;
-	padding: 0;
-	text-indent: 0;
-	background-color: transparent;
-	vertical-align: baseline;
-}
-
-.name-input[type]:focus,
-.string-input[type]:focus,
-.date-input[type]:focus,
-.number-input[type]:focus,
-.boolean-input[type]:focus {
-	box-shadow: none;
+.object-name-editor {
+	min-width: 0;
 }
 
 .add-button {
-	font-size: 1rem;
-	padding: 0 0.375rem;
-	line-height: 1.375rem;
-	height: 1.375rem;
-	min-height: 1.375rem;
-	color: black;
-	background-color: #8BB5CC;
-	background-color: #63ACDD;
-	border-radius: 0.25rem;
-	vertical-align: baseline;
+	background-color: #266086;
 }
 
-	</style>
+.add-button:hover {
+	background-color: #63ACDD;
+}
+
+small {
+	color: #266086;
+}
+</style>
 </head>
 
 <body>
     <header class="grid-block block grid-1/1 @2-span-1/1" id="header">
 		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align">
 			<h1>Sparky
-			<span class="text-6">editor</span></h1>
+			<span class="text-6">object editor</span></h1>
 		</div>
     </header>
 
+	<div class="grid-block block">
+		<pre sparky-fn="import:'package.json' type-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">Waiting for data.</pre>
+	</div>
+
+	<!-- Templates -->
+
 <template id="types-editor"><button sparky-fn="string-on-click" class="type-button {[type|is:'string'|yesno:'on','']}" type="button">str</button><button sparky-fn="number-on-click" class="type-button {[type|is:'number'|yesno:'on','']}" type="button">num</button><button sparky-fn="boolean-on-click" class="type-button {[type|is:'boolean'|yesno:'on','']}" type="button">bool</button><button sparky-fn="object-on-click" class="type-button {[type|is:'object'|yesno:'on','']}" type="button">obj</button><button sparky-fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button></template>
-<template id="string-editor"><input class="string-input" type="text" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.5|add:0.75|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="string-editor"><input class="string-input" type="text" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
 <template id="number-editor"><input class="number-input" type="number" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
 <template id="boolean-editor"><input class="masked" type="checkbox" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /><label class="boolean-label" for="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};">{[value]}</label> <span sparky-fn="template:'#types-editor'"></span></template>
 <template id="date-editor"><input class="date-input" type="date" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /> <span sparky-fn="template:'#types-editor'"></span></template>
-<template id="object-editor">{ <span sparky-fn="entries"><span sparky-fn="each">
-{[indent]}<span class="name-editor"><input class="name-input" type="text" sparky-value="{[name]}" style="width: {[name|get:'length'|multiply:0.5|add:0.0625|append:'rem']};"/>:</span> <span sparky-fn="entry-editor"></span></span></span>
-{[indent]}  <button sparky-fn="get:'value' set-new" class="add-button" type="button">+</button>
-{[indent]}} <span sparky-fn="template:'#types-editor'"></span></template>
-
-<template id="array-editor">[ <small>({[value.length]})</small><span sparky-fn="entries"><span sparky-fn="each">
+<template id="object-editor">{<span sparky-fn="entries"><span sparky-fn="each">
+{[indent]}<span class="{[type|append:'-name-editor']} name-editor"><input class="name-input" type="text" sparky-fn="value-on:'change','name' value-on:'input','chars'" style="width: {[chars|get:'length'|multiply:0.5|add:0.0625|append:'rem']};"/>:</span> <span sparky-fn="entry-editor"></span></span></span>
+{[indent]}} <button sparky-fn="get:'value' set-new" class="add-button" type="button">+</button> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="array-editor">[<span sparky-fn="entries"><span sparky-fn="each">
 {[indent]}<span sparky-fn="entry-editor"></span></span></span>
-{[indent]}<button sparky-fn="get:'value' push-new" class="add-button" type="button">+</button>
-{[indent]}] <span sparky-fn="template:'#types-editor'"></span></template>
-
-	<div class="grid-block block">
-    	<pre sparky-fn="load:'package.json' type-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">
-			Waiting for data.
-		</pre>
-	</div>
+{[indent]}] <button sparky-fn="get:'value' push-new" class="add-button" type="button">+</button> <small>length: {[value.length]}</small> <span sparky-fn="template:'#types-editor'"></span></template>
 
 	<!-- Polyfills -->
 
@@ -252,18 +124,23 @@ input.string-input { color: #B2CB3A; }
 	<!-- Initialise -->
 
 	<script>
-	var assign  = Object.assign;
-	var compose = Fn.compose;
-	var entries = Object.entries;
-	var invoke  = Fn.invoke;
-	var observe = Observable.observe;
-	var get     = Fn.get;
-	var set     = Fn.set;
-	var pipe    = Fn.pipe;
-
+	var assign   = Object.assign;
+	var compose  = Fn.compose;
+	var entries  = Object.entries;
+	var invoke   = Fn.invoke;
+	var observe  = Observable.observe;
+	var overload = Fn.overload;
+	var by       = Fn.by;
+	var id       = Fn.id;
+	var is       = Fn.is;
+	var get      = Fn.get;
+	var map      = Fn.map;
+	var set      = Fn.set;
+	var pipe     = Fn.pipe;
+	var sort     = Fn.sort;
 	var settings = {
 		indent: '  '
-	}
+	};
 
 	function toType(value) {
 		var t = typeof value;
@@ -281,6 +158,10 @@ input.string-input { color: #B2CB3A; }
 		}
 
 		return t;
+	}
+
+	function call(fn) {
+		fn();
 	}
 
 	var constructors = {
@@ -314,7 +195,7 @@ input.string-input { color: #B2CB3A; }
 				.each(function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'number') { return; }
-					scope.object[scope.name] = parseFloat(value);
+					scope.object[scope.name] = Number(value) || 0;
 				});
 			});
 		},
@@ -408,7 +289,7 @@ input.string-input { color: #B2CB3A; }
 
 			clicks && clicks.stop();
 
-			events = dom
+			var events = dom
 			.event('click', node)
 			.each(function addToObject() {
 				var name = 'property';
@@ -432,7 +313,7 @@ input.string-input { color: #B2CB3A; }
 
 			clicks && clicks.stop();
 
-			events = dom
+			var events = dom
 			.event('click', node)
 			.each(function addToArray() {
 				var type = object.reduce(function(t, item) {
@@ -447,52 +328,118 @@ input.string-input { color: #B2CB3A; }
 		});
 	};
 
+	Sparky.fn['value-on'] = function(node, stream, params) {
+		var type = params[0];
+		var name = params[1];
+		var events, props;
+
+		// TODO: find out why dedup() is necessary here, where is the duplicate
+		// coming from?
+		return stream.dedup().tap(function(scope) {
+			events && events.stop();
+			props && props.stop();
+
+			if (scope[name] === undefined) {
+				scope[name] = node.value;
+			}
+			else {
+				node.value = scope[name];
+			}
+
+			props = Stream
+			.observe(name, scope)
+			.each(set('value', node));
+
+			events = dom
+			.event(type, node)
+			.map(compose(get('value'), get('target')))
+			.each(overload(id, {
+				// A bit hacky, to disallow empty strings only on change,
+				// relies on fn="value-on:'change','name' value-on:'input','chars'"
+				// construct. Sad.
+				'':  function(value) {
+					if (type === 'change') {
+						 node.value = scope[name];
+						 dom.trigger('input', node);
+					}
+					else {
+						set(name, scope, value);
+					}
+				},
+
+				default: set(name, scope)
+			}));
+		});
+	};
+
+	function createScope(name, object, value, indent, path) {
+		var scope = {
+			indent: indent,
+			path:   path,
+			object: object
+		};
+
+		var proxy = Observable(scope);
+		var unobservers = [];
+		var oldname;
+
+		observe(proxy, 'name', function(name) {
+			unobservers.forEach(call);
+			unobservers.length = 0;
+
+			if (oldname !== undefined) {
+				delete object[oldname];
+			}
+
+			// Bind before setting value on scope, this is for
+			// listening to input changes.
+			unobservers.push(observe(scope, 'value', set(name, object)));
+			unobservers.push(observe(object, name, set('value', scope)));
+			unobservers.push(observe(object, name, compose(set('type', proxy), toType)));
+
+			object[name] = scope.value;
+			oldname = name;
+		});
+
+		// This initialises scope via the observer
+		proxy.name  = name;
+		return proxy;
+	}
+
 	Sparky.fn.entries = function(node, input) {
-		var output = Stream.of();
-		var scopes = [];
+		var output  = Stream.of();
 		var unobserve;
 
-		input.each(function(parent) {
-			scopes.length = 0;
-			unobserve && unobserve();
-			unobserve = observe(parent, 'value', pipe(entries, function(array) {
-				// Create entries with a third param, object
-				return array.map(function(entry) {
-					var name  = entry[0];
-					var value = entry[1];
+		input.each(function(entry) {
+			console.log('INPUT', entry.object);
 
-					// Find scope in cache
-					var scope = scopes.find(function(scope) {
-						return scope.name === name && scope.object === parent.value;
-					});
+			var object = entry.value;
+			var indent = entry.indent + settings.indent;
+			var path   = (entry.path ? entry.path + '.' : '') + entry.name;
+			var unobservers = [];
+			var scopes = [];
 
-					// Cache scope in scopes
-					if (!scope) {
-						scope = {};
-//console.log('OBS?', parent.value, scope)
-						observe(scope, 'value', set(scope.name, parent.value));
-						observe(parent.value, name, set('value', scope));
-						observe(parent.value, name, compose(set('type', Observable(scope)), toType));
-						observe(parent.value, name, function(value) {
-							console.log('TYPE CHANGE', name, scope.type);
-						});
+			observe(object, '', pipe(entries, map(function(keyval) {
+				var name  = keyval[0];
+				var value = keyval[1];
+				var entry = scopes.find(compose(is(name), get('name')));
 
-						scopes.push(scope);
-					}
+				if (!entry) {
+					entry = createScope(name, object, value, indent, path);
+					scopes.push(entry);
+				}
 
-					scope.path   = parent.path + '.' + parent.name;
-					scope.indent = parent.indent + settings.indent;
-					scope.name   = name;
-					scope.type   = toType(value);
-					scope.object = parent.value;
-
-					return scope;
-				});
-			}, output.push));
+				return entry;
+			}), output.push));
 		});
 
 		return output;
 	};
+
+
+
+
+
 
 	Sparky.fn['entry-editor'] = function(node, stream) {
 		var sparkies, type;
@@ -506,17 +453,21 @@ input.string-input { color: #B2CB3A; }
 		this.then(stop);
 
 		function update(entry) {
-console.log('TYPE', entry)
 			var name   = entry.name;
 			var t      = entry.type;
-//console.log('ENTRY', type, t, entry)
-if (typeof name !== 'string') {
-	throw new Error('Are you sure this is an entry object? ' + JSON.stringify(entry));
-}
+
+			if (typeof name !== 'string') {
+				throw new Error('Are you sure this is an entry object? ' + JSON.stringify(entry));
+			}
 
 			// Type has not changed
 			if (t === type) { return; }
 			type = t;
+
+			if (type === 'undefined') {
+				console.warn('TYPE-EDITOR received undefined', entry);
+				return;
+			}
 
 			var fragment = dom.clone(dom.fragmentFromId(type + '-editor'));
 			var children = Array.prototype.slice.apply(fragment.childNodes);
@@ -525,7 +476,6 @@ if (typeof name !== 'string') {
 			stop();
 
 			sparkies = children.map(function(node) {
-//console.log('KEY-VAL', node, entry);
 				return new Sparky(node, entry);
 			});
 
@@ -538,23 +488,25 @@ if (typeof name !== 'string') {
 		return stream.each(function(entry) {
 			unobserve && unobserve();
 			unobserve = observe('type', entry, function() {
-console.log('UPDATE     ', JSON.stringify(entry));
 				update(entry);
 			});
-console.log(JSON.stringify(entry));
 			update(entry);
 		});
 	};
 
 	Sparky.fn['type-editor'] = function(node, stream) {
-		var data = {};
+		var id = dom.identify(node);
 
 		return Sparky.fn['entry-editor'].call(this, node, stream.map(function(object) {
 			console.log('TYPE EDITOR UPDATE', object);
+
+			var data = {};
+			data[id] = object;
+
 			return {
 				path:   '',
 				indent: '',
-				name:   '',
+				name:   id,
 				type:   toType(object),
 				object: data,
 				value:  object
@@ -576,20 +528,12 @@ console.log(JSON.stringify(entry));
 	}];
 
 	window.object = {
-		number:  1,
-		string:  'Two',
-		boolean: true,
-		object:  {},
-		array:   [{
-			burger: 'king'
-		}, {
-			fried: 'head'
-		}]
+		string:  'Two'
 	}
     </script>
 
 	<script title="ready">
-		Sparky('#editor');
+		Sparky(document);
 	</script>
 </body>
 </html>
