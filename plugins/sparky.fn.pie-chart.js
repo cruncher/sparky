@@ -1,6 +1,16 @@
 (function(window) {
     "use strict";
 
+    // Expects scope in the form:
+    //
+    // {
+    //     data: [{
+    //         name:  string,
+    //         value: number,
+    //         color: string
+    //     }, ...]
+    // }
+
     var Fn          = window.Fn;
 
     var assign      = Object.assign;
