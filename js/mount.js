@@ -222,11 +222,11 @@
 	}
 
 	function mountAttribute(name, node, options, structs) {
-		var text   = dom.attribute(name, node);
+		var text = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
 
-		return text ? mountString(text, function render(value) {
+		return text && mountString(text, function render(value) {
 			node.setAttribute(name, value);
-		}, options, structs) : nothing ;
+		}, options, structs);
 	}
 
 	function mountBoolean(name, node, options, structs) {
