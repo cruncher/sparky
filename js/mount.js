@@ -628,7 +628,7 @@
 		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
 		struct.update = update;
-		struct.push = throttle;
+		struct.push   = throttle;
 	}
 
 	function RenderStream(structs, options, node) {
@@ -690,7 +690,7 @@
 
 					// Listen to changes
 					if (struct.listen) {
-if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
+						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
 						set = setPath(struct.path, observable);
 						invert = InverseTransform(options.transformers, struct.pipe);
 						change = pipe(function() { return struct.read(); }, invert, set);
