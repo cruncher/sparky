@@ -408,7 +408,9 @@
 			return value.replace(RegExp(str1, 'g'), str2);
 		}),
 
-		round: Math.round,
+		round: curry(function round(n, value) {
+			return Math.round(value / n) * n;
+		}),
 
 		//reverse
 
