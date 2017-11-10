@@ -8,9 +8,12 @@
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
 
+	var A         = Array.prototype;
 	var assign    = Object.assign;
 	var curry     = Fn.curry;
+	var get       = Fn.get;
 	var isDefined = Fn.isDefined;
+	var last      = Fn.last;
 	var settings  = (Sparky.settings = Sparky.settings || {});
 
 	function createList(ordinals) {
@@ -87,21 +90,65 @@
 			date ;
 	}
 
+	function interpolateLinear(xs, ys, x) {
+		var n = -1;
+		while (++n < xs.length && xs[n] < x);
+
+		// Shortcut if x is lower than smallest x
+		if (n === 0) {
+			return ys[0];
+		}
+
+		// Shortcut if x is greater than biggest x
+		if (n >= xs.length) {
+			return last(ys);
+		}
+
+		// Shortcurt if x corresponds exactly to an interpolation coordinate
+		if (x === xs[n]) {
+			return ys[n];
+		}
+
+		// Linear interpolate
+		var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
+		return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
+	}
+
 	assign(Sparky.transformers = {}, {
-		add:         { transform: Fn.add,         invert: curry(function(m, n) { return n - m; }) },
-		decibels:    { transform: Fn.todB,        invert: Fn.toLevel },
-		multiply:    { transform: Fn.multiply,    invert: curry(function(d, n) { return n / d; }) },
-		degrees:     { transform: Fn.toDeg,       invert: Fn.toRad },
-		radians:     { transform: Fn.toRad,       invert: Fn.toDeg },
-		pow:         { transform: Fn.pow,         invert: curry(function(n, x) { return Fn.pow(1/n, x); }) },
-		exp:         { transform: Fn.exp,         invert: Fn.log },
-		log:         { transform: Fn.log,         invert: Fn.exp },
-		int:         { transform: Fn.toFixed(0),  invert: Fn.toInt },
-		float:       { transform: Fn.toFloat,     invert: Fn.toString },
-		boolean:     { transform: Boolean,        invert: Fn.toString },
-		normalise:   { transform: Fn.normalise,   invert: Fn.denormalise },
-		denormalise: { transform: Fn.denormalise, invert: Fn.normalise },
-		floatformat: { transform: Fn.toFixed,     invert: curry(function(n, str) { return parseFloat(str); }) },
+		add:         { tx: Fn.add,         ix: curry(function(m, n) { return n - m; }) },
+		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
+		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
+		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
+		radians:     { tx: Fn.toRad,       ix: Fn.toDeg },
+		pow:         { tx: Fn.pow,         ix: curry(function(n, x) { return Fn.pow(1/n, x); }) },
+		exp:         { tx: Fn.exp,         ix: Fn.log },
+		log:         { tx: Fn.log,         ix: Fn.exp },
+		int:         { tx: Fn.toFixed(0),  ix: Fn.toInt },
+		float:       { tx: Fn.toFloat,     ix: Fn.toString },
+		boolean:     { tx: Boolean,        ix: Fn.toString },
+		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
+		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
+		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+
+		interpolate: {
+			tx: function(point) {
+				var xs = A.map.call(arguments, get('0'));
+				var ys = A.map.call(arguments, get('1'));
+
+				return function(value) {
+					return interpolateLinear(xs, ys, value);
+				};
+			},
+
+			ix: function(point) {
+				var xs = A.map.call(arguments, get('0'));
+				var ys = A.map.call(arguments, get('1'));
+
+				return function(value) {
+					return interpolateLinear(ys, xs, value);
+				}
+			}
+		}
 	});
 
 	assign(Sparky.transforms, {

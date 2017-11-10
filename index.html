@@ -10,7 +10,7 @@
 
 	<script>
 		document.documentElement.className = 'js';
-		//window.DEBUG = true;
+		window.DEBUG = true;
 	</script>
 
 	<link rel="icon" type="image/png" href="images/favicon.png" />
@@ -500,6 +500,11 @@ id:   {[id]}
 
 	<div class="test-block block">
 		<h1>Hello</h1>
+
+		<div sparky-fn="find:'boo'">
+			{[x]}
+			<input type=range value=3 step=any min=0 max=8 sparky-value="{[x|interpolate:[0,0],[0.5,7],[1,8] ]}" />
+		</div>
 	</div>
 
 	<script>
@@ -513,6 +518,7 @@ id:   {[id]}
 	<script src="fn/polyfills/array.from.js"></script>
 	<script src="fn/polyfills/array.of.js"></script>
 	<script src="fn/polyfills/number.isnan.js"></script>
+	<script src="fn/polyfills/number.isfinite.js"></script>
 	<script src="fn/polyfills/math.log10.js"></script>
 	<script src="fn/polyfills/symbol.js"></script>
 	<script src="fn/polyfills/promise.js"></script>
@@ -525,16 +531,8 @@ id:   {[id]}
 
 	<script src="axios/dist/axios.js"></script>
 	<script src="fn/js/fn.js"></script>
+	<script src="fn/js/observe.js"></script>
 	<script src="fn/js/observable.js"></script>
-
-	<!--script title="no-proxy">
-		// Browsers lacking Proxy support need the old observation system
-		if (!window.Proxy) {
-			document.write('<' + 'script src=\"fn/js/observe.js\"><' + '/script>');
-			document.write('<' + 'script src=\"fn/js/observable-no-proxy.js\"><' + '/script>');
-		}
-	</script-->
-
 	<script src="fn/js/stream.js"></script>
 	<script src="fn/js/stream.observe.js"></script>
 	<script src="dom/js/dom.js"></script>
@@ -558,42 +556,27 @@ id:   {[id]}
 		window.Sparky(dom.body);
 		//window.Sparky('#template-demo-2');
 		//window.Sparky('#header');
-
-		// Prevent orphans at the end of paragraphs
-		dom('p, li')
-		.map(Fn.get('childNodes'))
-		.map(Fn.last)
-		.filter(dom.isTextNode)
-		.forEach(function(node) {
-			node.textContent = node.textContent.replace(/(\s+)([\S]+)$/, function($0, $1, $2) {
-				// Insert no breaking space
-				return '\u00A0' + $2;
-			});
-		});
-
-		// Set attribute prefix
-		//Sparky.attributePrefix = 'data-';
 	</script>
 
 	<!-- Tests -->
 
 	<script src="fn/test/test.js"></script>
-	<script src="test/sparky.test.js"></script>
+	<!--script src="test/sparky.test.js"></script>
 	<script src="test/sparky.input-test.js"></script>
 	<script src="test/sparky.textarea-test.js"></script>
 	<script src="test/sparky.select-test.js"></script>
 	<!--script src="test/sparky.template-test.js"></script-->
-	<script src="test/sparky.fn-test.js"></script>
-	<script src="test/sparky.fn.each-test.js"></script>
-	<script src="test/sparky.fn.template-test.js"></script>
+	<!--script src="test/sparky.fn-test.js"></script-->
+	<!--script src="test/sparky.fn.each-test.js"></script-->
+	<!--script src="test/sparky.fn.template-test.js"></script>
 	<script src="test/sparky.fn.load-test.js"></script>
 	<!--script src="test/sparky.transforms-test.js"></script-->
 
 	<!-- Plugins -->
 
-	<script src="plugins/sparky.fn.clock.js"></script>
+	<!--script src="plugins/sparky.fn.clock.js"></script>
 	<script src="test/sparky.fn.clock-test.js"></script>
 	<script src="plugins/sparky.fn.range-handle.js"></script>
-	<script src="test/sparky.fn.range-handle.test.js"></script>
+	<script src="test/sparky.fn.range-handle.test.js"></script-->
 </body>
 </html>

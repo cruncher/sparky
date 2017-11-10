@@ -77,7 +77,7 @@
 			&& (token = rtransform.exec(string))
 		) {
 			name = token[1];
-			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
+			fn   = transformers[name] ? transformers[name].tx : transforms[name] ;
 
 			if (!fn) {
 				throw new Error('mount:  transform "' + name + '" not found');
@@ -112,7 +112,7 @@
 			&& (token = rtransform.exec(string))
 		) {
 			name = token[1];
-			fn   = transformers[name].invert;
+			fn   = transformers[name].ix;
 
 			if (!fn) {
 				throw new Error('mount:  transformers "' + name + '" not found');
