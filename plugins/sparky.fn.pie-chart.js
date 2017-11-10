@@ -41,25 +41,12 @@
                 polar = [polar[0], polar[1] + angle];
                 var end   = toCartesian(polar);
 
-                // Assign copies symbol properties! This is big, it makes our
-                // Observable proxy entirely unreliable. Time to start using
-                // WeakMap.
-                //return assign({
-                //    start:  start,
-                //    end:    end,
-                //    radius: radius,
-                //    angle:  angle
-                //}, data);
-
-                return {
-                    name:   data.name,
-                    value:  data.value,
-                    color:  data.color,
+                return assign({
                     start:  start,
                     end:    end,
                     radius: radius,
                     angle:  angle
-                };
+                }, data);
             });
 
             scope.total = total;

@@ -10,7 +10,7 @@
 
 	<script>
 		document.documentElement.className = 'js';
-		window.DEBUG = true;
+		//window.DEBUG = true;
 	</script>
 
 	<link rel="icon" type="image/png" href="images/favicon.png" />
@@ -500,11 +500,6 @@ id:   {[id]}
 
 	<div class="test-block block">
 		<h1>Hello</h1>
-
-		<div sparky-fn="find:'boo'">
-			{[x]}
-			<input type=range value=3 step=any min=0 max=8 sparky-value="{[x|interpolate:[0,0],[0.5,7],[1,8] ]}" />
-		</div>
 	</div>
 
 	<script>
@@ -561,14 +556,13 @@ id:   {[id]}
 	<!-- Tests -->
 
 	<script src="fn/test/test.js"></script>
-	<!--script src="test/sparky.test.js"></script>
+	<script src="test/sparky.test.js"></script>
 	<script src="test/sparky.input-test.js"></script>
 	<script src="test/sparky.textarea-test.js"></script>
 	<script src="test/sparky.select-test.js"></script>
-	<!--script src="test/sparky.template-test.js"></script-->
-	<!--script src="test/sparky.fn-test.js"></script-->
-	<!--script src="test/sparky.fn.each-test.js"></script-->
-	<!--script src="test/sparky.fn.template-test.js"></script>
+	<script src="test/sparky.fn-test.js"></script>
+	<script src="test/sparky.fn.each-test.js"></script>
+	<script src="test/sparky.fn.template-test.js"></script>
 	<script src="test/sparky.fn.load-test.js"></script>
 	<!--script src="test/sparky.transforms-test.js"></script-->
 
@@ -576,7 +570,7 @@ id:   {[id]}
 
 	<!--script src="plugins/sparky.fn.clock.js"></script>
 	<script src="test/sparky.fn.clock-test.js"></script>
-	<script src="plugins/sparky.fn.range-handle.js"></script>
-	<script src="test/sparky.fn.range-handle.test.js"></script-->
+	<script src="plugins/sparky.fn.value-from.js"></script>
+	<script src="test/sparky.fn.value-from.test.js"></script>
 </body>
 </html>
