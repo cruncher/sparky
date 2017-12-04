@@ -77,10 +77,10 @@
 			&& (token = rtransform.exec(string))
 		) {
 			name = token[1];
-			fn   = transformers[name] ? transformers[name].transform : transforms[name] ;
+			fn   = transformers[name] ? transformers[name].tx : transforms[name] ;
 
 			if (!fn) {
-				throw new Error('mount: transform "' + name + '" not found');
+				throw new Error('mount:  transform "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -92,7 +92,7 @@
 			}
 
 			if (!(typeof fns[fns.length - 1] === 'function')) {
-				throw new Error('mount: transform "' + name + '" not resulting in fn');
+				throw new Error('mount:  transform "' + name + '" not resulting in fn');
 			}
 		}
 
@@ -112,10 +112,10 @@
 			&& (token = rtransform.exec(string))
 		) {
 			name = token[1];
-			fn   = transformers[name].invert;
+			fn   = transformers[name].ix;
 
 			if (!fn) {
-				throw new Error('mount: transformers "' + name + '" not found');
+				throw new Error('mount:  transformers "' + name + '" not found');
 			}
 
 			if (token[2]) {
@@ -133,6 +133,10 @@
 
 	// Mount
 
+	var cased = {
+		viewbox: 'viewBox'
+	};
+
 	var listen = curry(function(node, type, fn) {
 		node.addEventListener(type, fn);
 		return function unlisten() {
@@ -146,12 +150,16 @@
 		},
 
 		'function': function(value) {
+			// Print function and parameters
 			return (value.name || 'function')
 				+ (rarguments.exec(value.toString()) || [])[1];
 		},
 
 		'number': function(value) {
-			return Number.isNaN(value) ? '' : value + '' ;
+			// Convert NaN to empty string and Infinity to ∞ symbol
+			return Number.isNaN(value) ? '' :
+				Number.isFinite(value) ? value + '' :
+				value < 0 ? '-∞' : '∞';
 		},
 
 		'string': id,
@@ -161,7 +169,7 @@
 		'undefined': function() { return ''; },
 
 		'object': function(value) {
-			return value === null ? '' : JSON.stringify(value);
+			return value ? JSON.stringify(value) : '';
 		},
 
 		'default': JSON.stringify
@@ -218,11 +226,20 @@
 	}
 
 	function mountAttribute(name, node, options, structs) {
-		var text   = dom.attribute(name, node);
+		var text = node.getAttribute(options.attributePrefix + name);
 
-		return text ? mountString(text, function render(value) {
-			node.setAttribute(name, value);
-		}, options, structs) : nothing ;
+		if (!text) {
+			text = node.getAttribute(cased[name] || name);
+		}
+		else {
+			// Remove the sparky attribute, just to keep the DOM clean.
+			// Not entirely necessary, perhaps limit to DEBUG mode?
+			node.removeAttribute(options.attributePrefix + name);
+		}
+
+		return text && mountString(text, function render(value) {
+			node.setAttribute(cased[name] || name, value);
+		}, options, structs);
 	}
 
 	function mountBoolean(name, node, options, structs) {
@@ -311,23 +328,14 @@
 
 	var types = {
 		// element
-		1: function(node, options, structs) {
+		1: function mountElement(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
-			var child, renderer;
+			var child;
 
 			while (child = children[++n]) {
-				// If we have a rendererer interested in this child
-				renderer = options.mount(child);
-
-				if (renderer) {
-					// ...add it to structs
-					structs.push(renderer);
-				}
-				else {
-					// otherwise mount the node normally
-					mountNode(child, options, structs);
-				}
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
 			}
 
 			mountClass(node, options, structs);
@@ -336,29 +344,37 @@
 		},
 
 		// text
-		3: function(node, options, structs) {
+		3: function mountText(node, options, structs) {
 			mountString(node.nodeValue, set('nodeValue', node), options, structs);
 		},
 
-		// Comment
+		// comment
 		8: noop,
 
-		// fragment
-		11: function(node, options, structs) {
+		// document
+		9: function mountDocument(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
-			var child, struct;
+			var child, renderer;
 
 			while (child = children[++n]) {
-				// If the optional mounter returns a struct
-				struct = options.mount(child);
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		},
 
-				if (struct) {
-					structs.push(struct);
-				}
-				else {
-					mountNode(child, options, structs);
-				}
+		// doctype
+		10: noop,
+
+		// fragment
+		11: function mountFragment(node, options, structs) {
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
 			}
 		}
 	};
@@ -612,7 +628,7 @@
 		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
 		struct.update = update;
-		struct.push = throttle;
+		struct.push   = throttle;
 	}
 
 	function RenderStream(structs, options, node) {
@@ -633,7 +649,7 @@
 				if (old === data) { return; }
 				old = data;
 
-				if (DEBUG) { console.group('update:', node); }
+				if (DEBUG) { console.groupCollapsed('update:', node); }
 
 				var observable = Observable(data);
 				var unlisten;
@@ -674,6 +690,7 @@
 
 					// Listen to changes
 					if (struct.listen) {
+						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
 						set = setPath(struct.path, observable);
 						invert = InverseTransform(options.transformers, struct.pipe);
 						change = pipe(function() { return struct.read(); }, invert, set);
@@ -694,7 +711,7 @@
 		options = assign({}, settings, options);
 
 		if (DEBUG) {
-			console.group('mount:', node);
+			console.groupCollapsed('mount: ', node);
 		}
 
 		var structs = [];
@@ -709,7 +726,7 @@
 	}
 
 
-	// Export
+	// Export (temporary)
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
@@ -764,16 +781,23 @@
 
 	var settings = {
 		// Child mounting function
-		mount: function mount(node) {
+		mount: function mount(node, options, streams) {
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
 			if (!fn) { return; }
 
 			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
 			//if (DEBUG) { console.log('mounted:', node, fn); }
 
+			// This is just some help for logging mounted tags
 			sparky.token = fn;
 			sparky.path  = '';
-			return sparky;
+
+			// Mount must push write streams into streams. A write stream
+			// must have the methods .push() and .stop()
+			streams.push(sparky);
+
+			// Tell the mounter we've got ths one
+			return true;
 		}
 	};
 
@@ -801,12 +825,12 @@
 	function escapeSelector(selector) {
 		return selector.replace(/\//g, '\\\/');
 	}
-
+var i = 0;
 	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
-
+var id = ++i;
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
@@ -854,7 +878,11 @@
 				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 			}
 
-			var params = token[2] && JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+			// Gaurantee that params exists, at least.
+			var params = token[2] ?
+				JSON.parse('[' + token[2].replace(/'/g, '"') + ']') :
+				nothing ;
+
 			fnstring   = fnstring.slice(token[0].length);
 			input      = fn.call(sparky, node, input, params) || input;
 
@@ -894,7 +922,6 @@
 
 		this.interrupt = interrupt;
 		this.continue  = start;
-
 		start();
 	}
 
@@ -1403,7 +1430,6 @@ Sparky.nodeToString = Fn.id;
             }
 
             var sparky = this;
-            var template;
 
             sparky.interrupt();
 
@@ -1568,50 +1594,14 @@ Sparky.nodeToString = Fn.id;
 	var Fn        = window.Fn;
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
+	var Time      = window.Time;
 
+	var A         = Array.prototype;
 	var assign    = Object.assign;
 	var curry     = Fn.curry;
+	var get       = Fn.get;
 	var isDefined = Fn.isDefined;
-	var settings  = (Sparky.settings = Sparky.settings || {});
-
-	function createList(ordinals) {
-		var array = [], n = 0;
-
-		while (n++ < 31) {
-			array[n] = ordinals[n] || ordinals.n;
-		}
-
-		return array;
-	}
-
-	// Language settings
-	settings.en = {
-		days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
-		months:   ('January February March April May June July August September October November December').split(' '),
-		ordinals: createList({ n: 'th', 1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st' })
-	};
-
-	settings.fr = {
-		days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
-		months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
-		ordinals: createList({ n: "ième", 1: "er" })
-	};
-
-	settings.de = {
-		days:     ('Sonntag Montag Dienstag Mittwoch Donnerstag Freitag Samstag').split(' '),
-		months:   ('Januar Februar März April Mai Juni Juli Oktober September Oktober November Dezember').split(' '),
-		ordinals: createList({ n: "er" })
-	};
-
-	settings.it = {
-		days:     ('domenica lunedì martedì mercoledì giovedì venerdì sabato').split(' '),
-		months:   ('gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre').split(' '),
-		ordinals: createList({ n: "o" })
-	};
-
-	// Document language
-	var lang = document.documentElement.lang;
-	settings.lang = lang && settings[lang] ? lang : 'en';
+	var last      = Fn.last;
 
 	function spaces(n) {
 		var s = '';
@@ -1619,54 +1609,65 @@ Sparky.nodeToString = Fn.id;
 		return s;
 	}
 
-	var rletter = /([YMDdHhms]{2,4}|[a-zA-Z])/g;
-	//var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-	var rnonzeronumbers = /[1-9]/;
+	function interpolateLinear(xs, ys, x) {
+		var n = -1;
+		while (++n < xs.length && xs[n] < x);
 
-	function createDate(value) {
-		// Test the Date constructor to see if it is parsing date
-		// strings as local dates, as per the ES6 spec, or as GMT, as
-		// per pre ES6 engines.
-		// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
-		var date = new Date(value);
-		var json = date.toJSON();
-		var gmt =
-			// It's GMT if the first characters of the json match
-			// the value...
-			json.slice(0, value.length) === value &&
+		// Shortcut if x is lower than smallest x
+		if (n === 0) {
+			return ys[0];
+		}
 
-			// ...and if all remaining numbers in the json are 0.
-			!json.slice(value.length).match(rnonzeronumbers) ;
+		// Shortcut if x is greater than biggest x
+		if (n >= xs.length) {
+			return last(ys);
+		}
 
-		return typeof value !== 'string' ? new Date(value) :
-			// If the Date constructor parses to gmt offset the date by
-			// adding the date's offset in milliseconds to get a local
-			// date. getTimezoneOffset returns the offset in minutes.
-			gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
+		// Shortcurt if x corresponds exactly to an interpolation coordinate
+		if (x === xs[n]) {
+			return ys[n];
+		}
 
-			// Otherwise use the local date.
-			date ;
+		// Linear interpolate
+		var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
+		return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
 	}
 
 	assign(Sparky.transformers = {}, {
-		add:         { transform: Fn.add,         invert: curry(function(m, n) { return n - m; }) },
-		decibels:    { transform: Fn.todB,        invert: Fn.toLevel },
-		multiply:    { transform: Fn.multiply,    invert: curry(function(d, n) { return n / d; }) },
-		degrees:     { transform: Fn.toDeg,       invert: Fn.toRad },
-		radians:     { transform: Fn.toRad,       invert: Fn.toDeg },
-		pow:         { transform: Fn.pow,         invert: curry(function(n, x) { return Fn.pow(1/n, x); }) },
-		exp:         { transform: Fn.exp,         invert: Fn.log },
-		log:         { transform: Fn.log,         invert: Fn.exp },
-		int:         { transform: Fn.toFixed(0),  invert: Fn.toInt },
-		float:       { transform: Fn.toString,    invert: Fn.toFloat },
-		normalise:   { transform: Fn.normalise,   invert: Fn.denormalise },
-		denormalise: { transform: Fn.denormalise, invert: Fn.normalise },
-		floatformat: { transform: Fn.toFixed,     invert: curry(function(n, str) { return parseFloat(str); }) },
-	});
+		add:         { tx: Fn.add,         ix: curry(function(m, n) { return n - m; }) },
+		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
+		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
+		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
+		radians:     { tx: Fn.toRad,       ix: Fn.toDeg },
+		pow:         { tx: Fn.pow,         ix: curry(function(n, x) { return Fn.pow(1/n, x); }) },
+		exp:         { tx: Fn.exp,         ix: Fn.log },
+		log:         { tx: Fn.log,         ix: Fn.exp },
+		int:         { tx: Fn.toFixed(0),  ix: Fn.toInt },
+		float:       { tx: Fn.toFloat,     ix: Fn.toString },
+		boolean:     { tx: Boolean,        ix: Fn.toString },
+		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
+		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
+		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
 
-	assign(Sparky.transformers, {
-		// Aliases
-		decimals: Sparky.transformers.floatformat
+		interpolate: {
+			tx: function(point) {
+				var xs = A.map.call(arguments, get('0'));
+				var ys = A.map.call(arguments, get('1'));
+
+				return function(value) {
+					return interpolateLinear(xs, ys, value);
+				};
+			},
+
+			ix: function(point) {
+				var xs = A.map.call(arguments, get('0'));
+				var ys = A.map.call(arguments, get('1'));
+
+				return function(value) {
+					return interpolateLinear(ys, xs, value);
+				}
+			}
+		}
 	});
 
 	assign(Sparky.transforms, {
@@ -1702,14 +1703,13 @@ Sparky.nodeToString = Fn.id;
 		take:         Fn.take,
 		toCartesian:  Fn.toCartesian,
 		todB:         Fn.todB,
+		decibels:     Fn.todB,
 		toDeg:        Fn.toDeg,
 		toLevel:      Fn.toLevel,
-		toFixed:      Fn.toFixed,
-		toFloat:      Fn.toFloat,
 		toPolar:      Fn.toPolar,
 		toRad:        Fn.toRad,
 		toStringType: Fn.toStringType,
-		toType:       Fn.toType,
+		typeof:       Fn.toType,
 		unique:       Fn.unique,
 		unite:        Fn.unite,
 
@@ -1717,119 +1717,19 @@ Sparky.nodeToString = Fn.id;
 		// Transforms from dom's map functions
 
 		escape:       dom.escape,
-		toPx:         dom.toPx,
-		toRem:        dom.toRem,
+		px:           dom.toPx,
+		rem:          dom.toRem,
 
 
 		// Sparky transforms
 
-//		add: function(value, n) {
-//			var result = parseFloat(value) + n ;
-//			if (Number.isNaN(result)) { return; }
-//			return result;
-//		},
+		timeformat: function timeformat(format, lang) {
+			lang = lang || document.documentElement.lang;
 
-		capfirst: function(value) {
-			return value.charAt(0).toUpperCase() + value.substring(1);
-		},
-
-		cut: function(value, string) {
-			return Sparky.filter.replace(value, string, '');
-		},
-
-		formatdate: (function(settings) {
-			var formatters = {
-				YYYY: function(date) { return ('000' + date.getFullYear()).slice(-4); },
-				YY:   function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
-				MM:   function(date) { return ('0' + (date.getMonth() + 1)).slice(-2); },
-				MMM:  function(date) { return this.MMMM(date).slice(0,3); },
-				MMMM: function(date) { return settings[lang].months[date.getMonth()]; },
-				DD:   function(date) { return ('0' + date.getDate()).slice(-2); },
-				d:    function(date) { return '' + date.getDay(); },
-				dd:   function(date) { return ('0' + date.getDay()).slice(-2); },
-				ddd:  function(date) { return this.dddd(date).slice(0,3); },
-				dddd: function(date) { return settings[lang].days[date.getDay()]; },
-				HH:   function(date) { return ('0' + date.getHours()).slice(-2); },
-				mm:   function(date) { return ('0' + date.getMinutes()).slice(-2); },
-				ss:   function(date) { return ('0' + date.getSeconds()).slice(-2); },
-				sss:  function(date) { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+			return function(value) {
+				return Time(value).render(format, lang);
 			};
-
-			return function formatDate(value, format, lang) {
-				if (!value) { return; }
-
-				var date = value instanceof Date ? value : createDate(value) ;
-
-				lang = lang || settings.lang;
-
-				return format.replace(rletter, function($0, $1) {
-					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
-				});
-			};
-		})(settings),
-
-		formattime: function(value, format, lang) {
-			return Time(value).render(format, lang);
 		},
-
-		date: (function(settings) {
-			var formatters = {
-				a: function(date) { return date.getHours() < 12 ? 'a.m.' : 'p.m.'; },
-				A: function(date) { return date.getHours() < 12 ? 'AM' : 'PM'; },
-				b: function(date, lang) { return settings[lang].months[date.getMonth()].toLowerCase().slice(0,3); },
-				c: function(date) { return date.toISOString(); },
-				d: function(date) { return date.getDate(); },
-				D: function(date, lang) { return settings[lang].days[date.getDay()].slice(0,3); },
-				//e: function(date) { return ; },
-				//E: function(date) { return ; },
-				//f: function(date) { return ; },
-				F: function(date, lang) { return settings[lang].months[date.getMonth()]; },
-				g: function(date) { return date.getHours() % 12; },
-				G: function(date) { return date.getHours(); },
-				h: function(date) { return ('0' + date.getHours() % 12).slice(-2); },
-				H: function(date) { return ('0' + date.getHours()).slice(-2); },
-				i: function(date) { return ('0' + date.getMinutes()).slice(-2); },
-				//I: function(date) { return ; },
-				j: function(date) { return date.getDate(); },
-				l: function(date, lang) { return settings[lang].days[date.getDay()]; },
-				//L: function(date) { return ; },
-				m: function(date) { return ('0' + date.getMonth()).slice(-2); },
-				M: function(date, lang) { return settings[lang].months[date.getMonth()].slice(0,3); },
-				n: function(date) { return date.getMonth(); },
-				//o: function(date) { return ; },
-				O: function(date) {
-					return (date.getTimezoneOffset() < 0 ? '+' : '-') +
-						 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
-				},
-				r: function(date) { return date.toISOString(); },
-				s: function(date) { return ('0' + date.getSeconds()).slice(-2); },
-				S: function(date) { return settings.ordinals[date.getDate()]; },
-				//t: function(date) { return ; },
-				//T: function(date) { return ; },
-				U: function(date) { return +date; },
-				w: function(date) { return date.getDay(); },
-				//W: function(date) { return ; },
-				y: function(date) { return ('0' + date.getFullYear() % 100).slice(-2); },
-				Y: function(date) { return date.getFullYear(); },
-				//z: function(date) { return ; },
-				Z: function(date) { return -date.getTimezoneOffset() * 60; }
-			};
-
-			return curry(function formatDate(format, value) {
-				if (!value) { return; }
-
-				var date = value instanceof Date ? value : createDate(value) ;
-
-				lang = settings.lang;
-
-				return format.replace(rletter, function($0, $1) {
-					return formatters[$1] ? formatters[$1](date, lang) : $1 ;
-				});
-			});
-		})(settings),
-
-		decibels: Fn.todB,
-		decimals: Fn.toFixed,
 
 		divide: curry(function(n, value) {
 			if (typeof value !== 'number') { return; }
@@ -1854,8 +1754,8 @@ Sparky.nodeToString = Fn.id;
 			return Math.floor(value);
 		},
 
-		"greater-than": curry(function(value1, value2) {
-			return value2 > value1;
+		"greater-than": curry(function(value2, value1) {
+			return value1 > value2;
 		}),
 
 		invert: function(value) {
@@ -1874,24 +1774,9 @@ Sparky.nodeToString = Fn.id;
 			return value[value.length - 1];
 		},
 
-		length: function(value) {
-			return value.length;
-		},
-
-		"less-than": curry(function(value2, str1, str2, value1) {
-			return value1 < value2 ? str1 : str2 ;
+		"less-than": curry(function(value2, value1) {
+			return value1 < value2 ;
 		}),
-
-		//length_is
-		//linebreaks
-
-		//linebreaksbr: (function() {
-		//	var rbreaks = /\n/;
-		//
-		//	return function(value) {
-		//		return value.replace(rbreaks, '<br/>')
-		//	};
-		//})(),
 
 		localise: curry(function(digits, value) {
 			var locale = document.documentElement.lang;
@@ -1915,11 +1800,6 @@ Sparky.nodeToString = Fn.id;
 			return array && array.map(Sparky.transforms[method](path));
 		}),
 
-		//mod: curry(function(n, value) {
-		//	if (typeof value !== 'number') { return; }
-		//	return value % n;
-		//}),
-
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }
 
@@ -1932,6 +1812,8 @@ Sparky.nodeToString = Fn.id;
 				(value < 2 && value >= 0) ? str1 : str2 :
 				value === 1 ? str1 : str2 ;
 		}),
+
+		// TODO: these should copy postpadding and preppadding from Fn
 
 		postpad: curry(function(n, value) {
 			var string = isDefined(value) ? value.toString() : '' ;
@@ -1970,26 +1852,15 @@ Sparky.nodeToString = Fn.id;
 			return value.replace(RegExp(str1, 'g'), str2);
 		}),
 
-		round: Math.round,
-
-		//reverse
-
-		//safe: function(string) {
-		//	if (typeof string !== string) { return; }
-		//	// Actually, we can't do this here, because we cant return DOM nodes
-		//	return;
-		//},
-
-		//safeseq
+		round: curry(function round(n, value) {
+			return Math.round(value / n) * n;
+		}),
 
 		slice: curry(function(i0, i1, value) {
 			return typeof value === 'string' ?
 				value.slice(i0, i1) :
 				Array.prototype.slice.call(value, i0, i1) ;
 		}),
-
-		//sort
-		//stringformat
 
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
@@ -2005,33 +1876,15 @@ Sparky.nodeToString = Fn.id;
 			return arguments[value + 1];
 		},
 
-		symbolise: function(value) {
-			// Takes infinity values and convert them to infinity symbol
-			var string = value + '';
-			var infinity = Infinity + '';
-
-			if (string === infinity) { return '∞'; }
-			if (string === ('-' + infinity)) { return '-∞'; }
-			return value;
-		},
-
-		time: function() {
-
-		},
-
-		//timesince
-		//timeuntil
-		//title
-
-		trans: (function() {
+		translate: (function() {
 			var warned = {};
 
 			return function(value) {
-				var translations = Sparky.data.translations;
+				var translations = Sparky.translations;
 
 				if (!translations) {
 					if (!warned.missingTranslations) {
-						console.warn('Sparky: Missing lookup object Sparky.data.translations');
+						console.warn('Sparky: Missing lookup object Sparky.translations');
 						warned.missingTranslations = true;
 					}
 					return value;
@@ -2041,7 +1894,7 @@ Sparky.nodeToString = Fn.id;
 
 				if (!text) {
 					if (!warned[value]) {
-						console.warn('Sparky: Sparky.data.translations contains no translation for "' + value + '"');
+						console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
 						warned[value] = true;
 					}
 
@@ -2061,10 +1914,6 @@ Sparky.nodeToString = Fn.id;
 		type: function(value) {
 			return typeof value;
 		},
-
-		//truncatewords
-		//truncatewords_html
-		//unique
 
 		uppercase: function(value) {
 			if (typeof value !== 'string') { return; }
