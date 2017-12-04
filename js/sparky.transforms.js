@@ -252,9 +252,6 @@
 			return array.join(char || ' ');
 		}),
 
-
-
-
 		random: function(value) {
 			return value[Math.floor(Math.random() * value.length)];
 		},

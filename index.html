@@ -575,33 +575,28 @@ id:   {[id]}
 	<script src="test/sparky.fn.value-from.test.js"></script-->
 	<script src="plugins/sparky.fn.calendar.js"></script>
 
-	<div sparky-fn="calendar template:'#calendar-template'" id="calendar"></div>
+	<div sparky-fn="calendar:'2017-11-20',14 template:'#calendar-template'" id="calendar"></div>
 
 	<template id="calendar-template">
 		<div class="calendar-block block">
-			<h1>{[startDate]} - {[stopDate]}</h1>
+			<h1>{[startDate|timeformat:'DD MMM YY']} – {[stopDate|timeformat:'DD MMM YY']}</h1>
 
 			<button sparky-calendar-start="-0000-00-14">Decrement range</button>
 			<button sparky-calendar-start="0000-00-14">Increment range</button>
 
-
-
-			<div sparky-fn="template:'#calendar-date-template'" class="block">
-
-			</div>
+			<div sparky-fn="template:'#calendar-date-template'" class="grid-block block"></div>
 		</div>
 	</template>
 
 	<template id="calendar-date-template">
-		<div class="inline-block block {[data.0.date|timeformat:'ddd'|append:'-day-block']}">{[data.0.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.1.date|timeformat:'ddd'|append:'-day-block']}">{[data.1.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.2.date|timeformat:'ddd'|append:'-day-block']}">{[data.2.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.3.date|timeformat:'ddd'|append:'-day-block']}">{[data.3.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.4.date|timeformat:'ddd'|append:'-day-block']}">{[data.4.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.5.date|timeformat:'ddd'|append:'-day-block']}">{[data.5.date|timeformat:'ddd']}</div>
-		<div class="inline-block block {[data.6.date|timeformat:'ddd'|append:'-day-block']}">{[data.6.date|timeformat:'ddd']}</div>
-
-		<time sparky-fn="get:'data' each" class="inline-block block {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">| {[date]} |</time>
+		<div class="block grid-1/7 {[data.0.date|timeformat:'ddd'|append:'-day-block']}">{[data.0.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.1.date|timeformat:'ddd'|append:'-day-block']}">{[data.1.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.2.date|timeformat:'ddd'|append:'-day-block']}">{[data.2.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.3.date|timeformat:'ddd'|append:'-day-block']}">{[data.3.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.4.date|timeformat:'ddd'|append:'-day-block']}">{[data.4.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.5.date|timeformat:'ddd'|append:'-day-block']}">{[data.5.date|timeformat:'ddd']}</div
+		><div class="block grid-1/7 {[data.6.date|timeformat:'ddd'|append:'-day-block']}">{[data.6.date|timeformat:'ddd']}</div
+		><time sparky-fn="get:'data' each" class="block grid-1/7 {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">{[date|timeformat:'DD']}</time>
 	</template>
 
 	<script>

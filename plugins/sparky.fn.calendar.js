@@ -1,20 +1,27 @@
+// sparky.fn.calendar
+//
+// <div sparky-fn="calendar:'2018-01-01',14">
+
 (function(window) {
     "use strict";
 
-    var Sparky     = window.Sparky;
-    var Observable = window.Observable;
     var Fn         = window.Fn;
+    var Stream     = window.Stream;
+    var Observable = window.Observable;
     var dom        = window.dom;
     var Time       = window.Time;
+    var Sparky     = window.Sparky;
 
     var curry      = Fn.curry;
     var get        = Fn.get;
     var observe    = Observable.observe;
 
 	Sparky.fn.calendar = function(node, scopes, params) {
+        var startDate = params[0] ? Time(params[0]) : Time.now().floor('mon');
+        var stopDate  = startDate.add('0000-00-' + (params[1] || '35'));
         var scope = Observable({
-            startDate: '2017-11-24',
-            stopDate:  '2017-12-08',
+            startDate: startDate,
+            stopDate:  stopDate,
             data: []
         });
 
@@ -22,15 +29,15 @@
 
         function updateTime(time) {
             scope.data.forEach(function(object) {
-                object.relativeDate = Time.secToDays(Time(object.date) - time.floor('d'));
+                object.relativeDate = Time.secToDays(Time(object.date) - time.floor('day'));
             });
         }
 
         function updateStartStop() {
             scope.data.length = 0;
 
-            var d1 = Time(scope.startDate);
-            var d2 = Time(scope.stopDate);
+            var d1 = scope.startDate;
+            var d2 = scope.stopDate;
             var d  = d1;
 
             while (d < d2) {
@@ -62,8 +69,8 @@
         .map(get('target'))
         .map(dom.attribute('sparky-calendar-start'))
         .each(function(value) {
-            scope.startDate = Time(scope.startDate).add(value).date;
-            scope.stopDate  = Time(scope.stopDate).add(value).date;
+            scope.startDate = scope.startDate.add(value);
+            scope.stopDate  = scope.stopDate.add(value);
         });
 
         return Fn.of(scope);
