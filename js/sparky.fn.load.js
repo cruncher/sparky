@@ -38,7 +38,7 @@
 
     assign(Sparky.fn, {
         load: function load(node, stream, params) {
-            var path  = params[0];
+            var path = params[0];
 
             if (DEBUG && !path) {
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
