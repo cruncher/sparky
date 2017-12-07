@@ -96,6 +96,24 @@ Sparky.nodeToString = Fn.id;
 		return jQuery.data(node, 'scope');
 	};
 
+	function getCookie(name) {
+        var cookieValue = null;
+        var cookies, cookie, i;
+
+        if (document.cookie && document.cookie !== '') {
+            cookies = document.cookie.split(';');
+            for (i = 0; i < cookies.length; i++) {
+                cookie = cookies[i] && cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
 	Object.assign(Sparky.fn, {
 		"prevent": function(node, scopes, params) {
 			node.addEventListener(params[0], preventDefault);
@@ -114,7 +132,7 @@ Sparky.nodeToString = Fn.id;
 			node.addEventListener('submit', preventDefault);
 
 			scopes.tap(function(scope) {
-				if (submit) { node.removeEventListener(submit); }
+				if (submit) { node.removeEventListener('submit', submit); }
 
 				submit = function(e) {
 					// Axios

@@ -254,8 +254,16 @@
 		//
 		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
-		if (!attr) { return; }
+		var attr = node.getAttribute(options.attributePrefix + name);
+
+		if (!attr) {
+			attr = node.getAttribute(name);
+			if (!attr) { return; }
+
+			// The attribute is populated. Return the property to the default
+			// value false.
+			node[name] = false;
+		}
 
 		rtoken.lastIndex = 0;
 		var tokens = rtoken.exec(attr.trim());
@@ -480,9 +488,13 @@
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
 		},
 
-		checkbox: function() {},
+		checkbox: function(node, options, structs) {
+			mountBoolean('checked', node, options, structs);
+		},
 
-		radio: function() {},
+		radio: function(node, options, structs) {
+			mountBoolean('checked', node, options, structs);
+		},
 
 		default: noop
 	};

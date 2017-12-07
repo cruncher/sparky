@@ -76,12 +76,47 @@
         return Fn.of(scope);
     };
 
-    Sparky.transformers.temporal = {
-        tx: curry(function(past, present, future, date) {
-            var today = Time.now().date;
-            return date === today ? present :
-                date < today ? past :
-                future ;
-        })
+
+    Sparky.fn['times'] = function(node, scopes, params) {
+
+        // View
+
+        var startTime = params[0] ? Time(params[0]) : Time('00:00');
+        var stopTime  = params[1] ? Time(params[1]) : Time('24:00');
+        var stepTime  = params[2] || '00:20';
+        var scope = Observable([]);
+
+        var t1 = startTime;
+        var t2 = stopTime;
+
+        while (t1 < t2) {
+            scope.push({ time: t1 });
+            t1 = t1.add(stepTime);
+        }
+
+        // Controller
+
+        var changes;
+
+        scopes.each(function(scope) {
+            changes && changes.stop();
+
+            changes = dom
+            .event('change', node)
+            .map(get('target'))
+            .each(function(input) {
+                if (input.checked) {
+                    scope.times.push({
+                        date: scope.date,
+                        time: input.value
+                    })
+                }
+                else {
+
+                }
+            });
+        });
+
+        return Fn.of(scope);
     };
 })(this);
