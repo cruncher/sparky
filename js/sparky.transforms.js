@@ -211,7 +211,7 @@
 
 		map: curry(function(method, path, array) {
 			return array && array.map(Sparky.transforms[method](path));
-		}),
+		}, true),
 
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }
@@ -258,7 +258,7 @@
 
 		reduce: curry(function(name, initialValue, array) {
 			return array && array.reduce(Fn[name], initialValue || 0);
-		}),
+		}, true),
 
 		replace: curry(function(str1, str2, value) {
 			if (typeof value !== 'string') { return; }
@@ -273,7 +273,7 @@
 			return typeof value === 'string' ?
 				value.slice(i0, i1) :
 				Array.prototype.slice.call(value, i0, i1) ;
-		}),
+		}, true),
 
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;

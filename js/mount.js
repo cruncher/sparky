@@ -62,7 +62,7 @@
 
 	// Transform
 
-	var rtransform = /\|\s*([\w\-]+)\s*(?::([^|]+))?/g;
+	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
 
 	function Transform(transforms, transformers, string) {
 		if (!string) { return id; }
@@ -254,20 +254,18 @@
 		//
 		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.attributePrefix + name);
+		var prefixed = node.getAttribute(options.attributePrefix + name);
+		var attr     = prefixed || node.getAttribute(name);
 
-		if (!attr) {
-			attr = node.getAttribute(name);
-			if (!attr) { return; }
-
-			// The attribute is populated. Return the property to the default
-			// value false.
-			node[name] = false;
-		}
+		if (!attr) { return; }
 
 		rtoken.lastIndex = 0;
 		var tokens = rtoken.exec(attr.trim());
 		if (!tokens) { return; }
+
+		// Where the unprefixed attribute is populated, Return the property to
+		// the default value false.
+		if (!prefixed) { node[name] = false; }
 
 		structs.push({
 			token:  attr.trim(),
@@ -363,7 +361,7 @@
 		9: function mountDocument(node, options, structs) {
 			var children = node.childNodes;
 			var n = -1;
-			var child, renderer;
+			var child;
 
 			while (child = children[++n]) {
 				options.mount(child, options, structs) ||
@@ -702,7 +700,7 @@
 
 					// Listen to changes
 					if (struct.listen) {
-						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
+						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); }
 						set = setPath(struct.path, observable);
 						invert = InverseTransform(options.transformers, struct.pipe);
 						change = pipe(function() { return struct.read(); }, invert, set);
