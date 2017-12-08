@@ -202,6 +202,30 @@ var id = ++i;
 				return stream.map(getPath(params[0]));
 			},
 
+			if: function(node, stream, params) {
+				var name = params[0];
+				var mark = Sparky.MarkerNode(node);
+				var visible = false;
+
+				// Put the marker in place and remove the node
+				dom.before(node, mark);
+				dom.remove(node);
+
+				return stream.map(function(scope) {
+					var visibility = !!scope[name];
+
+					if(visibility === visible) { return; }
+					visible = visibility;
+
+					if (visible) {
+						dom.replace(mark, node);
+					}
+					else {
+						dom.replace(node, mark);
+					}
+				});
+			},
+
 			stop: function ignore(node, stream) {
 				console.log(this.interrupt(), node, stream);
 			},
