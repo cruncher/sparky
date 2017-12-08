@@ -83,6 +83,10 @@ var id = ++i;
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
 
+		if (!node) {
+			throw new Error('Sparky: "' + selector + '" not found.');
+		}
+
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;

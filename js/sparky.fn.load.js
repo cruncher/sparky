@@ -76,7 +76,7 @@
                 scopes.push(data);
             })
             .catch(function(error) {
-                console.warn(error);
+                throw error;
             });
 
             return scopes;
