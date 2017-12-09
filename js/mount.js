@@ -345,6 +345,7 @@
 			}
 
 			mountClass(node, options, structs);
+			mountBoolean('hidden', node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
 			mountTag(node, options, structs);
 		},
@@ -459,7 +460,7 @@
 		},
 
 		text: function(node, options, structs) {
-			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node, options, structs);
+			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
 		},
 
 		use: function(node, options, structs) {

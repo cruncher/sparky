@@ -36,6 +36,18 @@
         throw new Error('Sparky: no axios, jQuery or fetch found for request "' + path + '"');
     } ;
 
+    function importScope(url, scopes) {
+        request(url)
+        .then(function(data) {
+            if (!data) { return; }
+            cache[url] = data;
+            scopes.push(data);
+        })
+        .catch(function(error) {
+            throw error;
+        });
+    }
+
     assign(Sparky.fn, {
         load: function load(node, stream, params) {
             var path = params[0];
@@ -56,7 +68,7 @@
         },
 
         import: function(node, stream, params) {
-            var path  = params[0];
+            var path = params[0];
 
             if (DEBUG && !path) {
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
@@ -69,16 +81,19 @@
 
             var scopes = Stream.of();
 
-            request(path)
-            .then(function(data) {
-                if (!data) { return; }
-                cache[path] = data;
-                scopes.push(data);
-            })
-            .catch(function(error) {
-                throw error;
-            });
+            if (/\$\{(\w+)\}/.test(path)) {
+                stream.each(function(scope) {
+                    var url = path.replace(/\$\{(\w+)\}/g, function($0, $1) {
+                        return scope[$1];
+                    });
 
+                    importScope(url, scopes);
+                });
+
+                return scopes;
+            }
+
+            importScope(path, scopes);
             return scopes;
         }
     });

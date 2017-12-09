@@ -132,7 +132,7 @@ var id = ++i;
 
 			// Gaurantee that params exists, at least.
 			var params = token[2] ?
-				JSON.parse('[' + token[2].replace(/'/g, '"') + ']') :
+				JSON.parse('[' + token[2].replace(/'|`/g, '"') + ']') :
 				nothing ;
 
 			fnstring   = fnstring.slice(token[0].length);
@@ -211,7 +211,7 @@ var id = ++i;
 				dom.before(node, mark);
 				dom.remove(node);
 
-				return stream.map(function(scope) {
+				return stream.tap(function(scope) {
 					var visibility = !!scope[name];
 
 					if(visibility === visible) { return; }
