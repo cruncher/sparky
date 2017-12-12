@@ -69,6 +69,7 @@ Sparky.nodeToString = Fn.id;
 (function(window) {
 	"use strict";
 
+	var assign = Object.assign;
 	var Fn = window.Fn;
 
 	function preventDefault(e) {
@@ -144,6 +145,10 @@ Sparky.nodeToString = Fn.id;
 					})
 					.then(function (response) {
 						console.log(response);
+
+						if (response.data) {
+							assign(scope, response.data);
+						}
 					})
 					.catch(function (error) {
 						console.log(error);
