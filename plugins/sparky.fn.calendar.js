@@ -17,7 +17,8 @@
     var observe    = Observable.observe;
 
 	Sparky.fn.calendar = function(node, scopes, params) {
-        var startDate = params[0] ? Time(params[0]) : Time.now().floor('mon');
+        var floor     = params[2] || 'day';
+        var startDate = params[0] ? Time(params[0]) : Time.now().floor('day');
         var stopDate  = startDate.add('0000-00-' + (params[1] || '35'));
         var scope = Observable({
             startDate: startDate,
@@ -36,8 +37,8 @@
         function updateStartStop() {
             scope.data.length = 0;
 
-            var d1 = scope.startDate;
-            var d2 = scope.stopDate;
+            var d1 = scope.startDate.floor(floor);
+            var d2 = d1.add('0000-00-' + (params[1] || '35'));
             var d  = d1;
 
             while (d < d2) {
