@@ -17,15 +17,10 @@
     var observe    = Observable.observe;
 
 	Sparky.fn.calendar = function(node, scopes, params) {
+        var name      = params[0];
         var dayCount  = params[1] || '35';
-        var floor     = params[2] || 'day';
-        var startDate = params[0] ? Time(params[0]) : Time.now().floor('day');
-
-
-        var stopDate  = startDate.add('0000-00-' + (params[1] || '35'));
+        var floor     = params[2];
         var scope = Observable({
-            startDate: startDate,
-            stopDate:  stopDate,
             data: []
         });
 
@@ -39,9 +34,8 @@
 
         function updateStartStop() {
             scope.data.length = 0;
-
-            var d1 = scope.startDate.floor(floor);
-            var d2 = d1.add('0000-00-' + (params[1] || '35'));
+            var d1 = scope.startDate = floor ? scope.date.floor(floor) : time ;
+            var d2 = scope.stopDate  = d1.add('0000-00-' + dayCount);
             var d  = d1;
 
             while (d < d2) {
@@ -55,9 +49,7 @@
             updateTime(Time.now());
         }
 
-        observe(scope, 'startDate', updateStartStop);
-        observe(scope, 'stopDate', updateStartStop);
-        updateStartStop();
+        observe(scope, 'date', updateStartStop);
 
         // Check date every 5 minutes
         var clock = Stream
@@ -73,14 +65,12 @@
         .map(get('target'))
         .map(dom.attribute('sparky-calendar-start'))
         .each(function(value) {
-            scope.startDate = scope.startDate.add(value);
-            scope.stopDate  = scope.stopDate.add(value);
+            scope.date = scope.date.add(value);
         });
 
-        scopes.each(function(scope) {
-            observe(scope, name, function(date) {
-                scope.startDate = Time(date);
-                scope.stopDate  = scope.startDate.add('0000-00-' + dayCount);
+        scopes.each(function(parent) {
+            observe(parent, name, function(date) {
+                scope.date = Time(date);
             });
         });
 
