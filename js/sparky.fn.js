@@ -135,6 +135,8 @@ Sparky.nodeToString = Fn.id;
 				if (submit) { node.removeEventListener('submit', submit); }
 
 				submit = function(e) {
+					var url = node.getAttribute('action');
+
 					// Axios
 					axios
 					.post(url, scope, {

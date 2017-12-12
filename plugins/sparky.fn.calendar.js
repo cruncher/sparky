@@ -17,8 +17,11 @@
     var observe    = Observable.observe;
 
 	Sparky.fn.calendar = function(node, scopes, params) {
+        var dayCount  = params[1] || '35';
         var floor     = params[2] || 'day';
         var startDate = params[0] ? Time(params[0]) : Time.now().floor('day');
+
+
         var stopDate  = startDate.add('0000-00-' + (params[1] || '35'));
         var scope = Observable({
             startDate: startDate,
@@ -72,6 +75,13 @@
         .each(function(value) {
             scope.startDate = scope.startDate.add(value);
             scope.stopDate  = scope.stopDate.add(value);
+        });
+
+        scopes.each(function(scope) {
+            observe(scope, name, function(date) {
+                scope.startDate = Time(date);
+                scope.stopDate  = scope.startDate.add('0000-00-' + dayCount);
+            });
         });
 
         return Fn.of(scope);

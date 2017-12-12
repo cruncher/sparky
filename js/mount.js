@@ -402,16 +402,16 @@
 			mountAttribute('action', node, options, structs);
 		},
 
+		img: function(node, options, structs) {
+			mountAttribute('alt', node, options, structs);
+		},
+
 		input: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
 			mountAttribute('name', node, options, structs);
 			mountInput(node, options, structs);
 			mountValue(node, options, structs);
-		},
-
-		img: function(node, options, structs) {
-			mountAttribute('alt', node, options, structs);
 		},
 
 		label: function(node, options, structs) {
