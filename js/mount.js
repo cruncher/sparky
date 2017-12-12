@@ -398,6 +398,10 @@
 			mountBoolean('disabled', node, options, structs);
 		},
 
+		form: function(node, options, structs) {
+			mountAttribute('action', node, options, structs);
+		},
+
 		input: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
