@@ -74,11 +74,6 @@
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
             }
 
-            // If the resource is cached, return it as an shiftable
-            if (cache[path]) {
-                return Stream.of(cache[path]);
-            }
-
             var scopes = Stream.of();
 
             if (/\$\{(\w+)\}/.test(path)) {
@@ -87,10 +82,21 @@
                         return scope[$1];
                     });
 
-                    importScope(url, scopes);
+                    // If the resource is cached...
+                    if (cache[url]) {
+                        scopes.push(cache[url]);
+                    }
+                    else {
+                        importScope(url, scopes);
+                    }
                 });
 
                 return scopes;
+            }
+
+            // If the resource is cached, return it as a readable
+            if (cache[path]) {
+                return Fn.of(cache[path]);
             }
 
             importScope(path, scopes);

@@ -26,9 +26,11 @@
 
         // View
 
-        function updateTime(time) {
+        function updateTime(time, date) {
+            var month = date && date.floor('month').render('YYYY-MM');
             scope.data.forEach(function(object) {
-                object.relativeDate = Time.secToDays(Time(object.date) - time.floor('day'));
+                object.relativeDate  = Time.secToDays(Time(object.date) - time.floor('day'));
+                object.selectedMonth = month && Time(object.date).render('YYYY-MM') === month;
             });
         }
 
@@ -46,7 +48,7 @@
                 d = d.add('0000-00-01');
             }
 
-            updateTime(Time.now());
+            updateTime(Time.now(), scope.date);
         }
 
         observe(scope, 'date', updateStartStop);
