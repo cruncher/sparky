@@ -80,6 +80,31 @@
         insertTemplate(sparky, node, scopes, id, template);
     }
 
+
+    function templateFromCache2(sparky, node, scopes, path, id, template) {
+        var doc, elem;
+
+        if (!template) {
+            doc  = cache[path][''];
+            elem = doc.getElementById(id);
+
+            template = cache[path][id] = doc === document ?
+                dom.fragmentFromId(id) :
+                elem && dom.fragmentFromHTML(elem.innerHTML) ;
+        }
+
+        if (!template) {
+            throw new Error('Sparky: template ' + id + ' not found.');
+        }
+console.log('INSERT TEMPLATE')
+        //return scopes.tap(function(scope) {
+            var fragment = dom.clone(template);
+            dom.empty(node);
+            dom.append(node, fragment);
+            sparky.continue();
+        //});
+    }
+
     function templateFromDocument(sparky, node, scopes, path, id, doc) {
         var template, elem;
 
@@ -138,6 +163,61 @@
             }
 
             return scopes;
+        },
+
+
+        // TODO: Do this, but better
+
+        'template-from': function(node, scopes, params) {
+            var string = params[0];
+            var sparky = this;
+            var outputScopes = Stream.of();
+            sparky.interrupt();
+
+            if (/\$\{([\w._]+)\}/.test(string)) {
+                scopes.each(function(scope) {
+                    var notParsed = false;
+                    var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
+                        var value = Fn.getPath($1, scope);
+                        if (value === undefined) { notParsed = true; }
+                        return value;
+                    });
+
+                    if (notParsed) {
+                        console.log('Sparky: template-from not properly assembled from scope', string, scope);
+                        return;
+                    }
+
+                    var parts = url.split('#');
+                    var path  = parts[0] || '';
+                    var id    = parts[1] || '';
+
+                    if (DEBUG && !id) {
+                        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
+                    }
+
+                    // If the resource is cached, return it as an shiftable
+                    if (cache[path]) {
+                        templateFromCache2(sparky, node, scopes, path, id, cache[path][id]);
+                        outputScopes.push(scope);
+                    }
+                    else {
+                        request(path)
+                        .then(function(doc) {
+                            if (!doc) { return; }
+                            templateFromDocument(sparky, node, scopes, path, id, doc);
+                        })
+                        .catch(function(error) {
+                            console.warn(error);
+                        });
+                    }
+                });
+
+                return outputScopes;
+            }
+
+            throw new Error('Sparky: template-from must have ${prop} in the url string');
         }
+
     });
 })(this);
