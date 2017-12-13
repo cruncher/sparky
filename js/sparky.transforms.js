@@ -209,9 +209,23 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, path, array) {
-			return array && array.map(Sparky.transforms[method](path));
+		map: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
 		}, true),
+
+		filter: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
+		}, true),
+
+		match: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return regex.exec(string);
+		}),
+
+		matches: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return !!regex.test(string);
+		}),
 
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }
