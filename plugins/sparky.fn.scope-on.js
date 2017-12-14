@@ -3,8 +3,8 @@
 	"use strict";
 
 	var Fn       = window.Fn;
+	var dom      = window.dom;
 	var Sparky   = window.Sparky;
-	var throttle = Fn.throttle;
 
 	Sparky.fn['scope-on'] = function scopeOn(node, scopes, params) {
 		// Safari requires the .select to be delayed, as focus seems to happen

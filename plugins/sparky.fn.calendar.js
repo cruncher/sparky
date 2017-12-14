@@ -12,7 +12,6 @@
     var Time       = window.Time;
     var Sparky     = window.Sparky;
 
-    var curry      = Fn.curry;
     var get        = Fn.get;
     var observe    = Observable.observe;
 
@@ -86,7 +85,7 @@
     };
 
 
-    Sparky.fn['times'] = function(node, scopes, params) {
+    Sparky.fn['--times'] = function(node, scopes, params) {
 
         // View
 

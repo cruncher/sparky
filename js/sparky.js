@@ -110,6 +110,7 @@ var id = ++i;
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
+
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -135,6 +136,7 @@ var id = ++i;
 				JSON.parse('[' + token[2].replace(/'|`/g, '"') + ']') :
 				nothing ;
 
+			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
 			input      = fn.call(sparky, node, input, params) || input;
 
