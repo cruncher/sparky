@@ -76,27 +76,6 @@ Sparky.nodeToString = Fn.id;
 		e.preventDefault();
 	}
 
-	Sparky.scope = function(node) {
-		console.warn('Sparky: Sparky.scope() deprecated in favour of Sparky.getScope()')
-		return Sparky.getScope(node);
-	};
-
-	Sparky.setScope = function(node, scope) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		window.jQuery && jQuery.data(node, 'scope', scope);
-	};
-
-	Sparky.getScope = function(node) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		return jQuery.data(node, 'scope');
-	};
-
 	function getCookie(name) {
         var cookieValue = null;
         var cookies, cookie, i;
@@ -173,12 +152,6 @@ Sparky.nodeToString = Fn.id;
 			//.on('destroy', function() {
 			//	node.removeEventListener('submit', submit);
 			//});
-		},
-
-		"expose-scope": function(node, scopes) {
-			scopes.tap(function(scope) {
-				Sparky.setScope(node, scope);
-			});
 		}
 	});
 })(this);

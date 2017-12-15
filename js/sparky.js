@@ -276,7 +276,9 @@ var id = ++i;
 
 			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
 			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
-		}
+		},
+
+		getScope: mount.getScope
 	});
 
 	Object.defineProperties(Sparky, {

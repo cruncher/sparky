@@ -175,6 +175,19 @@
 		'default': JSON.stringify
 	});
 
+	var scopeMap = new WeakMap();
+
+	function mountScope(node, options, structs) {
+		structs.push({
+			token: '',
+			path: '',
+			pipe: id,
+			render: function renderScope(value) {
+				scopeMap.set(node, value);
+			}
+		});
+	}
+
 	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -344,6 +357,7 @@
 				mountNode(child, options, structs) ;
 			}
 
+			mountScope(node, options, structs);
 			mountClass(node, options, structs);
 			mountBoolean('hidden', node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
@@ -740,6 +754,9 @@
 		return RenderStream(structs, options, node);
 	}
 
+	mount.getScope = function(node) {
+		return scopeMap.get(node);
+	};
 
 	// Export (temporary)
 	mount.types  = types;
