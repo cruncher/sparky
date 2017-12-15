@@ -85,46 +85,26 @@
     };
 
 
-    Sparky.fn['--times'] = function(node, scopes, params) {
+    Sparky.fn['selected-on-click'] = function(node, scopes, params) {
+        var calendar;
 
-        // View
-
-        var startTime = params[0] ? Time(params[0]) : Time('00:00');
-        var stopTime  = params[1] ? Time(params[1]) : Time('24:00');
-        var stepTime  = params[2] || '00:20';
-        var scope = Observable([]);
-
-        var t1 = startTime;
-        var t2 = stopTime;
-
-        while (t1 < t2) {
-            scope.push({ time: t1 });
-            t1 = t1.add(stepTime);
-        }
-
-        // Controller
-
-        var changes;
-
-        scopes.each(function(scope) {
-            changes && changes.stop();
-
-            changes = dom
-            .event('change', node)
-            .map(get('target'))
-            .each(function(input) {
-                if (input.checked) {
-                    scope.times.push({
-                        date: scope.date,
-                        time: input.value
-                    })
-                }
-                else {
-
-                }
+        dom
+        .event('click', node)
+        .map(get('target'))
+        .map(dom.closest('[href="#availability-times"]'))
+        .map(Sparky.getScope)
+        .each(function(scope) {
+            calendar.data
+            .filter(get('selected'))
+            .forEach(function(object) {
+                object.selected = undefined;
             });
+
+            scope.selected = true;
         });
 
-        return Fn.of(scope);
+        return scopes.tap(function(scope) {
+            calendar = scope;
+        });
     };
 })(this);
