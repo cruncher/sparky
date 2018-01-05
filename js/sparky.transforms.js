@@ -47,7 +47,11 @@
 	}
 
 	assign(Sparky.transformers = {}, {
-		add:         { tx: Fn.add,         ix: curry(function(m, n) { return n - m; }) },
+		add:         {
+			tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
+			ix: curry(function(m, n) { return n - m; })
+		},
+
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
@@ -87,7 +91,6 @@
 
 		// Transforms from Fn's map functions
 
-		add:          Fn.add,
 		append:       Fn.append,
 		contains:     Fn.contains,
 		diff:         Fn.diff,
