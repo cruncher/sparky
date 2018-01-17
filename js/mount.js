@@ -542,11 +542,7 @@
 		},
 
 		meter: function(node, options, structs) {
-			mountAttribute('min', node, options, structs);
-			mountAttribute('max', node, options, structs);
-			mountAttribute('low', node, options, structs);
-			mountAttribute('high', node, options, structs);
-			mountAttribute('value', node, options, structs);
+			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
 		},
 
 		option: function(node, options, structs) {
@@ -559,8 +555,7 @@
 		},
 
 		progress: function(node, options, structs) {
-			mountAttribute('max', node, options, structs);
-			mountAttribute('value', node, options, structs);
+			mountAttribute(['max', 'value'], node, options, structs);
 		},
 
 		select: function(node, options, structs) {
