@@ -542,6 +542,11 @@
 			mountAttribute('value', node, options, structs);
 		},
 
+		progress: function(node, options, structs) {
+			mountAttribute('max', node, options, structs);
+			mountAttribute('value', node, options, structs);
+		},
+
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
@@ -594,24 +599,9 @@
 	};
 
 	var inputs = {
-		date: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueString(node, options, structs);
-		},
-
-		number: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueNumber(node, options, structs);
-		},
-
-		range: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueNumber(node, options, structs);
-		},
-
-		time: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueString(node, options, structs);
+		button: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
 		},
 
 		checkbox: function(node, options, structs) {
@@ -622,12 +612,51 @@
 			mountValueCheckbox(node, options, structs);
 		},
 
+		date: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		hidden: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		image: function(node, options, structs) {
+			mountAttribute('src', node, options, structs);
+		},
+
+		number: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
 		radio: function(node, options, structs) {
 			// false flag means don't check the prefixed attribute
 			mountAttribute('value', node, options, structs, false);
 			mountBoolean('checked', node, options, structs);
 			// This call only binds the prefixed attribute
 			mountValueRadio(node, options, structs);
+		},
+
+		range: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		reset: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		submit: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		time: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
 		default: function(node, options, structs) {
