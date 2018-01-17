@@ -522,6 +522,10 @@
 			mountAttribute('action', node, options, structs);
 		},
 
+		fieldset: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+		},
+
 		img: function(node, options, structs) {
 			mountAttribute('alt', node, options, structs);
 		},
@@ -537,9 +541,21 @@
 			mountAttribute('for', node, options, structs);
 		},
 
+		meter: function(node, options, structs) {
+			mountAttribute('min', node, options, structs);
+			mountAttribute('max', node, options, structs);
+			mountAttribute('low', node, options, structs);
+			mountAttribute('high', node, options, structs);
+			mountAttribute('value', node, options, structs);
+		},
+
 		option: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountAttribute('value', node, options, structs);
+		},
+
+		output: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
 		},
 
 		progress: function(node, options, structs) {
