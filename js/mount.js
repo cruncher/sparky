@@ -35,6 +35,9 @@
 	// Matches anything with a space
 	var rspaces = /\s+/;
 
+	// Matches empty or spaces-only string
+	var rempty  = /^\s*$/;
+
 	// Matches anything that contains a non-space character
 	var rtext = /\S/;
 
@@ -177,6 +180,10 @@
 
 	var scopeMap = new WeakMap();
 
+	function isTruthy(value) {
+		return !!value;
+	}
+
 	function matchToken(string, options) {
 		var rtoken = options.rtoken;
 		rtoken.lastIndex = 0;
@@ -253,50 +260,90 @@
 		}, options, structs);
 	}
 
-	function mountBoolean(name, node, options, structs) {
+	function renderBoolean(name, node) {
+		return name in node ?
 
+		// Assume attribute is also a boolean property
+		function renderBoolean(values) {
+			node[name] = !!values.find(isTruthy);
+		} :
+
+		// Attribute is not also a boolean property
+		function renderBoolean(values) {
+			if (values.find(isTruthy)) {
+				node.setAttribute(name, name);
+			}
+			else {
+				node.removeAttribute(name);
+			}
+		} ;
+	}
+
+	function mountBooleanToken(render, values, structs, match) {
+		var i = values.length;
+		values.push(false);
+		structs.push({
+			token:  match[0],
+			path:   match[2],
+			pipe:   match[3],
+			render: function(value) {
+				values[i] = value;
+				render(values);
+			}
+		});
+	}
+
+	function mountBoolean(name, node, options, structs) {
 		// Look for prefixed attributes before attributes.
 		//
 		// In FF, the disabled attribute is set to the previous value that the
 		// element had when the page is refreshed, so it contains no sparky
 		// tags. The proper way to address this problem is to set
 		// autocomplete="off" on the parent form or on the field.
-		//
-		// Remember SVG has case sensitive attributes.
 
 		var prefixed = node.getAttribute(options.attributePrefix + name);
-		var attr     = prefixed || node.getAttribute(name);
+		var string   = prefixed || node.getAttribute(name);
 
-		if (!attr) { return; }
+		// Fast out
+		if (!string) { return; }
 
-		var match = matchToken(attr.trim(), options)
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
+
+		// Fast out
 		if (!match) { return; }
 
+		var render = renderBoolean(name, node);
+
 		// Where the unprefixed attribute is populated, Return the property to
-		// the default value false.
-		if (!prefixed) { node[name] = false; }
+		// the default value.
+		if (!prefixed) {
+			render(nothing);
+		}
 
-		structs.push({
-			token:  attr.trim(),
-			path:   match[2],
-			pipe:   match[3],
-			render: name in node ?
+		var values = [];
+		var value;
 
-				// Attribute is also a boolean property
-				function render(value) {
-					node[name] = !!value;
-				} :
-
-				// Attribute is not also a boolean property
-				function render(value) {
-					if (value) {
-						node.setAttribute(name, name);
-					}
-					else {
-						node.removeAttribute(name);
-					}
+		while (match) {
+			if (match.index > i) {
+				value = string.slice(i, match.index);
+				if (!rempty.test(value)) {
+					values.push(value);
 				}
-		});
+			}
+
+			mountBooleanToken(render, values, structs, match);
+			i     = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i) {
+			value = string.slice(i);
+			if (!rempty.test(value)) {
+				values.push(value);
+			}
+		}
 	}
 
 	function mountClass(node, options, structs) {
