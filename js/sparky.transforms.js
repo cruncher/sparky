@@ -49,7 +49,7 @@
 	assign(Sparky.transformers = {}, {
 		add:         {
 			tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
-			ix: curry(function(m, n) { return n - m; })
+			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
 		},
 
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
