@@ -20,7 +20,8 @@ Sparky.nodeToString = Fn.id;
 		function log(scope) {
 			//console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
 			//console.log('data ', sparky.data);
-			console.log('Sparky node:', node, 'scope:', scope);
+			console.log('Sparky: scope change', node, scope);
+			console.trace();
 			//console.log('fn   ', node, sparky.fn);
 			//console[isIE ? 'log' : 'groupEnd']('---');
 		}
