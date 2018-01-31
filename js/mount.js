@@ -35,6 +35,9 @@
 	// Matches anything with a space
 	var rspaces = /\s+/;
 
+	// Matches empty or spaces-only string
+	var rempty  = /^\s*$/;
+
 	// Matches anything that contains a non-space character
 	var rtext = /\S/;
 
@@ -175,6 +178,29 @@
 		'default': JSON.stringify
 	});
 
+	var scopeMap = new WeakMap();
+
+	function isTruthy(value) {
+		return !!value;
+	}
+
+	function matchToken(string, options) {
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+		return rtoken.exec(string);
+	}
+
+	function mountScope(node, options, structs) {
+		structs.push({
+			token: '',
+			path: '',
+			pipe: id,
+			render: function renderScope(value) {
+				scopeMap.set(node, value);
+			}
+		});
+	}
+
 	function mountStringToken(render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -194,10 +220,9 @@
 		var i       = rtoken.lastIndex = 0;
 		var match   = rtoken.exec(string);
 
-		if (!match) { return nothing; }
+		if (!match) { return; }
 
 		var strings = [];
-
 		var renderStrings = function(strings) {
 			render(strings.join(''));
 		};
@@ -225,69 +250,100 @@
 		}
 	}
 
-	function mountAttribute(name, node, options, structs) {
-		var text = node.getAttribute(options.attributePrefix + name);
-
-		if (!text) {
-			text = node.getAttribute(cased[name] || name);
-		}
-		else {
-			// Remove the sparky attribute, just to keep the DOM clean.
-			// Not entirely necessary, perhaps limit to DEBUG mode?
-			node.removeAttribute(options.attributePrefix + name);
-		}
+	function mountAttribute(name, node, options, structs, prefixed) {
+		var text = prefixed !== false
+		&& node.getAttribute(options.attributePrefix + name)
+		|| node.getAttribute(cased[name] || name) ;
 
 		return text && mountString(text, function render(value) {
 			node.setAttribute(cased[name] || name, value);
 		}, options, structs);
 	}
 
-	function mountBoolean(name, node, options, structs) {
-		var rtoken = options.rtoken;
+	function renderBoolean(name, node) {
+		return name in node ?
 
+		// Assume attribute is also a boolean property
+		function renderBoolean(values) {
+			node[name] = !!values.find(isTruthy);
+		} :
+
+		// Attribute is not also a boolean property
+		function renderBoolean(values) {
+			if (values.find(isTruthy)) {
+				node.setAttribute(name, name);
+			}
+			else {
+				node.removeAttribute(name);
+			}
+		} ;
+	}
+
+	function mountBooleanToken(render, values, structs, match) {
+		var i = values.length;
+		values.push(false);
+		structs.push({
+			token:  match[0],
+			path:   match[2],
+			pipe:   match[3],
+			render: function(value) {
+				values[i] = value;
+				render(values);
+			}
+		});
+	}
+
+	function mountBoolean(name, node, options, structs) {
 		// Look for prefixed attributes before attributes.
 		//
 		// In FF, the disabled attribute is set to the previous value that the
 		// element had when the page is refreshed, so it contains no sparky
 		// tags. The proper way to address this problem is to set
 		// autocomplete="off" on the parent form or on the field.
-		//
-		// Remember SVG has case sensitive attributes.
 
 		var prefixed = node.getAttribute(options.attributePrefix + name);
-		var attr     = prefixed || node.getAttribute(name);
+		var string   = prefixed || node.getAttribute(name);
 
-		if (!attr) { return; }
+		// Fast out
+		if (!string) { return; }
 
-		rtoken.lastIndex = 0;
-		var tokens = rtoken.exec(attr.trim());
-		if (!tokens) { return; }
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
+
+		// Fast out
+		if (!match) { return; }
+
+		var render = renderBoolean(name, node);
 
 		// Where the unprefixed attribute is populated, Return the property to
-		// the default value false.
-		if (!prefixed) { node[name] = false; }
+		// the default value.
+		if (!prefixed) {
+			render(nothing);
+		}
 
-		structs.push({
-			token:  attr.trim(),
-			path:   tokens[2],
-			pipe:   tokens[3],
-			render: name in node ?
+		var values = [];
+		var value;
 
-				// Attribute is also a boolean property
-				function render(value) {
-					node[name] = !!value;
-				} :
-
-				// Attribute is not also a boolean property
-				function render(value) {
-					if (value) {
-						node.setAttribute(name, name);
-					}
-					else {
-						node.removeAttribute(name);
-					}
+		while (match) {
+			if (match.index > i) {
+				value = string.slice(i, match.index);
+				if (!rempty.test(value)) {
+					values.push(value);
 				}
-		});
+			}
+
+			mountBooleanToken(render, values, structs, match);
+			i     = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i) {
+			value = string.slice(i);
+			if (!rempty.test(value)) {
+				values.push(value);
+			}
+		}
 	}
 
 	function mountClass(node, options, structs) {
@@ -320,17 +376,127 @@
 		node.setAttribute('class', text);
 	}
 
-	function mountValue(node, options, structs) {
-		var string = attribute(options.attributePrefix + 'value', node) ||
-			attribute('value', node) ;
-		var rtoken = options.rtoken;
-		rtoken.lastIndex = 0;
-
-		var match = rtoken.exec(string);
+	function mountValueNumber(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node)
+			|| attribute('value', node) ;
+		var match = matchToken(string, options);
 		if (!match) { return; }
 
-		return mountValueByType(node, options, match, structs);
+		structs.push({
+			node:  node,
+			token: match[0],
+			path:  match[2],
+			pipe:  match[3],
+
+			read: function read() {
+				return node.value ? parseFloat(node.value) : undefined ;
+			},
+
+			render: function render(value) {
+				// Avoid updating with the same value as it sends the cursor to
+				// the end of the field (in Chrome, at least).
+				if (value === parseFloat(node.value)) { return; }
+
+				node.value = typeof value === 'number' && !isNaN(value) ?
+					value :
+					'' ;
+			},
+
+			listen: listen(node, 'input')
+		});
 	}
+
+	function mountValueString(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node)
+			|| attribute('value', node) ;
+		var match = matchToken(string, options);
+		if (!match) { return; }
+
+		structs.push({
+			node:  node,
+			token: match[0],
+			path:  match[2],
+			pipe:  match[3],
+
+			read: function read() {
+				return node.value;
+			},
+
+			render: function render(value) {
+				// Avoid updating with the same value as it sends the cursor to
+				// the end of the field (in Chrome, at least).
+				if (value === node.value) { return; }
+
+				node.value = typeof value === 'string' ?
+					value :
+					'' ;
+			},
+
+			listen: listen(node, 'input')
+		});
+	}
+
+	function mountValueCheckbox(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		structs.push({
+			node:  node,
+			token: match[0],
+			path:  match[2],
+			pipe:  match[3],
+
+			read: function read() {
+				// TODO: Why do we check attribute here?
+				return isDefined(node.getAttribute('value')) ?
+					node.checked ? node.value : undefined :
+					node.checked ;
+			},
+
+			render: function render(value) {
+				// Where value is defined check against it, otherwise
+				// value is "on", uselessly. Set checked state directly.
+				node.checked = isDefined(node.getAttribute('value')) ?
+					value === node.value :
+					value === true ;
+			},
+
+			listen: listen(node, 'change')
+		});
+	}
+
+	function mountValueRadio(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		structs.push({
+			node:  node,
+			token: match[0],
+			path:  match[2],
+			pipe:  match[3],
+
+			read: function read() {
+				if (!node.checked) { return; }
+
+				return isDefined(node.getAttribute('value')) ?
+					node.value :
+					true ;
+			},
+
+			render: function render(value) {
+				// Where value="" is defined check against it, otherwise
+				// value is "on", uselessly: set checked state directly.
+				node.checked = isDefined(node.getAttribute('value')) ?
+					value === node.value :
+					value === true ;
+			},
+
+			listen: listen(node, 'change')
+		});
+	}
+
 
 	var types = {
 		// element
@@ -344,7 +510,9 @@
 				mountNode(child, options, structs) ;
 			}
 
+			mountScope(node, options, structs);
 			mountClass(node, options, structs);
+			mountBoolean('hidden', node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
 			mountTag(node, options, structs);
 		},
@@ -397,20 +565,31 @@
 			mountBoolean('disabled', node, options, structs);
 		},
 
-		input: function(node, options, structs) {
+		form: function(node, options, structs) {
+			mountAttribute('action', node, options, structs);
+		},
+
+		fieldset: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
-			mountBoolean('required', node, options, structs);
-			mountAttribute('name', node, options, structs);
-			mountInput(node, options, structs);
-			mountValue(node, options, structs);
 		},
 
 		img: function(node, options, structs) {
 			mountAttribute('alt', node, options, structs);
 		},
 
+		input: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountInput(node, options, structs);
+		},
+
 		label: function(node, options, structs) {
 			mountAttribute('for', node, options, structs);
+		},
+
+		meter: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
 		},
 
 		option: function(node, options, structs) {
@@ -418,18 +597,26 @@
 			mountAttribute('value', node, options, structs);
 		},
 
+		output: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		progress: function(node, options, structs) {
+			mountAttribute(['max', 'value'], node, options, structs);
+		},
+
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
 			mountAttribute('name', node, options, structs);
-			mountValue(node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
 		textarea: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
 			mountAttribute('name', node, options, structs);
-			mountValue(node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
 		time: function(node, options, structs)  {
@@ -459,7 +646,7 @@
 		},
 
 		text: function(node, options, structs) {
-			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node, options, structs);
+			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
 		},
 
 		use: function(node, options, structs) {
@@ -470,167 +657,74 @@
 	};
 
 	var inputs = {
+		button: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		checkbox: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueCheckbox(node, options, structs);
+		},
+
 		date: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		hidden: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		image: function(node, options, structs) {
+			mountAttribute('src', node, options, structs);
 		},
 
 		number: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		radio: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueRadio(node, options, structs);
 		},
 
 		range: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		reset: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		submit: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
 		},
 
 		time: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
-		checkbox: function(node, options, structs) {
-			mountBoolean('checked', node, options, structs);
-		},
-
-		radio: function(node, options, structs) {
-			mountBoolean('checked', node, options, structs);
-		},
-
-		default: noop
-	};
-
-	var inputTypes = {
-		checkbox: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					// TODO: Why do we check attribute here?
-					return isDefined(node.getAttribute('value')) ?
-						node.checked ? node.value : undefined :
-						node.checked ;
-				},
-
-				render: function render(value) {
-					// Where value is defined check against it, otherwise
-					// value is "on", uselessly. Set checked state directly.
-					node.checked = isDefined(node.getAttribute('value')) ?
-						value === node.value :
-						value === true ;
-				},
-
-				listen: listen(node, 'change')
-			});
-		},
-
-		radio: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					if (!node.checked) { return; }
-
-					return isDefined(node.getAttribute('value')) ?
-						node.value :
-						true ;
-				},
-
-				render: function render(value) {
-					// Where value="" is defined check against it, otherwise
-					// value is "on", uselessly: set checked state directly.
-					node.checked = isDefined(node.getAttribute('value')) ?
-						value === node.value :
-						value === true ;
-				},
-
-				listen: listen(node, 'change')
-			});
-		},
-
-		number: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value ? parseFloat(node.value) : undefined ;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === parseFloat(node.value)) { return; }
-
-					node.value = typeof value === 'number' && !isNaN(value) ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
-		},
-
-		range: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value ? parseFloat(node.value) : undefined ;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === parseFloat(node.value)) { return; }
-
-					node.value = typeof value === 'number' && !isNaN(value) ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
-		},
-
-		default: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === node.value) { return; }
-
-					node.value = typeof value === 'string' ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
+		default: function(node, options, structs) {
+			mountValueString(node, options, structs);
 		}
 	};
 
 	var mountNode        = overload(get('nodeType'), types);
 	var mountTag         = overload(dom.tag, tags);
 	var mountInput       = overload(get('type'), inputs);
-	var mountValueByType = overload(get('type'), inputTypes);
 
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
@@ -735,23 +829,24 @@
 		return RenderStream(structs, options, node);
 	}
 
+	mount.getScope = function(node) {
+		return scopeMap.get(node);
+	};
 
 	// Export (temporary)
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
-	mount.mountAttribute = mountAttribute;
-	mount.mountBoolean   = mountBoolean;
-	mount.mountInput     = mountInput;
-	mount.mountValue     = mountValue;
+	mount.mountAttribute   = mountAttribute;
+	mount.mountBoolean     = mountBoolean;
+	mount.mountInput       = mountInput;
+	mount.mountValueString = mountValueString;
+	mount.mountValueNumber = mountValueNumber;
 
 	// Legacy pre 2.0.3
 	mount.mountName = function mountName(node, options, structs) {
 		var string = node.name;
-		var rtoken = options.rtoken;
-		rtoken.lastIndex = 0;
-
-		var match = rtoken.exec(string);
+		var match  = matchToken(string, options);
 		if (!match) { return; }
 
 		return mountValueByType(node, options, match, structs);

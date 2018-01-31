@@ -47,7 +47,11 @@
 	}
 
 	assign(Sparky.transformers = {}, {
-		add:         { tx: Fn.add,         ix: curry(function(m, n) { return n - m; }) },
+		add:         {
+			tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
+			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+		},
+
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
@@ -87,7 +91,6 @@
 
 		// Transforms from Fn's map functions
 
-		add:          Fn.add,
 		append:       Fn.append,
 		contains:     Fn.contains,
 		diff:         Fn.diff,
@@ -209,9 +212,23 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, path, array) {
-			return array && array.map(Sparky.transforms[method](path));
+		map: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
 		}, true),
+
+		filter: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
+		}, true),
+
+		match: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return regex.exec(string);
+		}),
+
+		matches: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return !!regex.test(string);
+		}),
 
 		pluralise: curry(function(str1, str2, lang, value) {
 			if (typeof value !== 'number') { return; }

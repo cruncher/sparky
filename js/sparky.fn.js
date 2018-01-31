@@ -20,7 +20,8 @@ Sparky.nodeToString = Fn.id;
 		function log(scope) {
 			//console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
 			//console.log('data ', sparky.data);
-			console.log('Sparky node:', node, 'scope:', scope);
+			console.log('Sparky: scope change', node, scope);
+			console.trace();
 			//console.log('fn   ', node, sparky.fn);
 			//console[isIE ? 'log' : 'groupEnd']('---');
 		}
@@ -69,32 +70,12 @@ Sparky.nodeToString = Fn.id;
 (function(window) {
 	"use strict";
 
+	var assign = Object.assign;
 	var Fn = window.Fn;
 
 	function preventDefault(e) {
 		e.preventDefault();
 	}
-
-	Sparky.scope = function(node) {
-		console.warn('Sparky: Sparky.scope() deprecated in favour of Sparky.getScope()')
-		return Sparky.getScope(node);
-	};
-
-	Sparky.setScope = function(node, scope) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		window.jQuery && jQuery.data(node, 'scope', scope);
-	};
-
-	Sparky.getScope = function(node) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		return jQuery.data(node, 'scope');
-	};
 
 	function getCookie(name) {
         var cookieValue = null;
@@ -135,6 +116,8 @@ Sparky.nodeToString = Fn.id;
 				if (submit) { node.removeEventListener('submit', submit); }
 
 				submit = function(e) {
+					var url = node.getAttribute('action');
+
 					// Axios
 					axios
 					.post(url, scope, {
@@ -142,6 +125,10 @@ Sparky.nodeToString = Fn.id;
 					})
 					.then(function (response) {
 						console.log(response);
+
+						if (response.data) {
+							assign(scope, response.data);
+						}
 					})
 					.catch(function (error) {
 						console.log(error);
@@ -166,12 +153,6 @@ Sparky.nodeToString = Fn.id;
 			//.on('destroy', function() {
 			//	node.removeEventListener('submit', submit);
 			//});
-		},
-
-		"expose-scope": function(node, scopes) {
-			scopes.tap(function(scope) {
-				Sparky.setScope(node, scope);
-			});
 		}
 	});
 })(this);

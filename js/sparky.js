@@ -83,6 +83,10 @@ var id = ++i;
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
 
+		if (!node) {
+			throw new Error('Sparky: "' + selector + '" not found.');
+		}
+
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
 		var calling  = true;
 		var sparky   = this;
@@ -106,6 +110,7 @@ var id = ++i;
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
+
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -128,9 +133,10 @@ var id = ++i;
 
 			// Gaurantee that params exists, at least.
 			var params = token[2] ?
-				JSON.parse('[' + token[2].replace(/'/g, '"') + ']') :
+				JSON.parse('[' + token[2].replace(/'|`/g, '"') + ']') :
 				nothing ;
 
+			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
 			input      = fn.call(sparky, node, input, params) || input;
 
@@ -198,6 +204,30 @@ var id = ++i;
 				return stream.map(getPath(params[0]));
 			},
 
+			if: function(node, stream, params) {
+				var name = params[0];
+				var mark = Sparky.MarkerNode(node);
+				var visible = false;
+
+				// Put the marker in place and remove the node
+				dom.before(node, mark);
+				dom.remove(node);
+
+				return stream.tap(function(scope) {
+					var visibility = !!scope[name];
+
+					if(visibility === visible) { return; }
+					visible = visibility;
+
+					if (visible) {
+						dom.replace(mark, node);
+					}
+					else {
+						dom.replace(node, mark);
+					}
+				});
+			},
+
 			stop: function ignore(node, stream) {
 				console.log(this.interrupt(), node, stream);
 			},
@@ -246,7 +276,9 @@ var id = ++i;
 
 			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
 			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
-		}
+		},
+
+		getScope: mount.getScope
 	});
 
 	Object.defineProperties(Sparky, {
