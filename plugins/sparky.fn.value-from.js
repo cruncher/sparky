@@ -23,7 +23,7 @@
     function valueFrom(getValue, sparky, node, stream, target, name) {
 		var scope = Observable({});
 		var event = dom
-		.event('input', target)
+		.events('input', target)
 		.map(get('target'))
 		.unshift(target)
         .map(getValue)

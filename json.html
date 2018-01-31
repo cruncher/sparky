@@ -178,7 +178,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', node)
+				clicks = dom.events('click', node)
 				.each(function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'string') { return; }
@@ -191,7 +191,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', node)
+				clicks = dom.events('click', node)
 				.each(function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'number') { return; }
@@ -204,7 +204,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', node)
+				clicks = dom.events('click', node)
 				.each(function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'boolean') { return; }
@@ -217,7 +217,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', node)
+				clicks = dom.events('click', node)
 				.each(function() {
 					var value = scope.object[scope.name];
 					var type  = toType(value);
@@ -259,7 +259,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', node)
+				clicks = dom.events('click', node)
 				.each(function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'boolean') { return; }
@@ -272,7 +272,7 @@ small {
 			var clicks;
 			return stream.tap(function(scope) {
 				clicks && clicks.stop();
-				clicks = dom.event('click', function() {
+				clicks = dom.events('click', function() {
 					var value = scope.object[scope.name];
 					if (toType(value) === 'boolean') { return; }
 					scope.object[scope.name] = new Date(value);
@@ -290,7 +290,7 @@ small {
 			clicks && clicks.stop();
 
 			var events = dom
-			.event('click', node)
+			.events('click', node)
 			.each(function addToObject() {
 				var name = 'property';
 				var i = 0;
@@ -314,7 +314,7 @@ small {
 			clicks && clicks.stop();
 
 			var events = dom
-			.event('click', node)
+			.events('click', node)
 			.each(function addToArray() {
 				var type = object.reduce(function(t, item) {
 					var type = toType(item);
@@ -351,7 +351,7 @@ small {
 			.each(set('value', node));
 
 			events = dom
-			.event(type, node)
+			.events(type, node)
 			.map(compose(get('value'), get('target')))
 			.each(overload(id, {
 				// A bit hacky, to disallow empty strings only on change,

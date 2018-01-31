@@ -32,7 +32,7 @@
         scope[name] = target[property];
 
         dom
-        .event('scroll', eventTarget)
+        .events('scroll', eventTarget)
         .map(getScroll)
         .each(set(name, Observable(scope)));
 

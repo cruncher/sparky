@@ -9,7 +9,7 @@
 	Sparky.fn['scope-on'] = function scopeOn(node, scopes, params) {
 		// Safari requires the .select to be delayed, as focus seems to happen
 		// on mouseup, while the click that follows it resets the cursor.
-		return dom.event(params[0], node)
+		return dom.events(params[0], node)
         .map(Fn.get('relatedTarget'))
         .map(Sparky.getScope);
 	};
