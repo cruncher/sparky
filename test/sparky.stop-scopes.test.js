@@ -1,5 +1,9 @@
 
-group('.stop()', function(test, log, fixture) {
+Sparky.fn['pass-through'] = function(node, stream) {
+	//return stream.tap(console.log);
+};
+
+group('.stop() scopes', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
@@ -35,12 +39,8 @@ group('.stop()', function(test, log, fixture) {
 */});
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() scopes to child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
-
-	Sparky.fn['pass-through'] = function(node, stream) {
-		return stream.tap(console.log);
-	};
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');
@@ -76,12 +76,8 @@ group('.stop()', function(test, log, fixture) {
 
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() scopes to templated child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
-
-	Sparky.fn['pass-through'] = function(node, stream) {
-		return stream.tap(console.log);
-	};
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');

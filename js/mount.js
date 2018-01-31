@@ -778,6 +778,10 @@
 					};
 
 					// Rebind struct
+					if (struct.input) {
+						struct.input.stop();
+					}
+
 					var input = struct.input = Stream.observe(struct.path, observable);
 					var value = input.latest().shift();
 

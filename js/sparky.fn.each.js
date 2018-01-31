@@ -39,7 +39,8 @@
 				continue;
 			}
 
-			i = -1;
+			// i = -1
+			i = n - 1;
 			while (sparkies[++i] && sparkies[i][$object] !== object);
 
 			sparky = i === sparkies.length ?
@@ -48,15 +49,15 @@
 
 			sparkies.splice(n, 0, sparky);
 		}
-	}
 
-	function reorderNodes(node, array, sparkies) {
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
 			A.forEach.call(sparkies.pop().stop(), dom.remove);
 		}
+	}
 
+	function reorderNodes(node, array, sparkies) {
 		// Reorder nodes in the DOM
 		var l = sparkies.length;
 		var n = -1;
@@ -98,7 +99,7 @@
 			}
 		}
 
-		var throttle = Fn.throttle(update, requestAnimationFrame, noop);
+		var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 		//var timer;
 
 		//fns.unshift(function() {
@@ -114,8 +115,9 @@
 		dom.remove(node);
 
 		var unobserve = noop;
-		var initial = scopes.latest().shift();
+		var initial   = scopes.latest().shift();
 
+		// Initial render should not be throttled
 		if (initial) {
 			observe(initial, '', update);
 		}

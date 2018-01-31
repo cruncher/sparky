@@ -71,14 +71,13 @@
 	}
 
 	function escapeSelector(selector) {
-		return selector.replace(/\//g, '\\\/');
+		return selector.replace(/\//g, '\\/');
 	}
-var i = 0;
+
 	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
-var id = ++i;
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;

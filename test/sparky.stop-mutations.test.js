@@ -1,10 +1,10 @@
 
 Sparky.fn['pass-through'] = function(node, stream) {
-	return stream.tap(console.log);
+
 };
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() mutations', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
@@ -40,7 +40,7 @@ group('.stop()', function(test, log, fixture) {
 */});
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() mutations to child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
@@ -77,7 +77,7 @@ group('.stop()', function(test, log, fixture) {
 
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() mutations to templated child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
@@ -117,7 +117,7 @@ group('.stop()', function(test, log, fixture) {
 
 
 
-group('.stop()', function(test, log, fixture) {
+group('.stop() mutations to each child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
@@ -150,15 +150,11 @@ group('.stop()', function(test, log, fixture) {
 				});
 			});
 		});
-	}, 3);
+	}, 11);
 }, function() {/*
 
-<div sparky-fn="template:'#stop-test-3'">
-	Unrendered
-</div>
-
-<template id="stop-test-3">
+<div>
 	<p sparky-fn="each">{[property]}</p>
-</template>
+</div>
 
 */});
