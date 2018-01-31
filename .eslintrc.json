@@ -15,7 +15,7 @@
         "arrow-parens": "error",
         "arrow-spacing": "error",
         "block-scoped-var": "off",
-        "block-spacing": ["error", "always"],
+        "block-spacing": "off",
         "brace-style": "off",
         "callback-return": "error",
         "camelcase": "off",

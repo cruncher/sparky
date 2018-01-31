@@ -556,15 +556,17 @@ id:   {[id]}
 
 	<!-- Tests -->
 
-	<!--script src="fn/test/test.js"></script>
-	<script src="test/sparky.test.js"></script>
-	<script src="test/sparky.input-test.js"></script>
+	<script src="fn/test/test.js"></script>
+	<!--script src="test/sparky.test.js"></script-->
+	<!--script src="test/sparky.stop-scopes.test.js"></script-->
+	<script src="test/sparky.stop-mutations.test.js"></script>
+	<!--script src="test/sparky.input-test.js"></script>
 	<script src="test/sparky.textarea-test.js"></script>
 	<script src="test/sparky.select-test.js"></script>
 	<script src="test/sparky.fn-test.js"></script>
 	<script src="test/sparky.fn.each-test.js"></script>
 	<script src="test/sparky.fn.template-test.js"></script>
-	<script src="test/sparky.fn.load-test.js"></script-->
+	<script src="test/sparky.fn.load-test.js"></script>
 	<!--script src="test/sparky.transforms-test.js"></script-->
 
 	<!-- Plugins -->
@@ -602,7 +604,7 @@ id:   {[id]}
 	<script>
 		//window.Sparky('#calendar');
 		//window.Sparky('#template-demo-2');
-		//window.Sparky('#header');
+		window.Sparky('#header');
 	</script>
 </body>
 </html>
