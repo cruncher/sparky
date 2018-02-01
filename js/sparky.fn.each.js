@@ -8,7 +8,9 @@
 	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
+	var before     = dom.before;
 	var clone      = dom.clone;
+	var remove     = dom.remove;
 	var tag        = dom.tag;
 	var observe    = Observable.observe;
 	var MarkerNode = Sparky.MarkerNode;
@@ -53,7 +55,7 @@
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
-			A.forEach.call(sparkies.pop().stop(), dom.remove);
+			A.forEach.call(sparkies.pop().stop(), remove);
 		}
 	}
 
@@ -100,27 +102,21 @@
 		}
 
 		var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
-		//var timer;
-
-		//fns.unshift(function() {
-		//	this.data = Object.create(data);
-		//});
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
 		//template.removeAttribute('data-scope');
 		template.removeAttribute(Sparky.attributePrefix + 'fn');
 
 		// Put the marker in place and remove the node
-		dom.before(node, marker);
-		dom.remove(node);
+		before(node, marker);
+		remove(node);
 
-		var unobserve = noop;
-		var initial   = scopes.latest().shift();
+		var initial = scopes.latest().shift();
 
 		// Initial render should not be throttled
-		if (initial) {
-			observe(initial, '', update);
-		}
+		var unobserve = initial ?
+			observe(initial, '', update) :
+			noop ;
 
 		scopes.each(function(scope) {
 			unobserve();
@@ -130,6 +126,7 @@
 		this.then(function destroy() {
 			throttle.cancel();
 			unobserve();
+			remove(marker);
 		});
 	};
 })(this);
