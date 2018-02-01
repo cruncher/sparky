@@ -39,10 +39,7 @@
     fetch ? function fetchRequest(url, id) {
         return fetch(url)
         .then(getData)
-        .then(parseHTML)
-        .then(function() {
-
-        });
+        .then(parseHTML);
     } :
 
     function errorRequest(url, id) {
@@ -80,7 +77,6 @@
         insertTemplate(sparky, node, scopes, id, template);
     }
 
-
     function templateFromCache2(sparky, node, scopes, path, id, template) {
         var doc, elem;
 
@@ -96,7 +92,7 @@
         if (!template) {
             throw new Error('Sparky: template ' + id + ' not found.');
         }
-console.log('INSERT TEMPLATE')
+
         //return scopes.tap(function(scope) {
             var fragment = dom.clone(template);
             dom.empty(node);
@@ -218,6 +214,5 @@ console.log('INSERT TEMPLATE')
 
             throw new Error('Sparky: template-from must have ${prop} in the url string');
         }
-
     });
 })(this);
