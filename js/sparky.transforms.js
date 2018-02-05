@@ -15,6 +15,7 @@
 	var get       = Fn.get;
 	var isDefined = Fn.isDefined;
 	var last      = Fn.last;
+	var formatDate = Fn.formatDate;
 
 	function spaces(n) {
 		var s = '';
@@ -52,6 +53,8 @@
 			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
 		},
 
+		'add-date':  { tx: Time.addDate,   ix: Time.subDate },
+		'add-time':  { tx: Time.addTime,   ix: Time.subTime },
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
@@ -97,6 +100,8 @@
 		equals:       Fn.equals,
 		//exp:          Fn.exp,
 		factorise:    Fn.factorise,
+		formatdate:   Fn.formatDate,
+		formattime:   Fn.formatTime,
 		gcd:          Fn.gcd,
 		get:          Fn.get,
 		getPath:      Fn.getPath,
@@ -129,7 +134,6 @@
 		unique:       Fn.unique,
 		unite:        Fn.unite,
 
-
 		// Transforms from dom's map functions
 
 		escape:       dom.escape,
@@ -139,11 +143,17 @@
 
 		// Sparky transforms
 
-		timeformat: function timeformat(format, lang) {
-			lang = lang || document.documentElement.lang;
+		timeformat: function timeformat(format, timezone, locale) {
+			locale = locale || document.documentElement.lang;
 
-			return function(value) {
-				return Time(value).render(format, lang);
+			return function(date) {
+				// Todo: Deprecated: Time objects
+				if (date instanceof Time) {
+					console.log('Sparky: deprecated Time objects in timeformat transform. Also, use formattime.');
+					return date.render(format, locale);
+				}
+
+				return formatDate(format, timezone, locale, date);
 			};
 		},
 
