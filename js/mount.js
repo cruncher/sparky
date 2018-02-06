@@ -726,6 +726,12 @@
 	var mountTag         = overload(dom.tag, tags);
 	var mountInput       = overload(get('type'), inputs);
 
+	var toLog   = overload(toType, {
+		function: function(fn) { return fn.toString(); },
+		object: JSON.stringify,
+		default: id
+	});
+
 	function catchIfDebug(fn, struct) {
 		return function(value) {
 			try {
@@ -733,7 +739,7 @@
 			}
 			catch(e) {
 				//console.log('Original error:', e.stack);
-				throw new Error('Sparky failed to render ' + struct.token + ' with value ' + value + '.\n' + e.stack);
+				throw new Error('Sparky failed to render ' + struct.token + ' with value ' + toLog(value) + '.\n' + e.stack);
 			}
 		}
 	}
