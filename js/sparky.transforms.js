@@ -7,7 +7,6 @@
 	var Fn        = window.Fn;
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
-	var Time      = window.Time;
 
 	var A         = Array.prototype;
 	var assign    = Object.assign;
@@ -53,8 +52,8 @@
 			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
 		},
 
-		'add-date':  { tx: Time.addDate,   ix: Time.subDate },
-		'add-time':  { tx: Time.addTime,   ix: Time.subTime },
+		'add-date':  { tx: Fn.addDate,     ix: Fn.subDate },
+		'add-time':  { tx: Fn.addTime,     ix: Fn.subTime },
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },

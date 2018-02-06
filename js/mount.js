@@ -726,9 +726,21 @@
 	var mountTag         = overload(dom.tag, tags);
 	var mountInput       = overload(get('type'), inputs);
 
+	function catchIfDebug(fn, struct) {
+		return function(value) {
+			try {
+				return fn.apply(this, arguments);
+			}
+			catch(e) {
+				//console.log('Original error:', e.stack);
+				throw new Error('Sparky failed to render ' + struct.token + ' with value ' + value + '.\n' + e.stack);
+			}
+		}
+	}
+
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		var update    = compose(struct.render, transform);
+		var update    = catchIfDebug(compose(struct.render, transform), struct);
 		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
 		struct.update = update;
@@ -788,7 +800,9 @@
 					// If there is an initial scope render it synchronously, as
 					// it is assumed we are already working inside an animation
 					// frame
-					if (value !== undefined) { (struct.update || struct.push)(value); }
+					if (value !== undefined) {
+						(struct.update || struct.push)(value);
+					}
 
 					// Render future scopes at throttled frame rate, where
 					// throttle is defined

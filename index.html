@@ -507,9 +507,14 @@ id:   {[id]}
 				<code>format</code></p>
 			</div>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
-				<h3 class="text-5"><a href="#tn-add"><code class="js">timeformat:format</code></a></h3>
-				<p>Converts Date or JSON time string to string in <code>format</code>.</p>
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-formatdate">
+				<h3 class="text-5"><a href="#tn-formattime"><code class="js">formatdate:formattime,timeZone,locale</code></a></h3>
+				<p>Converts Date, ISO8601 date string or UNIX time (in seconds) to string in <code>format</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-formattime">
+				<h3 class="text-5"><a href="#tn-formattime"><code class="js">formatdate:format</code></a></h3>
+				<p>Converts ISO time string, a number (in seconds) or the UTC time values of a Date object to string in <code>format</code>.</p>
 			</div>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-yesno">
@@ -603,7 +608,7 @@ id:   {[id]}
 
 	<template id="calendar-template">
 		<div class="calendar-block block">
-			<h1>{[startDate|timeformat:'DD MMM YY']} – {[stopDate|timeformat:'DD MMM YY']}</h1>
+			<h1>{[startDate|formatdate:'DD MMM YY','Europe/Zurich','en']} – {[stopDate|formatdate:'DD MMM YY','Europe/Zurich','en']}</h1>
 
 			<button sparky-calendar-start="-0000-00-14">Decrement range</button>
 			<button sparky-calendar-start="0000-00-14">Increment range</button>
@@ -613,14 +618,14 @@ id:   {[id]}
 	</template>
 
 	<template id="calendar-date-template">
-		<div class="block grid-1/7 {[data.0.date|timeformat:'ddd'|append:'-day-block']}">{[data.0.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.1.date|timeformat:'ddd'|append:'-day-block']}">{[data.1.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.2.date|timeformat:'ddd'|append:'-day-block']}">{[data.2.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.3.date|timeformat:'ddd'|append:'-day-block']}">{[data.3.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.4.date|timeformat:'ddd'|append:'-day-block']}">{[data.4.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.5.date|timeformat:'ddd'|append:'-day-block']}">{[data.5.date|timeformat:'ddd']}</div
-		><div class="block grid-1/7 {[data.6.date|timeformat:'ddd'|append:'-day-block']}">{[data.6.date|timeformat:'ddd']}</div
-		><time sparky-fn="get:'data' each" class="block grid-1/7 {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">{[date|timeformat:'DD']}</time>
+		<div class="block grid-1/7 {[data.0.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.0.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.1.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.1.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.2.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.2.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.3.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.3.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.4.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.4.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.5.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.5.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><div class="block grid-1/7 {[data.6.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.6.date|formatdate:'ddd','Europe/Zurich','en']}</div
+		><time sparky-fn="get:'data' each" class="block grid-1/7 {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">{[date|formatdate:'DD','Europe/Zurich','en']}</time>
 	</template>
 
 	<script>
