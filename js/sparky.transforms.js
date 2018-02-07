@@ -133,6 +133,7 @@
 		unique:       Fn.unique,
 		unite:        Fn.unite,
 
+
 		// Transforms from dom's map functions
 
 		escape:       dom.escape,
@@ -141,20 +142,6 @@
 
 
 		// Sparky transforms
-
-		timeformat: function timeformat(format, timezone, locale) {
-			locale = locale || document.documentElement.lang;
-
-			return function(date) {
-				// Todo: Deprecated: Time objects
-				if (date instanceof Time) {
-					console.log('Sparky: deprecated Time objects in timeformat transform. Also, use formattime.');
-					return date.render(format, locale);
-				}
-
-				return formatDate(format, timezone, locale, date);
-			};
-		},
 
 		divide: curry(function(n, value) {
 			if (typeof value !== 'number') { return; }
