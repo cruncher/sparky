@@ -31,7 +31,11 @@
 		// Child mounting function
 		mount: function mount(node, options, streams) {
 			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
-			if (!fn) { return; }
+
+			if (!fn) {
+				// Tell the mounter we have not handled this one
+				return false;
+			}
 
 			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
 			//if (DEBUG) { console.log('mounted:', node, fn); }
@@ -78,6 +82,7 @@
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
+
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
@@ -109,7 +114,6 @@
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
-
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -148,12 +152,10 @@
 				var object;
 
 				if (data !== undefined) {
-					object = Observable(data);
+					object = Observable(data) || data;
 					data   = undefined;
 					return object;
 				}
-
-				//notify('pull');
 			};
 
 			this.push = function() {

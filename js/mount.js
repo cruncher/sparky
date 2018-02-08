@@ -10,6 +10,7 @@
 
 	var assign     = Object.assign;
 	var attribute  = dom.attribute;
+	var closest    = dom.closest;
 	var compose    = Fn.compose;
 	var curry      = Fn.curry;
 	var get        = Fn.get;
@@ -24,21 +25,13 @@
 	var setPath    = Fn.setPath;
 	var toType     = Fn.toType;
 
-
-	// Matches tags plus any directly adjacent text
-	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
-	//var rclasstags;
-
-	// Matches filter string, capturing (filter name, filter parameter string)
-	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
-
 	// Matches anything with a space
 	var rspaces = /\s+/;
 
 	// Matches empty or spaces-only string
 	var rempty  = /^\s*$/;
 
-	// Matches anything that contains a non-space character
+	// Matches non-empty or non-spaces-only string
 	var rtext = /\S/;
 
 	// Matches the arguments list in the result of a fn.toString()
@@ -136,9 +129,7 @@
 
 	// Mount
 
-	var cased = {
-		viewbox: 'viewBox'
-	};
+	var scopeMap = new WeakMap();
 
 	var listen = curry(function(node, type, fn) {
 		node.addEventListener(type, fn);
@@ -146,6 +137,10 @@
 			node.removeEventListener('input', fn);
 		};
 	}, true);
+
+	var cased = {
+		viewbox: 'viewBox'
+	};
 
 	var toRenderString = overload(toType, {
 		'boolean': function(value) {
@@ -178,7 +173,229 @@
 		'default': JSON.stringify
 	});
 
-	var scopeMap = new WeakMap();
+	var types = {
+		// element
+		1: function mountElement(node, options, structs) {
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+
+			mountClass(node, options, structs);
+			mountBoolean('hidden', node, options, structs);
+			mountAttributes(['id', 'title', 'style'], node, options, structs);
+			mountTag(node, options, structs);
+		},
+
+		// text
+		3: function mountText(node, options, structs) {
+			mountString(node.nodeValue, set('nodeValue', node), options, structs);
+		},
+
+		// document
+		9: function mountDocument(node, options, structs) {
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		},
+
+		// fragment
+		11: function mountFragment(node, options, structs) {
+			var children = node.childNodes;
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		},
+
+		// comment (8), doctype (10)
+		default: noop
+	};
+
+	var tags = {
+
+		// HTML
+
+		a: function(node, options, structs) {
+			mountAttribute('href', node, options, structs);
+		},
+
+		button: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+		},
+
+		form: function(node, options, structs) {
+			mountAttribute('action', node, options, structs);
+		},
+
+		fieldset: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+		},
+
+		img: function(node, options, structs) {
+			mountAttribute('alt', node, options, structs);
+		},
+
+		input: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountInput(node, options, structs);
+		},
+
+		label: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		meter: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
+		},
+
+		option: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountAttribute('value', node, options, structs);
+		},
+
+		output: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		progress: function(node, options, structs) {
+			mountAttribute(['max', 'value'], node, options, structs);
+		},
+
+		select: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		textarea: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		time: function(node, options, structs)  {
+			mountAttributes(['datetime'], node, options, structs);
+		},
+
+		// SVG
+
+		svg: function(node, options, structs) {
+			mountAttributes(['viewbox'], node, options, structs);
+		},
+
+		g: function(node, options, structs) {
+			mountAttributes(['transform'],  node, options, structs);
+		},
+
+		path: function(node, options, structs) {
+			mountAttributes(['d', 'transform'], node, options, structs);
+		},
+
+		line: function(node, options, structs) {
+			mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node, options, structs);
+		},
+
+		rect: function(node, options, structs) {
+			mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node, options, structs);
+		},
+
+		text: function(node, options, structs) {
+			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
+		},
+
+		use: function(node, options, structs) {
+			mountAttributes(['href', 'transform'], node, options, structs);
+		},
+
+		default: noop
+	};
+
+	var inputs = {
+		button: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		checkbox: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueCheckbox(node, options, structs);
+		},
+
+		date: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		hidden: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		image: function(node, options, structs) {
+			mountAttribute('src', node, options, structs);
+		},
+
+		number: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		radio: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueRadio(node, options, structs);
+		},
+
+		range: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		reset: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		submit: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		time: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		default: function(node, options, structs) {
+			mountValueString(node, options, structs);
+		}
+	};
+
+	var mountNode  = overload(get('nodeType'), types);
+	var mountTag   = overload(dom.tag, tags);
+	var mountInput = overload(get('type'), inputs);
 
 	function isTruthy(value) {
 		return !!value;
@@ -192,7 +409,7 @@
 
 	function mountScope(node, options, structs) {
 		structs.push({
-			token: '',
+			token: 'scope',
 			path: '',
 			pipe: id,
 			render: function renderScope(value) {
@@ -224,6 +441,7 @@
 
 		var strings = [];
 		var renderStrings = function(strings) {
+console.log('RENDER string', strings.join(''))
 			render(strings.join(''));
 		};
 
@@ -498,235 +716,9 @@
 	}
 
 
-	var types = {
-		// element
-		1: function mountElement(node, options, structs) {
-			var children = node.childNodes;
-			var n = -1;
-			var child;
+	// Render pipe
 
-			while (child = children[++n]) {
-				options.mount(child, options, structs) ||
-				mountNode(child, options, structs) ;
-			}
-
-			mountScope(node, options, structs);
-			mountClass(node, options, structs);
-			mountBoolean('hidden', node, options, structs);
-			mountAttributes(['id', 'title', 'style'], node, options, structs);
-			mountTag(node, options, structs);
-		},
-
-		// text
-		3: function mountText(node, options, structs) {
-			mountString(node.nodeValue, set('nodeValue', node), options, structs);
-		},
-
-		// comment
-		8: noop,
-
-		// document
-		9: function mountDocument(node, options, structs) {
-			var children = node.childNodes;
-			var n = -1;
-			var child;
-
-			while (child = children[++n]) {
-				options.mount(child, options, structs) ||
-				mountNode(child, options, structs) ;
-			}
-		},
-
-		// doctype
-		10: noop,
-
-		// fragment
-		11: function mountFragment(node, options, structs) {
-			var children = node.childNodes;
-			var n = -1;
-			var child;
-
-			while (child = children[++n]) {
-				options.mount(child, options, structs) ||
-				mountNode(child, options, structs) ;
-			}
-		}
-	};
-
-	var tags = {
-
-		// HTML
-
-		a: function(node, options, structs) {
-			mountAttribute('href', node, options, structs);
-		},
-
-		button: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-		},
-
-		form: function(node, options, structs) {
-			mountAttribute('action', node, options, structs);
-		},
-
-		fieldset: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-		},
-
-		img: function(node, options, structs) {
-			mountAttribute('alt', node, options, structs);
-		},
-
-		input: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-			mountBoolean('required', node, options, structs);
-			mountAttribute('name', node, options, structs);
-			mountInput(node, options, structs);
-		},
-
-		label: function(node, options, structs) {
-			mountAttribute('for', node, options, structs);
-		},
-
-		meter: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
-		},
-
-		option: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-			mountAttribute('value', node, options, structs);
-		},
-
-		output: function(node, options, structs) {
-			mountAttribute('for', node, options, structs);
-		},
-
-		progress: function(node, options, structs) {
-			mountAttribute(['max', 'value'], node, options, structs);
-		},
-
-		select: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-			mountBoolean('required', node, options, structs);
-			mountAttribute('name', node, options, structs);
-			mountValueString(node, options, structs);
-		},
-
-		textarea: function(node, options, structs) {
-			mountBoolean('disabled', node, options, structs);
-			mountBoolean('required', node, options, structs);
-			mountAttribute('name', node, options, structs);
-			mountValueString(node, options, structs);
-		},
-
-		time: function(node, options, structs)  {
-			mountAttributes(['datetime'], node, options, structs);
-		},
-
-		// SVG
-
-		svg: function(node, options, structs) {
-			mountAttributes(['viewbox'], node, options, structs);
-		},
-
-		g: function(node, options, structs) {
-			mountAttributes(['transform'],  node, options, structs);
-		},
-
-		path: function(node, options, structs) {
-			mountAttributes(['d', 'transform'], node, options, structs);
-		},
-
-		line: function(node, options, structs) {
-			mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node, options, structs);
-		},
-
-		rect: function(node, options, structs) {
-			mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node, options, structs);
-		},
-
-		text: function(node, options, structs) {
-			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
-		},
-
-		use: function(node, options, structs) {
-			mountAttributes(['href', 'transform'], node, options, structs);
-		},
-
-		default: noop
-	};
-
-	var inputs = {
-		button: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-		},
-
-		checkbox: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-			mountBoolean('checked', node, options, structs);
-			// This call only binds the prefixed attribute
-			mountValueCheckbox(node, options, structs);
-		},
-
-		date: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueString(node, options, structs);
-		},
-
-		hidden: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-		},
-
-		image: function(node, options, structs) {
-			mountAttribute('src', node, options, structs);
-		},
-
-		number: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueNumber(node, options, structs);
-		},
-
-		radio: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-			mountBoolean('checked', node, options, structs);
-			// This call only binds the prefixed attribute
-			mountValueRadio(node, options, structs);
-		},
-
-		range: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueNumber(node, options, structs);
-		},
-
-		reset: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-		},
-
-		submit: function(node, options, structs) {
-			// false flag means don't check the prefixed attribute
-			mountAttribute('value', node, options, structs, false);
-		},
-
-		time: function(node, options, structs) {
-			mountAttributes(['min', 'max', 'step'], node, options, structs);
-			mountValueString(node, options, structs);
-		},
-
-		default: function(node, options, structs) {
-			mountValueString(node, options, structs);
-		}
-	};
-
-	var mountNode        = overload(get('nodeType'), types);
-	var mountTag         = overload(dom.tag, tags);
-	var mountInput       = overload(get('type'), inputs);
-
-	var toLog   = overload(toType, {
+	var toLog = overload(toType, {
 		function: function(fn) { return fn.toString(); },
 		object: JSON.stringify,
 		default: id
@@ -747,86 +739,103 @@
 	function setupStruct(struct, options) {
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
 		var update    = catchIfDebug(compose(struct.render, transform), struct);
-		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
-
+		var throttle  = Fn.throttle(update, window.requestAnimationFrame, window.cancelAnimationFrame);
 		struct.update = update;
 		struct.push   = throttle;
 	}
 
+	function startStruct(struct, options, set, initValue) {
+		struct.status = 'streaming';
+
+		if (initValue === undefined) {
+			struct.render('');
+		}
+		else {
+			(struct.update || struct.push)(initValue);
+		}
+
+		var invert, change;
+
+		// Listen to changes
+		if (struct.listen) {
+			if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); }
+			invert = InverseTransform(options.transformers, struct.pipe);
+			change = pipe(function() { return struct.read(); }, invert, set);
+			struct.unlisten = struct.listen(change);
+			struct.listen   = undefined;
+			if (initValue === undefined) { change(); }
+		}
+	}
+
+	function stopStruct(struct) {
+		struct.push.cancel && struct.push.cancel();
+		struct.input && struct.input.stop();
+		struct.unlisten && struct.unlisten();
+		struct.stop && struct.stop();
+	}
+
 	function RenderStream(structs, options, node) {
 		var old;
+
+		function rebind(observable, struct) {
+			// Sparky streams need not be rebound and get pushed data immediately
+			if (struct instanceof Sparky) {
+				struct.push(observable);
+				return observable;
+			}
+
+			// Rebind struct
+			struct.input && struct.input.stop();
+			struct.input = undefined;
+			struct.observable = observable;
+
+			// Set up structs to be pushable. (Child Sparky renderers already
+			// have a push method and should not be throttled.)
+			if (!struct.push) {
+				setupStruct(struct, options);
+			}
+
+			// If data was null, observable is undefined, and we don't
+			// want an input to the struct
+			if (typeof struct.observable === 'object') {
+				struct.input = Stream.observe(struct.path, struct.observable);
+			}
+
+			if (!struct.status) {
+console.log('START STRUCT', struct.token)
+				startStruct(struct, options, function(value) {
+					// React to form changes
+					struct.observable && setPath(struct.path, struct.observable, value);
+				}, struct.input.shift());
+			}
+
+			if (struct.input) {
+				// Render scopes at throttled frame rate
+				struct.input.each(struct.push);
+			}
+
+			return observable;
+		}
 
 		return {
 			/* A read-only stream. */
 			shift: noop,
 
 			stop: function stopRenderer() {
-				structs.forEach(function(struct) {
-					struct.unbind && struct.unbind();
-					struct.stop && struct.stop();
-				});
+				structs.forEach(stopStruct);
+				return this;
 			},
 
 			push: function pushRenderer(data) {
-				if (old === data) { return; }
-				old = data;
+				console.log('scope:', data, node);
+				if (DEBUG) { console.groupCollapsed('scope:', node); }
 
-				if (DEBUG) { console.groupCollapsed('update:', node); }
-
-				var observable = Observable(data);
-				var unlisten;
+				var observable = Observable(data) || data;
+				if (data === undefined || old === observable) { return; }
+				old = observable;
 
 				// Rebind structs
-				structs.forEach(function(struct) {
-					// Unbind Structs
-					struct.unbind && struct.unbind();
-
-					// Set up structs to be pushable. Renderers already have
-					// a push method and should not be throttled.
-					if (!struct.push) {
-						setupStruct(struct, options);
-					}
-
-					struct.unbind = struct.unbind || function(data) {
-						// If the struct is not a Sparky it's .push() is a
-						// throttle and must be cancelled. TODO: dodgy.
-						struct.push.cancel && struct.push.cancel();
-						struct.input.stop();
-						if (struct.listen) { unlisten(); }
-					};
-
-					// Rebind struct
-					if (struct.input) {
-						struct.input.stop();
-					}
-
-					var input = struct.input = Stream.observe(struct.path, observable);
-					var value = input.latest().shift();
-
-					// If there is an initial scope render it synchronously, as
-					// it is assumed we are already working inside an animation
-					// frame
-					if (value !== undefined) {
-						(struct.update || struct.push)(value);
-					}
-
-					// Render future scopes at throttled frame rate, where
-					// throttle is defined
-					input.each(struct.push);
-
-					var set, invert, change;
-
-					// Listen to changes
-					if (struct.listen) {
-						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); }
-						set = setPath(struct.path, observable);
-						invert = InverseTransform(options.transformers, struct.pipe);
-						change = pipe(function() { return struct.read(); }, invert, set);
-						unlisten = struct.listen(change);
-
-						if (value === undefined) { change(); }
-					}
-				});
+				structs.reduce(rebind, observable);
 
 				if (DEBUG) { console.groupEnd(); }
 
@@ -835,7 +844,7 @@
 		}
 	}
 
-	function mount(node, options) {
+	function mount(node, options, data) {
 		options = assign({}, settings, options);
 
 		if (DEBUG) {
@@ -843,19 +852,22 @@
 		}
 
 		var structs = [];
+
 		mountNode(node, options, structs);
+		mountScope(node, options, structs);
 
 		if (DEBUG) {
 			console.table(structs, ["token", "path", "pipe"]);
 			console.groupEnd();
 		}
 
-		return RenderStream(structs, options, node);
+		return RenderStream(structs, options, node, data);
 	}
 
 	mount.getScope = function(node) {
-		return scopeMap.get(node);
+		return scopeMap.get(closest('[sparky-fn]', node));
 	};
+
 
 	// Export (temporary)
 	mount.types  = types;
@@ -867,6 +879,7 @@
 	mount.mountValueString = mountValueString;
 	mount.mountValueNumber = mountValueNumber;
 
+
 	// Legacy pre 2.0.3
 	mount.mountName = function mountName(node, options, structs) {
 		var string = node.name;
@@ -876,6 +889,7 @@
 		return mountValueByType(node, options, match, structs);
 	};
 
-	window.mount = mount;
 
+	// Export
+	window.mount = mount;
 })(this);

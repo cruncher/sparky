@@ -101,7 +101,7 @@
 			}
 		}
 
-		var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
+		var throttle = Fn.throttle(update, window.requestAnimationFrame, window.cancelAnimationFrame);
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
 		//template.removeAttribute('data-scope');
