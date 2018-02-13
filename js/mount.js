@@ -45,7 +45,7 @@
 	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 	var settings = {
-		attributePrefix: 'data-',
+		attributePrefix: 'sparky-',
 		mount:           noop,
 		transforms:      {},
 		transformers:    {},
