@@ -228,7 +228,7 @@
 			},
 
 			stop: function ignore(node, stream) {
-				console.log(this.interrupt(), node, stream);
+				this.interrupt();
 			},
 
 			ignore: deprecate(function ignore(node, stream) {

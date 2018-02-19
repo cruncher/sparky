@@ -22,8 +22,9 @@
 
     function valueFrom(getValue, sparky, node, stream, target, name) {
 		var scope = Observable({});
+
 		var event = dom
-		.events('input', target)
+		.events('change input', target)
 		.map(get('target'))
 		.unshift(target)
         .map(getValue)
@@ -54,4 +55,4 @@
 
         return valueFrom(normaliseValue, this, node, stream, target, params[1] || 'normal');
 	};
-})()
+})();
