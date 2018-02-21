@@ -613,6 +613,7 @@
 
 	function floatToString(value) {
 		return typeof value === 'number' ? value + '' :
+			value === undefined ? '' :
 			undefined ;
 	}
 
@@ -690,7 +691,7 @@
 						// Avoid setting the value from the scope on initial run
 						// where there is no scope value. The change event will be
 						// called and the scope updated from the default value.
-						
+
 						// Avoid sending to selects, as we do not rely on Bolt
 						// for setting state on select labels anymore...
 						//if (dom.tag(node) !== "select") { dispatchInputChangeEvent(node); }
