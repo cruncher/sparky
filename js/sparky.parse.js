@@ -617,6 +617,12 @@
 			undefined ;
 	}
 
+	function floatToFixed2(value) {
+		return typeof value === 'number' ? value.toFixed(2) :
+			value === undefined ? '' :
+			undefined ;
+	}
+
 	function intToString(value) {
 		return typeof value === 'number' && value % 1 === 0 ? value + '' :
 			undefined ;
@@ -883,6 +889,7 @@
 		definedToString: definedToString,
 		intToString:     intToString,
 		floatToString:   floatToString,
+		floatToFixed2:   floatToFixed2,
 		boolToString:    boolToString,
 		boolToStringOn:  boolToStringOn,
 

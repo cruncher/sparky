@@ -14,6 +14,7 @@
 	var stringOnToBool = Sparky.stringOnToBool;
 	var definedToString = Sparky.definedToString;
 	var floatToString = Sparky.floatToString;
+	var floatToFixed2 = Sparky.floatToFixed2;
 	var boolToString = Sparky.boolToString;
 	var boolToStringOn = Sparky.boolToStringOn;
 
@@ -55,6 +56,10 @@
 
 	function valueNumber(node, scopes) {
 		setup(this, node, scopes, floatToString, stringToFloat);
+	}
+
+	function valueFixed2(node, scopes) {
+		setup(this, node, scopes, floatToFixed2, stringToFloat);
 	}
 
 	function valueInteger(node, scopes) {
@@ -252,6 +257,7 @@
 		'value-string':         valueString,
 		'value-int':            valueInteger,
 		'value-float':          valueNumber,
+		'value-fixed-2':        valueFixed2,
 		'value-boolean':        valueBoolean,
 		'value-int-log':        valueIntLog,
 		'value-float-log':      valueFloatLog,
