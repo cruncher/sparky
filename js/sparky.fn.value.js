@@ -190,6 +190,32 @@
 		setup(this, node, scopes, to, from);
 	}
 
+	function valueFloatPow4(node, scopes) {
+		var normalise, denormalise;
+
+		function updateMinMax() {
+			var min = node.min ? parseFloat(node.min) : 0 ;
+			var max = node.max ? parseFloat(node.max) : 1 ;
+			normalise   = Fn.normalise(min, max);
+			denormalise = Fn.denormalise(min, max);
+		}
+
+		function to(value) {
+			if (typeof value !== 'number') { return ''; }
+			updateMinMax();
+			return denormalise(Math.pow(normalise(value), 1/4)) + '';
+		}
+
+		function from(value) {
+			var n = parseFloat(value);
+			if (Number.isNaN(n)) { return; }
+			updateMinMax();
+			return denormalise(Math.pow(normalise(n), 4));
+		}
+
+		setup(this, node, scopes, to, from);
+	}
+
 	function valueFloatLog(node, scopes) {
 		var min, max, normalise, denormalise;
 
@@ -263,6 +289,7 @@
 		'value-float-log':      valueFloatLog,
 		'value-float-pow-2':    valueFloatPow2,
 		'value-float-pow-3':    valueFloatPow3,
+		'value-float-pow-4':    valueFloatPow4,
 		'value-in-array':       valueInArray,
 		'value-int-in-array':   valueIntInArray
 	});
