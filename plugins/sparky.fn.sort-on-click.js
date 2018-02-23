@@ -9,6 +9,7 @@
 	var is        = Fn.is;
 	var isNot     = Fn.isNot;
 	var byGreater = Fn.byGreater;
+	var get       = Fn.get;
 	var rspaces   = Fn.rspaces;
 
 	function negate(fn) {
@@ -21,34 +22,39 @@
 	// objects. Perhaps the best way to do this would be to allow
 	// data-sort-by="calibre|find-in-calibres|get:'mass'". Perhaps.
 	var sortFns = {
-		calibre: function(name) {
-			var calibre = Sparky.data.calibres.find(name);
+		calibre: function(object) {
+			var calibre = Sparky.data.calibres.find(object.calibre);
 			return calibre && calibre.mass ? calibre.mass : Infinity ;
 		},
 
-		port:    function(pk) {
+		port: function(object) {
 			// Nasty way of putting it at the end of the list: 'zzzzzzzz'
-			if (!Fn.isDefined(pk)) { return 'zzzzzzzz'; }
-			var port = Sparky.data.ports.find(pk);
+			if (!Fn.isDefined(object.port)) { return 'zzzzzzzz'; }
+			var port = Sparky.data.ports.find(object.port);
 			return port ? Fn.toPlainText(port.name) : 'zzzzzzzz' ;
 		},
 
-		seller:  function(pk) {
-			var seller = Sparky.data.sellers.find(pk);
+		seller:  function(object) {
+			var seller = Sparky.data.sellers.find(object.seller);
 			return seller ? Fn.toPlainText(seller.name) : 'zzzzzzzz';
 		},
 
-		quality: function(name) {
-			var i = procsea.data.qualities.indexOf(name);
-			return i === -1 ? Infinity : i;			
+		quality: function(object) {
+			var i = window.procsea.data.qualities.indexOf(object.quality);
+			return i === -1 ? Infinity : i;
 		},
 
-		offer: function(value) {
-			return !value;			
+		offer: function(object) {
+			return !object.offer;
+		},
+
+		price: function(product) {
+			var buyer = window.procsea.data.user;
+			return window.procsea.toMarketPrice(buyer, product);
 		}
 	};
-	// ---------------------------------------------------------
 
+	// ---------------------------------------------------------
 
 	Sparky.fn['sort-on-click'] = function sortOnClick(node, scopes) {
 		// Create a chain of functions from the sort-by attribute that represent
@@ -57,10 +63,10 @@
 		var props    = property.split(rspaces);
 
 		var fns = props.map(function(property) {
-			var fn = sortFns[property] ? sortFns[property] : Fn.id;
+			var fn = sortFns[property] ? sortFns[property] : get(property);
 
 			return property ? function(a, b) {
-				return byGreater(fn(a[property]), fn(b[property]));
+				return byGreater(fn(a), fn(b));
 			} : byGreater;
 		});
 
@@ -113,9 +119,9 @@
 			}
 
 			click = function click(e) {
-				collection.sort = collection.sort === descending ?
-					ascending :
-					descending ;
+				collection.sort = collection.sort === ascending ?
+					descending :
+					ascending ;
 
 				collection.sort();
 
@@ -138,10 +144,10 @@
 		var props    = property.split(rspaces);
 
 		var fns = props.map(function(property) {
-			var fn = sortFns[property] ? sortFns[property] : Fn.id;
+			var fn = sortFns[property] ? sortFns[property] : get(property);
 
 			return property ? function(a, b) {
-				return byGreater(fn(a[property]), fn(b[property]));
+				return byGreater(fn(a), fn(b));
 			} : byGreater;
 		});
 
