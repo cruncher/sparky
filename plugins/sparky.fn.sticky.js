@@ -1,5 +1,5 @@
 // Dependencies:
-// 
+//
 // window.breakpoint
 
 (function(window) {
@@ -18,6 +18,7 @@
 			var fixed;
 
 			breakpoint({
+				minWidth: '54rem',
 				minScrollTop: top - gap
 			}, function enter() {
 				fixed = node.cloneNode(true);

@@ -71,11 +71,11 @@
 		});
 
 		var byAscending = function(a, b) {
-			return a.offer !== b.offer ?
+			//return a.offer !== b.offer ?
 				// Keep the special offers at the top, in both ascending
 				// and descending.
-				a.offer === true ? -1 : 1 :
-			Fn.from(fns)
+				//a.offer === true ? -1 : 1 :
+			return Fn.from(fns)
 			.map(function(fn) { return fn(a, b); })
 			.filter(isNot(0))
 			.take(1)
@@ -83,11 +83,11 @@
 		};
 
 		var byDescending = function(a, b) {
-			return a.offer !== b.offer ?
+			//return //a.offer !== b.offer ?
 				// Keep the special offers at the top, in both ascending
 				// and descending.
-				a.offer === true ? -1 : 1 :
-			(-1 * (Fn.from(fns)
+				//a.offer === true ? -1 : 1 :
+			return (-1 * (Fn.from(fns)
 			.map(function(fn) { return fn(a, b); })
 			.filter(isNot(0))
 			.take(1)
