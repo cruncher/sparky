@@ -800,19 +800,41 @@
 						struct.input.stop();
 					}
 
-					var input = struct.input = Stream.observe(struct.path, observable);
-					var value = input.latest().shift();
+					var input = struct.input = Stream.observe(struct.path, observable).latest();
+					var value = input.shift();
 
-					// If there is an initial scope render it synchronously, as
-					// it is assumed we are already working inside an animation
-					// frame
-					if (value !== undefined) {
-						(struct.update || struct.push)(value);
+					if (value === undefined) {
+						var shift = function shift() {
+							input.off('push', shift);
+							cancelAnimationFrame(frameId);
+							var value = input.shift();
+
+							// If there is an initial scope render it synchronously, as
+							// it is assumed we are already working inside an animation
+							// frame
+							(struct.update || struct.push)(value);
+
+							// Render future scopes at throttled frame rate, where
+							// throttle is defined
+							input.each(struct.push);
+						};
+
+						var frameId = requestAnimationFrame(function() {
+							input.off('push', shift);
+						});
+
+						input.on('push', shift);
 					}
+					else {
+						// If there is an initial scope render it synchronously, as
+						// it is assumed we are already working inside an animation
+						// frame
+						(struct.update || struct.push)(value);
 
-					// Render future scopes at throttled frame rate, where
-					// throttle is defined
-					input.each(struct.push);
+						// Render future scopes at throttled frame rate, where
+						// throttle is defined
+						input.each(struct.push);
+					}
 
 					var set, invert, change;
 
