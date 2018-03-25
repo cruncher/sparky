@@ -119,7 +119,7 @@
 
     assign(Sparky.fn, {
         template: function(node, scopes, params) {
-            var url   = params[0];
+            var url = params[0];
             var parts, path, id;
 
             // Support legacy ids instead of urls for just now

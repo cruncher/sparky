@@ -802,38 +802,36 @@
 
 					var input = struct.input = Stream.observe(struct.path, observable).latest();
 					var value = input.shift();
+					var shift, frameId;
 
-					if (value === undefined) {
-						var shift = function shift() {
+					// If there is an initial scope render it synchronously, as
+					// it is assumed we are already working inside an animation
+					// frame. Then render future scopes at throttled frame rate,
+					// where throttle is defined
+					if (value !== undefined) {
+						(struct.update || struct.push)(value);
+						input.each(struct.push);
+					}
+
+					// Otherwise render the first thing to pushed before the
+					// next frame. This allows us to immediately render a
+					// Sparky() that is created and then .push()ed to
+					// synchrounously.
+					else {
+						shift = function shift() {
 							input.off('push', shift);
 							cancelAnimationFrame(frameId);
 							var value = input.shift();
-
-							// If there is an initial scope render it synchronously, as
-							// it is assumed we are already working inside an animation
-							// frame
 							(struct.update || struct.push)(value);
-
-							// Render future scopes at throttled frame rate, where
-							// throttle is defined
 							input.each(struct.push);
 						};
 
-						var frameId = requestAnimationFrame(function() {
+						frameId = requestAnimationFrame(function() {
 							input.off('push', shift);
+							input.each(struct.push);
 						});
 
 						input.on('push', shift);
-					}
-					else {
-						// If there is an initial scope render it synchronously, as
-						// it is assumed we are already working inside an animation
-						// frame
-						(struct.update || struct.push)(value);
-
-						// Render future scopes at throttled frame rate, where
-						// throttle is defined
-						input.each(struct.push);
 					}
 
 					var set, invert, change;

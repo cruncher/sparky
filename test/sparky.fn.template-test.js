@@ -2,20 +2,69 @@
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
+	var data   = Observable({
+		property: 'Hello'
+	});
 
 	test('[sparky-fn="template:hash"]', function(equals, done) {
 		equals('Default content.', node.innerHTML);
 
-		sparky.push(Observable({
-			property: 'Hello'
-		}));
+		sparky.push(data);
+		data.property = 'Goodbye';
+
+		equals('Hello', node.getAttribute('class'));
+		equals('Template: Hello', node.innerHTML);
 
 		requestAnimationFrame(function() {
-			equals('Hello', node.getAttribute('class'));
-			equals('Template: Hello', node.innerHTML);
-			done();
+			equals('Goodbye', node.getAttribute('class'));
+			equals('Template: Goodbye', node.innerHTML);
+
+			data.property = 'Hello again';
+
+			equals('Goodbye', node.getAttribute('class'));
+			equals('Template: Goodbye', node.innerHTML);
+
+			requestAnimationFrame(function() {
+				equals('Hello again', node.getAttribute('class'));
+				equals('Template: Hello again', node.innerHTML);
+
+				done();
+			});
 		});
-	}, 3);
+	}, 9);
+}, function() {/*
+
+	<p class="{[property]}" sparky-fn="template:'#test-template'">Default content.</p>
+	<template id="test-template">Template: {[property]}</template>
+
+*/});
+
+group('[sparky-fn="template:hash"]', function(test, log, fixture) {
+	var node   = fixture.children[0];
+	var sparky = Sparky(node);
+	var data   = Observable({
+		property: 'Hello'
+	});
+
+	test('[sparky-fn="template:hash"]', function(equals, done) {
+		equals('Default content.', node.innerHTML);
+
+		requestAnimationFrame(function() {
+			requestAnimationFrame(function() {
+				equals('Default content.', node.innerHTML);
+				sparky.push(data);
+				data.property = 'Goodbye';
+				equals('Hello', node.getAttribute('class'));
+				equals('Template: Hello', node.innerHTML);
+
+				requestAnimationFrame(function() {
+					equals('Goodbye', node.getAttribute('class'));
+					equals('Template: Goodbye', node.innerHTML);
+					done();
+				});
+			});
+		});
+	}, 6);
 }, function() {/*
 
 	<p class="{[property]}" sparky-fn="template:'#test-template'">Default content.</p>

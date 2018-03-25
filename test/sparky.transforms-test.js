@@ -8,7 +8,9 @@ group('Sparky.transformers', function(test, log) {
 	console.log('Test filters...');
 
 	for (key in expected) {
-		filter = Sparky.transforms[key];
+		filter = Sparky.transformers[key] ?
+			Sparky.transformers[key].tx :
+			Sparky.transforms[key] ;
 
 		(function(key, result, expect) {
 			test("Sparky.transformers." + key + "()", function(equals, done) {
@@ -19,7 +21,7 @@ group('Sparky.transformers', function(test, log) {
 	}
 
 	test("Sparky.transformers.add", function(equals, done) {
-		equals(9, Sparky.transforms.add('5.5', 3.5));
+		equals(9, Sparky.transformers.add.tx(5.5, 3.5));
 		done();
 	});
 
