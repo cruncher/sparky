@@ -1,7 +1,7 @@
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
 	console.log('Sparky      - https://github.com/cruncher/sparky');
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -294,4 +294,4 @@
 
 	window.Sparky = Sparky;
 
-})(this);
+})(window);

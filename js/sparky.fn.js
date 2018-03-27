@@ -32,7 +32,7 @@ Sparky.nodeToString = Fn.id;
 
 		return scopes.tap(log);
 	};
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -50,7 +50,7 @@ Sparky.nodeToString = Fn.id;
 			});
 		}
 	});
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -65,7 +65,7 @@ Sparky.nodeToString = Fn.id;
 			});
 		}
 	});
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -155,7 +155,7 @@ Sparky.nodeToString = Fn.id;
 			//});
 		}
 	});
-})(this);
+})(window);
 
 
 (function() {

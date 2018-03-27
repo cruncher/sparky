@@ -8,4 +8,4 @@
 	Sparky.fn.html = function each(node, scopes, params) {
         return scopes.map(set('innerHTML', node));
 	};
-})(this);
+})(window);

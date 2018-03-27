@@ -356,4 +356,4 @@
 			return value ? truthy : falsy ;
 		})
 	});
-})(this);
+})(window);

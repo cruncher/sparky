@@ -898,4 +898,4 @@
 
 	window.mount = mount;
 
-})(this);
+})(window);

@@ -129,4 +129,4 @@
 			remove(marker);
 		});
 	};
-})(this);
+})(window);

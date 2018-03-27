@@ -103,4 +103,4 @@
             return scopes;
         }
     });
-})(this);
+})(window);

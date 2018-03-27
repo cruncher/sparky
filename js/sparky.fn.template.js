@@ -215,4 +215,4 @@
             throw new Error('Sparky: template-from must have ${prop} in the url string');
         }
     });
-})(this);
+})(window);
