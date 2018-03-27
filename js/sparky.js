@@ -137,7 +137,8 @@
 
 			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
-			input      = fn.call(sparky, node, input, params) || input;
+			var output = fn.call(sparky, node, input, params);
+			input      = output ? output.map(Observable) : input ;
 
 			// If fns have been interrupted calling is false
 			return calling && start();
@@ -148,7 +149,7 @@
 				var object;
 
 				if (data !== undefined) {
-					object = Observable(data);
+					object = data;//Observable(data);
 					data   = undefined;
 					return object;
 				}
@@ -200,7 +201,9 @@
 			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
 			get: function(node, stream, params) {
-				return stream.map(getPath(params[0]));
+				return stream.chain(function(object) {
+					return Stream.observe(params[0], object);
+				});
 			},
 
 			if: function(node, stream, params) {

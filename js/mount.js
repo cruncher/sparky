@@ -773,7 +773,7 @@
 
 				if (DEBUG) { console.groupCollapsed('update:', node); }
 
-				var observable = Observable(data);
+				var observable = data;//Observable(data);
 				var unlisten;
 
 				// Rebind structs
