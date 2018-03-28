@@ -32,7 +32,7 @@ group('[sparky-fn]', function(test, log, fixture) {
 
 		Sparky.fn['ctrl-3'] = function(node, scopes, params) {
 			equals(sparky, this, 'Functions should share sparky *this* context.');
-			equals([0,'1',true,[]], params);
+			equals([0,'1',true, 'path.to.something'], params);
 
 			return scopes.map(function(scope) {
 				equals(object2, scope);
@@ -50,7 +50,7 @@ group('[sparky-fn]', function(test, log, fixture) {
 }, function() {/*
 
 <div>
-	<p sparky-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, []">{[property]}</p>
+	<p sparky-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, path.to.something">{[property]}</p>
 </div>
 
 */});

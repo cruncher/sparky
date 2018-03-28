@@ -67,11 +67,44 @@
 
 	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
 
+	// TODO: make parseParams() into a module - it is used by sparky.js also
+	var parseParams = (function() {
+		//                       null   true   false   number                                     "string"                   'string'                   string
+		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
+
+		function toValue(result, string) {
+			if (!result) {
+				throw new Error('Sparky: unable to parse transform args "' + string + '"');
+			}
+
+			return result[1] ? null :
+				result[2] ? true :
+				result[3] ? false :
+				result[4] ? parseFloat(result[4]) :
+				result[5] ? result[5] :
+				result[6] ? result[6] :
+				result[7] ? result[7] :
+				undefined ;
+		}
+
+		return function parseParams(string) {
+			var params = [];
+
+			rvalue.lastIndex = 0;
+
+			while (rvalue.lastIndex < string.length) {
+				params.push(toValue(rvalue.exec(string), string));
+			}
+
+			return params;
+		};
+	})();
+
 	function Transform(transforms, transformers, string) {
 		if (!string) { return id; }
 
 		var fns = [];
-		var token, name, fn, args;
+		var token, name, fn, params;
 
 		rtransform.lastIndex = 0;
 
@@ -87,8 +120,9 @@
 			}
 
 			if (token[2]) {
-				args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-				fns.push(fn.apply(null, args));
+				params = parseParams(token[2]);
+				//args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fns.push(fn.apply(null, params));
 			}
 			else {
 				fns.push(fn);
@@ -886,6 +920,7 @@
 	mount.mountInput       = mountInput;
 	mount.mountValueString = mountValueString;
 	mount.mountValueNumber = mountValueNumber;
+	mount.parseParams      = parseParams;
 
 	// Legacy pre 2.0.3
 	mount.mountName = function mountName(node, options, structs) {

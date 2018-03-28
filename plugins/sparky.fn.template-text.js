@@ -48,4 +48,4 @@
 		node.textContent = text;
 	};
 
-})(this);
+})(window);

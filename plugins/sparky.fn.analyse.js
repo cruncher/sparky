@@ -21,4 +21,4 @@
 			analyse.apply(null, rest(1, params));
 		});
 	};
-})(this);
+})(window);

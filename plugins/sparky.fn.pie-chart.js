@@ -53,4 +53,4 @@
             return scope;
         });
     };
-})(this);
+})(window);

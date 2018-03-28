@@ -46,4 +46,4 @@
     Sparky.fn['scrollleft-from'] = function(node, stream, params) {
         return scrollFrom('scrollLeft', node, stream, params);
     };
-})(this);
+})(window);

@@ -167,4 +167,4 @@
 			collection.sort();
 		});
 	};
-})(this);
+})(window);
