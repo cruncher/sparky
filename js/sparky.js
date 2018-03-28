@@ -31,7 +31,7 @@
 	var settings = {
 		// Child mounting function
 		mount: function mount(node, options, streams) {
-			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
+			var fn = dom.attribute(Sparky.attributeFn, node);
 			if (!fn) { return; }
 
 			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
@@ -87,7 +87,7 @@
 			throw new Error('Sparky: "' + selector + '" not found.');
 		}
 
-		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
 		var input    = this;
@@ -188,6 +188,7 @@ console.groupEnd();
 	Sparky.prototype = Stream.prototype;
 
 	assign(Sparky, {
+		attributeFn:     'sparky-fn',
 		attributePrefix: 'sparky-',
 
 		fn: {
@@ -282,8 +283,8 @@ console.groupEnd();
 				return dom.create('text', '');
 			}
 
-			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
-			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
+			var attrFn  = node && node.getAttribute(Sparky.attributeFn);
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
 		},
 
 		getScope: mount.getScope
