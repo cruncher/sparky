@@ -635,7 +635,7 @@ id:   {[id]}
 	<section class="fixed cart-layer layer" toggleable focusable id="cart">
 		<div>CART: {[]}</div>
 		<div sparky-fn="cart">CART: {[]}</div>
-	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="cart template:'#cart-review-your-order'" id="review-your-order">
+	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="template:'#cart-review-your-order'" id="review-your-order">
 	        <h1 class="cart-text-1">Review your order LOADING</h1>
 	    </section>
 	</section>
@@ -645,11 +645,17 @@ id:   {[id]}
 
 	    <div class="one-grid grid">
 	        HELLO
-	        <form class="grid-1" sparky-fn="get:items each">O</form>
-	            template:'#license-editor' licenseEditor
+	        <form class="grid-1" sparky-fn="cart get:items each template:#license-editor">{[]}</form>
+	            licenseEditor
 	        <!--form class="grid-2" fn="cart template:'#discount-editor' discountEditor"></form-->
 	        <!--a href="#info-and-billing">Continue to Info and Billing</a-->
 	    </div>
+	</template>
+
+	<template id="license-editor">
+	    <h2>{[product.name]}</h2>
+	    <p>Workstations {[license]}</p>
+	    <input type="number" sparky-value="{[license]}" name="{[product.name|slugify]}-license" min="10" max="10000" />
 	</template>
 
 	<script type="module">
@@ -660,7 +666,6 @@ id:   {[id]}
 		};
 
 		Sparky.fn.cart = function(node, scopes) {
-console.log('CART!')
 			return Fn.of(data);
 		};
 
@@ -673,15 +678,15 @@ console.log('CART!')
 			total: 90
 		}, {
 			product: {
-			name: 'On yer bike',
-			price: 30
-		},
+				name: 'On yer bike',
+				price: 30
+			},
 			license: 10,
 			total: 30
 		});
 
 		console.log('GO!!!!')
-		Sparky('#cart');
+		Sparky('#cart', data);
 	</script>
 </body>
 </html>
