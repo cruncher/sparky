@@ -84,7 +84,7 @@ line { stroke-width: 1; stroke: inherit; }
 
 <body>
 	<header class="grid-block block grid-1/1 @2-span-1/1" id="header">
-		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:'package.json'">
+		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:package.json">
 			<h1>{[title]}
 			<span class="text-6">{[version]}</span></h1>
 
@@ -155,7 +155,7 @@ line { stroke-width: 1; stroke: inherit; }
 				<strong>functions</strong> and <strong>tags</strong>.</p>
 
 				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:'package.json'">Latest: {[version|prepend:'v']}</p>
+				<p sparky-fn="import:package.json">Latest: {[version|prepend:'v']}</p>
 				</script></code>
 				<svg viewbox="0 0 1 0.06" style="margin-top: 0.25rem;">
 					<line class="black-stroke" x1="0.24" y1="0" x2="0.15" y2="0.06"></line>
@@ -171,7 +171,7 @@ line { stroke-width: 1; stroke: inherit; }
 				prepends it with 'v' and replaces the tag with the text. The
 				result?</p>
 
-				<p sparky-fn="import:'package.json'" id="template-demo-1">
+				<p sparky-fn="import:package.json" id="template-demo-1">
 					Latest: {[version|prepend:'v']}
 				</p>
 			</div>
@@ -188,7 +188,7 @@ line { stroke-width: 1; stroke: inherit; }
 
 				<p class="text-5"><code><script type="text">
 				sparky-fn="each"
-				sparky-fn="import:'package.json'"
+				sparky-fn="import:package.json"
 				</script></code></p>
 
 				<p>Functions are view-controllers with responsibility for
@@ -222,7 +222,7 @@ line { stroke-width: 1; stroke: inherit; }
 				used to provide initial content.</p>
 
 				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:'package.json' template:'latest'">
+				<p sparky-fn="import:package.json template:latest">
 					Version info at github.com/cruncher/sparky.
 				</p>
 
@@ -238,12 +238,12 @@ line { stroke-width: 1; stroke: inherit; }
 				</p>
 
 				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:'package.json' get:'keywords' each">{[.]}</p>
+				<p sparky-fn="import:package.json get:keywords each">{[.]}</p>
 				</script></code></p>
 
 				<p>Result:</p>
 
-				<p sparky-fn="import:'package.json' get:'keywords' each" id="template-demo-2">{[.]}</p>
+				<p sparky-fn="import:package.json get:keywords each" id="template-demo-2">{[.]}</p>
 			</div>
 		</article
 
@@ -258,8 +258,8 @@ line { stroke-width: 1; stroke: inherit; }
 					<div class="line" data-screen-row="540"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span> <span class="syntax--entity syntax--other syntax--attribute-name syntax--html">sparky-fn</span>=<span 	class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>import:'example.json'<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" 	data-screen-row="541"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="invisible-character hard-tab leading-whitespace">    </span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;</span><span class="syntax--entity syntax--name syntax--tag syntax--inline syntax--any syntax--html">li</span> <span class="syntax--entity syntax--other 	syntax--attribute-name syntax--html">sparky-fn</span>=<span class="syntax--string syntax--quoted syntax--double syntax--html"><span class="syntax--punctuation syntax--definition syntax--string syntax--begin syntax--html">"</span>get:'path.to.array' each<span class="syntax--punctuation syntax--definition syntax--string syntax--end syntax--html">"</span></span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="syntax--entity 	syntax--other syntax--django syntax--tagbraces">{[</span><span class="syntax--string syntax--unquoted syntax--django syntax--template syntax--tag">name</span><span class="syntax--entity syntax--other syntax--django syntax--tagbraces">]}</span><span class="syntax--meta syntax--tag syntax--inline syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--inline 	syntax--any syntax--html">li</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div><div class="line" data-screen-row="542"><span class="null"><span class="syntax--text syntax--html syntax--django"><span class="syntax--meta syntax--tag syntax--block syntax--any syntax--html"><span class="syntax--punctuation syntax--definition syntax--tag syntax--begin 	syntax--html">&lt;/</span><span class="syntax--entity syntax--name syntax--tag syntax--block syntax--any syntax--html">ul</span><span class="syntax--punctuation syntax--definition syntax--tag syntax--end syntax--html">&gt;</span></span><span class="invisible-character eol"> </span></span></span></div>
 				</code>
 
-				<ul sparky-fn="import:'example.json'">
-					<li sparky-fn="get:'path.to.array' each">{[name]}</li>
+				<ul sparky-fn="import:example.json">
+					<li sparky-fn="get:path.to.array each">{[name]}</li>
 				</ul>
 			</div>
 
@@ -278,7 +278,7 @@ line { stroke-width: 1; stroke: inherit; }
 
 				</code>
 
-<pre sparky-fn="import:'example.json' get:'path.to.array[0]'">
+<pre sparky-fn="import:example.json get:path.to.array[0]">
 name: {[name]}
 id:   {[id]}
 </pre>
@@ -548,67 +548,49 @@ id:   {[id]}
 	<script src="fn/polyfills/promise.js"></script>
 	<script src="dom/polyfills/requestanimationframe.js"></script>
 	<script src="dom/polyfills/customevent.js"></script>
-	<script src="polyfills/performance.js"></script>
+	<script src="dom/polyfills/performance.js"></script>
 	<script src="polyfills/console.js"></script>
 
 	<!-- Dependencies -->
 
 	<script src="axios/dist/axios.js"></script>
 
-	<script src="fn/js/fn.js"></script>
-	<script src="fn/js/observe.js"></script>
-	<script src="fn/js/observable.js"></script>
-	<script src="fn/js/stream.js"></script>
-	<script src="fn/js/stream.observe.js"></script>
-	<script src="fn/js/time.js"></script>
-
-	<script src="dom/js/dom.js"></script>
-	<script src="dom/js/dom-activate.js"></script>
-	<script src="dom/js/dom.toggleable.js"></script>
-	<script src="dom/js/dom.root.js"></script>
-
-	<!-- Sparky -->
-
-	<script src="js/mount.js"></script>
-	<script src="js/sparky.js"></script>
-	<script src="js/sparky.fn.js"></script>
-	<script src="js/sparky.fn.each.js"></script>
-	<script src="js/sparky.fn.template.js"></script>
-	<script src="js/sparky.fn.load.js"></script>
-	<script src="js/sparky.transforms.js"></script>
-
 	<!-- Initialise -->
 
-	<script>
+	<script type="module">
+		import "./fn/fn.js"
+		import "./fn/js/time.js"
+		import "./dom/dom.js"
+		import Sparky from "./sparky.js"
 		//window.Sparky(dom.body);
 		//window.Sparky('#template-demo-2');
-		window.Sparky('#header');
+		Sparky('#header');
 	</script>
 
 	<!-- Tests -->
 
-	<script src="fn/test/test.js"></script>
-	<script src="test/sparky.test.js"></script>
-	<script src="test/sparky.stop-scopes.test.js"></script>
-	<script src="test/sparky.stop-mutations.test.js"></script>
-	<script src="test/sparky.input-test.js"></script>
-	<script src="test/sparky.textarea-test.js"></script>
-	<script src="test/sparky.select-test.js"></script>
-	<script src="test/sparky.fn-test.js"></script>
-	<script src="test/sparky.fn.each-test.js"></script>
-	<script src="test/sparky.fn.template-test.js"></script>
-	<script src="test/sparky.fn.load-test.js"></script>
-	<!--script src="test/sparky.transforms-test.js"></script-->
+	<script type="module">
+		import "./fn/test/test.js"
+		import "./test/sparky.test.js"
+		import "./test/sparky.stop-scopes.test.js"
+		import "./test/sparky.stop-mutations.test.js"
+		import "./test/sparky.input-test.js"
+		import "./test/sparky.textarea-test.js"
+		import "./test/sparky.select-test.js"
+		import "./test/sparky.fn-test.js"
+		import "./test/sparky.fn.each-test.js"
+		import "./test/sparky.fn.template-test.js"
+		import "./test/sparky.fn.load-test.js"
+		//import "test/sparky.transforms-test.js"
 
-	<!-- Plugins -->
+		import "./plugins/sparky.fn.clock.js"
+		import "./test/sparky.fn.clock-test.js"
+		//import "./plugins/sparky.fn.value-from.js"
+		//import "./test/sparky.fn.value-from.test.js"
+		//import "./plugins/sparky.fn.calendar.js"
+	</script>
 
-	<script src="plugins/sparky.fn.clock.js"></script>
-	<script src="test/sparky.fn.clock-test.js"></script>
-	<!--script src="plugins/sparky.fn.value-from.js"></script>
-	<script src="test/sparky.fn.value-from.test.js"></script>
-	<!--script src="plugins/sparky.fn.calendar.js"></script-->
-
-	<div sparky-fn="calendar:'2017-11-20',14 template:'#calendar-template'" id="calendar"></div>
+	<div sparky-fn="calendar:2017-11-20,14 template:#calendar-template" id="calendar"></div>
 
 	<template id="calendar-template">
 		<div class="calendar-block block">
@@ -617,7 +599,7 @@ id:   {[id]}
 			<button sparky-calendar-start="-0000-00-14">Decrement range</button>
 			<button sparky-calendar-start="0000-00-14">Increment range</button>
 
-			<div sparky-fn="template:'#calendar-date-template'" class="grid-block block"></div>
+			<div sparky-fn="template:#calendar-date-template" class="grid-block block"></div>
 		</div>
 	</template>
 
@@ -629,10 +611,16 @@ id:   {[id]}
 		><div class="block grid-1/7 {[data.4.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.4.date|formatdate:'ddd','Europe/Zurich','en']}</div
 		><div class="block grid-1/7 {[data.5.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.5.date|formatdate:'ddd','Europe/Zurich','en']}</div
 		><div class="block grid-1/7 {[data.6.date|formatdate:'ddd','Europe/Zurich','en'|append:'-day-block']}">{[data.6.date|formatdate:'ddd','Europe/Zurich','en']}</div
-		><time sparky-fn="get:'data' each" class="block grid-1/7 {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">{[date|formatdate:'DD','Europe/Zurich','en']}</time>
+		><time sparky-fn="get:data each" class="block grid-1/7 {[relativeDate|less-than:0|yesno:'past-date','']} {[relativeDate|is:0|yesno:'present-date','']} {[relativeDate|greater-than:0|yesno:'future-date','']}" datetime="{[date]}">{[date|formatdate:'DD','Europe/Zurich','en']}</time>
 	</template>
 
-	<script>
+	<script type="module">
+		import "./plugins/sparky.fn.clock.js"
+		import "./test/sparky.fn.clock-test.js"
+		//import "./plugins/sparky.fn.value-from.js"
+		//import "./test/sparky.fn.value-from.test.js"
+		//import "./plugins/sparky.fn.calendar.js"
+
 		//window.Sparky('#calendar');
 		//window.Sparky('#template-demo-2');
 	</script>

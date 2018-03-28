@@ -6,26 +6,27 @@
 (function(window) {
 	"use strict";
 
-	var DEBUG      = window.DEBUG;
+	var DEBUG          = window.DEBUG;
 
-	var Fn         = window.Fn;
-	var Observable = window.Observable;
-	var Stream     = window.Stream;
-	var dom        = window.dom;
-	var mount      = window.mount;
+	var Fn             = window.Fn;
+	var Observable     = window.Observable;
+	var Stream         = window.Stream;
+	var dom            = window.dom;
+	var mount          = window.mount;
 
-	var assign     = Object.assign;
-	var deprecate  = Fn.deprecate;
-	var getPath    = Fn.getPath;
-	var invoke     = Fn.invoke;
-	var noop       = Fn.noop;
-	var nothing    = Fn.nothing;
-	var tag        = dom.tag;
+	var assign         = Object.assign;
+	var deprecate      = Fn.deprecate;
+	var getPath        = Fn.getPath;
+	var invoke         = Fn.invoke;
+	var noop           = Fn.noop;
+	var nothing        = Fn.nothing;
+	var tag            = dom.tag;
 	var preventDefault = dom.preventDefault;
+	var parseParams    = mount.parseParams;
 
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
-	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
+	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[^\s,]+))*))?/;
 
 	var settings = {
 		// Child mounting function
@@ -118,6 +119,7 @@
 			// Parse the fns and params to execute
 			var token = fnstring.match(rfn);
 
+			// No more tokens, launch Sparky
 			if (!token) {
 				sparky.continue = noop;
 				render();
@@ -126,17 +128,18 @@
 
 			var fn = Sparky.fn[token[1]];
 
+			// Function not found
 			if (!fn) {
 				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 			}
 
 			// Gaurantee that params exists, at least.
-			var params = token[2] ?
-				JSON.parse('[' + token[2].replace(/'|`/g, '"') + ']') :
-				nothing ;
+			var params = token[2] ? parseParams(token[2]) : nothing ;
 
 			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
+
+			// Call Sparky fn, gaurantee the output is a stream of observables
 			var output = fn.call(sparky, node, input, params);
 			input      = output ? output.map(Observable) : input ;
 

@@ -13,4 +13,4 @@
 			e.target.select();
 		}));
 	};
-})(this);
+})(window);

@@ -15,4 +15,4 @@
 			return observable;
 		});
 	};
-})(this);
+})(window);

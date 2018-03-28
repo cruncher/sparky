@@ -13,4 +13,4 @@
         .map(Fn.get('relatedTarget'))
         .map(Sparky.getScope);
 	};
-})(this);
+})(window);

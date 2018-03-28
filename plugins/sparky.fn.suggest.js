@@ -189,4 +189,4 @@
 			jQuery(tip).trigger('dom-deactivate');
 		});
 	};
-})(this);
+})(window);
