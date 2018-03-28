@@ -119,9 +119,11 @@
 			// Parse the fns and params to execute
 			var token = fnstring.match(rfn);
 
+console.group(fnstring);
 			// No more tokens, launch Sparky
 			if (!token) {
 				sparky.continue = noop;
+console.log('RENDER', input)
 				render();
 				return sparky;
 			}
@@ -142,6 +144,7 @@
 			// Call Sparky fn, gaurantee the output is a stream of observables
 			var output = fn.call(sparky, node, input, params);
 			input      = output ? output.map(Observable) : input ;
+console.groupEnd();
 
 			// If fns have been interrupted calling is false
 			return calling && start();

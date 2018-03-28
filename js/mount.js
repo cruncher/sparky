@@ -802,6 +802,7 @@
 			},
 
 			push: function pushRenderer(data) {
+console.log('RENDERER PUSH', data);
 				if (old === data) { return; }
 				old = data;
 
@@ -837,21 +838,23 @@
 					var input = struct.input = Stream.observe(struct.path, observable).latest();
 					var value = input.shift();
 					var shift, frameId;
-
+console.log(input);
 					// If there is an initial scope render it synchronously, as
 					// it is assumed we are already working inside an animation
 					// frame. Then render future scopes at throttled frame rate,
 					// where throttle is defined
 					if (value !== undefined) {
+console.log('INITIAL VALUE', value);
 						(struct.update || struct.push)(value);
 						input.each(struct.push);
 					}
 
-					// Otherwise render the first thing to pushed before the
-					// next frame. This allows us to immediately render a
-					// Sparky() that is created and then .push()ed to
-					// synchrounously.
-					else {
+					// Otherwise (if input is a pushable stream) render the
+					// first thing to pushed before the next frame. This allows
+					// us to immediately render a Sparky() that is created and
+					// then .push()ed to synchrounously.
+					else if (input.on) {
+console.log('INITIAL VALUE NONE', input);
 						shift = function shift() {
 							input.off('push', shift);
 							cancelAnimationFrame(frameId);

@@ -558,18 +558,19 @@ id:   {[id]}
 	<!-- Initialise -->
 
 	<script type="module">
+		window.DEBUG = true;
 		import "./fn/fn.js"
 		import "./fn/js/time.js"
 		import "./dom/dom.js"
 		import Sparky from "./sparky.js"
 		//window.Sparky(dom.body);
 		//window.Sparky('#template-demo-2');
-		Sparky('#header');
+		//Sparky('#header');
 	</script>
 
 	<!-- Tests -->
 
-	<script type="module">
+	<!--script type="module">
 		import "./fn/test/test.js"
 		import "./test/sparky.test.js"
 		import "./test/sparky.stop-scopes.test.js"
@@ -623,6 +624,64 @@ id:   {[id]}
 
 		//window.Sparky('#calendar');
 		//window.Sparky('#template-demo-2');
+	</script>
+
+	<!-- More -->
+
+
+
+
+
+	<section class="fixed cart-layer layer" toggleable focusable id="cart">
+		<div>CART: {[]}</div>
+		<div sparky-fn="cart">CART: {[]}</div>
+	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="cart template:'#cart-review-your-order'" id="review-your-order">
+	        <h1 class="cart-text-1">Review your order LOADING</h1>
+	    </section>
+	</section>
+
+	<template id="cart-review-your-order">
+	    <h1 class="cart-text-1">Review your order</h1>
+
+	    <div class="one-grid grid">
+	        HELLO
+	        <form class="grid-1" sparky-fn="get:items each">O</form>
+	            template:'#license-editor' licenseEditor
+	        <!--form class="grid-2" fn="cart template:'#discount-editor' discountEditor"></form-->
+	        <!--a href="#info-and-billing">Continue to Info and Billing</a-->
+	    </div>
+	</template>
+
+	<script type="module">
+		import Sparky from './sparky.js';
+
+		var data = {
+			items: []
+		};
+
+		Sparky.fn.cart = function(node, scopes) {
+console.log('CART!')
+			return Fn.of(data);
+		};
+
+		data.items.push({
+			product: {
+				name: 'Awa boil yer heid',
+				price: 20
+			},
+			license: 20,
+			total: 90
+		}, {
+			product: {
+			name: 'On yer bike',
+			price: 30
+		},
+			license: 10,
+			total: 30
+		});
+
+		console.log('GO!!!!')
+		Sparky('#cart');
 	</script>
 </body>
 </html>
