@@ -3,13 +3,14 @@
 
 	var DEBUG      = window.DEBUG;
 
+	var A          = Array.prototype;
 	var Fn         = window.Fn;
 	var Stream     = window.Stream;
 	var dom        = window.dom;
 
 	var assign     = Object.assign;
+	var define     = Object.defineProperties;
 	var attribute  = dom.attribute;
-	var compose    = Fn.compose;
 	var get        = Fn.get;
 	var id         = Fn.id;
 	var isDefined  = Fn.isDefined;
@@ -18,6 +19,8 @@
 	var noop       = Fn.noop;
 	var overload   = Fn.overload;
 	var pipe       = Fn.pipe;
+	var postpad    = Fn.postpad;
+	var remove     = Fn.remove;
 	var set        = Fn.set;
 	var setPath    = Fn.setPath;
 	var toType     = Fn.toType;
@@ -99,11 +102,7 @@
 	})();
 
 	function Transform(transforms, transformers, string) {
-		// Support the old clunky way. TODO: remove
 		if (!string) { return id; }
-
-		// Transform has already been set
-		if (typeof string !== 'string') { return string; }
 
 		var fns = [];
 		var token, name, fn, params;
@@ -207,65 +206,6 @@
 		'default': JSON.stringify
 	});
 
-	var scopeMap = new WeakMap();
-
-	function Struct(node, token, path, render, type, read, pipe) {
-		this.node   = node;
-		this.token  = token;
-		this.path   = path;
-		this.render = render;
-
-		if (type) {
-			this.type   = type;
-		}
-		else {
-			this.listen = noop;
-		}
-
-		this.read   = read;
-
-		// TODO: pipe is a TEMP argument, in place to support old way of
-		// generating pipes for just now.
-		if (pipe) {
-			this.pipe   = pipe;
-		}
-	}
-
-	assign(Struct.prototype, {
-		node:   null,
-		token:  '',
-		path:   '',
-		type:   '',
-		pipe:   id,
-		update: noop,
-		push:   noop,
-		render: noop,
-		read:   noop,
-
-		listen:   function(fn) {
-			console.log('LISTEN');
-if (this._listenFn) {
-	console.warn('Bad Steve. Attempt to listen without removing last listener');
-}
-
-			this._listenFn = fn;
-			this.node.addEventListener(this.type, fn);
-
-			// TODO: Temp. Support old way of unlistening, where unbinder is a
-			// callback
-			var struct = this;
-			return function() { struct.unlisten(); };
-		},
-
-		unlisten: function() {
-			console.log('UNLISTEN')
-			var fn   = this._listenFn;
-			this.node.removeEventListener(this.type, fn);
-			this._listenType = undefined;
-			this._listenFn   = undefined;
-		}
-	});
-
 	function isTruthy(value) {
 		return !!value;
 	}
@@ -276,13 +216,6 @@ if (this._listenFn) {
 		return rtoken.exec(string);
 	}
 
-	function mountScope(node, options, structs) {
-		// new Struct(node, token, path, render [, type, pipe])
-		structs.push(new Struct(node, '', '', function renderScope(value) {
-			scopeMap.set(node, value);
-		}));
-	}
-
 	function mountStringToken(node, render, strings, structs, match) {
 		var i = strings.length;
 		strings.push('');
@@ -291,7 +224,7 @@ if (this._listenFn) {
 		structs.push(new Struct(node, match[0], match[2], function renderText(value) {
 			strings[i] = toRenderString(value);
 			render(strings);
-		}, null, null, match[3]));
+		}, match[3]));
 	}
 
 	function mountString(node, string, render, options, structs) {
@@ -365,7 +298,7 @@ if (this._listenFn) {
 		structs.push(new Struct(node, match[0], match[2], function(value) {
 			values[i] = value;
 			render(values);
-		}, null, null, match[3]));
+		}, match[3]));
 	}
 
 	function mountBoolean(name, node, options, structs) {
@@ -438,7 +371,7 @@ if (this._listenFn) {
 				if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
 				if (string && rtext.test(string)) { addClasses(classes, string); }
 				prev = string;
-			}, null, null, $3));
+			}, $3));
 
 			return '';
 		});
@@ -454,18 +387,8 @@ if (this._listenFn) {
 
 		if (!match) { return; }
 
-		// new Struct (node, token, path, render, type, read, pipe)
-		structs.push(new Struct(node, match[0], match[2], function render(value) {
-			// Avoid updating with the same value as it sends the cursor to
-			// the end of the field (in Chrome, at least).
-			if (value === parseFloat(node.value)) { return; }
-
-			node.value = typeof value === 'number' && !isNaN(value) ?
-				value :
-				'' ;
-		}, 'input', function read() {
-			return node.value ? parseFloat(node.value) : undefined ;
-		}, match[3]));
+		// ReadableStruct(node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueNumber, 'input', readValueNumber, match[3]));
 	}
 
 	function mountValueString(node, options, structs) {
@@ -475,17 +398,7 @@ if (this._listenFn) {
 		if (!match) { return; }
 
 		// new Struct (node, token, path, render, type, read, pipe)
-		structs.push(new Struct(node, match[0], match[2], function render(value) {
-			// Avoid updating with the same value as it sends the cursor to
-			// the end of the field (in Chrome, at least).
-			if (value === node.value) { return; }
-
-			node.value = typeof value === 'string' ?
-				value :
-				'' ;
-		}, 'input', function read() {
-			return node.value;
-		}, match[3]));
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValue, 'input', readValue, match[3]));
 	}
 
 	function mountValueCheckbox(node, options, structs) {
@@ -494,18 +407,7 @@ if (this._listenFn) {
 		if (!match) { return; }
 
 		// new Struct (node, token, path, render, type, read, pipe)
-		structs.push(new Struct(node, match[0], match[2], function render(value) {
-			// Where value is defined check against it, otherwise
-			// value is "on", uselessly. Set checked state directly.
-			node.checked = isDefined(node.getAttribute('value')) ?
-				value === node.value :
-				value === true ;
-		}, 'change', function read() {
-			// TODO: Why do we check attribute here?
-			return isDefined(node.getAttribute('value')) ?
-				node.checked ? node.value : undefined :
-				node.checked ;
-		}, match[3]));
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueCheckbox, 'change', readValueCheckbox, match[3]));
 	}
 
 	function mountValueRadio(node, options, structs) {
@@ -514,26 +416,16 @@ if (this._listenFn) {
 		if (!match) { return; }
 
 		// new Struct (node, token, path, render, type, read, pipe)
-		structs.push(new Struct(node, match[0], match[2], function render(value) {
-			// Where value="" is defined check against it, otherwise
-			// value is "on", uselessly: set checked state directly.
-			node.checked = isDefined(node.getAttribute('value')) ?
-				value === node.value :
-				value === true ;
-		}, 'change', function read() {
-			if (!node.checked) { return; }
-
-			return isDefined(node.getAttribute('value')) ?
-				node.value :
-				true ;
-		}, match[3]));
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
 	}
-
 
 	var types = {
 		// element
 		1: function mountElement(node, options, structs) {
-			var children = node.childNodes;
+			// Get an immutable list of children. We don't want to mount
+			// elements that may be dynamically inserted by other sparky
+			// processes. Remember node.childNodes is dynamic.
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
 			var child;
 
@@ -542,7 +434,8 @@ if (this._listenFn) {
 				mountNode(child, options, structs) ;
 			}
 
-			mountScope(node, options, structs);
+			// This costs us, needlessly creating a struct for every element
+			//mountScope(node, options, structs);
 			mountClass(node, options, structs);
 			mountBoolean('hidden', node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
@@ -559,7 +452,7 @@ if (this._listenFn) {
 
 		// document
 		9: function mountDocument(node, options, structs) {
-			var children = node.childNodes;
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
 			var child;
 
@@ -574,7 +467,7 @@ if (this._listenFn) {
 
 		// fragment
 		11: function mountFragment(node, options, structs) {
-			var children = node.childNodes;
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
 			var child;
 
@@ -776,139 +669,284 @@ if (this._listenFn) {
 		}
 	}
 
-	function setupStruct(struct, options) {
+
+	// Struct
+
+	var structs = [];
+
+	var removeStruct = remove(structs);
+
+	function addStruct(struct) {
+		structs.push(struct);
+	}
+
+	function call(fn) {
+		fn(this);
+	}
+
+	function Struct(node, token, path, render, pipe) {
+		//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+
+		addStruct(this);
+		this.node    = node;
+		this.token   = token;
+		this.path    = path;
+		this.render  = render;
+		this.pipe    = pipe;
+		this.stopFns = [];
+	}
+
+	function ReadableStruct(node, token, path, render, type, read, pipe) {
+		// ReadableStruct extends Struct with listeners and read functions
+		Struct.call(this, node, token, path, render, pipe);
+		this.type = type;
+		this.read = read;
+	}
+
+	assign(Struct.prototype, {
+		stopFns: nothing,
+		update:  noop,
+		render:  noop,
+
+		then: function(fn) {
+			this.stopFns.push(fn);
+		},
+
+		stop: function stop() {
+			this.stopFns.forEach(call, this);
+			removeStruct(this);
+		}
+	});
+
+	assign(ReadableStruct.prototype, Struct.prototype, {
+		listen: function listen(fn) {
+			if (this._listenFn) {
+				console.warn('Bad Steve. Attempt to listen without removing last listener');
+			}
+
+			this._listenFn = fn;
+			this.node.addEventListener(this.type, fn);
+		},
+
+		unlisten: function unlisten() {
+			var fn = this._listenFn;
+
+			this.node.removeEventListener(this.type, fn);
+			this._listenType = undefined;
+			this._listenFn   = undefined;
+		}
+	});
+
+	function writeValue(value) {
+		var node = this.node;
+
+		// Avoid updating with the same value as it sends the cursor to
+		// the end of the field (in Chrome, at least).
+		if (value === node.value) { return; }
+
+		node.value = typeof value === 'string' ?
+			value :
+			'' ;
+	}
+
+	function writeValueNumber(value) {
+		var node = this.node;
+
+		// Avoid updating with the same value as it sends the cursor to
+		// the end of the field (in Chrome, at least).
+		if (value === parseFloat(node.value)) { return; }
+
+		node.value = typeof value === 'number' && !isNaN(value) ?
+			value :
+			'' ;
+	}
+
+	function writeValueCheckbox(value) {
+		var node = this.node;
+
+		// Where value is defined check against it, otherwise
+		// value is "on", uselessly. Set checked state directly.
+		node.checked = isDefined(node.getAttribute('value')) ?
+			value === node.value :
+			value === true ;
+	}
+
+	function writeValueRadio(value) {
+		var node = this.node;
+
+		// Where value="" is defined check against it, otherwise
+		// value is "on", uselessly: set checked state directly.
+		node.checked = isDefined(node.getAttribute('value')) ?
+			value === node.value :
+			value === true ;
+	}
+
+	function readValue() {
+		var node = this.node;
+		return node.value;
+	}
+
+	function readValueNumber() {
+		var node = this.node;
+		return node.value ? parseFloat(node.value) : undefined ;
+	}
+
+	function readValueCheckbox() {
+		var node = this.node;
+
+		// TODO: Why do we check attribute here?
+		return isDefined(node.getAttribute('value')) ?
+			node.checked ? node.value : undefined :
+			node.checked ;
+	}
+
+	function readValueRadio() {
+		var node = this.node;
+
+		if (!node.checked) { return; }
+
+		return isDefined(node.getAttribute('value')) ?
+			node.value :
+			node.checked ;
+	}
+
+	// Struct lifecycle
+
+	function setup(struct, options) {
+		//console.log('setup: ', struct.token);
+
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		var update    = catchIfDebug(compose(struct.render, transform), struct);
+		var update    = catchIfDebug(function(value) {
+			struct.render(transform(value));
+		}, struct);
 		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
 		struct.update = update;
 		struct.push   = throttle;
+		struct.then(throttle.cancel);
 	}
 
-	function RenderStream(structs, options, node) {
-		var old;
+	function bind(struct, scope, options) {
+		//console.log('bind:  ', struct.token);
 
-		return {
-			/* A read-only stream. */
-			shift: noop,
+		var input = struct.input = Stream.observe(struct.path, scope).latest();
+		var value = input.shift();
+		var shift, frameId;
 
-			stop: function stopRenderer() {
-				structs.forEach(function(struct) {
-					struct.unbind && struct.unbind();
-					struct.stop && struct.stop();
-				});
-			},
+		struct.scope = scope;
 
-			push: function pushRenderer(data) {
-console.log('RENDERER PUSH', data);
-				if (old === data) { return; }
-				old = data;
-
-				if (DEBUG) { console.groupCollapsed('update:', node); }
-
-				// Data is now gauranteed to be observable
-				var observable = data;//Observable(data);
-
-				// Rebind structs
-				structs.forEach(function(struct) {
-					// Unbind Structs
-					struct.unbind && struct.unbind();
-
-					// Set up structs to be pushable. Renderers already have
-					// a push method and should not be throttled.
-					if (!struct.push || struct.push === noop) {
-						setupStruct(struct, options);
-					}
-
-					struct.unbind = struct.unbind || function(data) {
-						// If the struct is not a Sparky it's .push() is a
-						// throttle and must be cancelled. TODO: dodgy.
-						struct.push.cancel && struct.push.cancel();
-						struct.input.stop();
-						if (struct.unlisten) { struct.unlisten(); }
-					};
-
-					// Rebind struct
-					if (struct.input) {
-						struct.input.stop();
-					}
-
-					var input = struct.input = Stream.observe(struct.path, observable).latest();
-					var value = input.shift();
-					var shift, frameId;
-
-					// If there is an initial scope render it synchronously, as
-					// it is assumed we are already working inside an animation
-					// frame. Then render future scopes at throttled frame rate,
-					// where throttle is defined
-					if (value !== undefined) {
-						(struct.update || struct.push)(value);
-						input.each(struct.push);
-					}
-
-					// Otherwise (if input is a pushable stream) render the
-					// first thing to pushed before the next frame. This allows
-					// us to immediately render a Sparky() that is created and
-					// then .push()ed to synchrounously.
-					else if (input.on) {
-						shift = function shift() {
-							input.off('push', shift);
-							cancelAnimationFrame(frameId);
-							var value = input.shift();
-							(struct.update || struct.push)(value);
-							input.each(struct.push);
-						};
-
-						frameId = requestAnimationFrame(function() {
-							input.off('push', shift);
-							input.each(struct.push);
-						});
-
-						input.on('push', shift);
-					}
-
-					var set, invert, change;
-
-					// Listen to changes
-					if (struct.listen && struct.listen !== noop) {
-						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); }
-						set = setPath(struct.path, observable);
-						invert = InverseTransform(options.transformers, struct.pipe);
-						change = pipe(function() { return struct.read(); }, invert, set);
-						struct.listen(change);
-
-						if (value === undefined) { change(); }
-					}
-				});
-
-				if (DEBUG) { console.groupEnd(); }
-
-				return data;
-			}
+		// If there is an initial scope render it synchronously, as
+		// it is assumed we are already working inside an animation
+		// frame. Then render future scopes at throttled frame rate,
+		// where throttle is defined
+		if (value !== undefined) {
+			(struct.update || struct.push)(value);
+			input.each(struct.push);
 		}
+
+		// Otherwise (if input is a pushable stream) render the
+		// first thing to pushed before the next frame. This allows
+		// us to immediately render a Sparky() that is created and
+		// then .push()ed to synchrounously.
+		else {
+			shift = function shift() {
+				input.off('push', shift);
+				cancelAnimationFrame(frameId);
+				var value = input.shift();
+				(struct.update || struct.push)(value);
+				input.each(struct.push);
+			};
+
+			frameId = requestAnimationFrame(function() {
+				input.off('push', shift);
+				input.each(struct.push);
+			});
+
+			input.on('push', shift);
+		}
+
+		if (struct.listen) {
+			listen(struct, scope, value, options);
+		}
+	}
+
+	function listen(struct, scope, value, options) {
+		//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
+
+		var set, invert, change;
+
+		if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
+
+		set    = setPath(struct.path, scope);
+		invert = InverseTransform(options.transformers, struct.pipe);
+		change = pipe(function() { return struct.read(); }, invert, set);
+		struct.listen(change);
+
+		// Where the initial value of struct.path is not set, set it to
+		// the value of the <input/>.
+		if (value === undefined) { change(); }
+	}
+
+	function unbind(struct) {
+		//console.log('unbind:', struct.token);
+		struct.input && struct.input.stop();
+		struct.unlisten && struct.unlisten();
+		struct.scope = undefined;
+	}
+
+	function teardown(struct) {
+		//console.log('teardown', struct.token);
+		struct.stop();
+	}
+
+	function setupStructs(structs, options) {
+		structs.forEach(function(struct) {
+			// Set up structs to be pushable. Renderers already have
+			// a push method and should not be throttled.
+			if (!struct.push) {
+				setup(struct, options);
+			}
+		});
+	}
+
+	function unbindStructs(structs) {
+		structs.forEach(unbind);
 	}
 
 	function mount(node, options) {
-		options = assign({}, settings, options);
+		//console.log('parse: ', node);
 
-		if (DEBUG) {
-			console.groupCollapsed('mount: ', node);
-		}
+		options = assign({}, settings, options);
 
 		var structs = [];
 		mountNode(node, options, structs);
 
-		if (DEBUG) {
-			console.table(structs, ["token", "path", "pipe"]);
-			console.groupEnd();
+		var setup = setupStructs;
+		var old;
+
+		// Return a read-only stream
+		return {
+			shift: noop,
+
+			stop: function stop() {
+				structs.forEach(teardown);
+			},
+
+			push: function push(scope) {
+				if (old === scope) { return; }
+				old = scope;
+
+				// Setup structs on the first scope push, unbind them on
+				// later pushes
+				setup(structs, options);
+				setup = unbindStructs;
+
+				structs.forEach(function(struct) {
+					bind(struct, scope, options);
+				});
+			}
 		}
-
-		return RenderStream(structs, options, node);
 	}
-
-	mount.getScope = function(node) {
-		return scopeMap.get(node);
-	};
 
 	// Export (temporary)
 	mount.types  = types;
@@ -921,14 +959,29 @@ console.log('RENDERER PUSH', data);
 	mount.mountValueNumber = mountValueNumber;
 	mount.parseParams      = parseParams;
 
-	// Legacy pre 2.0.3
-	mount.mountName = function mountName(node, options, structs) {
-		var string = node.name;
-		var match  = matchToken(string, options);
-		if (!match) { return; }
 
-		return mountValueByType(node, options, match, structs);
+	// Expose a way to get scopes from node for event delegation and debugging
+
+	function findScope(node) {
+		return get('scope', structs.find(function(struct) {
+			return struct.node === node;
+		}));
+	}
+
+	mount.getScope = function getScope(node) {
+		var scope = findScope(node);
+		return scope === undefined && node.parentNode ?
+			getScope(node.parentNode) :
+			scope ;
 	};
+
+	define(mount, {
+		streams: {
+			get: function() {
+				return structs.slice();
+			}
+		}
+	});
 
 	window.mount = mount;
 

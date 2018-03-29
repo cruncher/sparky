@@ -565,12 +565,12 @@ id:   {[id]}
 		import Sparky from "./sparky.js"
 		//window.Sparky(dom.body);
 		//window.Sparky('#template-demo-2');
-		//Sparky('#header');
+		Sparky('#header');
 	</script>
 
 	<!-- Tests -->
 
-	<!--script type="module">
+	<script type="module">
 		import "./fn/test/test.js"
 		import "./test/sparky.test.js"
 		import "./test/sparky.stop-scopes.test.js"
@@ -629,13 +629,9 @@ id:   {[id]}
 	<!-- More -->
 
 
-
-
-
 	<section class="fixed cart-layer layer" toggleable focusable id="cart">
-		<div>CART: {[]}</div>
 		<div sparky-fn="cart">CART: {[]}</div>
-	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="template:'#cart-review-your-order'" id="review-your-order">
+	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="template:#cart-review-your-order" id="review-your-order">
 	        <h1 class="cart-text-1">Review your order LOADING</h1>
 	    </section>
 	</section>
@@ -644,11 +640,9 @@ id:   {[id]}
 	    <h1 class="cart-text-1">Review your order</h1>
 
 	    <div class="one-grid grid">
-	        HELLO
-	        <form class="grid-1" sparky-fn="cart get:items each template:#license-editor">{[]}</form>
-	            licenseEditor
-	        <!--form class="grid-2" fn="cart template:'#discount-editor' discountEditor"></form-->
-	        <!--a href="#info-and-billing">Continue to Info and Billing</a-->
+	        <form class="grid-1" sparky-fn="cart get:items each template:#license-editor">
+				LOADING?
+			</form>
 	    </div>
 	</template>
 
@@ -685,8 +679,8 @@ id:   {[id]}
 			total: 30
 		});
 
-		console.log('GO!!!!')
-		Sparky('#cart', data);
+		window.data = data;
+		window.s = Sparky('#cart', data);
 	</script>
 </body>
 </html>

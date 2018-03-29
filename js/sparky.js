@@ -110,7 +110,6 @@
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
-
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -119,15 +118,14 @@
 			// Parse the fns and params to execute
 			var token = fnstring.match(rfn);
 
-console.group(fnstring);
 			// No more tokens, launch Sparky
 			if (!token) {
 				sparky.continue = noop;
-console.log('RENDER', input)
 				render();
 				return sparky;
 			}
 
+			//console.group(token[0].trim());
 			var fn = Sparky.fn[token[1]];
 
 			// Function not found
@@ -144,7 +142,8 @@ console.log('RENDER', input)
 			// Call Sparky fn, gaurantee the output is a stream of observables
 			var output = fn.call(sparky, node, input, params);
 			input      = output ? output.map(Observable) : input ;
-console.groupEnd();
+			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
+			//console.groupEnd();
 
 			// If fns have been interrupted calling is false
 			return calling && start();
@@ -207,10 +206,24 @@ console.groupEnd();
 				return Sparky.fn.find.apply(this, arguments);
 			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
-			get: function(node, stream, params) {
-				return stream.chain(function(object) {
-					return Stream.observe(params[0], object);
+			get: function(node, input, params) {
+				// TODO: We should be able to express this with
+				// input.chain( .. Stream.observe(params[0], objet) .. )
+				// but because Fn#join() doesn't know how to handle streams
+				// we cant.
+
+				var output = Stream.of();
+				var stop = noop;
+
+				input.each(function(object) {
+					stop();
+					stop = Stream
+					.observe(params[0], object)
+					.each(output.push)
+					.stop;
 				});
+
+				return output;
 			},
 
 			if: function(node, stream, params) {
