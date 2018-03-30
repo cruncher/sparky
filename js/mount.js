@@ -829,7 +829,12 @@
 	function bind(struct, scope, options) {
 		//console.log('bind:  ', struct.token);
 
-		var input = struct.input = Stream.observe(struct.path, scope).latest();
+		// Todo: By unshift()ing null in here we never enter value === undefined
+		// state, ie. we will never get values pushed in after this binding has
+		// been run, but still during the current frame, to be rendered in the
+		// current frame – they will be input.each(struct.push) (which is
+		// throttled) to the next frame.
+		var input = struct.input = Stream.observe(struct.path, scope).unshift(null).latest();
 		var value = input.shift();
 		var shift, frameId;
 
@@ -848,22 +853,22 @@
 		// first thing to pushed before the next frame. This allows
 		// us to immediately render a Sparky() that is created and
 		// then .push()ed to synchrounously.
-		else {
-			shift = function shift() {
-				input.off('push', shift);
-				cancelAnimationFrame(frameId);
-				var value = input.shift();
-				(struct.update || struct.push)(value);
-				input.each(struct.push);
-			};
-
-			frameId = requestAnimationFrame(function() {
-				input.off('push', shift);
-				input.each(struct.push);
-			});
-
-			input.on('push', shift);
-		}
+		//else {
+		//	shift = function shift() {
+		//		input.off('push', shift);
+		//		cancelAnimationFrame(frameId);
+		//		var value = input.shift();
+		//		(struct.update || struct.push)(value);
+		//		input.each(struct.push);
+		//	};
+		//
+		//	frameId = requestAnimationFrame(function() {
+		//		input.off('push', shift);
+		//		input.each(struct.push);
+		//	});
+		//
+		//	input.on('push', shift);
+		//}
 
 		if (struct.listen) {
 			listen(struct, scope, value, options);
@@ -921,7 +926,7 @@
 		var structs = [];
 		mountNode(node, options, structs);
 
-		var setup = setupStructs;
+		var fn = setupStructs;
 		var old;
 
 		// Return a read-only stream
@@ -938,8 +943,8 @@
 
 				// Setup structs on the first scope push, unbind them on
 				// later pushes
-				setup(structs, options);
-				setup = unbindStructs;
+				fn(structs, options);
+				fn = unbindStructs;
 
 				structs.forEach(function(struct) {
 					bind(struct, scope, options);
