@@ -90,7 +90,7 @@
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var input    = this;
+		var input    = this.dedup().map(Observable);
 		var renderer = nothing;
 
 		this[0]      = node;
@@ -139,7 +139,8 @@
 			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
 
-			// Call Sparky fn, gaurantee the output is a stream of observables
+			// Call Sparky fn, gauranteeing the output is a non-duplicate stream
+			// of observables
 			var output = fn.call(sparky, node, input, params);
 			input      = output ? output.map(Observable) : input ;
 			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }

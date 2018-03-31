@@ -27,19 +27,19 @@ group('Child sparky', function(test, log, fixture) {
 	var obj1 = { property: 'prop1' };
 	var obj2 = { property: 'prop2' };
 
+	Sparky.fn['ctrl'] = function(node, scopes) {
+		return Fn.of({
+			'sub-1': obj1,
+			'sub-2': obj2
+		});
+	};
+
 	Sparky.fn['ctrl-1'] = function(node, scopes) {
 		return Fn.of({ property: 'value1' });
 	};
 
 	Sparky.fn['ctrl-2'] = function(node, scopes) {
 		return Fn.of({ property: 'value2' });
-	};
-
-	Sparky.fn['ctrl'] = function(node, scopes) {
-		return Fn.of({
-			'sub-1': obj1,
-			'sub-2': obj2
-		});
 	};
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {

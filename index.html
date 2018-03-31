@@ -565,30 +565,29 @@ id:   {[id]}
 		import Sparky from "./sparky.js"
 		//window.Sparky(dom.body);
 		//window.Sparky('#template-demo-2');
-		Sparky('#header');
+		//Sparky('#header');
 	</script>
 
 	<!-- Tests -->
 
 	<script type="module">
 		import "./fn/test/test.js"
-		import "./test/sparky.test.js"
-		import "./test/sparky.stop-scopes.test.js"
-		import "./test/sparky.stop-mutations.test.js"
-		import "./test/sparky.input-test.js"
-		import "./test/sparky.textarea-test.js"
-		import "./test/sparky.select-test.js"
-		import "./test/sparky.fn-test.js"
+//		import "./test/sparky.test.js"
+//		import "./test/sparky.stop-scopes.test.js"
+//		import "./test/sparky.stop-mutations.test.js"
+//		import "./test/sparky.input-test.js"
+//		import "./test/sparky.textarea-test.js"
+//		import "./test/sparky.select-test.js"
+//		import "./test/sparky.fn-test.js"
 		import "./test/sparky.fn.each-test.js"
-		import "./test/sparky.fn.template-test.js"
-		import "./test/sparky.fn.load-test.js"
+//		import "./test/sparky.fn.template-test.js"
+//		import "./test/sparky.fn.load-test.js"
 		//import "test/sparky.transforms-test.js"
 
-		import "./plugins/sparky.fn.clock.js"
-		import "./test/sparky.fn.clock-test.js"
+//		import "./plugins/sparky.fn.clock.js"
+//		import "./test/sparky.fn.clock-test.js"
 		//import "./plugins/sparky.fn.value-from.js"
 		//import "./test/sparky.fn.value-from.test.js"
-		//import "./plugins/sparky.fn.calendar.js"
 	</script>
 
 	<div sparky-fn="calendar:2017-11-20,14 template:#calendar-template" id="calendar"></div>
@@ -616,12 +615,7 @@ id:   {[id]}
 	</template>
 
 	<script type="module">
-		import "./plugins/sparky.fn.clock.js"
-		import "./test/sparky.fn.clock-test.js"
-		//import "./plugins/sparky.fn.value-from.js"
-		//import "./test/sparky.fn.value-from.test.js"
 		//import "./plugins/sparky.fn.calendar.js"
-
 		//window.Sparky('#calendar');
 		//window.Sparky('#template-demo-2');
 	</script>
@@ -629,7 +623,7 @@ id:   {[id]}
 	<!-- More -->
 
 
-	<section class="fixed cart-layer layer" toggleable focusable id="cart">
+	<!--section class="fixed cart-layer layer" toggleable focusable id="cart">
 		<div sparky-fn="cart">CART: {[]}</div>
 	    <section class="cart-toggle-block toggle-block block active" switchable sparky-fn="template:#cart-review-your-order" id="review-your-order">
 	        <h1 class="cart-text-1">Review your order LOADING</h1>
@@ -681,6 +675,6 @@ id:   {[id]}
 
 		window.data = data;
 		window.s = Sparky('#cart', data);
-	</script>
+	</script-->
 </body>
 </html>

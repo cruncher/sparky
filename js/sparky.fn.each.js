@@ -5,6 +5,7 @@
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
+	var frame      = window.frame;
 	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
@@ -12,15 +13,12 @@
 	var clone      = dom.clone;
 	var remove     = dom.remove;
 	var tag        = dom.tag;
+	var cue        = frame.cue;
+	var uncue      = frame.uncue;
 	var observe    = Observable.observe;
 	var MarkerNode = Sparky.MarkerNode;
 
 	var $object    = Symbol('object');
-
-	// We maintain a list of sparkies that are scheduled for destruction. This
-	// time determines how long we wait during periods of inactivity before
-	// destroying those sparkies.
-	var destroyDelay = 8000;
 
 	function create(node, object, options) {
 		var sparky = new Sparky(node, object, options);
@@ -75,6 +73,33 @@
 		}
 	}
 
+	function eachFrame(stream, fn) {
+		var unobserve = noop;
+
+		function update(time) {
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
+
+			function render(time) {
+				fn(scope);
+			}
+
+			unobserve();
+			unobserve = observe(scope, '', function() {
+				cue(render);
+			});
+		}
+
+		cue(update);
+
+		if (stream.on) {
+			stream.on('push', function() {
+				cue(update);
+			});
+		}
+	}
+
 	Sparky.fn.each = function each(node, scopes, params) {
 		var sparkies = [];
 		var template = node.cloneNode(true);
@@ -92,6 +117,7 @@
 
 			reorderCache(template, options, array, sparkies);
 			reorderNodes(marker, array, sparkies);
+			console.log('render: each ' + JSON.stringify(array));
 
 			// A fudgy workaround because observe() callbacks (like this update
 			// function) are not batched to ticks.
@@ -101,31 +127,18 @@
 			}
 		}
 
-		var throttle = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
-
 		// Stop Sparky trying to bind the same scope and ctrls again.
 		//template.removeAttribute('data-scope');
-		template.removeAttribute(Sparky.attributePrefix + 'fn');
+		template.removeAttribute(Sparky.attributeFn);
 
 		// Put the marker in place and remove the node
 		before(node, marker);
 		remove(node);
 
-		var initial = scopes.latest().shift();
+		// Get the value of scopes in frames after it has changed
+		eachFrame(scopes.latest().dedup(), update);
 
-		// Initial render should not be throttled
-		var unobserve = initial ?
-			observe(initial, '', update) :
-			noop ;
-
-		scopes.each(function(scope) {
-			unobserve();
-			unobserve = observe(scope, '', throttle);
-		});
-
-		this.then(function destroy() {
-			throttle.cancel();
-			unobserve();
+		this.then(function() {
 			remove(marker);
 		});
 	};

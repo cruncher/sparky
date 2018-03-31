@@ -7,6 +7,7 @@
 	var Fn         = window.Fn;
 	var Stream     = window.Stream;
 	var dom        = window.dom;
+	var frame      = window.frame;
 
 	var assign     = Object.assign;
 	var define     = Object.defineProperties;
@@ -19,11 +20,12 @@
 	var noop       = Fn.noop;
 	var overload   = Fn.overload;
 	var pipe       = Fn.pipe;
-	var postpad    = Fn.postpad;
 	var remove     = Fn.remove;
 	var set        = Fn.set;
 	var setPath    = Fn.setPath;
 	var toType     = Fn.toType;
+	var cue        = frame.cue;
+	var uncue      = frame.uncue;
 
 
 	// Matches tags plus any directly adjacent text
@@ -680,9 +682,9 @@
 		structs.push(struct);
 	}
 
-	function call(fn) {
-		fn(this);
-	}
+
+
+
 
 	function Struct(node, token, path, render, pipe) {
 		//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
@@ -693,8 +695,26 @@
 		this.path    = path;
 		this.render  = render;
 		this.pipe    = pipe;
-		this.stopFns = [];
 	}
+
+	assign(Struct.prototype, {
+		update:  noop,
+		render:  noop,
+
+		stop: function stop() {
+			uncue(this.update);
+			removeStruct(this);
+		},
+
+		cue: function() {
+console.log('cue:   ', this.token)
+			cue(this.update);
+		},
+
+		uncue: function() {
+			uncue(this.update);
+		}
+	});
 
 	function ReadableStruct(node, token, path, render, type, read, pipe) {
 		// ReadableStruct extends Struct with listeners and read functions
@@ -702,21 +722,6 @@
 		this.type = type;
 		this.read = read;
 	}
-
-	assign(Struct.prototype, {
-		stopFns: nothing,
-		update:  noop,
-		render:  noop,
-
-		then: function(fn) {
-			this.stopFns.push(fn);
-		},
-
-		stop: function stop() {
-			this.stopFns.forEach(call, this);
-			removeStruct(this);
-		}
-	});
 
 	assign(ReadableStruct.prototype, Struct.prototype, {
 		listen: function listen(fn) {
@@ -736,6 +741,8 @@
 			this._listenFn   = undefined;
 		}
 	});
+
+	// Struct value read and write
 
 	function writeValue(value) {
 		var node = this.node;
@@ -813,34 +820,60 @@
 	// Struct lifecycle
 
 	function setup(struct, options) {
-		//console.log('setup: ', struct.token);
+		console.log('setup: ', struct.token);
 
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		var update    = catchIfDebug(function(value) {
-			struct.render(transform(value));
-		}, struct);
-		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
-		struct.update = update;
-		struct.push   = throttle;
-		struct.then(throttle.cancel);
+		struct.update = function(time) {
+			var value = struct.input && struct.input.shift();
+
+console.log('render:', struct.token)
+
+			if (value === undefined) {
+				struct.render('');
+			}
+			else {
+				struct.render(transform(value));
+			}
+		}
 	}
 
 	function bind(struct, scope, options) {
-		//console.log('bind:  ', struct.token);
+		console.log('bind:  ', struct.token);
 
 		var input = struct.input = Stream.observe(struct.path, scope).latest();
+
+		struct.scope = scope;
+
+		if (struct.cue) {
+			struct.cue();
+
+			input.on('push', function() {
+				struct.cue();
+			});
+
+			if (struct.listen) {
+				listen(struct, scope, '', options);
+			}
+
+			return;
+		}
+
+
+
+
+
 		var value = input.shift();
 		var shift, frameId;
 
-		struct.scope = scope;
+
 
 		// If there is an initial scope render it synchronously, as
 		// it is assumed we are already working inside an animation
 		// frame. Then render future scopes at throttled frame rate,
 		// where throttle is defined
 		if (value !== undefined) {
-			(struct.update || struct.push)(value);
+			struct.push(value);
 			input.each(struct.push);
 		}
 
@@ -853,7 +886,7 @@
 				input.off('push', shift);
 				cancelAnimationFrame(frameId);
 				var value = input.shift();
-				(struct.update || struct.push)(value);
+				struct.push(value);
 				input.each(struct.push);
 			};
 
@@ -889,12 +922,15 @@
 
 	function unbind(struct) {
 		//console.log('unbind:', struct.token);
+		// Todo: only uncue on teardown
+		//struct.uncue();
 		struct.input && struct.input.stop();
 		struct.unlisten && struct.unlisten();
 		struct.scope = undefined;
 	}
 
 	function teardown(struct) {
+		unbind(struct);
 		//console.log('teardown', struct.token);
 		struct.stop();
 	}
@@ -903,7 +939,7 @@
 		structs.forEach(function(struct) {
 			// Set up structs to be pushable. Renderers already have
 			// a push method and should not be throttled.
-			if (!struct.push) {
+			if (struct.cue) {
 				setup(struct, options);
 			}
 		});
