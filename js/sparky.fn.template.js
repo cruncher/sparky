@@ -158,7 +158,9 @@
                 });
             }
 
-            return scopes;
+            return scopes.tap(function(o) {
+                console.log('FART', o)
+            });
         },
 
 

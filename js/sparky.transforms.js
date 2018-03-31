@@ -67,6 +67,7 @@
 		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
 		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
 		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: Fn.toInt },
 
 		interpolate: {
 			tx: function(point) {

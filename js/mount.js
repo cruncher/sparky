@@ -957,7 +957,7 @@ console.log('render:', struct.token)
 		var structs = [];
 		mountNode(node, options, structs);
 
-		var setup = setupStructs;
+		var fn = setupStructs;
 		var old;
 
 		// Return a read-only stream
@@ -974,8 +974,8 @@ console.log('render:', struct.token)
 
 				// Setup structs on the first scope push, unbind them on
 				// later pushes
-				setup(structs, options);
-				setup = unbindStructs;
+				fn(structs, options);
+				fn = unbindStructs;
 
 				structs.forEach(function(struct) {
 					bind(struct, scope, options);

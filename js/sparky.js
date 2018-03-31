@@ -75,6 +75,10 @@
 		return selector.replace(/\//g, '\\/');
 	}
 
+	function toObservableOrSelf(object) {
+		return Observable(object) || object;
+	}
+
 	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
@@ -142,7 +146,7 @@
 			// Call Sparky fn, gauranteeing the output is a non-duplicate stream
 			// of observables
 			var output = fn.call(sparky, node, input, params);
-			input      = output ? output.map(Observable) : input ;
+			input      = output ? output.map(toObservableOrSelf) : input ;
 			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
 			//console.groupEnd();
 
@@ -155,7 +159,7 @@
 				var object;
 
 				if (data !== undefined) {
-					object = data;//Observable(data);
+					object = data;
 					data   = undefined;
 					return object;
 				}
