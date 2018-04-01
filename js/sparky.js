@@ -83,6 +83,7 @@
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
+
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
@@ -94,7 +95,7 @@
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var input    = this.dedup().map(Observable);
+		var input;
 		var renderer = nothing;
 
 		this[0]      = node;
@@ -114,6 +115,7 @@
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
+console.log('RENDER', node)
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -144,9 +146,14 @@
 			fnstring   = fnstring.slice(token[0].length);
 
 			// Call Sparky fn, gauranteeing the output is a non-duplicate stream
-			// of observables
+			// of observables. Todo: we should not need to be so strict about
+			// .dedup() when we create a disticntion between mutation and
+			// path changes in Observables.
 			var output = fn.call(sparky, node, input, params);
-			input      = output ? output.map(toObservableOrSelf) : input ;
+
+			input = output ?
+				output.map(toObservableOrSelf).dedup() :
+				input ;
 			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
 			//console.groupEnd();
 
@@ -182,10 +189,13 @@
 			};
 		}
 
+		// Initialise this as a stream and set input to a deduped version
 		Stream.call(this, Source);
+		input = this.map(toObservableOrSelf).dedup();
 
 		this.interrupt = interrupt;
 		this.continue  = start;
+
 		start();
 	}
 

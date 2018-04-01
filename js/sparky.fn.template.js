@@ -157,10 +157,6 @@
                     console.warn(error);
                 });
             }
-
-            return scopes.tap(function(o) {
-                console.log('FART', o)
-            });
         },
 
 

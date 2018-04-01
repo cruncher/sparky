@@ -21,7 +21,9 @@
 	var $object    = Symbol('object');
 
 	function create(node, object, options) {
+console.group('CREATE');
 		var sparky = new Sparky(node, object, options);
+console.groupEnd();
 		sparky[$object] = object;
 		return sparky;
 	}
@@ -77,6 +79,7 @@
 		var unobserve = noop;
 
 		function update(time) {
+console.log('UPDATE')
 			var scope = stream.shift();
 			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 			if (scope === undefined) { return; }
@@ -91,12 +94,16 @@
 			});
 		}
 
-		cue(update);
-
+//		cue(update);
+console.log('----')
 		if (stream.on) {
 			stream.on('push', function() {
+console.log('PUSH')
 				cue(update);
 			});
+		}
+		else {
+			cue(update)
 		}
 	}
 
@@ -106,7 +113,7 @@
 		var options  = this.interrupt();
 		var marker   = MarkerNode(node);
 		var isSelect = tag(node) === 'option';
-
+console.log('EACH')
 		function update(array) {
 			// Selects will lose their value if the selected option is removed
 			// from the DOM, even if there is another <option> of same value

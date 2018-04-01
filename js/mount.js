@@ -8,6 +8,7 @@
 	var Stream     = window.Stream;
 	var dom        = window.dom;
 	var frame      = window.frame;
+	var Observable = window.Observable;
 
 	var assign     = Object.assign;
 	var define     = Object.defineProperties;
@@ -26,6 +27,7 @@
 	var toType     = Fn.toType;
 	var cue        = frame.cue;
 	var uncue      = frame.uncue;
+	var observe    = Observable.observe;
 
 
 	// Matches tags plus any directly adjacent text
@@ -682,10 +684,6 @@
 		structs.push(struct);
 	}
 
-
-
-
-
 	function Struct(node, token, path, render, pipe) {
 		//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
 
@@ -707,7 +705,7 @@
 		},
 
 		cue: function() {
-console.log('cue:   ', this.token)
+			console.log('cue:   ', this.token)
 			cue(this.update);
 		},
 
@@ -820,14 +818,14 @@ console.log('cue:   ', this.token)
 	// Struct lifecycle
 
 	function setup(struct, options) {
-		console.log('setup: ', struct.token);
+		//console.log('setup: ', struct.token);
 
 		var transform = Transform(options.transforms, options.transformers, struct.pipe);
 
 		struct.update = function(time) {
 			var value = struct.input && struct.input.shift();
 
-console.log('render:', struct.token)
+			console.log('render:', struct.token, value)
 
 			if (value === undefined) {
 				struct.render('');
@@ -835,6 +833,33 @@ console.log('render:', struct.token)
 			else {
 				struct.render(transform(value));
 			}
+		}
+	}
+
+	function eachFrame(stream, fn) {
+		var unobserve = noop;
+
+		function update(time) {
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
+
+			function render(time) {
+				fn(scope);
+			}
+
+			unobserve();
+			unobserve = observe(scope, '', function() {
+				cue(render);
+			});
+		}
+
+		cue(update);
+
+		if (stream.on) {
+			stream.on('push', function() {
+				cue(update);
+			});
 		}
 	}
 
@@ -846,6 +871,7 @@ console.log('render:', struct.token)
 		struct.scope = scope;
 
 		if (struct.cue) {
+console.log('struct has cue', struct.token)
 			struct.cue();
 
 			input.on('push', function() {
@@ -858,15 +884,24 @@ console.log('render:', struct.token)
 
 			return;
 		}
+		else {
+console.log('struct is Sparky')
+			eachFrame(input, struct.push);
+			//input.each(struct.push);
+		}
+
+		if (struct.listen) {
+			var value = input.shift();
+			listen(struct, scope, value, options);
+		}
+
+		return;
 
 
-
-
+		// For Sparkys --------------------------------------------
 
 		var value = input.shift();
 		var shift, frameId;
-
-
 
 		// If there is an initial scope render it synchronously, as
 		// it is assumed we are already working inside an animation
@@ -950,7 +985,7 @@ console.log('render:', struct.token)
 	}
 
 	function mount(node, options) {
-		//console.log('parse: ', node);
+		console.log('parse: ', node.outerHTML);
 
 		options = assign({}, settings, options);
 
@@ -969,6 +1004,7 @@ console.log('render:', struct.token)
 			},
 
 			push: function push(scope) {
+console.log('NEW SCOPE', scope)
 				if (old === scope) { return; }
 				old = scope;
 

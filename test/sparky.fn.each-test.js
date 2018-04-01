@@ -9,26 +9,26 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 			{ property: 2 }
 		]);
 
-console.log('• TEST PUSH NOTHING')
+//console.log('• TEST PUSH NOTHING')
 		sparky.push(nothing);
 
 		requestAnimationFrame(function() {
-console.log('• TEST FRAME 1 -------------------------')
+//console.log('• TEST FRAME 1 -------------------------')
 			equals(0, ul.querySelectorAll('li').length);
-console.log('• TEST PUSH ARRAY')
+//console.log('• TEST PUSH ARRAY')
 			sparky.push(array);
 
 			requestAnimationFrame(function() {
-console.log('• TEST FRAME 2 -------------------------')
+//console.log('• TEST FRAME 2 -------------------------')
 				var lis = ul.querySelectorAll('li');
 				equals(2, ul.querySelectorAll('li').length);
 				equals('1', lis[0] && lis[0].innerHTML, "First li content from array");
 				equals('2', lis[1] && lis[1].innerHTML, "Second li content from array");
-console.log('• TEST ARRAY PUSH OBJECT')
+//console.log('• TEST ARRAY PUSH OBJECT')
 				array.push({ property: 3 });
 
 				requestAnimationFrame(function() {
-console.log('• TEST FRAME 3 --------------------------')
+//console.log('• TEST FRAME 3 --------------------------')
 					var lis = ul.querySelectorAll('li');
 
 					equals(3, ul.querySelectorAll('li').length);
@@ -41,7 +41,7 @@ console.log('• TEST FRAME 3 --------------------------')
 					object.property = 0;
 
 					requestAnimationFrame(function() {
-console.log('• TEST FRAME 4 --------------------------')
+//console.log('• TEST FRAME 4 --------------------------')
 						var lis = ul.querySelectorAll('li');
 						equals(0, ul.querySelectorAll('li').length);
 						equals('1', li && li.innerHTML, "First li content");
