@@ -33,9 +33,9 @@ group('input[type="text"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals('blabla', model.property);
-
 		requestAnimationFrame(function() {
+			equals('blabla', model.property);
+
 			node.value = '';
 			node.dispatchEvent(inputEvent);
 			equals('', model.property);
@@ -89,9 +89,8 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 
 		Sparky(node2, model2);
 
-		equals(true, model2.property, 'model2.property should be true');
-
 		requestAnimationFrame(function() {
+			equals(true, model2.property, 'model2.property should be true');
 			equals(true, node2.checked,   'Checkbox 2 should be checked');
 
 			Observable(model2).property = 'eg';
@@ -109,9 +108,8 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals('good', model.property);
-
 		requestAnimationFrame(function() {
+			equals('good', model.property);
 			equals(true, node.checked);
 
 			node.checked = false;
@@ -175,9 +173,8 @@ group('input[type="number"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals(0, model.property);
-
 		requestAnimationFrame(function() {
+			equals(0, model.property);
 			node.value = '';
 			node.dispatchEvent(inputEvent);
 			equals(undefined, model.property);
@@ -194,9 +191,8 @@ group('input[type="number"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals(0, model.property);
-
 		requestAnimationFrame(function() {
+			equals(0, model.property);
 			node.value = '';
 			node.dispatchEvent(inputEvent);
 			equals(undefined, model.property);
@@ -239,8 +235,10 @@ group('input[type="range"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals(0, model.property);
-		done();
+		requestAnimationFrame(function() {
+			equals(0, model.property);
+			done();
+		});
 	});
 
 	test('input[type="range", value, min, max]', function(equals, done) {
@@ -252,8 +250,12 @@ group('input[type="range"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals(1, model.property);
-		done();
+		requestAnimationFrame(function() {
+			equals('1', node.min);
+			equals('2', node.max);
+			equals(1, model.property);
+			done();
+		});
 	});
 
 	test('input[type="range", value, min, max] | add:2', function(equals, done) {
@@ -265,9 +267,8 @@ group('input[type="range"]', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals(-2, model.property);
-
 		requestAnimationFrame(function() {
+			equals(-2, model.property);
 			equals('0', node.value);
 
 			node.value = '10';

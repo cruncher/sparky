@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="author" content="@stephband" />
+	<meta name="description" content="" />
+	<meta name="viewport" content="width=device-width" />
+
+	<title>Sparky</title>
+
+	<script>
+		document.documentElement.className = 'js';
+		//window.DEBUG = true;
+	</script>
+
+	<link rel="icon" type="image/png" href="images/favicon.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+	<link rel="stylesheet" href="http://stephen.band/bolt/dist/bolt.min.css" />
+	<link rel="stylesheet" href="../bolt/dist/bolt.min.css" />
+	<link rel="stylesheet" href="fn/css/grid.css" />
+	<link rel="stylesheet" href="fn/css/docs.css" />
+	<link rel="stylesheet" href="fn/css/syntax-atom.css" />
+	<link rel="stylesheet" href="fn/css/test.css" />
+	<link rel="stylesheet" href="dom/css/dom.css" />
+	<link rel="stylesheet" href="css/docs.css" />
+	<link rel="stylesheet" href="css/test.css" />
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
+
+	<style>
+body{
+	color: #860048;
+	color: #960051;
+	color: #5d0d6f;
+
+	color: ;
+	background-color: #ddda27;
+/*
+	color: #bdbd9b;
+	background-color: #23231b;
+*/
+	color: black;
+	background-color: #d0cc25;
+
+	background-color: #a7d819;
+	background-color: #b2d01a;
+
+	color: #2d2d2d;
+	color: #272a2b;
+	background-color: #b9d819;
+
+	padding-top: 3.75rem;
+}
+
+.test-block {
+	color: #b9d819;
+	background-color: #272a2b;
+	min-height: 2000px;
+}
+
+code {
+	background-color: #cfe84a;
+}
+
+.toggle-block.active::before {
+	background-color: rgba(39, 42, 43, 0.5);
+}
+
+script[type="text"] {
+	white-space: pre;
+	border-width: 0;
+	padding: 0;
+	line-height: inherit;
+	tab-size: 2;
+	margin-left: -4.875rem;
+	margin-top: -1.5rem;
+	margin-bottom: -1.5rem;
+	background-color: transparent;
+}
+
+line { stroke-width: 1; stroke: inherit; }
+	</style>
+</head>
+
+<body>
+	<!-- Polyfills -->
+
+	<script src="fn/polyfills/object.assign.js"></script>
+	<script src="fn/polyfills/array.find.js"></script>
+	<script src="fn/polyfills/array.from.js"></script>
+	<script src="fn/polyfills/array.of.js"></script>
+	<script src="fn/polyfills/number.isnan.js"></script>
+	<script src="fn/polyfills/number.isfinite.js"></script>
+	<script src="fn/polyfills/math.log10.js"></script>
+	<script src="fn/polyfills/symbol.js"></script>
+	<script src="fn/polyfills/promise.js"></script>
+	<script src="dom/polyfills/requestanimationframe.js"></script>
+	<script src="dom/polyfills/customevent.js"></script>
+	<script src="dom/polyfills/performance.js"></script>
+	<script src="polyfills/console.js"></script>
+
+	<!-- Dependencies -->
+
+	<script src="axios/dist/axios.js"></script>
+
+	<!-- Initialise -->
+
+	<script type="module">
+		window.DEBUG = true;
+		import "./fn/fn.js"
+		import "./fn/js/time.js"
+		import "./dom/dom.js"
+		import Sparky from "./sparky.js"
+	</script>
+
+	<!-- Tests -->
+
+	<script type="module">
+		import "./fn/test/test.js"
+		import "./test/sparky.test.js"
+		import "./test/sparky.stop-scopes.test.js"
+		import "./test/sparky.stop-mutations.test.js"
+		import "./test/sparky.input-test.js"
+		import "./test/sparky.textarea-test.js"
+		import "./test/sparky.select-test.js"
+		import "./test/sparky.fn-test.js"
+		import "./test/sparky.fn.each-test.js"
+		import "./test/sparky.fn.template-test.js"
+		import "./test/sparky.fn.load-test.js"
+//		import "./test/sparky.transforms-test.js"
+
+//		import "./plugins/sparky.fn.clock.js"
+//		import "./test/sparky.fn.clock-test.js"
+//		import "./plugins/sparky.fn.value-from.js"
+//		import "./test/sparky.fn.value-from.test.js"
+	</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import './js/frame.js'
+import './js/struct.js'
 import './js/mount.js'
 import './js/sparky.js'
 import './js/sparky.fn.js'

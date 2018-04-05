@@ -12,9 +12,6 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 		sparky.push(data);
 		data.property = 'Goodbye';
 
-		equals('Hello', node.getAttribute('class'));
-		equals('Template: Hello', node.innerHTML);
-
 		requestAnimationFrame(function() {
 			equals('Goodbye', node.getAttribute('class'));
 			equals('Template: Goodbye', node.innerHTML);
@@ -31,7 +28,7 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 				done();
 			});
 		});
-	}, 9);
+	}, 7);
 }, function() {/*
 
 	<p class="{[property]}" sparky-fn="template:'#test-template'">Default content.</p>
@@ -54,8 +51,9 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 				equals('Default content.', node.innerHTML);
 				sparky.push(data);
 				data.property = 'Goodbye';
-				equals('Hello', node.getAttribute('class'));
-				equals('Template: Hello', node.innerHTML);
+
+				//equals('Hello', node.getAttribute('class'));
+				//equals('Template: Hello', node.innerHTML);
 
 				requestAnimationFrame(function() {
 					equals('Goodbye', node.getAttribute('class'));
@@ -64,7 +62,7 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 				});
 			});
 		});
-	}, 6);
+	}, 4);
 }, function() {/*
 
 	<p class="{[property]}" sparky-fn="template:'#test-template'">Default content.</p>

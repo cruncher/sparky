@@ -84,19 +84,22 @@ group('.stop() scopes to templated child', function(test, log, fixture) {
 		var sparky = Sparky(div, { property: '0' });
 
 		frame(function() {
-			equals('0', fixture.querySelector('p').innerHTML);
+			var p = fixture.querySelector('p');
+			equals('0', p && p.innerHTML);
 
 			sparky.push({ property: '1' });
 
 			frame(function() {
-				equals('1', fixture.querySelector('p').innerHTML);
+				var p = fixture.querySelector('p');
+				equals('1', p && p.innerHTML);
 
 				sparky
 				.stop()
 				.push({ property: '2' });
 
 				frame(function() {
-					equals('1', fixture.querySelector('p').innerHTML);
+					var p = fixture.querySelector('p');
+					equals('1', p && p.innerHTML);
 					done();
 				});
 			});

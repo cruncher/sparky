@@ -126,7 +126,6 @@ group('.stop() mutations to each child', function(test, log, fixture) {
 		var sparky = Sparky(div).push(scope);
 
 		frame(function() {
-console.log(div.innerHTML)
 			equals('1', fixture.querySelector('p:nth-child(1)').innerHTML);
 			equals('2', fixture.querySelector('p:nth-child(2)').innerHTML);
 			equals(null, fixture.querySelector('p:nth-child(3)'));

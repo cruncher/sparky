@@ -33,13 +33,11 @@ group('textarea', function(test, log, fixture) {
 
 		Sparky(node, model);
 
-		equals('bla bla', model.property);
-
 		requestAnimationFrame(function() {
+			equals('bla bla', model.property);
 			node.value = '';
 			node.dispatchEvent(inputEvent);
 			equals('', model.property);
-
 			done();
 		});
 	});

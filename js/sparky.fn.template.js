@@ -1,16 +1,20 @@
 (function(window) {
     "use strict";
 
-    var DEBUG   = window.DEBUG;
+    var DEBUG   = false;
     var axios   = window.axios;
     var jQuery  = window.jQuery;
     var Fn      = window.Fn;
+    var Stream  = window.Stream;
     var dom     = window.dom;
     var Sparky  = window.Sparky;
+    var frame   = window.frame;
 
     var assign  = Object.assign;
+    var cue     = frame.cue;
     var fetch   = window.fetch;
     var get     = Fn.get;
+    var noop    = Fn.noop;
     var getData = get('data');
     var parseHTML = dom.parse('html');
 
@@ -51,19 +55,31 @@
             throw new Error('Sparky: template ' + id + ' not found.');
         }
 
-        scopes
-        .clone()
-        .take(1)
-        .each(function(scope) {
+        var run = function first() {
+            run = noop;
             var fragment = dom.clone(template);
             dom.empty(node);
             dom.append(node, fragment);
+            if (DEBUG) { console.log('Sparky fn=template:', node); }
             sparky.continue();
+        };
+
+        var stream = Stream.of();
+
+        scopes.each(function(scope) {
+            cue(function() {
+                run();
+                stream.push(scope);
+            });
         });
+
+        return stream;
     }
 
-    function templateFromCache(sparky, node, scopes, path, id, template) {
+    function templateFromCache(sparky, node, scopes, path, id) {
         var doc, elem;
+
+        var template = cache[path][id];
 
         if (!template) {
             doc  = cache[path][''];
@@ -74,7 +90,7 @@
                 elem && dom.fragmentFromHTML(elem.innerHTML) ;
         }
 
-        insertTemplate(sparky, node, scopes, id, template);
+        return insertTemplate(sparky, node, scopes, id, template);
     }
 
     function templateFromCache2(sparky, node, scopes, path, id, template) {
@@ -101,7 +117,24 @@
         //});
     }
 
-    function templateFromDocument(sparky, node, scopes, path, id, doc) {
+    function templateFromDocument(sparky, node, scopes, path, id) {
+        var stream = Stream.of();
+
+        request(path)
+        .then(function(doc) {
+            if (!doc) { return; }
+            var tapped = templateFromDocument2(sparky, node, scopes, path, id, doc);
+            sparky.continue();
+            tapped.each(stream.push);
+        })
+        .catch(function(error) {
+            console.warn(error);
+        });
+
+        return stream;
+    }
+
+    function templateFromDocument2(sparky, node, scopes, path, id, doc) {
         var template, elem;
 
         cache[path] = { '': doc };
@@ -114,7 +147,7 @@
             throw new Error('Sparky: template url has no hash id ' + path);
         }
 
-        insertTemplate(sparky, node, scopes, id, template);
+        return insertTemplate(sparky, node, scopes, id, template);
     }
 
     assign(Sparky.fn, {
@@ -140,23 +173,12 @@
             }
 
             var sparky = this;
-
             sparky.interrupt();
 
             // If the resource is cached, return it as an shiftable
-            if (cache[path]) {
-                templateFromCache(sparky, node, scopes, path, id, cache[path][id]);
-            }
-            else {
-                request(path)
-                .then(function(doc) {
-                    if (!doc) { return; }
-                    templateFromDocument(sparky, node, scopes, path, id, doc);
-                })
-                .catch(function(error) {
-                    console.warn(error);
-                });
-            }
+            return cache[path] ?
+                templateFromCache(sparky, node, scopes, path, id) :
+                templateFromDocument(sparky, node, scopes, path, id) ;
         },
 
 

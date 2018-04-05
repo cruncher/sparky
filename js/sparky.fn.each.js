@@ -1,6 +1,8 @@
 (function(window) {
 	"use strict";
 
+	var DEBUG      = false;
+
 	var Fn         = window.Fn;
 	var dom        = window.dom;
 	var Observable = window.Observable;
@@ -21,9 +23,9 @@
 	var $object    = Symbol('object');
 
 	function create(node, object, options) {
-console.group('CREATE');
+		if (DEBUG) { console.groupCollapsed('each: create', node); }
 		var sparky = new Sparky(node, object, options);
-console.groupEnd();
+		if (DEBUG) { console.groupEnd(); }
 		sparky[$object] = object;
 		return sparky;
 	}
@@ -70,6 +72,7 @@ console.groupEnd();
 			node = node ? node.nextSibling : null ;
 
 			while (++n < l && sparkies[n][0] !== node) {
+				// Passing null to insertBefore appends to the end I think
 				parent.insertBefore(sparkies[n][0], node);
 			}
 		}
@@ -79,7 +82,7 @@ console.groupEnd();
 		var unobserve = noop;
 
 		function update(time) {
-console.log('UPDATE')
+//console.log('UPDATE')
 			var scope = stream.shift();
 			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 			if (scope === undefined) { return; }
@@ -89,22 +92,34 @@ console.log('UPDATE')
 			}
 
 			unobserve();
-			unobserve = observe(scope, '', function() {
+
+			var uno = observe(scope, '', function() {
 				cue(render);
 			});
+
+			unobserve = function() {
+				uno();
+				uncue(render);
+			};
 		}
 
-//		cue(update);
-console.log('----')
+		function push() {
+		//console.log('PUSH')
+			cue(update);
+		}
+
 		if (stream.on) {
-			stream.on('push', function() {
-console.log('PUSH')
-				cue(update);
-			});
+			stream.on('push', push);
 		}
 		else {
-			cue(update)
+			push();
 		}
+
+		return function() {
+			stream.off('push', push);
+			unobserve();
+			uncue(update);
+		};
 	}
 
 	Sparky.fn.each = function each(node, scopes, params) {
@@ -113,7 +128,7 @@ console.log('PUSH')
 		var options  = this.interrupt();
 		var marker   = MarkerNode(node);
 		var isSelect = tag(node) === 'option';
-console.log('EACH')
+
 		function update(array) {
 			// Selects will lose their value if the selected option is removed
 			// from the DOM, even if there is another <option> of same value
@@ -122,9 +137,9 @@ console.log('EACH')
 			// selects retain their value.
 			var value = isSelect ? marker.parentNode.value : undefined ;
 
+			if (DEBUG) { console.log('render: each ' + JSON.stringify(array)); }
 			reorderCache(template, options, array, sparkies);
 			reorderNodes(marker, array, sparkies);
-			console.log('render: each ' + JSON.stringify(array));
 
 			// A fudgy workaround because observe() callbacks (like this update
 			// function) are not batched to ticks.
@@ -135,7 +150,6 @@ console.log('EACH')
 		}
 
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		//template.removeAttribute('data-scope');
 		template.removeAttribute(Sparky.attributeFn);
 
 		// Put the marker in place and remove the node
@@ -143,10 +157,15 @@ console.log('EACH')
 		remove(node);
 
 		// Get the value of scopes in frames after it has changed
-		eachFrame(scopes.latest().dedup(), update);
+		var stream = scopes.latest().dedup();
+		var unEachFrame = eachFrame(stream, update);
 
 		this.then(function() {
 			remove(marker);
+			unEachFrame();
+			sparkies.forEach(function(sparky) {
+				sparky.stop();
+			});
 		});
 	};
 })(window);

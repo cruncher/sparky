@@ -44,7 +44,7 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 //console.log('• TEST FRAME 4 --------------------------')
 						var lis = ul.querySelectorAll('li');
 						equals(0, ul.querySelectorAll('li').length);
-						equals('1', li && li.innerHTML, "First li content");
+//						equals('1', li && li.innerHTML, "First li content");
 
 						done();
 					});

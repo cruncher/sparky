@@ -115,7 +115,6 @@
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 			renderer = createRenderStream(sparky, settings);
-console.log('RENDER', node)
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
