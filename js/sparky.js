@@ -237,6 +237,10 @@
 					.stop;
 				});
 
+				this.then(function() {
+					stop();
+				});
+
 				return output;
 			},
 
