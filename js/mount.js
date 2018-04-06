@@ -563,7 +563,7 @@
 		structs.forEach(function(struct) {
 			// Set up structs to be pushable. Renderers already have
 			// a push method and should not be throttled.
-			if (struct.cue) {
+			if (struct.render) {
 				setup(struct, options);
 			}
 		});

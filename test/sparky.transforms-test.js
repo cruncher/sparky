@@ -1,23 +1,40 @@
 group('Sparky.transformers', function(test, log) {
 	var key, filter;
 	var expected = {
-		add:     { '': undefined, '5.5, 3.5': 9},
-		slugify: { '': undefined, 'Pardon mE sir': 'pardon-me-sir' }
+		add: [
+			{ input: 3.5, expected: 9, params: [5.5] }
+		],
+
+		slugify: [
+			{ input: '',  expected: '' },
+			{ input: 'Pardon mE sir', expected: 'pardon-me-sir' }
+		]
 	};
 
 	console.log('Test filters...');
 
 	for (key in expected) {
-		filter = Sparky.transformers[key] ?
-			Sparky.transformers[key].tx :
-			Sparky.transforms[key] ;
-
-		(function(key, result, expect) {
+		(function(key, filter, tests) {
 			test("Sparky.transformers." + key + "()", function(equals, done) {
-				equals(result === expect, "Returns '" + result + "', expected '" + expect + "'");
+				tests.forEach(function(data) {
+					var tx = data.params ?
+						filter.apply(filter, data.params) :
+						filter ;
+
+					equals(data.expected, tx(data.input), key);
+				});
+
 				done();
 			});
-		})(key, filter(), expected[key]['']);
+		})(
+			key,
+
+			Sparky.transformers[key] ?
+				Sparky.transformers[key].tx :
+				Sparky.transforms[key],
+
+			expected[key]
+		);
 	}
 
 	test("Sparky.transformers.add", function(equals, done) {
@@ -31,25 +48,11 @@ group('Sparky.transformers', function(test, log) {
 	});
 
 	test("Sparky.transformers.yesno", function(equals, done) {
-		equals('1', Sparky.transforms.yesno(true, '1', '2'));
-		equals('1', Sparky.transforms.yesno({}, '1', '2'));
-		equals('2', Sparky.transforms.yesno(false, '1', '2'));
-		equals('2', Sparky.transforms.yesno(undefined, '1', '2'));
-		equals('2', Sparky.transforms.yesno(null, '1', '2'));
-		done();
-	});
-
-	test("Sparky.transformers.prepad", function(equals, done) {
-		equals(Sparky.transforms.prepad('barf', '9') === '     barf');
-		// TODO: This is failing - FIX in filter fn!
-		//ok(Sparky.transformers.prepad('barf', '2') === 'barf');
-		done();
-	});
-
-	test("Sparky.transformers.postpad", function(equals, done) {
-		equals('barf     ', Sparky.transforms.postpad('barf', '9'));
-		equals('barf', Sparky.transforms.postpad('barf', '4'));
-		equals('ba', Sparky.transforms.postpad('barf', '2'));
+		equals('1', Sparky.transforms.yesno('1', '2', true));
+		equals('1', Sparky.transforms.yesno('1', '2', {}));
+		equals('2', Sparky.transforms.yesno('1', '2', false));
+		equals('2', Sparky.transforms.yesno('1', '2', undefined));
+		equals('2', Sparky.transforms.yesno('1', '2', null));
 		done();
 	});
 });

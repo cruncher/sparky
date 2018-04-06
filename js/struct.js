@@ -168,21 +168,27 @@
     }
 
     assign(Struct.prototype, {
-        update:  noop,
         render:  noop,
+        transform: id,
 
         stop: function stop() {
-            uncue(this.update);
+            uncue(this.cuer);
             removeStruct(this);
         },
 
-        cue: function() {
-            console.log('cue:   ', this.token)
-            cue(this.update);
-        },
+        update: function(time) {
+            var struct = this;
+            var transform = this.transform;
+            var value = struct.input && struct.input.shift();
 
-        uncue: function() {
-            uncue(this.update);
+            if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
+
+            if (value === undefined) {
+                struct.render(struct.originalValue);
+            }
+            else {
+                struct.render(transform(value));
+            }
         }
     });
 
@@ -290,24 +296,11 @@
     // Struct lifecycle
 
     function setup(struct, options) {
-        if (DEBUG) { console.log('setup: ', struct.token); }
 
-        var transform = Transform(options.transforms, options.transformers, struct.pipe);
 
+        struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
         struct.originalValue = struct.read ? struct.read() : '' ;
-
-        struct.update = function(time) {
-            var value = struct.input && struct.input.shift();
-
-            if (DEBUG) { console.log('render:', struct.token, value); }
-
-            if (value === undefined) {
-                struct.render(struct.originalValue);
-            }
-            else {
-                struct.render(transform(value));
-            }
-        };
+        if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
     }
 
     function eachFrame(stream, fn) {
@@ -346,11 +339,12 @@
 
         var flag = false;
 
-        if (struct.cue) {
+        // If struct is an internal struct (as opposed to a Sparky instance)
+        if (struct.render) {
             if (struct.listen) {
                 var change = listen(struct, scope, options);
 
-                cue(function doit() {
+                struct.cuer = function doit() {
                     struct.update();
 
                     if (flag) { return; }
@@ -367,19 +361,22 @@
                     if (value === undefined) {
                         change();
                     }
-                });
+                };
 
+                cue(struct.cuer);
                 struct.listen(change);
             }
             else {
-                cue(function doit() {
+                struct.cuer = function doit() {
                     struct.update();
                     if (flag) { return; }
                     flag = true;
                     input.on('push', function() {
                         cue(doit);
                     });
-                });
+                };
+
+                cue(struct.cuer);
             }
 
             return;

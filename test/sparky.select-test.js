@@ -46,3 +46,42 @@ group('select > option|each', function(test, log, fixture) {
 	</select>
 
 */});
+
+
+
+
+group('select > option|each', function(test, log, fixture) {
+	var node = fixture.children[0];
+
+	var scope = Observable({
+		value: '1',
+		options: [
+			{ key: '0', value: 0 },
+			{ key: '1', value: 1 },
+			{ key: '2', value: 2 }
+		]
+	});
+
+	Sparky.fn['array-scope-2'] = function(node, stream) {
+		return Fn.of(scope);
+	};
+
+	Sparky(node);
+
+	test("Array scope", function(equals, done) {
+		requestAnimationFrame(function functionName() {
+			equals(4, node.children.length);
+			equals('1', node.value);
+			equals('1', scope.value);
+			equals('Infinity', node.children[node.children.length - 1].getAttribute('value'), 'Order of child <option>s is wrong.');
+			done();
+		});
+	}, 4);
+}, function() {/*
+
+	<select sparky-fn="array-scope-2" sparky-value="{[value]}" id="test-select-2" name="name">
+		<option sparky-fn="get:options each" value="{[key]}">{[value]}</option>
+		<option value="Infinity">Infinity</option>
+	</select>
+
+*/});
