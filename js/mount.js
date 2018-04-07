@@ -1,38 +1,31 @@
 (function(window) {
 	"use strict";
 
-	var DEBUG      = false;
+	const DEBUG      = false;
 
-	var A          = Array.prototype;
-	var Fn         = window.Fn;
-	var dom        = window.dom;
+	const A          = Array.prototype;
+	const Fn         = window.Fn;
+	const dom        = window.dom;
 
-	var assign     = Object.assign;
-//	var define     = Object.defineProperties;
-	var attribute  = dom.attribute;
-	var get        = Fn.get;
-	var id         = Fn.id;
-	var nothing    = Fn.nothing;
-	var noop       = Fn.noop;
-	var overload   = Fn.overload;
-	var set        = Fn.set;
-	var toType     = Fn.toType;
+	const assign     = Object.assign;
+//	const define     = Object.defineProperties;
+	const attribute  = dom.attribute;
+	const get        = Fn.get;
+	const id         = Fn.id;
+	const isDefined  = Fn.isDefined;
+	const nothing    = Fn.nothing;
+	const noop       = Fn.noop;
+	const overload   = Fn.overload;
+	const set        = Fn.set;
+	const toType     = Fn.toType;
 
-	var Struct             = window.Struct;
-	var ReadableStruct     = Struct.Readable;
-	var writeValue         = Struct.writeValue;
-    var writeValueNumber   = Struct.writeValueNumber;
-    var writeValueCheckbox = Struct.writeValueCheckbox;
-    var writeValueRadio    = Struct.writeValueRadio;
-    var readValue          = Struct.readValue;
-    var readValueNumber    = Struct.readValueNumber;
-    var readValueCheckbox  = Struct.readValueCheckbox;
-    var readValueRadio     = Struct.readValueRadio;
-	var setup              = Struct.setup;
-    var bind               = Struct.bind;
-    var unbind             = Struct.unbind;
-    var teardown           = Struct.teardown;
-	var findScope          = Struct.getScope;
+	const Struct             = window.Struct;
+	const ReadableStruct     = Struct.Readable;
+	const setup              = Struct.setup;
+    const bind               = Struct.bind;
+    const unbind             = Struct.unbind;
+    const teardown           = Struct.teardown;
+	const findScope          = Struct.getScope;
 
 
 	// Matches tags plus any directly adjacent text
@@ -43,18 +36,18 @@
 	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
 
 	// Matches anything with a space
-	var rspaces = /\s+/;
+	const rspaces = /\s+/;
 
 	// Matches empty or spaces-only string
-	var rempty  = /^\s*$/;
+	const rempty  = /^\s*$/;
 
 	// Matches anything that contains a non-space character
-	var rtext = /\S/;
+	const rtext = /\S/;
 
 	// Matches the arguments list in the result of a fn.toString()
-	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
+	const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
-	var settings = {
+	const settings = {
 		attributePrefix: 'sparky-',
 		mount:           noop,
 		transforms:      {},
@@ -326,7 +319,83 @@
 		structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
 	}
 
-	var types = {
+	// Struct value read and write
+
+    function writeValue(value) {
+        var node = this.node;
+
+        // Avoid updating with the same value as it sends the cursor to
+        // the end of the field (in Chrome, at least).
+        if (value === node.value) { return; }
+
+        node.value = typeof value === 'string' ?
+            value :
+            '' ;
+    }
+
+    function writeValueNumber(value) {
+        var node = this.node;
+
+        // Avoid updating with the same value as it sends the cursor to
+        // the end of the field (in Chrome, at least).
+        if (value === parseFloat(node.value)) { return; }
+
+        node.value = typeof value === 'number' && !isNaN(value) ?
+            value :
+            '' ;
+    }
+
+    function writeValueCheckbox(value) {
+        var node = this.node;
+
+        // Where value is defined check against it, otherwise
+        // value is "on", uselessly. Set checked state directly.
+        node.checked = isDefined(node.getAttribute('value')) ?
+            value === node.value :
+            value === true ;
+    }
+
+    function writeValueRadio(value) {
+        var node = this.node;
+
+        // Where value="" is defined check against it, otherwise
+        // value is "on", uselessly: set checked state directly.
+        node.checked = isDefined(node.getAttribute('value')) ?
+            value === node.value :
+            value === true ;
+    }
+
+    function readValue() {
+        var node = this.node;
+        return node.value;
+    }
+
+    function readValueNumber() {
+        var node = this.node;
+        return node.value ? parseFloat(node.value) : undefined ;
+    }
+
+    function readValueCheckbox() {
+        var node = this.node;
+
+        // TODO: Why do we check attribute here?
+        return isDefined(node.getAttribute('value')) ?
+            node.checked ? node.value : undefined :
+            node.checked ;
+    }
+
+    function readValueRadio() {
+        var node = this.node;
+
+        if (!node.checked) { return; }
+
+        return isDefined(node.getAttribute('value')) ?
+            node.value :
+            node.checked ;
+    }
+
+
+	const types = {
 		// element
 		1: function mountElement(node, options, structs) {
 			// Get an immutable list of children. We don't want to mount
@@ -385,7 +454,7 @@
 		}
 	};
 
-	var tags = {
+	const tags = {
 
 		// HTML
 
@@ -488,7 +557,7 @@
 		default: noop
 	};
 
-	var inputs = {
+	const inputs = {
 		button: function(node, options, structs) {
 			// false flag means don't check the prefixed attribute
 			mountAttribute('value', node, options, structs, false);
@@ -554,9 +623,9 @@
 		}
 	};
 
-	var mountNode        = overload(get('nodeType'), types);
-	var mountTag         = overload(dom.tag, tags);
-	var mountInput       = overload(get('type'), inputs);
+	const mountNode  = overload(get('nodeType'), types);
+	const mountTag   = overload(dom.tag, tags);
+	const mountInput = overload(get('type'), inputs);
 
 
 	function setupStructs(structs, options) {

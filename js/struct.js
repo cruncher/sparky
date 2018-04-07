@@ -1,27 +1,26 @@
 (function(window) {
-
     "use strict";
 
-	var DEBUG      = false;
+	const DEBUG      = false;
 
-	var Fn         = window.Fn;
-	var Stream     = window.Stream;
-	var frame      = window.frame;
-	var Observable = window.Observable;
+	const Fn         = window.Fn;
+	const Stream     = window.Stream;
+	const frame      = window.frame;
+	const Observable = window.Observable;
 
-	var assign     = Object.assign;
-    var get        = Fn.get;
-	var id         = Fn.id;
-	var isDefined  = Fn.isDefined;
-	var isNaN      = Number.isNaN;
-	var noop       = Fn.noop;
-	var pipe       = Fn.pipe;
-	var remove     = Fn.remove;
-    var getPath    = Fn.getPath;
-    var setPath    = Fn.setPath;
-	var cue        = frame.cue;
-	var uncue      = frame.uncue;
-	var observe    = Observable.observe;
+	const assign     = Object.assign;
+    const get        = Fn.get;
+	const id         = Fn.id;
+	const isDefined  = Fn.isDefined;
+	const isNaN      = Number.isNaN;
+	const noop       = Fn.noop;
+	const pipe       = Fn.pipe;
+	const remove     = Fn.remove;
+    const getPath    = Fn.getPath;
+    const setPath    = Fn.setPath;
+	const cue        = frame.cue;
+	const uncue      = frame.uncue;
+	const observe    = Observable.observe;
 
 
 //    var toLog   = overload(toType, {
@@ -218,80 +217,6 @@
         }
     });
 
-    // Struct value read and write
-
-    function writeValue(value) {
-        var node = this.node;
-
-        // Avoid updating with the same value as it sends the cursor to
-        // the end of the field (in Chrome, at least).
-        if (value === node.value) { return; }
-
-        node.value = typeof value === 'string' ?
-            value :
-            '' ;
-    }
-
-    function writeValueNumber(value) {
-        var node = this.node;
-
-        // Avoid updating with the same value as it sends the cursor to
-        // the end of the field (in Chrome, at least).
-        if (value === parseFloat(node.value)) { return; }
-
-        node.value = typeof value === 'number' && !isNaN(value) ?
-            value :
-            '' ;
-    }
-
-    function writeValueCheckbox(value) {
-        var node = this.node;
-
-        // Where value is defined check against it, otherwise
-        // value is "on", uselessly. Set checked state directly.
-        node.checked = isDefined(node.getAttribute('value')) ?
-            value === node.value :
-            value === true ;
-    }
-
-    function writeValueRadio(value) {
-        var node = this.node;
-
-        // Where value="" is defined check against it, otherwise
-        // value is "on", uselessly: set checked state directly.
-        node.checked = isDefined(node.getAttribute('value')) ?
-            value === node.value :
-            value === true ;
-    }
-
-    function readValue() {
-        var node = this.node;
-        return node.value;
-    }
-
-    function readValueNumber() {
-        var node = this.node;
-        return node.value ? parseFloat(node.value) : undefined ;
-    }
-
-    function readValueCheckbox() {
-        var node = this.node;
-
-        // TODO: Why do we check attribute here?
-        return isDefined(node.getAttribute('value')) ?
-            node.checked ? node.value : undefined :
-            node.checked ;
-    }
-
-    function readValueRadio() {
-        var node = this.node;
-
-        if (!node.checked) { return; }
-
-        return isDefined(node.getAttribute('value')) ?
-            node.value :
-            node.checked ;
-    }
 
     // Struct lifecycle
 
@@ -338,20 +263,21 @@
         struct.scope = scope;
 
         var flag = false;
+        var change;
 
         // If struct is an internal struct (as opposed to a Sparky instance)
         if (struct.render) {
             if (struct.listen) {
-                var change = listen(struct, scope, options);
+                change = listen(struct, scope, options);
 
-                struct.cuer = function doit() {
+                struct.cuer = function updateReadable() {
                     struct.update();
 
                     if (flag) { return; }
                     flag = true;
 
                     input.on('push', function() {
-                        cue(doit);
+                        cue(updateReadable);
                     });
 
                     var value = getPath(struct.path, scope);
@@ -367,12 +293,12 @@
                 struct.listen(change);
             }
             else {
-                struct.cuer = function doit() {
+                struct.cuer = function update() {
                     struct.update();
                     if (flag) { return; }
                     flag = true;
                     input.on('push', function() {
-                        cue(doit);
+                        cue(update);
                     });
                 };
 
@@ -389,7 +315,7 @@
     function listen(struct, scope, options) {
         //console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
 
-        var set, invert, change;
+        var set, invert;
 
         if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
 
@@ -416,14 +342,6 @@
     window.Struct = Struct;
 
     Struct.Readable           = ReadableStruct;
-    Struct.writeValue         = writeValue;
-    Struct.writeValueNumber   = writeValueNumber;
-    Struct.writeValueCheckbox = writeValueCheckbox;
-    Struct.writeValueRadio    = writeValueRadio;
-    Struct.readValue          = readValue;
-    Struct.readValueNumber    = readValueNumber;
-    Struct.readValueCheckbox  = readValueCheckbox;
-    Struct.readValueRadio     = readValueRadio;
     Struct.setup = setup;
     Struct.bind = bind;
     Struct.listen = listen;

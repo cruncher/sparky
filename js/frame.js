@@ -1,10 +1,14 @@
 
 (function(window) {
+	"use strict";
 
-	var DEBUG = false;
+	const DEBUG  = false;
 
-	var dom = window.dom;
-	var now = dom.now;
+	const Fn     = window.Fn;
+	const dom    = window.dom;
+
+	const invoke = Fn.invoke;
+	const now    = dom.now;
 
 	// Render queue
 
@@ -25,11 +29,14 @@
 		}
 
 		frame = true;
-		let fn;
 
-		for (fn of queue) {
-			fn(time);
-		}
+		// Use a .forEach() to support IE11, which doesnt have for..of
+		queue.forEach(invoke('call', [null, time]));
+
+		//var fn;
+		//for (fn of queue) {
+		//	fn(time);
+		//}
 
 		queue.clear();
 		frame = undefined;
@@ -80,5 +87,3 @@
 		data: data
 	};
 })(window);
-
-export default window.frame;
