@@ -340,7 +340,7 @@
         // the end of the field (in Chrome, at least).
         if (value === parseFloat(node.value)) { return; }
 
-        node.value = typeof value === 'number' && !isNaN(value) ?
+        node.value = typeof value === 'number' && !Number.isNaN(value) ?
             value :
             '' ;
     }

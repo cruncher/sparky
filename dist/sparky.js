@@ -1,7 +1,7 @@
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
-	console.log('Fn          - https://github.com/stephband/fn');
-})(this);
+	window.console.log('Fn          - https://github.com/stephband/fn');
+})(window);
 
 (function(window) {
 	"use strict";
@@ -95,6 +95,8 @@
 
 	function noop() {}
 
+	function args() { return arguments; }
+
 	function id(object) { return object; }
 
 	function self() { return this; }
@@ -110,8 +112,8 @@
 	}
 
 	function compose(fn2, fn1) {
-		return function composed(n) {
-			return fn2(fn1(n));
+		return function compose() {
+			return fn2(fn1.apply(null, arguments));
 		};
 	}
 
@@ -125,9 +127,27 @@
 	function cache(fn) {
 		var map = new Map();
 
-		return function cached(object) {
-			if (arguments.length > 1) {
-				throw new Error('Fn: Cached function called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+		return function cache(object) {
+			if (DEBUG && arguments.length > 1) {
+				throw new Error('Fn: cache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+			}
+
+			if (map.has(object)) {
+				return map.get(object);
+			}
+
+			var value = fn(object);
+			map.set(object, value);
+			return value;
+		};
+	}
+
+	function weakCache(fn) {
+		var map = new WeakMap();
+
+		return function weakCache(object) {
+			if (DEBUG && arguments.length > 1) {
+				throw new Error('Fn: weakCache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
 			}
 
 			if (map.has(object)) {
@@ -161,7 +181,9 @@
 			}) ;
 
 		return function partial(object) {
-			return arguments.length === 1 ?
+			return arguments.length === 0 ?
+				partial :
+			arguments.length === 1 ?
 				memo(object) :
 			arguments.length === arity ?
 				fn.apply(null, arguments) :
@@ -208,9 +230,8 @@
 		var _curry = curry;
 
 		// Make curried functions log a pretty version of their partials
-		curry = function curry(fn, muteable) {
-			var arity  = arguments[2] || fn.length;
-
+		curry = function curry(fn, muteable, arity) {
+			arity  = arity || fn.length;
 			return setFunctionProperties('curried', arity, fn, _curry(fn, muteable, arity));
 		};
 	}
@@ -239,8 +260,13 @@
 		// Fast out if references are for the same object
 		if (a === b) { return true; }
 
-		// Or if objects are of different types
-		if (typeof a !== 'object' || typeof b !== 'object') { return false; }
+		// Or if values are not objects
+		if (a === null ||
+			b === null ||
+			typeof a !== 'object' ||
+			typeof b !== 'object') {
+			return false;
+		}
 
 		var akeys = Object.keys(a);
 		var bkeys = Object.keys(b);
@@ -308,6 +334,10 @@
 
 
 	// Arrays
+
+	function nth(n, object) {
+		return object[n];
+	}
 
 	function sortedSplice(array, fn, value) {
 		// Splices value into array at position determined by result of fn,
@@ -443,6 +473,10 @@
 		return a;
 	}
 
+	function slice(n, m, object) {
+		return object.slice ? object.slice(n, m) : A.slice.call(object, n, m);
+	}
+
 	function take(i, object) {
 		if (object.slice) { return object.slice(0, i); }
 		if (object.take)  { return object.take(i); }
@@ -463,6 +497,19 @@
 		var value = fn(object);
 		while(++n < l && fn(array[n]) <= value);
 		array.splice(n, 0, object);
+	}
+
+	function update(fn, target, array) {
+		return array.reduce(function(target, obj2) {
+			var obj1 = target.find(compose(Fn.is(fn(obj2)), fn));
+			if (obj1) {
+				assign(obj1, obj2);
+			}
+			else {
+				insert(fn, target, obj2);
+			}
+			return target;
+		}, target);
 	}
 
 	function remove(array, value) {
@@ -537,7 +584,8 @@
 
 	// Objects
 
-	var rpath  = /\[?([-\w]+)(?:=(['"])?([-\w]+)\2)?\]?\.?/g;
+
+	var rpath  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
 
 	function get(key, object) {
 		// Todo? Support WeakMaps and Maps and other map-like objects with a
@@ -573,9 +621,10 @@
 
 		var key      = tokens[1];
 		var property = tokens[3] ?
-			findByProperty(key, tokens[2] ?
-				tokens[3] :
-				parseFloat(tokens[3]),
+			findByProperty(key,
+				tokens[2] ? tokens[3] :
+				tokens[4] ? Boolean(tokens[4]) :
+				parseFloat(tokens[5]),
 			object) :
 			object[key] ;
 
@@ -609,9 +658,10 @@
 		}
 
 		var value = tokens[3] ?
-			findByProperty(key, tokens[2] ?
-				tokens[3] :
-				parseFloat(tokens[3]), object
+			findByProperty(key,
+				tokens[2] ? tokens[3] :
+				tokens[4] ? Boolean(tokens[4]) :
+				parseFloat(tokens[5])
 			) :
 			object[key] ;
 
@@ -658,7 +708,8 @@
 		return string2 + string1;
 	}
 
-	function prepad(chars, n, string) {
+	function prepad(chars, n, value) {
+		var string = value + '';
 		var i = -1;
 		var pre = '';
 
@@ -670,7 +721,9 @@
 		return string.slice(string.length - n);
 	}
 
-	function postpad(chars, n, string) {
+	function postpad(chars, n, value) {
+		var string = value + '';
+
 		while (string.length < n) {
 			string = string + chars;
 		}
@@ -744,13 +797,10 @@
 
 	// Time
 
-	var now = window.performance && window.performance.now ? function now() {
-		// Return time in seconds
-		return window.performance.now() / 1000;
-	} : function now() {
+	function now() {
 		// Return time in seconds
 		return +new Date() / 1000;
-	} ;
+	}
 
 	var requestFrame = window.requestAnimationFrame;
 
@@ -921,6 +971,20 @@
 		wait.cancel = cancel;
 		return wait;
 	}
+
+	// Choke or wait? A simpler implementation without cancel(), I leave this here for reference...
+//	function choke(seconds, fn) {
+//		var timeout;
+//
+//		function update(context, args) {
+//			fn.apply(context, args);
+//		}
+//
+//		return function choke() {
+//			clearTimeout(timeout);
+//			timeout = setTimeout(update, seconds * 1000, this, arguments);
+//		};
+//	}
 
 
 	// Fn
@@ -1539,20 +1603,23 @@
 
 		// Functions
 
-		id:       id,
-		noop:     noop,
-		self:     self,
-
-		cache:    cache,
-		compose:  compose,
-		curry:    curry,
-		choose:   choose,
-		flip:     flip,
-		once:     once,
-		overload: curry(overload),
-		pipe:     pipe,
-		throttle: Throttle,
-		wait:     Wait,
+		id:        id,
+		noop:      noop,
+		args:      args,
+		self:      self,
+		cache:     cache,
+		compose:   compose,
+		curry:     curry,
+		choose:    choose,
+		flip:      flip,
+		once:      once,
+		nth:       curry(nth),
+		overload:  curry(overload),
+		pipe:      pipe,
+		//choke:     choke,
+		throttle:  Throttle,
+		wait:      Wait,
+		weakCache: weakCache,
 
 
 		// Logic
@@ -1573,8 +1640,8 @@
 
 		isGreater: curry(function byGreater(a, b) { return b > a ; }),
 
-		by: curry(function by(property, a, b) {
-			return byGreater(a[property], b[property]);
+		by: curry(function by(fn, a, b) {
+			return byGreater(fn(a), fn(b));
 		}, true),
 
 		byGreater: curry(byGreater),
@@ -1648,6 +1715,7 @@
 		take:      curry(take, true),
 		unite:     curry(unite, true),
 		unique:    unique,
+		update:    curry(update, true),
 
 
 		// Objects
@@ -1667,7 +1735,16 @@
 
 		add:      curry(function add(a, b) { return b + a; }),
 		multiply: curry(function mul(a, b) { return b * a; }),
-		mod:      curry(function mod(a, b) { return b % a; }),
+
+		mod:      curry(function mod(d, n) {
+			// JavaScript's modulu operator uses Euclidean division, but for
+			// stuff that cycles through 0 the symmetrics of floored division
+			// are more useful.
+			// https://en.wikipedia.org/wiki/Modulo_operation
+			var value = n % d;
+			return value < 0 ? value + d : value ;
+		}),
+
 		min:      curry(function min(a, b) { return a > b ? b : a ; }),
 		max:      curry(function max(a, b) { return a < b ? b : a ; }),
 		pow:      curry(function pow(n, x) { return Math.pow(x, n); }),
@@ -1825,9 +1902,7 @@
 		Throttle: deprecate(Throttle, 'Throttle(fn, time) removed, is now throttle(fn, time)'),
 		Wait: deprecate(Wait, 'Wait(fn, time) removed, is now wait(fn, time)'),
 
-		slice: curry(deprecate(function slice(n, m, object) {
-			return object.slice ? object.slice(n, m) : A.slice.call(object, n, m);
-		}, 'slice(n, m, object) is removed in favour of take(n) or rest(n)'), true, 3),
+		slice: curry(slice, true, 3),
 
 		returnThis: deprecate(self, 'returnThis() is now self()'),
 
@@ -1852,7 +1927,534 @@
 			)
 		}
 	});
-})(this);
+})(window);
+(function(window) {
+	"use strict";
+
+	var assign         = Object.assign;
+	var define         = Object.defineProperty;
+	var isFrozen       = Object.isFrozen;
+	var getPrototypeOf = Object.getPrototypeOf;
+
+	var A              = Array.prototype;
+
+	var $original      = Symbol('original');
+	var $observable    = Symbol('observable');
+	var $observers     = Symbol('observers');
+	var $update        = Symbol('update');
+
+	var DOMObject      = window.EventTarget || window.Node;
+	var nothing        = Object.freeze([]);
+	var rname          = /\[?([-\w]+)(?:=(['"])?([-\w]+)\2)?\]?\.?/g;
+
+
+	// Utils
+
+	function noop() {}
+
+	function isArrayLike(object) {
+		return object
+		&& typeof object !== 'function'
+		&& object.hasOwnProperty('length')
+		&& typeof object.length === 'number' ;
+	}
+
+	function isObservable(object) {
+		// Many built-in objects and DOM objects bork when calling their
+		// methods via a proxy. They should be considered not observable.
+		// I wish there were a way of whitelisting rather than
+		// blacklisting, but it would seem not.
+
+		return object
+			// Reject primitives, null and other frozen objects
+			&& !isFrozen(object)
+			// Reject DOM nodes, Web Audio context and nodes, MIDI inputs,
+			// XMLHttpRequests, which all inherit from EventTarget
+			&& !DOMObject.prototype.isPrototypeOf(object)
+			// Reject dates
+			&& !(object instanceof Date)
+			// Reject regex
+			&& !(object instanceof RegExp)
+			// Reject maps
+			&& !(object instanceof Map)
+			&& !(object instanceof WeakMap)
+			// Reject sets
+			&& !(object instanceof Set)
+			&& !(window.WeakSet ? object instanceof WeakSet : false)
+			// Reject TypedArrays and DataViews
+			&& !ArrayBuffer.isView(object) ;
+	}
+
+	function getObservers(object, name) {
+		return object[$observers][name]
+			|| (object[$observers][name] = []);
+	}
+
+	function removeObserver(observers, fn) {
+		var i = observers.indexOf(fn);
+		observers.splice(i, 1);
+	}
+
+	function fire(observers, value, record) {
+		if (!observers) { return; }
+
+		// Todo: What happens if observers are removed during this operation?
+		// Bad things, I'll wager.
+		var n = -1;
+		while (observers[++n]) {
+			observers[n](value, record);
+		}
+	}
+
+
+	// Proxy
+
+	var createProxy = window.Proxy ? (function() {
+		function trapGet(target, name, self) {
+			var value = target[name];
+//console.log('TRAP GET', value);
+			// Ignore symbols
+			return typeof name === 'symbol' ? value :
+//				typeof value === 'function' ? MethodProxy(value) :
+//console.log('this', this);
+//console.log('target', target);
+//console.log('arguments', arguments);
+//					value.apply(this, arguments);
+//				} :
+				Observable(value) || value ;
+		}
+
+		var arrayHandlers = {
+			get: trapGet,
+
+			set: function(target, name, value, receiver) {
+				// We are setting a symbol
+				if (typeof name === 'symbol') {
+					target[name] = value;
+					return true;
+				}
+
+				var old = target[name];
+				var length = target.length;
+
+				// If we are setting the same value, we're not really setting at all
+				if (old === value) { return true; }
+
+				var observers = target[$observers];
+				var change;
+
+				// We are setting length
+				if (name === 'length') {
+					if (value >= target.length) {
+						// Don't allow array length to grow like this
+						//target.length = value;
+						return true;
+					}
+
+					change = {
+						index:   value,
+						removed: A.splice.call(target, value),
+						added:   nothing,
+					};
+
+					while (--old >= value) {
+						fire(observers[old], undefined);
+					}
+				}
+
+				// We are setting an integer string or number
+				else if (+name % 1 === 0) {
+					name = +name;
+
+					if (value === undefined) {
+						if (name < target.length) {
+							change = {
+								index:   name,
+								removed: A.splice.call(target, name, 1),
+								added:   nothing
+							};
+
+							value = target[name];
+						}
+						else {
+							return true;
+						}
+					}
+					else {
+						change = {
+							index:   name,
+							removed: A.splice.call(target, name, 1, value),
+							added:   [value]
+						};
+					}
+				}
+
+				// We are setting some other key
+				else {
+					target[name] = value;
+				}
+
+				if (target.length !== length) {
+					fire(observers.length, target.length);
+				}
+
+				fire(observers[name], Observable(value) || value);
+				fire(observers[$update], receiver, change);
+
+				// Return true to indicate success
+				return true;
+			}
+		};
+
+		var objectHandlers = {
+			get: trapGet,
+
+			set: function(target, name, value, receiver) {
+				var old = target[name];
+
+				// If we are setting the same value, we're not really setting at all
+				if (old === value) { return true; }
+
+				var observers = target[$observers];
+				var change = {
+					name:    name,
+					removed: target[name],
+					added:   value
+				};
+
+				target[name] = value;
+
+				fire(observers[name], Observable(value) || value);
+				fire(observers[$update], receiver, change);
+
+				// Return true to indicate success
+				return true;
+			}
+
+//			apply: function(target, context, args) {
+//console.log('MethodProxy', target, context, args);
+//debugger;
+//				return Reflect.apply(target, context, args);
+//			}
+		};
+
+		return function createProxy(object) {
+			var proxy = new Proxy(object, isArrayLike(object) ?
+				arrayHandlers :
+				objectHandlers
+			);
+
+			define(object, $observers, { value: {} });
+			define(object, $observable, { value: proxy });
+
+			return proxy;
+		};
+	})() : (function() {
+		// Code for IE, whihc does not support Proxy
+
+		function ArrayProxy(array) {
+			this[$observable] = this;
+			this[$original]   = array;
+			this[$observers]  = array[$observers];
+
+			assign(this, array);
+			this.length = array.length;
+		}
+
+		define(ArrayProxy.prototype, 'length', {
+			set: function(length) {
+				var array = this[$original];
+
+				if (length >= array.length) { return; }
+
+				while (--array.length > length) {
+					this[array.length] = undefined;
+				}
+
+				this[array.length] = undefined;
+
+				//console.log('LENGTH', length, array.length, JSON.stringify(this))
+
+				//array.length = length;
+				notify(this, '');
+			},
+
+			get: function() {
+				return this[$original].length;
+			},
+
+			configurable: true
+		});
+
+		assign(ArrayProxy.prototype, {
+			filter:  function() { return A.filter.apply(this[$original], arguments); },
+			find:    function() { return A.find.apply(this[$original], arguments); },
+			map:     function() { return A.map.apply(this[$original], arguments); },
+			reduce:  function() { return A.reduce.apply(this[$original], arguments); },
+			concat:  function() { return A.concat.apply(this[$original], arguments); },
+			slice:   function() { return A.slice.apply(this[$original], arguments); },
+			some:    function() { return A.some.apply(this[$original], arguments); },
+			indexOf: function() { return A.indexOf.apply(this[$original], arguments); },
+			forEach: function() { return A.forEach.apply(this[$original], arguments); },
+			toJSON:  function() { return this[$original]; },
+
+			sort: function() {
+				A.sort.apply(this[$original], arguments);
+				assign(this, array);
+				this.length = array.length;
+				notify(this, '');
+				return this;
+			},
+
+			push: function() {
+				var array = this[$original];
+				var value = A.push.apply(array, arguments);
+				assign(this, array);
+				this.length = array.length;
+				console.log('PUSH', JSON.stringify(arguments));
+				notify(this, '');
+				return value;
+			},
+
+			pop: function() {
+				var array = this[$original];
+				var value = A.pop.apply(array, arguments);
+				assign(this, array);
+				this.length = array.length;
+				notify(this, '');
+				return value;
+			},
+
+			shift: function() {
+				var array = this[$original];
+				var value = A.shift.apply(array, arguments);
+				assign(this, array);
+				this.length = array.length;
+				notify(this, '');
+				return value;
+			},
+
+			splice: function() {
+				var array = this[$original];
+				var value = A.splice.apply(array, arguments);
+				assign(this, array);
+				this.length = array.length;
+				notify(this, '');
+				return value;
+			}
+		});
+
+		return function createNoProxy(object) {
+			var proxy;
+
+			if (isArrayLike(object)) {
+				define(object, $observers, { value: {} });
+				proxy = isArrayLike(object) ? new ArrayProxy(object) : object ;
+			}
+			else {
+				proxy = object;
+			}
+
+			define(object, $observable, { value: proxy });
+			return proxy;
+		};
+	})() ;
+
+
+	// observe
+
+	function observePrimitive(object, fn) {
+		if (object !== fn.value) {
+			fn.value = object;
+			fn(object);
+		}
+
+		return noop;
+	}
+
+	function observeObject(object, fn) {
+		var observers = getObservers(object, $update);
+		var old       = fn.value;
+
+		observers.push(fn);
+
+		if (object !== fn.value) {
+			fn.value = object;
+			fn(object, {
+				index:   0,
+				removed: old ? old : nothing,
+				added:   object
+			});
+		}
+
+		return function unobserveObject() {
+			removeObserver(observers, fn);
+		};
+	}
+
+	function observeItem(object, key, match, path, fn) {
+		var unobserve = noop;
+
+		function isMatch(item) {
+			return item[key] === match;
+		}
+
+		function update(array) {
+			var value = array && A.find.call(array, isMatch);
+			unobserve();
+			unobserve = observe(value, path, fn);
+		}
+
+		var unobserveObject = observeObject(object, update);
+
+		return function unobserveItem() {
+			unobserve();
+			unobserveObject();
+		};
+	}
+
+	var observeProperty = window.Proxy ? function observeProperty(object, name, path, fn) {
+		var observers = getObservers(object, name);
+		var unobserve = noop;
+
+		function update(value) {
+			unobserve();
+			unobserve = observe(value, path, fn);
+		}
+
+		observers.push(update);
+		update(object[name]);
+
+		return function unobserveProperty() {
+			unobserve();
+			removeObserver(observers, update);
+		};
+	} : function observePropertyNoProxy(object, name, path, fn) {
+		var unobserve = noop;
+
+		function update(value) {
+			unobserve();
+			unobserve = observe(value, path, fn);
+		}
+
+		var _unobserve = window.observe(object[$observable] || object, name, update);
+		update(object[name]);
+
+		return function() {
+			unobserve();
+			_unobserve();
+		};
+	} ;
+
+	function callbackItem(object, key, match, path, fn) {
+		function isMatch(item) {
+			return item[key] === match;
+		}
+
+		var value = object && A.find.call(object, isMatch);
+		return observe(Observable(value) || value, path, fn);
+	}
+
+	function callbackProperty(object, name, path, fn) {
+		return observe(Observable(object[name]) || object[name], path, fn);
+	}
+
+	function observe(object, path, fn) {
+		if (!path.length) {
+			// We can assume the full isObservable() check has been done, as
+			// this function is only called internally or from Object.observe
+			//
+			// The object[$observers] check is for IE - it checks whether the
+			// object is observable for muteability.
+			return object && object[$observable] && object[$observers] ?
+				observeObject(object, fn) :
+				observePrimitive(object, fn) ;
+		}
+
+		if (!(object && typeof object === 'object')) {
+			return observePrimitive(undefined, fn);
+		}
+
+		rname.lastIndex = 0;
+		var tokens = rname.exec(path);
+
+		if (!tokens) {
+			throw new Error('Observable: invalid path "' + path + '"');
+		}
+
+		var name  = tokens[1];
+		var match = tokens[3] && (
+			tokens[2] ?
+				tokens[3] :
+				parseFloat(tokens[3])
+		);
+
+		path = path.slice(rname.lastIndex);
+
+		return object[$observable] ?
+			match ?
+				observeItem(object, name, match, path, fn) :
+				observeProperty(object, name, path, fn) :
+			match ?
+				callbackItem(object, name, match, path, fn) :
+				callbackProperty(object, name, path, fn) ;
+	}
+
+
+	// Observable
+
+	function Observable(object) {
+		return !object ? undefined :
+			object[$observable] ? object[$observable] :
+			!isObservable(object) ? undefined :
+		createProxy(object) ;
+	}
+
+	Observable.isObservable = isObservable;
+
+	Observable.notify = function notify(object, path) {
+		var observers = object[$observers];
+		fire(observers[path], object[$observable]);
+		fire(observers[$update], object);
+	};
+
+	Observable.observe = function(object, path, fn) {
+		// Coerce path to string
+		return observe(Observable(object) || object, path + '', fn);
+	};
+
+	// Experimental
+
+	Observable.filter = function(fn, array) {
+		var subset = Observable([]);
+
+		Observable.observe(array, '', function() {
+			var filtered = array.filter(fn);
+			assign(subset, filtered);
+			subset.length = filtered.length;
+		});
+
+		return subset;
+	};
+
+	Observable.map = function(fn, array) {
+		var subset = Observable([]);
+
+		Observable.observe(array, '', function(observable) {
+			var filtered = array.map(fn);
+			assign(subset, filtered);
+			subset.length = filtered.length;
+		});
+
+		return subset;
+	};
+
+
+	// Export
+
+	window.Observable = Observable;
+
+})(window);
 (function(window) {
 	"use strict";
 
@@ -1873,6 +2475,7 @@
 	var nothing   = Fn.nothing;
 	var rest      = Fn.rest;
 	var throttle  = Fn.throttle;
+	var wait      = Fn.wait;
 	var Timer     = Fn.Timer;
 	var toArray   = Fn.toArray;
 
@@ -1896,7 +2499,7 @@
 	function checkSource(source) {
 		// Check for .shift()
 		if (!source.shift) {
-			throw new Error('Stream: Source must create an object with .shift() ' + Source);
+			throw new Error('Stream: Source must create an object with .shift() ' + source);
 		}
 	}
 
@@ -2257,16 +2860,18 @@
 
 	Stream.Choke = function(time) {
 		return new Stream(function setup(notify, done) {
-			var buffer = [];
-			var update = Wait(function() {
+			var value;
+			var update = wait(function() {
 				// Get last value and stick it in buffer
-				buffer[0] = arguments[arguments.length - 1];
+				value = arguments[arguments.length - 1];
 				notify('push');
 			}, time);
 
 			return {
 				shift: function() {
-					return buffer.shift();
+					var v = value;
+					value = undefined;
+					return v;
 				},
 
 				push: update,
@@ -2547,7 +3152,7 @@
 			return this;
 		},
 
-		off: function(type, fn) {
+		off: function off(type, fn) {
 			var events = this[$events];
 			if (!events) { return this; }
 
@@ -2581,515 +3186,7 @@
 
 	window.Stream = Stream;
 
-})(this);
-(function(window) {
-	"use strict";
-
-	var assign         = Object.assign;
-	var define         = Object.defineProperty;
-	var isFrozen       = Object.isFrozen;
-	var getPrototypeOf = Object.getPrototypeOf;
-
-	var A              = Array.prototype;
-
-	var $original      = Symbol('original');
-	var $observable    = Symbol('observable');
-	var $observers     = Symbol('observers');
-	var $update        = Symbol('update');
-
-	var DOMObject      = window.EventTarget || window.Node;
-	var nothing        = Object.freeze([]);
-	var rname          = /\[?([-\w]+)(?:=(['"])?([-\w]+)\2)?\]?\.?/g;
-
-
-	// Utils
-
-	function noop() {}
-
-	function isArrayLike(object) {
-		return object
-		&& object.hasOwnProperty('length')
-		&& typeof object.length === 'number' ;
-	}
-
-	function isObservable(object) {
-		// Many built-in objects and DOM objects bork when calling their
-		// methods via a proxy. They should be considered not observable.
-		// I wish there were a way of whitelisting rather than
-		// blacklisting, but it would seem not.
-
-		return object
-			// Reject primitives, null and other frozen objects
-			&& !isFrozen(object)
-			// Reject DOM nodes, Web Audio context and nodes, MIDI inputs,
-			// XMLHttpRequests, which all inherit from EventTarget
-			&& !DOMObject.prototype.isPrototypeOf(object)
-			// Reject dates
-			&& !(object instanceof Date)
-			// Reject regex
-			&& !(object instanceof RegExp)
-			// Reject maps
-			&& !(object instanceof Map)
-			&& !(object instanceof WeakMap)
-			// Reject sets
-			&& !(object instanceof Set)
-			&& !(window.WeakSet ? object instanceof WeakSet : false)
-			// Reject TypedArrays and DataViews
-			&& !ArrayBuffer.isView(object) ;
-	}
-
-	function getObservers(object, name) {
-		return object[$observers][name]
-			|| (object[$observers][name] = []);
-	}
-
-	function removeObserver(observers, fn) {
-		var i = observers.indexOf(fn);
-		observers.splice(i, 1);
-	}
-
-	function fire(observers, value, record) {
-		if (!observers) { return; }
-
-		// Todo: What happens if observers are removed during this operation?
-		// Bad things, I'll wager.
-		var n = -1;
-		while (observers[++n]) {
-			observers[n](value, record);
-		}
-	}
-
-
-	// Proxy
-
-	var createProxy = window.Proxy ? (function() {
-		function trapGet(target, name, self) {
-			var value = target[name];
-
-			// Ignore symbols
-			return typeof name === 'symbol' ? value :
-				Observable(value) || value ;
-		}
-
-		var arrayHandlers = {
-			get: trapGet,
-
-			set: function(target, name, value, receiver) {
-				// We are setting a symbol
-				if (typeof name === 'symbol') {
-					target[name] = value;
-					return true;
-				}
-
-				var old = target[name];
-
-				// If we are setting the same value, we're not really setting at all
-				if (old === value) { return true; }
-
-				var observers = target[$observers];
-				var change;
-
-				// We are setting length
-				if (name === 'length') {
-					if (value >= target.length) {
-						// Don't allow array length to grow like this
-						//target.length = value;
-						return true;
-					}
-
-					change = {
-						index:   value,
-						removed: A.splice.call(target, value),
-						added:   nothing,
-					};
-
-					while (--old >= value) {
-						fire(observers[old], undefined);
-					}
-				}
-
-				// We are setting an integer string or number
-				else if (+name % 1 === 0) {
-					name = +name;
-					if (value === undefined) {
-						if (name < target.length) {
-							change = {
-								index:   name,
-								removed: A.splice.call(target, name, 1),
-								added:   nothing
-							};
-
-							value = target[name];
-						}
-						else {
-							return true;
-						}
-					}
-					else {
-						change = {
-							index:   name,
-							removed: A.splice.call(target, name, 1, value),
-							added:   [value]
-						};
-					}
-				}
-
-				// We are setting some other key
-				else {
-					target[name] = value;
-				}
-
-				fire(observers[name], Observable(value) || value);
-				fire(observers[$update], receiver, change);
-
-				// Return true to indicate success
-				return true;
-			}
-		};
-
-		var objectHandlers = {
-			get: trapGet,
-
-			set: function(target, name, value, receiver) {
-				var old = target[name];
-
-				// If we are setting the same value, we're not really setting at all
-				if (old === value) { return true; }
-
-				var observers = target[$observers];
-				var change = {
-					name:    name,
-					removed: target[name],
-					added:   value
-				};
-
-				target[name] = value;
-
-				fire(observers[name], Observable(value) || value);
-				fire(observers[$update], receiver, change);
-
-				// Return true to indicate success
-				return true;
-			}
-		};
-
-		return function createProxy(object) {
-			var proxy = new Proxy(object, isArrayLike(object) ?
-				arrayHandlers :
-				objectHandlers
-			);
-
-			define(object, $observers, { value: {} });
-			define(object, $observable, { value: proxy });
-
-			return proxy;
-		};
-	})() : (function() {
-		// Code for IE, whihc does not support Proxy
-
-		function ArrayProxy(array) {
-			this[$observable] = this;
-			this[$original]   = array;
-			this[$observers]  = array[$observers];
-
-			assign(this, array);
-			this.length = array.length;
-		}
-
-		define(ArrayProxy.prototype, 'length', {
-			set: function(length) {
-				var array = this[$original];
-
-				if (length >= array.length) { return; }
-
-				while (--array.length > length) {
-					this[array.length] = undefined;
-				}
-
-				this[array.length] = undefined;
-
-				//console.log('LENGTH', length, array.length, JSON.stringify(this))
-
-				//array.length = length;
-				notify(this, '');
-			},
-
-			get: function() {
-				return this[$original].length;
-			},
-
-			configurable: true
-		});
-
-		assign(ArrayProxy.prototype, {
-			filter:  function() { return A.filter.apply(this[$original], arguments); },
-			find:    function() { return A.find.apply(this[$original], arguments); },
-			map:     function() { return A.map.apply(this[$original], arguments); },
-			reduce:  function() { return A.reduce.apply(this[$original], arguments); },
-			concat:  function() { return A.concat.apply(this[$original], arguments); },
-			slice:   function() { return A.slice.apply(this[$original], arguments); },
-			some:    function() { return A.some.apply(this[$original], arguments); },
-			indexOf: function() { return A.indexOf.apply(this[$original], arguments); },
-			forEach: function() { return A.forEach.apply(this[$original], arguments); },
-			toJSON:  function() { return this[$original]; },
-
-			sort: function() {
-				A.sort.apply(this[$original], arguments);
-				assign(this, array);
-				this.length = array.length;
-				notify(this, '');
-				return this;
-			},
-
-			push: function() {
-				var array = this[$original];
-				var value = A.push.apply(array, arguments);
-				assign(this, array);
-				this.length = array.length;
-				console.log('PUSH', JSON.stringify(arguments));
-				notify(this, '');
-				return value;
-			},
-
-			pop: function() {
-				var array = this[$original];
-				var value = A.pop.apply(array, arguments);
-				assign(this, array);
-				this.length = array.length;
-				notify(this, '');
-				return value;
-			},
-
-			shift: function() {
-				var array = this[$original];
-				var value = A.shift.apply(array, arguments);
-				assign(this, array);
-				this.length = array.length;
-				notify(this, '');
-				return value;
-			},
-
-			splice: function() {
-				var array = this[$original];
-				var value = A.splice.apply(array, arguments);
-				assign(this, array);
-				this.length = array.length;
-				notify(this, '');
-				return value;
-			}
-		});
-
-		return function createNoProxy(object) {
-			var proxy;
-
-			if (isArrayLike(object)) {
-				define(object, $observers, { value: {} });
-				proxy = isArrayLike(object) ? new ArrayProxy(object) : object ;
-			}
-			else {
-				proxy = object;
-			}
-
-			define(object, $observable, { value: proxy });
-			return proxy;
-		};
-	})() ;
-
-
-	// observe
-
-	function observePrimitive(object, fn) {
-		if (object !== fn.value) {
-			fn.value = object;
-			fn(object);
-		}
-
-		return noop;
-	}
-
-	function observeObject(object, fn) {
-		var observers = getObservers(object, $update);
-		var old       = fn.value;
-
-		observers.push(fn);
-
-		if (object !== fn.value) {
-			fn.value = object;
-			fn(object, {
-				index:   0,
-				removed: old ? old : nothing,
-				added:   object
-			});
-		}
-
-		return function unobserveObject() {
-			removeObserver(observers, fn);
-		};
-	}
-
-	function observeItem(object, key, match, path, fn) {
-		var unobserve = noop;
-
-		function isMatch(item) {
-			return item[key] === match;
-		}
-
-		function update(array) {
-			var value = array && A.find.call(array, isMatch);
-			unobserve();
-			unobserve = observe(value, path, fn);
-		}
-
-		var unobserveObject = observeObject(object, update);
-
-		return function unobserveItem() {
-			unobserve();
-			unobserveObject();
-		};
-	}
-
-	var observeProperty = window.Proxy ? function observeProperty(object, name, path, fn) {
-		var observers = getObservers(object, name);
-		var unobserve = noop;
-
-		function update(value) {
-			unobserve();
-			unobserve = observe(value, path, fn);
-		}
-
-		observers.push(update);
-		update(object[name]);
-
-		return function unobserveProperty() {
-			unobserve();
-			removeObserver(observers, update);
-		};
-	} : function observePropertyNoProxy(object, name, path, fn) {
-		var unobserve = noop;
-
-		function update(value) {
-			unobserve();
-			unobserve = observe(value, path, fn);
-		}
-
-		var _unobserve = window.observe(object[$observable] || object, name, update);
-		update(object[name]);
-
-		return function() {
-			unobserve();
-			_unobserve();
-		};
-	} ;
-
-	function callbackItem(object, key, match, path, fn) {
-		function isMatch(item) {
-			return item[key] === match;
-		}
-
-		var value = object && A.find.call(object, isMatch);
-		return observe(Observable(value) || value, path, fn);
-	}
-
-	function callbackProperty(object, name, path, fn) {
-		return observe(Observable(object[name]) || object[name], path, fn);
-	}
-
-	function observe(object, path, fn) {
-		if (!path.length) {
-			// We can assume the full isObservable() check has been done, as
-			// this function is only called internally or from Object.observe
-			//
-			// The object[$observers] check is for IE - it checks whether the
-			// object is observable for muteability.
-			return object && object[$observable] && object[$observers] ?
-				observeObject(object, fn) :
-				observePrimitive(object, fn) ;
-		}
-
-		if (!(object && typeof object === 'object')) {
-			return observePrimitive(undefined, fn);
-		}
-
-		rname.lastIndex = 0;
-		var tokens = rname.exec(path);
-
-		if (!tokens) {
-			throw new Error('Observable: invalid path "' + path + '"');
-		}
-
-		var name  = tokens[1];
-		var match = tokens[3] && (
-			tokens[2] ?
-				tokens[3] :
-				parseFloat(tokens[3])
-		);
-
-		path = path.slice(rname.lastIndex);
-
-		return object[$observable] ?
-			match ?
-				observeItem(object, name, match, path, fn) :
-				observeProperty(object, name, path, fn) :
-			match ?
-				callbackItem(object, name, match, path, fn) :
-				callbackProperty(object, name, path, fn) ;
-	}
-
-
-	// Observable
-
-	function Observable(object) {
-		return !object ? undefined :
-			object[$observable] ? object[$observable] :
-			!isObservable(object) ? undefined :
-		createProxy(object) ;
-	}
-
-	Observable.isObservable = isObservable;
-
-	Observable.notify = function notify(object, path) {
-		var observers = object[$observers];
-		fire(observers[path], object[$observable]);
-		fire(observers[$update], object);
-	};
-
-	Observable.observe = function(object, path, fn) {
-		// Coerce path to string
-		return observe(Observable(object) || object, path + '', fn);
-	};
-
-	// Experimental
-
-	Observable.filter = function(fn, array) {
-		var subset = Observable([]);
-
-		Observable.observe(array, '', function() {
-			var filtered = array.filter(fn);
-			assign(subset, filtered);
-			subset.length = filtered.length;
-		});
-
-		return subset;
-	};
-
-	Observable.map = function(fn, array) {
-		var subset = Observable([]);
-
-		Observable.observe(array, '', function(observable) {
-			var filtered = array.map(fn);
-			assign(subset, filtered);
-			subset.length = filtered.length;
-		});
-
-		return subset;
-	};
-
-
-	// Export
-
-	window.Observable = Observable;
-
-})(this);
+})(window);
 (function(window) {
 	"use strict";
 
@@ -3144,21 +3241,22 @@
 			return source;
 		});
 	});
-})(this);
+})(window);
 (function(window) {
 	"use strict";
 
-	// Be generous with the input we accept.
-	var rdate     = /^(-)?(\d{4})(?:-(\d+))?(?:-(\d+))?$/;
-	var rtime     = /^(-)?(\d+):(\d+)(?::(\d+(?:\.\d+)?))?$/;
-	//var rdatetime = /^(-)?(\d+)-(0[0-9]|1[12])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9])(?::([0-5][0-9](?:\.\d+)?))?/;
-	//var rtimezone = /(?:Z|[+-]\d{2}:\d{2})$/;
-	//var rnonzeronumbers = /[1-9]/;
+	var Fn        = window.Fn;
 
-	var days = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0 };
-
-	// Duration of year, in seconds
-	var year = 365.25 * 24 * 60 * 60;
+	var assign    = Object.assign;
+	var curry     = Fn.curry;
+	var choose    = Fn.choose;
+	var id        = Fn.id;
+	var isDefined = Fn.isDefined;
+	var mod       = Fn.mod;
+	var noop      = Fn.noop;
+	var overload  = Fn.overload;
+	var toType    = Fn.toType;
+	var toClass   = Fn.toClass;
 
 	function createOrdinals(ordinals) {
 		var array = [], n = 0;
@@ -3170,7 +3268,7 @@
 		return array;
 	}
 
-	var locales = {
+	var langs = {
 		'en': {
 			days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
 			months:   ('January February March April May June July August September October November December').split(' '),
@@ -3196,310 +3294,729 @@
 		}
 	};
 
-	function isDefined(value) {
-		// !!value is a fast out for non-zero numbers, non-empty strings
-		// and other objects, the rest checks for 0, '', etc.
-		return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
+
+	// Date string parsing
+	//
+	// Don't parse date strings with the JS Date object. It has variable
+	// time zone behaviour. Set up our own parsing.
+	//
+	// Accept BC dates by including leading '-'.
+	// (Year 0000 is 1BC, -0001 is 2BC.)
+	// Limit months to 01-12
+	// Limit dates to 01-31
+
+	var rdate     = /^(-?\d{4})(?:-(0[1-9]|1[012])(?:-(0[1-9]|[12]\d|3[01])(?:T([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d)(?:.(\d+))?)?)?)?)?)?([+-]([01]\d|2[0-3]):?([0-5]\d)?|Z)?$/;
+	//                sign   year        month       day               T or -
+	var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
+
+	var parseDate = overload(toType, {
+		number:  secondsToDate,
+		string:  exec(rdate, createDate),
+		object:  function(date) {
+			return isValidDate(date) ? date : undefined ;
+		},
+		default: noop
+	});
+
+	var parseDateLocal = overload(toType, {
+		number:  secondsToDate,
+		string:  exec(rdate, createDateLocal),
+		object:  function(date) {
+			return date instanceof Date ? date : undefined ;
+		},
+		default: noop
+	});
+
+	function isValidDate(date) {
+		return toClass(date) === "Date" && !Number.isNaN(date.getTime()) ;
 	}
 
-//	function createDate(value) {
-//		// Test the Date constructor to see if it is parsing date
-//		// strings as local dates, as per the ES6 spec, or as GMT, as
-//		// per pre ES6 engines.
-//		// developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#ECMAScript_5_ISO-8601_format_support
-//		var date = new Date(value);
-//		var json = date.toJSON();
-//		var gmt =
-//			// It's GMT if the string matches the same length of
-//			// characters from it's JSONified version...
-//			json.slice(0, value.length) === value &&
-//
-//			// ...and if all remaining numbers are 0.
-//			!json.slice(value.length).match(rnonzeronumbers) ;
-//
-//		return typeof value !== 'string' ? new Date(value) :
-//			// If the Date constructor parses to gmt offset the date by
-//			// adding the date's offset in milliseconds to get a local
-//			// date. getTimezoneOffset returns the offset in minutes.
-//			gmt ? new Date(+date + date.getTimezoneOffset() * 60000) :
-//
-//			// Otherwise use the local date.
-//			date ;
-//	}
+	function createDate(match, year, month, day, hour, minute, second, ms, zone, zoneHour, zoneMinute) {
+		// Month must be 0-indexed for the Date constructor
+		month = parseInt(month, 10) - 1;
 
-	function addTimeToDate(time, date) {
-		var tokens = rtime.exec(time) ;
+		var date = new Date(
+			ms ?     Date.UTC(year, month, day, hour, minute, second, ms) :
+			second ? Date.UTC(year, month, day, hour, minute, second) :
+			minute ? Date.UTC(year, month, day, hour, minute) :
+			hour ?   Date.UTC(year, month, day, hour) :
+			day ?    Date.UTC(year, month, day) :
+			month ?  Date.UTC(year, month) :
+			Date.UTC(year)
+		);
 
-		if (!tokens) { throw new Error('Time: "' + time + '" does not parse as time.'); }
-
-		var sign = tokens[1] ? -1 : 1 ;
-
-		if (isDefined(tokens[4])) { date.setUTCMilliseconds(date.getUTCMilliseconds() + sign * parseFloat(tokens[4]) * 1000); }
-		if (isDefined(tokens[3])) { date.setUTCMinutes(date.getUTCMinutes() + sign * parseInt(tokens[3], 10)); }
-		if (isDefined(tokens[2])) { date.setUTCHours(date.getUTCHours() + sign * parseInt(tokens[2], 10)); }
+		if (zone && (zoneHour !== '00' || (zoneMinute !== '00' && zoneMinute !== undefined))) {
+			setTimeZoneOffset(zone[0], zoneHour, zoneMinute, date);
+		}
 
 		return date;
 	}
 
-	function addDateToDate(time, date) {
-		var tokens = rdate.exec(time) ;
-
-		if (!tokens) { throw new Error('Time: "' + time + '" does not parse as date.'); }
-
-		var sign = tokens[1] ? -1 : 1 ;
-
-		if (isDefined(tokens[4])) { date.setUTCDate(date.getUTCDate() + sign * parseInt(tokens[4], 10)); }
-		if (isDefined(tokens[3])) { date.setUTCMonth(date.getUTCMonth() + sign * parseInt(tokens[3], 10)); }
-		if (isDefined(tokens[2])) { date.setUTCFullYear(date.getUTCFullYear() + sign * parseInt(tokens[2], 10)); }
-
-		return date;
-	}
-
-	function Time(time) {
-		// If time is a time object, don't make a new one, return it
-		if (time instanceof Time) { return time; }
-
-		// Time has not been called with `new` do that now
-		if (!Time.prototype.isPrototypeOf(this)) {
-			return new Time(time);
+	function createDateLocal(year, month, day, hour, minute, second, ms, zone) {
+		if (zone) {
+			throw new Error('Time.parseDateLocal() will not parse a string with a time zone "' + zone + '".');
 		}
 
-		Object.defineProperty(this, 'timestamp', {
-			enumerable: true,
+		// Month must be 0-indexed for the Date constructor
+		month = parseInt(month, 10) - 1;
 
-			value: time === undefined ? 0 :
-				// Accept time in seconds
-				typeof time === 'number' ? time :
-				// Accept date objects.
-				time instanceof Date ? +time / 1000 :
-				// Accept time strings
-				rtime.test(time) ? +addTimeToDate(time, new Date(0)) / 1000 :
-				// Accept date strings
-				+new Date(time) / 1000
-		});
-
-		// Check now for invalid times
-		if (Number.isNaN(this.timestamp)) {
-			throw new Error('Time: Invalid argument: ' + typeof time + ' ' + time);
-		}
+		return ms ?  new Date(year, month, day, hour, minute, second, ms) :
+			second ? new Date(year, month, day, hour, minute, second) :
+			minute ? new Date(year, month, day, hour, minute) :
+			hour ?   new Date(year, month, day, hour) :
+			day ?    new Date(year, month, day) :
+			month ?  new Date(year, month) :
+			new Date(year) ;
 	}
 
-	function create(seconds) {
-		// A fast way of creating times without all the bothersome type checking
-		return Object.create(Time.prototype, {
-			timestamp: {
-				enumerable: true,
-				value: seconds
-			}
-		});
-	}
-
-	Object.assign(Time.prototype, {
-		add: function(time) {
-			return create(
-				// Accept time in seconds
-				typeof time === "number" ? time + this.timestamp :
-				// Accept date string
-				rdate.test(time) ? +addDateToDate(time, this.toDate()) / 1000 :
-				// Accept time string
-				+addTimeToDate(time, this.toDate()) / 1000
-			);
-		},
-
-		floor: function(grain) {
-			// Take a day string or number, find the last matching day
-			var day = typeof grain === 'number' ?
-				grain :
-				days[grain] ;
-
-			var date = this.toDate();
-
-			if (!isDefined(day)) {
-				if (grain === 'ms') { return this; }
-
-				date.setUTCMilliseconds(0);
-				if (grain === 's') { return new Time(date); }
-
-				date.setUTCSeconds(0);
-				if (grain === 'm') { return new Time(date); }
-
-				date.setUTCMinutes(0);
-				if (grain === 'h') { return new Time(date); }
-
-				date.setUTCHours(0);
-				if (grain === 'day') { return new Time(date); }
-
-				// Todo: .floor('week')
-				//date.setUTCHours(0);
-				//if (grain === 'week') { return new Time(date); }
-
-				date.setUTCDate(1);
-				if (grain === 'month') { return new Time(date); }
-
-				date.setUTCMonth(0);
-				if (grain === 'year') { return new Time(date); }
-
-				date.setUTCFullYear(0);
-				return new Time(date);
-			}
-
-			var currentDay = date.getUTCDay();
-
-			// If we are on the specified day, return this date
-			if (day === currentDay) { return this; }
-
-			var diff = currentDay - day;
-
-			if (diff < 0) { diff = diff + 7; }
-
-			return this.add('-0000-00-0' + diff);
-		},
-
-		render: (function() {
-			// Todo: this regex should be stricter
-			var rletter = /(th|ms|[YZMDdHhmsz]{1,4}|[a-zA-Z])/g;
-
-			return function render(string, lang) {
-				var date = this.toDate();
-				return string.replace(rletter, function($0, $1) {
-					return Time.format[$1] ? Time.format[$1](date, lang) : $1 ;
-				});
-			};
-		})(),
-
-		valueOf: function() {
-			return this.timestamp;
-		},
-
-		toDate: function() {
-			return new Date(this.valueOf() * 1000);
-		},
-
-		toString: function() {
-			return this.valueOf() + '';
-		},
-
-		toJSON: function() {
-			return this.toDate().toJSON();
-		},
-
-		to: function(unit) {
-			return unit === 'ms' ? Time.secToMs(this.timestamp) :
-				unit === 'months' ? Time.secToMonths(this.timestamp) :
-				// Accept string starting with...
-				unit[0] === 's' ? this.timestamp :
-				unit[0] === 'm' ? Time.secToMins(this.timestamp) :
-				unit[0] === 'h' ? Time.secToHours(this.timestamp) :
-				unit[0] === 'd' ? Time.secToDays(this.timestamp) :
-				unit[0] === 'w' ? Time.secToWeeks(this.timestamp) :
-				unit[0] === 'y' ? Time.secToYears(this.timestamp) :
+	function exec(regex, fn, error) {
+		return function exec(string) {
+			var parts = regex.exec(string);
+			if (!parts && error) { throw error; }
+			return parts ?
+				fn.apply(null, parts) :
 				undefined ;
+		};
+	}
+
+	function secondsToDate(n) {
+		return new Date(secondsToMilliseconds(n));
+	}
+
+	function setTimeZoneOffset(sign, hour, minute, date) {
+		if (sign === '+') {
+			date.setUTCHours(date.getUTCHours() - parseInt(hour, 10));
+			if (minute) {
+				date.setUTCMinutes(date.getUTCMinutes() - parseInt(minute, 10));
+			}
+		}
+		else if (sign === '-') {
+			date.setUTCHours(date.getUTCHours() + parseInt(hour, 10));
+			if (minute) {
+				date.setUTCMinutes(date.getUTCMinutes() + parseInt(minute, 10));
+			}
+		}
+
+		return date;
+	}
+
+
+
+	// Date object formatting
+	//
+	// Use the internationalisation methods for turning a date into a UTC or
+	// locale string, the date object for turning them into a local string.
+
+	var dateFormatters = {
+		YYYY: function(date)       { return ('000' + date.getFullYear()).slice(-4); },
+		YY:   function(date)       { return ('0' + date.getFullYear() % 100).slice(-2); },
+		MM:   function(date)       { return ('0' + (date.getMonth() + 1)).slice(-2); },
+		MMM:  function(date, lang) { return this.MMMM(date, lang).slice(0,3); },
+		MMMM: function(date, lang) { return langs[lang || Time.lang].months[date.getMonth()]; },
+		D:    function(date)       { return '' + date.getDate(); },
+		DD:   function(date)       { return ('0' + date.getDate()).slice(-2); },
+		ddd:  function(date, lang) { return this.dddd(date, lang).slice(0,3); },
+		dddd: function(date, lang) { return langs[lang || Time.lang].days[date.getDay()]; },
+		hh:   function(date)       { return ('0' + date.getHours()).slice(-2); },
+		//hh:   function(date)       { return ('0' + date.getHours() % 12).slice(-2); },
+		mm:   function(date)       { return ('0' + date.getMinutes()).slice(-2); },
+		ss:   function(date)       { return ('0' + date.getSeconds()).slice(-2); },
+		sss:  function(date)       { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+		ms:   function(date)       { return '' + date.getMilliseconds(); },
+
+		// Experimental
+		am:   function(date) { return date.getHours() < 12 ? 'am' : 'pm'; },
+		zz:   function(date) {
+			return (date.getTimezoneOffset() < 0 ? '+' : '-') +
+				 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
+		},
+		th:   function(date, lang) { return langs[lang || Time.lang].ordinals[date.getDate()]; },
+		n:    function(date) { return +date; },
+		ZZ:   function(date) { return -date.getTimezoneOffset() * 60; }
+	};
+
+	var componentFormatters = {
+		YYYY: function(data)       { return data.year; },
+		YY:   function(data)       { return ('0' + data.year).slice(-2); },
+		MM:   function(data)       { return data.month; },
+		MMM:  function(data, lang) { return this.MMMM(data, lang).slice(0,3); },
+		MMMM: function(data, lang) { return langs[lang].months[data.month - 1]; },
+		D:    function(data)       { return parseInt(data.day, 10) + ''; },
+		DD:   function(data)       { return data.day; },
+		ddd:  function(data)       { return data.weekday.slice(0,3); },
+		dddd: function(data, lang) { return data.weekday; },
+		hh:   function(data)       { return data.hour; },
+		//hh:   function(data)       { return ('0' + data.hour % 12).slice(-2); },
+		mm:   function(data)       { return data.minute; },
+		ss:   function(data)       { return data.second; },
+		//sss:  function(data)       { return (date.second + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+		//ms:   function(data)       { return '' + date.getMilliseconds(); },
+	};
+
+	var componentKeys = {
+		// Components, in order of appearance in the locale string
+		'en-US': ['weekday', 'month', 'day', 'year', 'hour', 'minute', 'second'],
+		// fr: "lundi 12/02/2018 à 18:54:09" (different in IE/Edge, of course)
+		// de: "Montag, 12.02.2018, 19:28:39" (different in IE/Edge, of course)
+		default: ['weekday', 'day', 'month', 'year', 'hour', 'minute', 'second']
+	};
+
+
+
+	var options = {
+		// Time zone
+		timeZone:      'UTC',
+		// Use specified locale matcher
+		formatMatcher: 'basic',
+		// Use 24 hour clock
+		hour12:        false,
+		// Format string components
+		weekday:       'long',
+		year:          'numeric',
+		month:         '2-digit',
+		day:           '2-digit',
+		hour:          '2-digit',
+		minute:        '2-digit',
+		second:        '2-digit',
+		//timeZoneName:  'short'
+	};
+
+	var rtoken  = /([YZMDdhmswz]{2,4}|\+-)/g;
+	var rusdate = /\w{3,}|\d+/g;
+
+	function matchEach(regex, fn, text) {
+		var match = regex.exec(text);
+
+		return match ? (
+			fn.apply(null, match),
+			matchEach(regex, fn, text)
+		) :
+		undefined ;
+	}
+
+	function toLocaleString(timezone, locale, date) {
+		options.timeZone = timezone || 'UTC';
+		var string = date.toLocaleString(locale, options);
+		return string;
+	}
+
+	function toLocaleComponents(timezone, locale, date) {
+		var localedate = toLocaleString(timezone, locale, date);
+		var components = {};
+		var keys       = componentKeys[locale] || componentKeys.default;
+		var i          = 0;
+
+		matchEach(rusdate, function(value) {
+			components[keys[i++]] = value;
+		}, localedate);
+
+		return components;
+	}
+
+	function formatDate(string, timezone, locale, date) {
+		// Derive lang from locale
+		var lang = locale ? locale.slice(0,2) : document.documentElement.lang ;
+
+		// Todo: only en-US and fr supported for the time being
+		locale = locale === 'en' ? 'en-US' :
+			locale ? locale :
+			'en-US';
+
+		var data    = toLocaleComponents(timezone, locale, date);
+		var formats = componentFormatters;
+
+		return string.replace(rtoken, function($0) {
+			return formats[$0] ? formats[$0](data, lang) : $0 ;
+		});
+	}
+
+	function formatDateLocal(string, locale, date) {
+		var formatters = dateFormatters;
+		var lang = locale.slice(0, 2);
+
+		// Use date formatters to get time as current local time
+		return string.replace(rtoken, function($0) {
+			return formatters[$0] ? formatters[$0](date, lang) : $0 ;
+		});
+	}
+
+	function formatDateISO(date) {
+		return JSON.stringify(parseDate(date)).slice(1,11);
+	}
+
+	function formatDateTimeISO(date) {
+		return JSON.stringify(parseDate(date)).slice(1,-1);
+	}
+
+
+	// Time operations
+
+	var days   = {
+		mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0
+	};
+
+	var dayMap = [6,0,1,2,3,4,5];
+
+	function toDay(date) {
+		return dayMap[date.getDay()];
+	}
+
+	function cloneDate(date) {
+		return new Date(+date);
+	}
+
+	function addDateComponents(sign, yy, mm, dd, date) {
+		date.setUTCFullYear(date.getUTCFullYear() + sign * parseInt(yy, 10));
+
+		if (!mm) { return; }
+		date.setUTCMonth(date.getUTCMonth() + sign * parseInt(mm, 10));
+
+		if (!dd) { return; }
+		date.setUTCDate(date.getUTCDate() + sign * parseInt(dd, 10));
+	}
+
+	function addDate(diff, date) {
+		// Don't mutate the original date
+		date = cloneDate(date);
+
+		// First parse the date portion diff and add that to date
+		var tokens = rdatediff.exec(diff) ;
+		var sign = 1;
+
+		if (tokens) {
+			sign = tokens[1] === '-' ? -1 : 1 ;
+
+			addDateComponents(sign, tokens[2], tokens[3], tokens[4], date);
+
+			// If there is no 'T' separator go no further
+			if (!tokens[5]) { return date; }
+
+			// Prepare diff for time parsing
+			diff = diff.slice(tokens[0].length);
+
+			// Protect against parsing a stray sign before time
+			if (diff[0] === '-') { return date; }
+		}
+
+		// Then parse the time portion and add that to date
+		var time = parseTimeDiff(diff);
+		if (time === undefined) { return; }
+
+		date.setTime(date.getTime() + sign * time * 1000);
+		return date;
+	}
+
+	function diff(t, d1, d2) {
+		var y1 = d1.getUTCFullYear();
+		var m1 = d1.getUTCMonth();
+		var y2 = d2.getUTCFullYear();
+		var m2 = d2.getUTCMonth();
+
+		if (y1 === y2 && m1 === m2) {
+			return t + d2.getUTCDate() - d1.getUTCDate() ;
+		}
+
+		t += d2.getUTCDate() ;
+
+		// Set to last date of previous month
+		d2.setUTCDate(0);
+//debugger;
+		return diff(t, d1, d2);
+	}
+
+	function diffDateDays(date1, date2) {
+		var d1 = parseDate(date1);
+		var d2 = parseDate(date2);
+
+		return d2 > d1 ?
+			// 3rd argument mutates, so make sure we get a clean date if we
+			// have not just made one.
+			diff(0, d1, d2 === date2 || d1 === d2 ? cloneDate(d2) : d2) :
+			diff(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
+	}
+
+	function floorDateByGrain(grain, date) {
+		var diff, week;
+
+		if (grain === 'ms') { return date; }
+
+		date.setUTCMilliseconds(0);
+		if (grain === 'second') { return date; }
+
+		date.setUTCSeconds(0);
+		if (grain === 'minute') { return date; }
+
+		date.setUTCMinutes(0);
+		if (grain === 'hour') { return date; }
+
+		date.setUTCHours(0);
+		if (grain === 'day') { return date; }
+
+		if (grain === 'week') {
+			date.setDate(date.getDate() - toDay(date));
+			return date;
+		}
+
+		if (grain === 'fortnight') {
+			week = floorDateByDay(1, new Date());
+			diff = Fn.mod(14, diffDateDays(week, date));
+			date.setUTCDate(date.getUTCDate() - diff);
+			return date;
+		}
+
+		date.setUTCDate(1);
+		if (grain === 'month') { return date; }
+
+		date.setUTCMonth(0);
+		if (grain === 'year') { return date; }
+
+		date.setUTCFullYear(0);
+		return date;
+	}
+
+	function floorDateByDay(day, date) {
+		var currentDay = date.getUTCDay();
+
+		// If we are on the specified day, return this date
+		if (day === currentDay) { return date; }
+
+		var diff = currentDay - day;
+		if (diff < 0) { diff = diff + 7; }
+		return addDate('-0000-00-0' + diff, date);
+	}
+
+	function floorDate(grain, date) {
+		// Clone date before mutating it
+		date = cloneDate(date);
+
+		// Take a day string or number, find the last matching day
+		var day = typeof grain === 'number' ?
+			grain :
+			days[grain] ;
+
+		return isDefined(day) ?
+			floorDateByDay(day, date) :
+			floorDateByGrain(grain, date) ;
+	}
+
+
+	assign(Fn, {
+		nowDate: function() {
+			return new Date();
+		},
+
+		parseDate:      parseDate,
+		parseDateLocal: parseDateLocal,
+
+		formatDate: curry(function(string, timezone, locale, date) {
+			return string === 'ISO' ?
+				formatDateISO(parseDate(date)) :
+			timezone === 'local' ?
+				formatDateLocal(string, locale, date) :
+			formatDate(string, timezone, locale, parseDate(date)) ;
+		}),
+
+		formatDateISO:     formatDateISO,
+
+		formatDateTimeISO: formatDateTimeISO,
+
+		formatDateLocal: curry(formatDateLocal),
+
+		addDate: curry(function(diff, date) {
+			return addDate(diff, parseDate(date));
+		}),
+
+		cloneDate: cloneDate,
+
+		dateDiff: function(d1, d2) {
+			return +parseDate(d2) - +parseDate(d1);
+		},
+
+		diffDateDays: curry(diffDateDays),
+
+		floorDate: curry(function(token, date) {
+			return floorDate(token, parseDate(date));
+		}),
+
+		toDay: toDay,
+
+		toTimestamp: function(date) {
+			return date.getTime() / 1000;
 		}
 	});
 
-	Object.defineProperties(Time.prototype, {
-		date: {
-			get: function() {
-				return this.toJSON().slice(0, 10);
-			}
-		},
 
-		time: {
-			get: function() {
-				return this.toJSON().slice(11, -1);
-			}
+
+
+	// Time
+
+	var precision = 9;
+
+	function millisecondsToSeconds(n) { return n / 1000; }
+	function minutesToSeconds(n) { return n * 60; }
+	function hoursToSeconds(n) { return n * 3600; }
+	function daysToSeconds(n) { return n * 86400; }
+	function weeksToSeconds(n) { return n * 604800; }
+
+	function secondsToMilliseconds(n) { return n * 1000; }
+	function secondsToMinutes(n) { return n / 60; }
+	function secondsToHours(n) { return n / 3600; }
+	function secondsToDays(n) { return n / 86400; }
+	function secondsToWeeks(n) { return n / 604800; }
+
+	function prefix(n) {
+		return n >= 10 ? '' : '0';
+	}
+
+	// Hours:   00-23 - 24 should be allowed according to spec
+	// Minutes: 00-59 -
+	// Seconds: 00-60 - 60 is allowed, denoting a leap second
+
+	//var rtime   = /^([+-])?([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d|60)(?:.(\d+))?)?)?$/;
+	//                sign   hh       mm           ss
+	var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
+	var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
+
+	var parseTime = overload(toType, {
+		number:  id,
+		string:  exec(rtime, createTime),
+		default: function(object) {
+			throw new Error('parseTime() does not accept objects of type ' + (typeof object));
 		}
 	});
 
-	// Here are the types requested for certain operations, and
-	// the methods they fall back to when Symbol.toPrimitive does
-	// not exist. For consistency, it's probably best not to change
-	// the results of these operations with Symbol.toPrimitive after
-	// all.
-	//
-	// +Time()          type: "number"   method: valueOf
-	// Time() * 4       type: "number"   method: valueOf
-	// Time() + 4       type: "default"  method: valueOf
-	// Time() < 0       type: "number"   method: valueOf
-	// [Time()].join()  type: "string"   method: toString
-	// Time() + ''      type: "default"  method: valueOf
-	// new Date(Time()) type: "default"  method: valueOf
-	//
-	// if (Symbol.toPrimitive) {
-	//	Time.prototype[Symbol.toPrimitive] = function(type) {
-	//		return type === 'number' ?
-	//			this.timestamp :
-	//			this.toJSON() ;
-	//	};
-	// }
-
-	Object.assign(Time, {
-		now: function() {
-			return Time(new Date());
-		},
-
-		format: {
-			YYYY: function(date)       { return ('000' + date.getFullYear()).slice(-4); },
-			YY:   function(date)       { return ('0' + date.getFullYear() % 100).slice(-2); },
-			MM:   function(date)       { return ('0' + (date.getMonth() + 1)).slice(-2); },
-			MMM:  function(date, lang) { return this.MMMM(date, lang).slice(0,3); },
-			MMMM: function(date, lang) { return locales[lang || Time.lang].months[date.getMonth()]; },
-			D:    function(date)       { return '' + date.getDate(); },
-			DD:   function(date)       { return ('0' + date.getDate()).slice(-2); },
-			ddd:  function(date, lang) { return this.dddd(date, lang).slice(0,3); },
-			dddd: function(date, lang) { return locales[lang || Time.lang].days[date.getDay()]; },
-			HH:   function(date)       { return ('0' + date.getHours()).slice(-2); },
-			hh:   function(date)       { return ('0' + date.getHours() % 12).slice(-2); },
-			mm:   function(date)       { return ('0' + date.getMinutes()).slice(-2); },
-			ss:   function(date)       { return ('0' + date.getSeconds()).slice(-2); },
-			sss:  function(date)       { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
-			ms:   function(date)       { return '' + date.getMilliseconds(); },
-
-			// Experimental
-			am:   function(date) { return date.getHours() < 12 ? 'am' : 'pm'; },
-			zz:   function(date) {
-				return (date.getTimezoneOffset() < 0 ? '+' : '-') +
-					 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
-			},
-			th:   function(date, lang) { return locales[lang || Time.lang].ordinals[date.getDate()]; },
-			n:    function(date) { return +date; },
-			ZZ:   function(date) { return -date.getTimezoneOffset() * 60; }
-		},
-
-		locales: locales,
-
-		secToMs:     function(n) { return n * 1000; },
-		secToMins:   function(n) { return n / 60; },
-		secToHours:  function(n) { return n / 3600; },
-		secToDays:   function(n) { return n / 86400; },
-		secToWeeks:  function(n) { return n / 604800; },
-		secToMonths: function(n) { return n / (year / 12); },
-		secToYears:  function(n) { return n / year; },
-
-		msToSec:     function(n) { return n / 1000; },
-		minsToSec:   function(n) { return n * 60; },
-		hoursToSec:  function(n) { return n * 3600; },
-		daysToSec:   function(n) { return n * 86400; },
-		weeksToSec:  function(n) { return n * 604800; },
-		monthsToSec: function(n) { return n * (year / 12); },
-		yearsToSec:  function(n) { return n * year; }
+	var parseTimeDiff = overload(toType, {
+		number:  id,
+		string:  exec(rtimediff, createTime),
+		default: function(object) {
+			throw new Error('parseTime() does not accept objects of type ' + (typeof object));
+		}
 	});
 
-	Object.defineProperty(Time, 'lang', {
-		get: function() {
-			var lang = document.documentElement.lang;
-			return lang && Time.locales[lang] ? lang : 'en';
-		},
-
-		enumerable: true
+	var floorTime = choose({
+		week:   function(time) { return time - mod(604800, time); },
+		day:    function(time) { return time - mod(86400, time); },
+		hour:   function(time) { return time - mod(3600, time); },
+		minute: function(time) { return time - mod(60, time); },
+		second: function(time) { return time - mod(1, time); }
 	});
 
-	window.Time = Time;
-})(this);
+	var timeFormatters = {
+		'+-': function sign(time) {
+			return time < 0 ? '-' : '' ;
+		},
+
+		www: function www(time) {
+			time = time < 0 ? -time : time;
+			var weeks = Math.floor(secondsToWeeks(time));
+			return prefix(weeks) + weeks;
+		},
+
+		dd: function dd(time) {
+			time = time < 0 ? -time : time;
+			var days = Math.floor(secondsToDays(time));
+			return prefix(days) + days;
+		},
+
+		hhh: function hhh(time) {
+			time = time < 0 ? -time : time;
+			var hours = Math.floor(secondsToHours(time));
+			return prefix(hours) + hours;
+		},
+
+		hh: function hh(time) {
+			time = time < 0 ? -time : time;
+			var hours = Math.floor(secondsToHours(time % 86400));
+			return prefix(hours) + hours;
+		},
+
+		mm: function mm(time) {
+			time = time < 0 ? -time : time;
+			var minutes = Math.floor(secondsToMinutes(time % 3600));
+			return prefix(minutes) + minutes;
+		},
+
+		ss: function ss(time) {
+			time = time < 0 ? -time : time;
+			var seconds = Math.floor(time % 60);
+			return prefix(seconds) + seconds ;
+		},
+
+		sss: function sss(time) {
+			time = time < 0 ? -time : time;
+			var seconds = time % 60;
+			return prefix(seconds) + toMaxDecimals(precision, seconds);
+		},
+
+		ms: function ms(time) {
+			time = time < 0 ? -time : time;
+			var ms = Math.floor(secondsToMilliseconds(time % 1));
+			return ms >= 100 ? ms :
+				ms >= 10 ? '0' + ms :
+				'00' + ms ;
+		}
+	};
+
+	function createTime(match, sign, hh, mm, sss) {
+		var time = hoursToSeconds(parseInt(hh, 10)) + (
+			mm ? minutesToSeconds(parseInt(mm, 10)) + (
+				sss ? parseFloat(sss, 10) : 0
+			) : 0
+		);
+
+		return sign === '-' ? -time : time ;
+	}
+
+	function formatTime(string, time) {
+		return string.replace(rtoken, function($0) {
+			return timeFormatters[$0] ? timeFormatters[$0](time) : $0 ;
+		}) ;
+	}
+
+	function formatTimeISO(time) {
+		var sign = time < 0 ? '-' : '' ;
+
+		if (time < 0) { time = -time; }
+
+		var hours = Math.floor(time / 3600);
+		var hh = prefix(hours) + hours ;
+		time = time % 3600;
+		if (time === 0) { return sign + hh + ':00'; }
+
+		var minutes = Math.floor(time / 60);
+		var mm = prefix(minutes) + minutes ;
+		time = time % 60;
+		if (time === 0) { return sign + hh + ':' + mm; }
+
+		var sss = prefix(time) + toMaxDecimals(precision, time);
+		return sign + hh + ':' + mm + ':' + sss;
+	}
+
+	function toMaxDecimals(precision, n) {
+		// Make some effort to keep rounding errors under control by fixing
+		// decimals and lopping off trailing zeros
+		return n.toFixed(precision).replace(/\.?0+$/, '');
+	}
+
+	assign(Fn, {
+		nowTime: function() {
+			return window.performance.now();
+		},
+
+		parseTime: parseTime,
+
+		formatTime: curry(function(string, time) {
+			return string === 'ISO' ?
+				formatTimeISO(parseTime(time)) :
+				formatTime(string, parseTime(time)) ;
+		}),
+
+		formatTimeISO: function(time) {
+			// Undefined causes problems by outputting dates full of NaNs
+			return time === undefined ? undefined : formatTimeISO(time);
+		},
+
+		addTime: curry(function(time1, time2) {
+			return parseTime(time2) + parseTimeDiff(time1);
+		}),
+
+		subTime: curry(function(time1, time2) {
+			return parseTime(time2) - parseTimeDiff(time1);
+		}),
+
+		diffTime: curry(function(time1, time2) {
+			return parseTime(time1) - parseTime(time2);
+		}),
+
+		floorTime: curry(function(token, time) {
+			return floorTime(token, parseTime(time));
+		}),
+
+		secondsToMilliseconds: secondsToMilliseconds,
+		secondsToMinutes:      secondsToMinutes,
+		secondsToHours:        secondsToHours,
+		secondsToDays:         secondsToDays,
+		secondsToWeeks:        secondsToWeeks,
+
+		millisecondsToSeconds: millisecondsToSeconds,
+		minutesToSeconds:      minutesToSeconds,
+		hoursToSeconds:        hoursToSeconds,
+		daysToSeconds:         daysToSeconds,
+		weeksToSeconds:        weeksToSeconds,
+	});
+})(window);
+
+// window.CustomEvent polyfill
+// http://caniuse.com/#search=customevent
+
+(function(window) {
+	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
+	if (window.console) { console.log('Polyfill: CustomEvent'); }
+
+	var Event = window.Event;
+	var defaults = { bubbles: false, cancelable: false, detail: undefined };
+
+	function CustomEvent(event, params) {
+		params = params || defaults;
+		
+		var e = document.createEvent('CustomEvent');
+		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+		
+		return e;
+	};
+
+	CustomEvent.prototype = Event.prototype;
+	window.CustomEvent = CustomEvent;
+})(window);
+
+// A reduced version of
+// https://mths.be/scrollingelement v1.5.2 by @diegoperini & @mathias | MIT license
+// Leaves out frameset detection and really old browsers
+
+if (!('scrollingElement' in document)) (function() {
+	// Note: standards mode / quirks mode can be toggled at runtime via
+	// `document.write`.
+	var isCompliantCached;
+
+	function isCompliant() {
+		var isStandardsMode = /^CSS1/.test(document.compatMode);
+		if (!isStandardsMode) {
+			// In quirks mode, the result is equivalent to the non-compliant
+			// standards mode behavior.
+			return false;
+		}
+		if (isCompliantCached === void 0) {
+			// When called for the first time, check whether the browser is
+			// standard-compliant, and cache the result.
+			var iframe = document.createElement('iframe');
+			iframe.style.height = '1px';
+			(document.body || document.documentElement || document).appendChild(iframe);
+			var doc = iframe.contentWindow.document;
+			doc.write('<!DOCTYPE html><div style="height:9999em">x</div>');
+			doc.close();
+			isCompliantCached = doc.documentElement.scrollHeight > doc.body.scrollHeight;
+			iframe.parentNode.removeChild(iframe);
+		}
+		return isCompliantCached;
+	}
+
+	function scrollingElement() {
+		return isCompliant() ? document.documentElement : document.body ;
+	}
+
+	if (Object.defineProperty) {
+		// Support modern browsers that lack a native implementation.
+		Object.defineProperty(document, 'scrollingElement', {
+			'get': scrollingElement
+		});
+	} else {
+		document.scrollingElement = scrollingElement();
+	}
+}());
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
 	console.log('dom         – https://github.com/stephband/dom');
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -3516,7 +4033,6 @@
 	var assign      = Object.assign;
 	var define      = Object.defineProperties;
 	var cache       = Fn.cache;
-	var compose     = Fn.compose;
 	var curry       = Fn.curry;
 	var denormalise = Fn.denormalise;
 	var deprecate   = Fn.deprecate;
@@ -3540,7 +4056,42 @@
 
 	// Features
 
-	var features = define({}, {
+	var features = define({
+		events: define({}, {
+			fullscreenchange: {
+				get: cache(function() {
+					// TODO: untested event names
+					return ('fullscreenElement' in document) ? 'fullscreenchange' :
+					('webkitFullscreenElement' in document) ? 'webkitfullscreenchange' :
+					('mozFullScreenElement' in document) ? 'mozfullscreenchange' :
+					('msFullscreenElement' in document) ? 'MSFullscreenChange' :
+					'fullscreenchange' ;
+				}),
+
+				enumerable: true
+			},
+
+			transitionend: {
+				// Infer transitionend event from CSS transition prefix
+
+				get: cache(function() {
+					var end = {
+						KhtmlTransition: false,
+						OTransition: 'oTransitionEnd',
+						MozTransition: 'transitionend',
+						WebkitTransition: 'webkitTransitionEnd',
+						msTransition: 'MSTransitionEnd',
+						transition: 'transitionend'
+					};
+
+					var prefixed = prefix('transition');
+					return prefixed && end[prefixed];
+				}),
+
+				enumerable: true
+			}
+		})
+	}, {
 		inputEventsWhileDisabled: {
 			// FireFox won't dispatch any events on disabled inputs:
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
@@ -3596,22 +4147,25 @@
 			enumerable: true
 		},
 
-		transitionend: {
-			// Infer transitionend event from CSS transition prefix
-
-			get: cache(function() {
-				var end = {
-					KhtmlTransition: false,
-					OTransition: 'oTransitionEnd',
-					MozTransition: 'transitionend',
-					WebkitTransition: 'webkitTransitionEnd',
-					msTransition: 'MSTransitionEnd',
-					transition: 'transitionend'
-				};
-
-				var prefixed = prefix('transition');
-				return prefixed && end[prefixed];
+		fullscreen: {
+			get: cache(function testFullscreen() {
+				var node = document.createElement('div');
+				return !!(node.requestFullscreen ||
+					node.webkitRequestFullscreen ||
+					node.mozRequestFullScreen ||
+					node.msRequestFullscreen);
 			}),
+
+			enumerable: true
+		},
+
+		// Deprecated
+
+		transitionend: {
+			get: function() {
+				console.warn('dom.features.transitionend deprecated in favour of dom.features.events.transitionend.');
+				return features.events.transitionend;
+			},
 
 			enumerable: true
 		}
@@ -3867,6 +4421,10 @@
 			location.pathname === prefixSlash(node.pathname);
 	}
 
+	function isValid(node) {
+		return node.validity ? node.validity.valid : true ;
+	}
+
 	function identify(node) {
 		var id = node.id;
 
@@ -3923,6 +4481,10 @@
 
 
 	// DOM Traversal
+
+	function find(selector, node) {
+		return node.querySelector(selector);
+	}
 
 	function query(selector, node) {
 		node = node || document;
@@ -4101,91 +4663,12 @@
 			0 ;
 	}
 
-	function viewportLeft(elem) {
-		var body = document.body;
-		var html = document.documentElement;
-		var box  = elem.getBoundingClientRect();
-		var scrollLeft = window.pageXOffset || html.scrollLeft || body.scrollLeft;
-		var clientLeft = html.clientLeft || body.clientLeft || 0;
-		return (box.left + scrollLeft - clientLeft);
-	}
-
-	function viewportTop(elem) {
-		var body = document.body;
-		var html = document.documentElement;
-		var box  = elem.getBoundingClientRect();
-		var scrollTop = window.pageYOffset || html.scrollTop || body.scrollTop;
-		var clientTop = html.clientTop || body.clientTop || 0;
-		return box.top +  scrollTop - clientTop;
-	}
-
-/*
-function getPositionParent(node) {
-	var offsetParent = node.offsetParent;
-
-	while (offsetParent && style("position", offsetParent) === "static") {
-		offsetParent = offsetParent.offsetParent;
-	}
-
-	return offsetParent || document.documentElement;
-}
-
-	function offset(node) {
-		// Pinched from jQuery.offset...
-	    // Return zeros for disconnected and hidden (display: none) elements
-	    // Support: IE <=11 only
-	    // Running getBoundingClientRect on a
-	    // disconnected node in IE throws an error
-	    if (!node.getClientRects().length) { return [0, 0]; }
-
-	    var rect     = node.getBoundingClientRect();
-	    var document = node.ownerDocument;
-	    var window   = document.defaultView;
-	    var docElem  = document.documentElement;
-
-	    return [
-			 rect.left + window.pageXOffset - docElem.clientLeft,
-			 rect.top  + window.pageYOffset - docElem.clientTop
-	    ];
-	}
-
-	function position(node) {
-		var rect;
-
-	    // Fixed elements are offset from window (parentOffset = {top:0, left: 0},
-	    // because it is its only offset parent
-	    if (style('position', node) === 'fixed') {
-	        rect = node.getBoundingClientRect();
-
-	        return [
-		        rect.left - (parseFloat(style("marginLeft", node)) || 0),
-		        rect.top  - (parseFloat(style("marginTop", node)) || 0)
-	        ];
-	    }
-
-		// Get *real* offsetParent
-		var parent = getPositionParent(node);
-
-		// Get correct offsets
-		var nodeOffset = offset(node);
-		var parentOffset = tag(parent) !== "html" ? [0, 0] : offset(parent);
-
-		// Add parent borders
-		parentOffset[0] += parseFloat(style("borderLeftWidth", parent)) || 0;
-		parentOffset[1] += parseFloat(style("borderTopWidth", parent)) || 0;
-
-	    // Subtract parent offsets and element margins
-		nodeOffset[0] -= (parentOffset[0] + (parseFloat(style("marginLeft", node)) || 0)),
-		nodeOffset[1] -= (parentOffset[1] + (parseFloat(style("marginTop", node)) || 0))
-
-		return nodeOffset;
-	}
-*/
-
 	function windowBox() {
 		return {
 			left:   0,
 			top:    0,
+			right:  window.innerWidth,
+            bottom: window.innerHeight,
 			width:  window.innerWidth,
 			height: window.innerHeight
 		};
@@ -4199,11 +4682,6 @@ function getPositionParent(node) {
 
 	function bounds(node) {
 		return node.getBoundingClientRect();
-	}
-
-	function position(node) {
-		var rect = box(node);
-		return [rect.left, rect.top];
 	}
 
 	//function offset(node) {
@@ -4221,10 +4699,6 @@ function getPositionParent(node) {
 
 
 	// DOM Events
-
-	var eventOptions = { bubbles: true };
-
-	var eventsSymbol = Symbol('events');
 
 	var keyCodes = {
 		8:  'backspace',
@@ -4298,6 +4772,10 @@ function getPositionParent(node) {
 		224: 'cmd'
 	};
 
+	var eventOptions = { bubbles: true };
+
+	var eventsSymbol = Symbol('events');
+
 	var untrapFocus = noop;
 
 	function Event(type, properties) {
@@ -4316,6 +4794,10 @@ function getPositionParent(node) {
 		e.preventDefault();
 	}
 
+	function isTargetEvent(e) {
+		return e.target === e.currentTarget;
+	}
+
 	function isPrimaryButton(e) {
 		// Ignore mousedowns on any button other than the left (or primary)
 		// mouse button, or when a modifier key is pressed.
@@ -4326,29 +4808,48 @@ function getPositionParent(node) {
 		return keyCodes[e.keyCode];
 	}
 
-	function on(node, types, fn, data) {
-		types = types.split(rspaces);
+	function on(node, type, fn, data) {
+		var options;
 
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types   = type.split(rspaces);
 		var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-		var handler = bindTail(fn, data);
-		var handlers, type;
+		var handler = data ? bindTail(fn, data) : fn ;
+		var handlers;
 
 		var n = -1;
-		while (n++ < types.length) {
+		while (++n < types.length) {
 			type = types[n];
 			handlers = events[type] || (events[type] = []);
 			handlers.push([fn, handler]);
-			node.addEventListener(type, handler);
+			node.addEventListener(type, handler, options);
 		}
 
 		return node;
 	}
 
-	function off(node, types, fn) {
-		types = types.split(rspaces);
+	function once(node, types, fn, data) {
+		on(node, types, function once() {
+			off(node, types, once);
+			fn.apply(null, arguments);
+		}, data);
+	}
 
-		var events = node[eventsSymbol];
-		var type, handlers, i;
+	function off(node, type, fn) {
+		var options;
+
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types   = type.split(rspaces);
+		var events  = node[eventsSymbol];
+		var handlers, i;
 
 		if (!events) { return node; }
 
@@ -4377,7 +4878,7 @@ function getPositionParent(node) {
 	}
 
 	function end(e, fn) {
-		off(e.currentTarget, features.transitionend, end);
+		off(e.currentTarget, features.events.transitionend, end);
 		fn(e.timeStamp);
 	}
 
@@ -4388,7 +4889,7 @@ function getPositionParent(node) {
 				return;
 			}
 
-			type = features.transitionend;
+			type = features.events.transitionend;
 		}
 
 		on(node, type, end, fn);
@@ -4406,8 +4907,19 @@ function getPositionParent(node) {
 		};
 	}
 
-	function event(types, node) {
-		types = types.split(rspaces);
+	function prefixType(type) {
+		return features.events[type] || type ;
+	}
+
+	function event(type, node) {
+		var options;
+
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types = type.split(rspaces).map(prefixType);
 
 		return new Stream(function setup(notify, stop) {
 			var buffer = [];
@@ -4418,7 +4930,7 @@ function getPositionParent(node) {
 			}
 
 			types.forEach(function(type) {
-				node.addEventListener(type, update);
+				node.addEventListener(type, update, options);
 			});
 
 			return {
@@ -4566,38 +5078,54 @@ function getPositionParent(node) {
 
 	// Units
 
-	var rem = /(\d*\.?\d+)r?em/;
+	var runit = /(\d*\.?\d+)(r?em|vw|vh)/;
 	//var rpercent = /(\d*\.?\d+)%/;
 
 	var fontSize;
+
+	var units = {
+		em: function(n) {
+			return getFontSize() * n;
+		},
+
+		rem: function(n) {
+			return getFontSize() * n;
+		},
+
+		vw: function(n) {
+			return window.innerWidth * n / 100;
+		},
+
+		vh: function(n) {
+			return window.innerHeight * n / 100;
+		}
+	};
 
 	var toPx = overload(toType, {
 		'number': id,
 
 		'string': function(string) {
-			var data, n;
+			var data = runit.exec(string);
 
-			data = rem.exec(string);
 			if (data) {
-				n = parseFloat(data[1]);
-				return getFontSize() * n;
+				return units[data[2]](parseFloat(data[1]));
 			}
 
-			//data = rpercent.exec(string);
-			//if (data) {
-			//	n = parseFloat(data[1]) / 100;
-			//	return width * n;
-			//}
-
-			throw new Error('dom: ' + string + '\' cannot be parsed as rem, em or %.');
+			throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
 		}
 	});
 
-	var toRem = overload(toType, {
-		'number': function(n) {
-			return n / getFontSize();
-		}
-	});
+	function toRem(n) {
+		return (toPx(n) / getFontSize()) + 'rem';
+	}
+
+	function toVw(n) {
+		return (100 * toPx(n) / window.innerWidth) + 'vw';
+	}
+
+	function toVh(n) {
+		return (100 * toPx(n) / window.innerHeight) + 'vh';
+	}
 
 	function getFontSize() {
 		return fontSize ||
@@ -4731,7 +5259,12 @@ function getPositionParent(node) {
 
 		// DOM lifecycle
 
-		ready:    ready.then.bind(ready),
+		ready:   ready.then.bind(ready),
+
+		now:     function() {
+			// Return DOM time in seconds
+			return window.performance.now() / 1000;
+		},
 
 		// DOM traversal
 
@@ -4739,10 +5272,7 @@ function getPositionParent(node) {
 			return document.getElementById(id) || undefined;
 		},
 
-		find:     Fn.deprecate(function get(id) {
-			return document.getElementById(id) || undefined;
-		}, 'dom.find(id) is now dom.get(id)'),
-
+		find:     curry(find,     true),
 		query:    curry(query,    true),
 		closest:  curry(closest,  true),
 		contains: curry(contains, true),
@@ -4764,6 +5294,34 @@ function getPositionParent(node) {
 		empty:    empty,
 		remove:   remove,
 
+		validate: function(node) {
+			return node.checkValidity ? node.checkValidity() : true ;
+		},
+
+		fullscreen: function fullscreen(node) {
+			// Find the right method and call it
+			return node.requestFullscreen ? node.requestFullscreen() :
+				node.webkitRequestFullscreen ? node.webkitRequestFullscreen() :
+				node.mozRequestFullScreen ? node.mozRequestFullScreen() :
+				node.msRequestFullscreen ? node.msRequestFullscreen() :
+				undefined ;
+		},
+
+		// EXAMPLE CODE for mutation observers  ------
+
+		//		var observer = new MutationObserver(function(mutationsList) {
+		//		    var mutation;
+		//		    for(mutation of mutationsList) {
+		//		        if (mutation.addedNodes.length) {
+		//		            dom
+		//		            .query('a[href="' + router.path + '"]', mutation.target)
+		//		            .forEach(dom.addClass('current'));
+		//		        }
+		//		    }
+		//		});
+		//
+		//		observer.observe(dom.get('calendar'), { childList: true, subtree: true });
+
 		// DOM inspection
 
 		isElementNode:  isElementNode,
@@ -4771,6 +5329,7 @@ function getPositionParent(node) {
 		isCommentNode:  isCommentNode,
 		isFragmentNode: isFragmentNode,
 		isInternalLink: isInternalLink,
+		isValid:        isValid,
 
 		type:        type,
 		tag:         tag,
@@ -4782,10 +5341,7 @@ function getPositionParent(node) {
 
 		box:         box,
 		bounds:      bounds,
-		rectangle:   deprecate(box, 'dom.rectangle(node) now dom.box(node)'),
-
 		offset:      curry(offset, true),
-		position:    position,
 
 		prefix:      prefix,
 		style: curry(function(name, node) {
@@ -4802,8 +5358,8 @@ function getPositionParent(node) {
 
 		toPx:           toPx,
 		toRem:          toRem,
-		viewportLeft:   viewportLeft,
-		viewportTop:    viewportTop,
+		toVw:           toVw,
+		toVh:           toVh,
 
 		// DOM fragments and templates
 
@@ -4819,25 +5375,26 @@ function getPositionParent(node) {
 		Event:           Event,
 		delegate:        delegate,
 		isPrimaryButton: isPrimaryButton,
+		isTargetEvent:   isTargetEvent,
 		preventDefault:  preventDefault,
 		toKey:           toKey,
 		trapFocus:       trapFocus,
 		trap:            Fn.deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
-
-		events: {
-			on:      on,
-			off:     off,
-			trigger: trigger
-		},
-
-		on:     Fn.deprecate(curry(event, true), 'dom.on() is now dom.event()'),
 
 		trigger: curry(function(type, node) {
 			trigger(node, type);
 			return node;
 		}, true),
 
-		event: curry(event, true),
+		events: assign(curry(event, true), {
+			on:      on,
+			once:    once,
+			off:     off,
+			trigger: trigger
+		}),
+
+		on:    Fn.deprecate(curry(event, true), 'dom.on() is now dom.events()'),
+		event: Fn.deprecate(curry(event, true), 'Deprecated dom.event() – now dom.events()'),
 
 		// DOM animation adn scrolling
 
@@ -4907,7 +5464,7 @@ function getPositionParent(node) {
 			left: 0
 		}, {
 			right:  { get: function() { return window.innerWidth; }, enumerable: true, configurable: true },
-			top:    { get: function() { return style('padding-top', document.body); }, enumerable: true, configurable: true },
+			top:    { get: function() { return dom.style('padding-top', document.body); }, enumerable: true, configurable: true },
 			bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
 		})
 	});
@@ -4917,2992 +5474,186 @@ function getPositionParent(node) {
 		root: { value: document.documentElement, enumerable: true },
 		head: { value: document.head, enumerable: true },
 		body: { get: function() { return document.body; }, enumerable: true	},
-		view: { get: function() { return document.scrollingElement; }, enumerable: true },
-		viewport: { get: function() {
-			console.warn('Deprecated: dom.viewport is now dom.view');
-			return document.scrollingElement;
-		}, enumerable: true }
+		view: { get: function() { return document.scrollingElement; }, enumerable: true }
 	});
 
 
 	// Export
 
 	window.dom = dom;
-})(this);
-
-// window.CustomEvent polyfill
-// http://caniuse.com/#search=customevent
-
-(function(window) {
-	if (window.CustomEvent && typeof window.CustomEvent === 'function') { return; }
-	if (window.console) { console.log('Polyfill: CustomEvent'); }
-
-	var Event = window.Event;
-	var defaults = { bubbles: false, cancelable: false, detail: undefined };
-
-	function CustomEvent(event, params) {
-		params = params || defaults;
-		
-		var e = document.createEvent('CustomEvent');
-		e.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-		
-		return e;
-	};
-
-	CustomEvent.prototype = Event.prototype;
-	window.CustomEvent = CustomEvent;
 })(window);
 
-// A reduced version of
-// https://mths.be/scrollingelement v1.5.2 by @diegoperini & @mathias | MIT license
-// Leaves out frameset detection and really old browsers
-
-if (!('scrollingElement' in document)) (function() {
-	// Note: standards mode / quirks mode can be toggled at runtime via
-	// `document.write`.
-	var isCompliantCached;
-
-	function isCompliant() {
-		var isStandardsMode = /^CSS1/.test(document.compatMode);
-		if (!isStandardsMode) {
-			// In quirks mode, the result is equivalent to the non-compliant
-			// standards mode behavior.
-			return false;
-		}
-		if (isCompliantCached === void 0) {
-			// When called for the first time, check whether the browser is
-			// standard-compliant, and cache the result.
-			var iframe = document.createElement('iframe');
-			iframe.style.height = '1px';
-			(document.body || document.documentElement || document).appendChild(iframe);
-			var doc = iframe.contentWindow.document;
-			doc.write('<!DOCTYPE html><div style="height:9999em">x</div>');
-			doc.close();
-			isCompliantCached = doc.documentElement.scrollHeight > doc.body.scrollHeight;
-			iframe.parentNode.removeChild(iframe);
-		}
-		return isCompliantCached;
-	}
-
-	function scrollingElement() {
-		return isCompliant() ? document.documentElement : document.body ;
-	}
-
-	if (Object.defineProperty) {
-		// Support modern browsers that lack a native implementation.
-		Object.defineProperty(document, 'scrollingElement', {
-			'get': scrollingElement
-		});
-	} else {
-		document.scrollingElement = scrollingElement();
-	}
-}());
-(function(window) {
-	if (!window.console || !window.console.log) { return; }
-	console.log('dom         – https://github.com/stephband/dom');
-})(this);
-
 (function(window) {
 	"use strict";
 
+	const DEBUG  = false;
 
-	// Import
+	const Fn     = window.Fn;
+	const dom    = window.dom;
 
-	var Fn          = window.Fn;
-	var Node        = window.Node;
-	var SVGElement  = window.SVGElement;
-	var CustomEvent = window.CustomEvent;
-	var Stream      = window.Stream;
+	const invoke = Fn.invoke;
+	const now    = dom.now;
 
-	var assign      = Object.assign;
-	var define      = Object.defineProperties;
-	var cache       = Fn.cache;
-	var compose     = Fn.compose;
-	var curry       = Fn.curry;
-	var denormalise = Fn.denormalise;
-	var deprecate   = Fn.deprecate;
-	var id          = Fn.id;
-	var noop        = Fn.noop;
-	var overload    = Fn.overload;
-	var pipe        = Fn.pipe;
-	var pow         = Fn.pow;
-	var set         = Fn.set;
-	var requestTick = Fn.requestTick;
-	var toType      = Fn.toType;
+	// Render queue
 
+	const queue = new Set();
+	const data  = [];
 
-	// Var
+	var point;
+	var frame;
 
-	var A            = Array.prototype;
-	var svgNamespace = 'http://www.w3.org/2000/svg';
-	var rspaces      = /\s+/;
-	var rpx          = /px$/;
-
-
-	// Features
-
-	var features = define({}, {
-		inputEventsWhileDisabled: {
-			// FireFox won't dispatch any events on disabled inputs:
-			// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
-
-			get: cache(function() {
-				var input     = document.createElement('input');
-				var testEvent = Event('featuretest');
-				var result    = false;
-
-				appendChild(document.body, input);
-				input.disabled = true;
-				input.addEventListener('featuretest', function(e) { result = true; });
-				input.dispatchEvent(testEvent);
-				removeNode(input);
-
-				return result;
-			}),
-
-			enumerable: true
-		},
-
-		template: {
-			get: cache(function() {
-				// Older browsers don't know about the content property of templates.
-				return 'content' in document.createElement('template');
-			}),
-
-			enumerable: true
-		},
-
-		textareaPlaceholderSet: {
-			// IE sets textarea innerHTML (but not value) to the placeholder
-			// when setting the attribute and cloning and so on. The twats have
-			// marked it "Won't fix":
-			//
-			// https://connect.microsoft.com/IE/feedback/details/781612/placeholder-text-becomes-actual-value-after-deep-clone-on-textarea
-
-			get: cache(function() {
-				var node = document.createElement('textarea');
-				node.setAttribute('placeholder', '---');
-				return node.innerHTML === '';
-			}),
-
-			enumerable: true
-		},
-
-		transition: {
-			get: cache(function testTransition() {
-				var prefixed = prefix('transition');
-				return prefixed || false;
-			}),
-
-			enumerable: true
-		},
-
-		transitionend: {
-			// Infer transitionend event from CSS transition prefix
-
-			get: cache(function() {
-				var end = {
-					KhtmlTransition: false,
-					OTransition: 'oTransitionEnd',
-					MozTransition: 'transitionend',
-					WebkitTransition: 'webkitTransitionEnd',
-					msTransition: 'MSTransitionEnd',
-					transition: 'transitionend'
-				};
-
-				var prefixed = prefix('transition');
-				return prefixed && end[prefixed];
-			}),
-
-			enumerable: true
-		}
-	});
-
-
-	// Utilities
-
-	function bindTail(fn) {
-		// Takes arguments 1 and up and appends them to arguments
-		// passed to fn.
-		var args = A.slice.call(arguments, 1);
-		return function() {
-			A.push.apply(arguments, args);
-			fn.apply(null, arguments);
-		};
-	}
-
-	function prefixSlash(str) {
-		// Prefixes a slash when there is not an existing one
-		return (/^\//.test(str) ? '' : '/') + str ;
-	}
-
-	function toArray(object) {
-		// Speed test for array conversion:
-		// https://jsperf.com/nodelist-to-array/27
-
-		var array = [];
-		var l = array.length = object.length;
-		var i;
-
-		for (i = 0; i < l; i++) {
-			array[i] = object[i];
+	function run(time) {
+		if (DEBUG) {
+			point = {};
+			point.frameTime   = time / 1000;
+			point.runTime     = now();
+			point.queuedFns   = queue.size;
+			point.insertedFns = 0;
+			console.groupCollapsed('frame', point.frameTime.toFixed(3));
 		}
 
-		return array;
-	}
+		frame = true;
 
+		// Use a .forEach() to support IE11, which doesnt have for..of
+		queue.forEach(invoke('call', [null, time]));
 
-	// TokenList
-	// TokenList constructor to emulate classList property. The get fn should
-	// take the arguments (node), and return a string of tokens. The set fn
-	// should take the arguments (node, string).
+		//var fn;
+		//for (fn of queue) {
+		//	fn(time);
+		//}
 
-	function TokenList(node, get, set) {
-		this.node = node;
-		this.get = get;
-		this.set = set;
-	}
+		queue.clear();
+		frame = undefined;
 
-	TokenList.prototype = {
-		add: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-
-			while (n--) {
-				if (array.indexOf(arguments[n]) === -1) {
-					array.push(arguments[n]);
-				}
-			}
-
-			this.set(this.node, array.join(' '));
-		},
-
-		remove: function() {
-			var n = arguments.length;
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-			var i;
-
-			while (n--) {
-				i = array.indexOf(arguments[n]);
-				if (i !== -1) { array.splice(i, 1); }
-			}
-
-			this.set(this.node, array.join(' '));
-		},
-
-		contains: function(string) {
-			var tokens = this.get(this.node);
-			var array = tokens ? tokens.trim().split(rspaces) : [] ;
-			return array.indexOf(string) !== -1;
+		if (DEBUG) {
+			point.duration = now() - point.runTime;
+			data.push(point);
+			//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
+			console.groupEnd();
 		}
+	}
+
+	function cue(fn) {
+		if (queue.has(fn)) {
+			//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
+			return;
+		}
+
+		// Functions cued during frame are run syncronously (to preserve
+		// inner-DOM-first order of execution during setup)
+		if (frame === true) {
+			if (DEBUG) { ++point.insertedFns; }
+			fn();
+			return;
+		}
+
+		queue.add(fn);
+
+		if (frame === undefined) {
+			//if (DEBUG) { console.log('(request master frame)'); }
+			frame = requestAnimationFrame(run);
+		}
+	}
+
+	function uncue(fn) {
+		queue.delete(fn);
+
+		if (frame !== undefined && frame !== true && queue.size === 0) {
+			//if (DEBUG) { console.log('(cancel master frame)'); }
+			cancelAnimationFrame(frame);
+			frame = undefined;
+		}
+	}
+
+	window.frame = {
+		cue: cue,
+		uncue: uncue,
+		data: data
 	};
-
-
-	// DOM Nodes
-
-	var testDiv = document.createElement('div');
-
-	var types = {
-		1:  'element',
-		3:  'text',
-		8:  'comment',
-		9:  'document',
-		10: 'doctype',
-		11: 'fragment'
-	};
-
-	var svgs = [
-		'circle',
-		'ellipse',
-		'g',
-		'line',
-		'rect',
-		//'text',
-		'use',
-		'path',
-		'polygon',
-		'polyline',
-		'svg'
-	];
-
-	var constructors = {
-		text: function(text) {
-			return document.createTextNode(text || '');
-		},
-
-		comment: function(text) {
-			return document.createComment(text || '');
-		},
-
-		fragment: function(html) {
-			var fragment = document.createDocumentFragment();
-
-			if (html) {
-				testDiv.innerHTML = html;
-				append(fragment, testDiv.childNodes);
-				testDiv.innerHTML = '';
-			}
-
-			return fragment;
-		}
-	};
-
-	svgs.forEach(function(tag) {
-		constructors[tag] = function(attributes) {
-			var node = document.createElementNS(svgNamespace, tag);
-			if (attributes) { setSVGAttributes(node, attributes); }
-			return node;
-		};
-	});
-
-	function assignAttributes(node, attributes) {
-		var names = Object.keys(attributes);
-		var n = names.length;
-
-		while (n--) {
-			if (names[n] in node) {
-				node[names[n]] = attributes[names[n]];
-			}
-			else {
-				node.setAttribute(names[n], attributes[names[n]]);
-			}
-		}
-	}
-
-	function setSVGAttributes(node, attributes) {
-		var names = Object.keys(attributes);
-		var n = names.length;
-
-		while (n--) {
-			node.setAttributeNS(null, names[n], attributes[names[n]]);
-		}
-	}
-
-	function create(name) {
-		// create(type)
-		// create(type, text)
-		// create(tag, attributes)
-		// create(tag, text, attributes)
-
-		if (constructors[name]) {
-			return constructors[name](arguments[1]);
-		}
-
-		var node = document.createElement(name);
-		var attributes;
-
-		if (typeof arguments[1] === 'string') {
-			node.innerHTML = arguments[1];
-			attributes = arguments[2];
-		}
-		else {
-			attributes = arguments[1];
-		}
-
-		if (attributes) {
-			assignAttributes(node, attributes);
-		}
-
-		return node;
-	}
-
-	var clone = features.textareaPlaceholderSet ?
-
-		function clone(node) {
-			return node.cloneNode(true);
-		} :
-
-		function cloneWithHTML(node) {
-			// IE sets textarea innerHTML to the placeholder when cloning.
-			// Reset the resulting value.
-
-			var clone     = node.cloneNode(true);
-			var textareas = dom.query('textarea', node);
-			var n         = textareas.length;
-			var clones;
-
-			if (n) {
-				clones = dom.query('textarea', clone);
-
-				while (n--) {
-					clones[n].value = textareas[n].value;
-				}
-			}
-
-			return clone;
-		} ;
-
-	function type(node) {
-		return types[node.nodeType];
-	}
-
-	function isElementNode(node) {
-		return node.nodeType === 1;
-	}
-
-	function isTextNode(node) {
-		return node.nodeType === 3;
-	}
-
-	function isCommentNode(node) {
-		return node.nodeType === 8;
-	}
-
-	function isFragmentNode(node) {
-		return node.nodeType === 11;
-	}
-
-	function isInternalLink(node) {
-		var location = window.location;
-
-			// IE does not give us a .hostname for links to
-			// xxx.xxx.xxx.xxx URLs
-		return node.hostname &&
-			// IE gives us the port on node.host, even where it is not
-			// specified. Use node.hostname
-			location.hostname === node.hostname &&
-			// IE gives us node.pathname without a leading slash, so
-			// add one before comparing
-			location.pathname === prefixSlash(node.pathname);
-	}
-
-	function identify(node) {
-		var id = node.id;
-
-		if (!id) {
-			do { id = Math.ceil(Math.random() * 100000); }
-			while (document.getElementById(id));
-			node.id = id;
-		}
-
-		return id;
-	}
-
-	function tag(node) {
-		return node.tagName && node.tagName.toLowerCase();
-	}
-
-	function attribute(name, node) {
-		return node.getAttribute && node.getAttribute(name) || undefined ;
-	}
-
-	function setClass(node, classes) {
-		if (node instanceof SVGElement) {
-			node.setAttribute('class', classes);
-		}
-		else {
-			node.className = classes;
-		}
-	}
-
-	function classes(node) {
-		return node.classList || new TokenList(node, dom.attribute('class'), setClass);
-	}
-
-	function addClass(string, node) {
-		classes(node).add(string);
-	}
-
-	function removeClass(string, node) {
-		classes(node).remove(string);
-	}
-
-	function flashClass(string, node) {
-		var list = classes(node);
-		list.add(string);
-		requestAnimationFrame(function() {
-			list.remove(string);
-		});
-	}
-
-	function children(node) {
-		// In IE and Safari, document fragments do not have .children
-		return toArray(node.children || node.querySelectorAll('*'));
-	}
-
-
-	// DOM Traversal
-
-	function query(selector, node) {
-		node = node || document;
-		return toArray(node.querySelectorAll(selector));
-	}
-
-	function contains(child, node) {
-		return node.contains ?
-			node.contains(child) :
-		child.parentNode ?
-			child.parentNode === node || contains(child.parentNode, node) :
-		false ;
-	}
-
-	function matches(selector, node) {
-		return node.matches ? node.matches(selector) :
-			node.matchesSelector ? node.matchesSelector(selector) :
-			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
-			node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
-			node.msMatchesSelector ? node.msMatchesSelector(selector) :
-			node.oMatchesSelector ? node.oMatchesSelector(selector) :
-			// Dumb fall back to simple tag name matching. Nigh-on useless.
-			tag(node) === selector ;
-	}
-
-	function closest(selector, node) {
-		var root = arguments[2];
-
-		if (!node || node === document || node === root || node.nodeType === 11) { return; }
-
-		// SVG <use> elements store their DOM reference in
-		// .correspondingUseElement.
-		node = node.correspondingUseElement || node ;
-
-		return matches(selector, node) ?
-			 node :
-			 closest(selector, node.parentNode, root) ;
-	}
-
-	function next(node) {
-		return node.nextElementSibling || undefined;
-	}
-
-	function previous(node) {
-		return node.previousElementSibling || undefined;
-	}
-
-
-	// DOM Mutation
-
-	function appendChild(target, node) {
-		target.appendChild(node);
-
-		// Use this fn as a reducer
-		return target;
-	}
-
-	function append(target, node) {
-		if (node instanceof Node || node instanceof SVGElement) {
-			appendChild(target, node);
-			return node;
-		}
-
-		if (!node.length) { return; }
-
-		var array = node.reduce ? node : A.slice.call(node) ;
-		array.reduce(appendChild, target);
-
-		return node;
-	}
-
-	function empty(node) {
-		while (node.lastChild) { node.removeChild(node.lastChild); }
-	}
-
-	function removeNode(node) {
-		node.parentNode && node.parentNode.removeChild(node);
-	}
-
-	function remove(node) {
-		if (node instanceof Node || node instanceof SVGElement) {
-			removeNode(node);
-		}
-		else {
-			A.forEach.call(node, removeNode);
-		}
-	}
-
-	function before(target, node) {
-		target.parentNode && target.parentNode.insertBefore(node, target);
-	}
-
-	function after(target, node) {
-		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
-	}
-
-	function replace(target, node) {
-		before(target, node);
-		remove(target);
-		return target;
-	}
-
-
-	// CSS
-
-	var styleParsers = {
-		"transform:translateX": function(node) {
-			var matrix = style('transform', node);
-			if (!matrix || matrix === "none") { return 0; }
-			var values = valuesFromCssFn(matrix);
-			return parseFloat(values[4]);
-		},
-
-		"transform:translateY": function(node) {
-			var matrix = style('transform', node);
-			if (!matrix || matrix === "none") { return 0; }
-			var values = valuesFromCssFn(matrix);
-			return parseFloat(values[5]);
-		},
-
-		"transform:scale": function(node) {
-			var matrix = style('transform', node);
-			if (!matrix || matrix === "none") { return 0; }
-			var values = valuesFromCssFn(matrix);
-			var a = parseFloat(values[0]);
-			var b = parseFloat(values[1]);
-			return Math.sqrt(a * a + b * b);
-		},
-
-		"transform:rotate": function(node) {
-			var matrix = style('transform', node);
-			if (!matrix || matrix === "none") { return 0; }
-			var values = valuesFromCssFn(matrix);
-			var a = parseFloat(values[0]);
-			var b = parseFloat(values[1]);
-			return Math.atan2(b, a);
-		}
-	};
-
-	var prefix = (function(prefixes) {
-		var node = document.createElement('div');
-		var cache = {};
-
-		function testPrefix(prop) {
-			if (prop in node.style) { return prop; }
-
-			var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
-			var l = prefixes.length;
-			var prefixProp;
-
-			while (l--) {
-				prefixProp = prefixes[l] + upper;
-
-				if (prefixProp in node.style) {
-					return prefixProp;
-				}
-			}
-
-			return false;
-		}
-
-		return function prefix(prop){
-			return cache[prop] || (cache[prop] = testPrefix(prop));
-		};
-	})(['Khtml','O','Moz','Webkit','ms']);
-
-	function valuesFromCssFn(string) {
-		return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
-	}
-
-	function style(name, node) {
-		return window.getComputedStyle ?
-			window
-			.getComputedStyle(node, null)
-			.getPropertyValue(name) :
-			0 ;
-	}
-
-	function viewportLeft(elem) {
-		var body = document.body;
-		var html = document.documentElement;
-		var box  = elem.getBoundingClientRect();
-		var scrollLeft = window.pageXOffset || html.scrollLeft || body.scrollLeft;
-		var clientLeft = html.clientLeft || body.clientLeft || 0;
-		return (box.left + scrollLeft - clientLeft);
-	}
-
-	function viewportTop(elem) {
-		var body = document.body;
-		var html = document.documentElement;
-		var box  = elem.getBoundingClientRect();
-		var scrollTop = window.pageYOffset || html.scrollTop || body.scrollTop;
-		var clientTop = html.clientTop || body.clientTop || 0;
-		return box.top +  scrollTop - clientTop;
-	}
-
-/*
-function getPositionParent(node) {
-	var offsetParent = node.offsetParent;
-
-	while (offsetParent && style("position", offsetParent) === "static") {
-		offsetParent = offsetParent.offsetParent;
-	}
-
-	return offsetParent || document.documentElement;
-}
-
-	function offset(node) {
-		// Pinched from jQuery.offset...
-	    // Return zeros for disconnected and hidden (display: none) elements
-	    // Support: IE <=11 only
-	    // Running getBoundingClientRect on a
-	    // disconnected node in IE throws an error
-	    if (!node.getClientRects().length) { return [0, 0]; }
-
-	    var rect     = node.getBoundingClientRect();
-	    var document = node.ownerDocument;
-	    var window   = document.defaultView;
-	    var docElem  = document.documentElement;
-
-	    return [
-			 rect.left + window.pageXOffset - docElem.clientLeft,
-			 rect.top  + window.pageYOffset - docElem.clientTop
-	    ];
-	}
-
-	function position(node) {
-		var rect;
-
-	    // Fixed elements are offset from window (parentOffset = {top:0, left: 0},
-	    // because it is its only offset parent
-	    if (style('position', node) === 'fixed') {
-	        rect = node.getBoundingClientRect();
-
-	        return [
-		        rect.left - (parseFloat(style("marginLeft", node)) || 0),
-		        rect.top  - (parseFloat(style("marginTop", node)) || 0)
-	        ];
-	    }
-
-		// Get *real* offsetParent
-		var parent = getPositionParent(node);
-
-		// Get correct offsets
-		var nodeOffset = offset(node);
-		var parentOffset = tag(parent) !== "html" ? [0, 0] : offset(parent);
-
-		// Add parent borders
-		parentOffset[0] += parseFloat(style("borderLeftWidth", parent)) || 0;
-		parentOffset[1] += parseFloat(style("borderTopWidth", parent)) || 0;
-
-	    // Subtract parent offsets and element margins
-		nodeOffset[0] -= (parentOffset[0] + (parseFloat(style("marginLeft", node)) || 0)),
-		nodeOffset[1] -= (parentOffset[1] + (parseFloat(style("marginTop", node)) || 0))
-
-		return nodeOffset;
-	}
-*/
-
-	function windowBox() {
-		return {
-			left:   0,
-			top:    0,
-			width:  window.innerWidth,
-			height: window.innerHeight
-		};
-	}
-
-	function box(node) {
-		return node === window ?
-			windowBox() :
-			node.getClientRects()[0] ;
-	}
-
-	function bounds(node) {
-		return node.getBoundingClientRect();
-	}
-
-	function position(node) {
-		var rect = box(node);
-		return [rect.left, rect.top];
-	}
-
-	//function offset(node) {
-	//	var rect = box(node);
-	//	var scrollX = window.scrollX === undefined ? window.pageXOffset : window.scrollX ;
-	//	var scrollY = window.scrollY === undefined ? window.pageYOffset : window.scrollY ;
-	//	return [rect.left + scrollX, rect.top + scrollY];
-	//}
-
-	function offset(node1, node2) {
-		var box1 = box(node1);
-		var box2 = box(node2);
-		return [box2.left - box1.left, box2.top - box1.top];
-	}
-
-
-	// DOM Events
-
-	var eventOptions = { bubbles: true };
-
-	var eventsSymbol = Symbol('events');
-
-	var keyCodes = {
-		8:  'backspace',
-		9:  'tab',
-		13: 'enter',
-		16: 'shift',
-		17: 'ctrl',
-		18: 'alt',
-		27: 'escape',
-		32: 'space',
-		33: 'pageup',
-		34: 'pagedown',
-		35: 'pageright',
-		36: 'pageleft',
-		37: 'left',
-		38: 'up',
-		39: 'right',
-		40: 'down',
-		46: 'delete',
-		48: '0',
-		49: '1',
-		50: '2',
-		51: '3',
-		52: '4',
-		53: '5',
-		54: '6',
-		55: '7',
-		56: '8',
-		57: '9',
-		65: 'a',
-		66: 'b',
-		67: 'c',
-		68: 'd',
-		69: 'e',
-		70: 'f',
-		71: 'g',
-		72: 'h',
-		73: 'i',
-		74: 'j',
-		75: 'k',
-		76: 'l',
-		77: 'm',
-		78: 'n',
-		79: 'o',
-		80: 'p',
-		81: 'q',
-		82: 'r',
-		83: 's',
-		84: 't',
-		85: 'u',
-		86: 'v',
-		87: 'w',
-		88: 'x',
-		89: 'y',
-		90: 'z',
-		// Mac Chrome left CMD
-		91: 'cmd',
-		// Mac Chrome right CMD
-		93: 'cmd',
-		186: ';',
-		187: '=',
-		188: ',',
-		189: '-',
-		190: '.',
-		191: '/',
-		219: '[',
-		220: '\\',
-		221: ']',
-		222: '\'',
-		// Mac FF
-		224: 'cmd'
-	};
-
-	var untrapFocus = noop;
-
-	function Event(type, properties) {
-		var options = assign({}, eventOptions, properties);
-		var event   = new CustomEvent(type, options);
-
-		if (properties) {
-			delete properties.detail;
-			assign(event, properties);
-		}
-
-		return event;
-	}
-
-	function preventDefault(e) {
-		e.preventDefault();
-	}
-
-	function isPrimaryButton(e) {
-		// Ignore mousedowns on any button other than the left (or primary)
-		// mouse button, or when a modifier key is pressed.
-		return (e.which === 1 && !e.ctrlKey && !e.altKey && !e.shiftKey);
-	}
-
-	function toKey(e) {
-		return keyCodes[e.keyCode];
-	}
-
-	function on(node, types, fn, data) {
-		types = types.split(rspaces);
-
-		var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-		var handler = bindTail(fn, data);
-		var handlers, type;
-
-		var n = -1;
-		while (n++ < types.length) {
-			type = types[n];
-			handlers = events[type] || (events[type] = []);
-			handlers.push([fn, handler]);
-			node.addEventListener(type, handler);
-		}
-
-		return node;
-	}
-
-	function off(node, types, fn) {
-		types = types.split(rspaces);
-
-		var events = node[eventsSymbol];
-		var type, handlers, i;
-
-		if (!events) { return node; }
-
-		var n = -1;
-		while (n++ < types.length) {
-			type = types[n];
-			handlers = events[type];
-			if (!handlers) { continue; }
-			i = handlers.length;
-			while (i--) {
-				if (handlers[i][0] === fn) {
-					node.removeEventListener(type, handlers[i][1]);
-					handlers.splice(i, 1);
-				}
-			}
-		}
-
-		return node;
-	}
-
-	function trigger(node, type, properties) {
-		// Don't cache events. It prevents you from triggering an event of a
-		// given type from inside the handler of another event of that type.
-		var event = Event(type, properties);
-		node.dispatchEvent(event);
-	}
-
-	function end(e, fn) {
-		off(e.currentTarget, features.transitionend, end);
-		fn(e.timeStamp);
-	}
-
-	function requestEvent(type, fn, node) {
-		if (type === 'transitionend') {
-			if (!features.transition) {
-				fn(performance.now());
-				return;
-			}
-
-			type = features.transitionend;
-		}
-
-		on(node, type, end, fn);
-	}
-
-	function delegate(selector, fn) {
-		// Create an event handler that looks up the ancestor tree
-		// to find selector.
-		return function handler(e) {
-			var node = closest(selector, e.target, e.currentTarget);
-			if (!node) { return; }
-			e.delegateTarget = node;
-			fn(e, node);
-			e.delegateTarget = undefined;
-		};
-	}
-
-	function event(types, node) {
-		types = types.split(rspaces);
-
-		return new Stream(function setup(notify, stop) {
-			var buffer = [];
-
-			function update(value) {
-				buffer.push(value);
-				notify('push');
-			}
-
-			types.forEach(function(type) {
-				node.addEventListener(type, update);
-			});
-
-			return {
-				shift: function() {
-					return buffer.shift();
-				},
-
-				stop: function stop() {
-					types.forEach(function(type) {
-						node.removeEventListener(type, update);
-					});
-
-					stop(buffer.length);
-				}
-			};
-		});
-	}
-
-	function trapFocus(node) {
-		// Trap focus as described by Nikolas Zachas:
-		// http://www.nczonline.net/blog/2013/02/12/making-an-accessible-dialog-box/
-
-		// If there is an existing focus trap, remove it
-		untrapFocus();
-
-		// Cache the currently focused node
-		var focusNode = document.activeElement || document.body;
-
-		function resetFocus() {
-			var focusable = dom.query('[tabindex], a, input, textarea, button', node)[0];
-			if (focusable) { focusable.focus(); }
-		}
-
-		function preventFocus(e) {
-			if (node.contains(e.target)) { return; }
-
-			// If trying to focus outside node, set the focus back
-			// to the first thing inside.
-			resetFocus();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-
-		// Prevent focus in capture phase
-		document.addEventListener("focus", preventFocus, true);
-
-		// Move focus into node
-		requestTick(resetFocus);
-
-		return untrapFocus = function() {
-			untrapFocus = noop;
-			document.removeEventListener('focus', preventFocus, true);
-
-			// Set focus back to the thing that was last focused when the
-			// dialog was opened.
-			requestTick(function() {
-				focusNode.focus();
-			});
-		};
-	}
-
-
-	// DOM Fragments and Templates
-
-	var mimetypes = {
-		xml:  'application/xml',
-		html: 'text/html',
-		svg:  'image/svg+xml'
-	};
-
-	function fragmentFromChildren(node) {
-		if (node.domFragmentFromChildren) {
-			return node.domFragmentFromChildren;
-		}
-
-		var fragment = create('fragment');
-		node.domFragmentFromChildren = fragment;
-		append(fragment, node.childNodes);
-		return fragment;
-	}
-
-	function fragmentFromHTML(html, tag) {
-		var node = document.createElement(tag || 'div');
-		node.innerHTML = html;
-		return fragmentFromChildren(node);
-	}
-
-	function fragmentFromTemplate(node) {
-		// A template tag has a content property that gives us a document
-		// fragment. If that doesn't exist we must make a document fragment.
-		return node.content || fragmentFromChildren(node);
-	}
-
-	function fragmentFromId(id) {
-		var node = document.getElementById(id);
-
-		if (!node) { throw new Error('DOM: element id="' + id + '" is not in the DOM.') }
-
-		var t = tag(node);
-
-		// In browsers where templates are not inert their content can clash
-		// with content in the DOM - ids, for example. Remove the template as
-		// a precaution.
-		if (t === 'template' && !features.template) {
-			remove(node);
-		}
-
-		return t === 'template' ? fragmentFromTemplate(node) :
-			t === 'script' ? fragmentFromHTML(node.innerHTML, attribute('data-parent-tag', node)) :
-			fragmentFromChildren(node) ;
-	}
-
-	function parse(type, string) {
-		var mimetype = mimetypes[type];
-		var xml;
-
-		// From jQuery source...
-		try {
-			xml = (new window.DOMParser()).parseFromString(string, mimetype);
-		} catch (e) {
-			xml = undefined;
-		}
-
-		if (!xml || xml.getElementsByTagName("parsererror").length) {
-			throw new Error("dom: Invalid XML: " + string);
-		}
-
-		return xml;
-	}
-
-	var escape = (function() {
-		var pre  = document.createElement('pre');
-		var text = document.createTextNode('');
-
-		pre.appendChild(text);
-
-		return function escape(value) {
-			text.textContent = value;
-			return pre.innerHTML;
-		};
-	})();
-
-
-	// Units
-
-	var rem = /(\d*\.?\d+)r?em/;
-	//var rpercent = /(\d*\.?\d+)%/;
-
-	var fontSize;
-
-	var toPx = overload(toType, {
-		'number': id,
-
-		'string': function(string) {
-			var data, n;
-
-			data = rem.exec(string);
-			if (data) {
-				n = parseFloat(data[1]);
-				return getFontSize() * n;
-			}
-
-			//data = rpercent.exec(string);
-			//if (data) {
-			//	n = parseFloat(data[1]) / 100;
-			//	return width * n;
-			//}
-
-			throw new Error('dom: ' + string + '\' cannot be parsed as rem, em or %.');
-		}
-	});
-
-	var toRem = overload(toType, {
-		'number': function(n) {
-			return n / getFontSize();
-		}
-	});
-
-	function getFontSize() {
-		return fontSize ||
-			(fontSize = parseFloat(style("font-size", document.documentElement), 10));
-	}
-
-
-	// Animation and scrolling
-
-	function transition(duration, fn) {
-		var t0 = performance.now();
-
-		function frame(t1) {
-			// Progress from 0-1
-			var progress = (t1 - t0) / (duration * 1000);
-
-			if (progress < 1) {
-				if (progress > 0) {
-					fn(progress);
-				}
-				id = requestAnimationFrame(frame);
-			}
-			else {
-				fn(1);
-			}
-		}
-
-		var id = requestAnimationFrame(frame);
-
-		return function cancel() {
-			cancelAnimationFrame(id);
-		};
-	}
-
-	function animate(duration, transform, name, object, value) {
-		return transition(
-			duration,
-			pipe(transform, denormalise(object[name], value), set(name, object))
-		);
-	}
-
-	function animateScroll(value) {
-		return animate(0.6, pow(2), 'scrollTop', dom.view, toPx(value));
-	}
-
-	function scrollRatio(node) {
-		return node.scrollTop / (node.scrollHeight - node.clientHeight);
-	}
-
-	function disableScroll(node) {
-		node = node || document.documentElement;
-
-		var scrollLeft = node.scrollLeft;
-		var scrollTop  = node.scrollTop;
-
-		// Remove scrollbars from the documentElement
-		//docElem.css({ overflow: 'hidden' });
-		node.style.overflow = 'hidden';
-
-		// FF has a nasty habit of linking the scroll parameters
-		// of document with the documentElement, causing the page
-		// to jump when overflow is hidden on the documentElement.
-		// Reset the scroll position.
-		if (scrollTop)  { node.scrollTop = scrollTop; }
-		if (scrollLeft) { node.scrollLeft = scrollLeft; }
-
-		// Disable gestures on touch devices
-		//add(document, 'touchmove', preventDefaultOutside, layer);
-	}
-
-	function enableScroll(node) {
-		node = node || document.documentElement;
-
-		var scrollLeft = node.scrollLeft;
-		var scrollTop  = node.scrollTop;
-
-		// Put scrollbars back onto docElem
-		node.style.overflow = '';
-
-		// FF fix. Reset the scroll position.
-		if (scrollTop) { node.scrollTop = scrollTop; }
-		if (scrollLeft) { node.scrollLeft = scrollLeft; }
-
-		// Enable gestures on touch devices
-		//remove(document, 'touchmove', preventDefaultOutside);
-	}
-
-
-	// dom
-
-	function dom(selector) {
-		return query(selector, document);
-	}
-
-	var ready = new Promise(function(accept, reject) {
-		function handle() {
-			document.removeEventListener('DOMContentLoaded', handle);
-			window.removeEventListener('load', handle);
-			accept();
-		}
-
-		document.addEventListener('DOMContentLoaded', handle);
-		window.addEventListener('load', handle);
-	});
-
-	assign(dom, {
-
-		// DOM lifecycle
-
-		ready:    ready.then.bind(ready),
-
-		// DOM traversal
-
-		get: function get(id) {
-			return document.getElementById(id) || undefined;
-		},
-
-		find:     Fn.deprecate(function get(id) {
-			return document.getElementById(id) || undefined;
-		}, 'dom.find(id) is now dom.get(id)'),
-
-		query:    curry(query,    true),
-		closest:  curry(closest,  true),
-		contains: curry(contains, true),
-		matches:  curry(matches,  true),
-		children: children,
-		next:     next,
-		previous: previous,
-
-		// DOM mutation
-
-		assign:   curry(assignAttributes,  true),
-		create:   create,
-		clone:    clone,
-		identify: identify,
-		append:   curry(append,  true),
-		before:   curry(before,  true),
-		after:    curry(after,   true),
-		replace:  curry(replace, true),
-		empty:    empty,
-		remove:   remove,
-
-		// DOM inspection
-
-		isElementNode:  isElementNode,
-		isTextNode:     isTextNode,
-		isCommentNode:  isCommentNode,
-		isFragmentNode: isFragmentNode,
-		isInternalLink: isInternalLink,
-
-		type:        type,
-		tag:         tag,
-		attribute:   curry(attribute, true),
-		classes:     classes,
-		addClass:    curry(addClass,    true),
-		removeClass: curry(removeClass, true),
-		flashClass:  curry(flashClass,  true),
-
-		box:         box,
-		bounds:      bounds,
-		rectangle:   deprecate(box, 'dom.rectangle(node) now dom.box(node)'),
-
-		offset:      curry(offset, true),
-		position:    position,
-
-		prefix:      prefix,
-		style: curry(function(name, node) {
-			// If name corresponds to a custom property name in styleParsers...
-			if (styleParsers[name]) { return styleParsers[name](node); }
-
-			var value = style(name, node);
-
-			// Pixel values are converted to number type
-			return typeof value === 'string' && rpx.test(value) ?
-				parseFloat(value) :
-				value ;
-		}, true),
-
-		toPx:           toPx,
-		toRem:          toRem,
-		viewportLeft:   viewportLeft,
-		viewportTop:    viewportTop,
-
-		// DOM fragments and templates
-
-		fragmentFromTemplate: fragmentFromTemplate,
-		fragmentFromChildren: fragmentFromChildren,
-		fragmentFromHTML:     fragmentFromHTML,
-		fragmentFromId:       fragmentFromId,
-		escape:               escape,
-		parse:                curry(parse),
-
-		// DOM events
-
-		Event:           Event,
-		delegate:        delegate,
-		isPrimaryButton: isPrimaryButton,
-		preventDefault:  preventDefault,
-		toKey:           toKey,
-		trapFocus:       trapFocus,
-		trap:            Fn.deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
-
-		events: {
-			on:      on,
-			off:     off,
-			trigger: trigger
-		},
-
-		on:     Fn.deprecate(curry(event, true), 'dom.on() is now dom.event()'),
-
-		trigger: curry(function(type, node) {
-			trigger(node, type);
-			return node;
-		}, true),
-
-		event: curry(event, true),
-
-		// DOM animation adn scrolling
-
-		// transition(duration, fn)
-		//
-		// duration  - duration seconds
-		// fn        - callback that is called with a float representing
-		//             progress in the range 0-1
-
-		transition: curry(transition, true),
-		schedule:   deprecate(transition, 'dom: .schedule() is now .transition()'),
-
-		// animate(duration, transform, value, name, object)
-		//
-		// duration  - in seconds
-		// transform - function that maps x (0-1) to y (0-1)
-		// name      - name of property to animate
-		// object    - object to animate
-		// value     - target value
-
-		animate: curry(animate, true),
-
-		// animateScroll(n)
-		//
-		// Animate scrollTop of scrollingElement to n (in px)
-
-		animateScroll: animateScroll,
-		scrollTo: deprecate(animateScroll, 'scrollTo(px, node) renamed to animateScroll(px)'),
-
-		// scrollRatio(node)
-		//
-		// Returns scrollTop as ratio of scrollHeight
-
-		scrollRatio: scrollRatio,
-
-		// disableScroll(node)
-		//
-		// Disables scrolling without causing node's content to jump
-
-		disableScroll: disableScroll,
-
-		// enableScroll(node)
-		//
-		// Enables scrolling without causing node's content to jump
-
-		enableScroll: enableScroll,
-
-		// requestEvent(type, fn, node)
-
-		requestEvent: requestEvent,
-
-		requestFrame: requestAnimationFrame.bind(null),
-
-		requestFrameN: curry(deprecate(function requestFrameN(n, fn) {
-			(function frame() {
-				return requestAnimationFrame(--n ? frame : fn);
-			}());
-		}, 'requestFrameN() will be removed soon'), true),
-
-		// Features
-
-		features: features,
-
-		// Safe visible area
-
-		safe: define({
-			left: 0
-		}, {
-			right:  { get: function() { return window.innerWidth; }, enumerable: true, configurable: true },
-			top:    { get: function() { return style('padding-top', document.body); }, enumerable: true, configurable: true },
-			bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
-		})
-	});
-
-	define(dom, {
-		// Element shortcuts
-		root: { value: document.documentElement, enumerable: true },
-		head: { value: document.head, enumerable: true },
-		body: { get: function() { return document.body; }, enumerable: true	},
-		view: { get: function() { return document.scrollingElement; }, enumerable: true },
-		viewport: { get: function() {
-			console.warn('Deprecated: dom.viewport is now dom.view');
-			return document.scrollingElement;
-		}, enumerable: true }
-	});
-
-
-	// Export
-
-	window.dom = dom;
-})(this);
+})(window);
 (function(window) {
-	"use strict";
+    "use strict";
 
-	var debug     = false;
+	const DEBUG      = false;
 
-	var Fn        = window.Fn;
-	var dom       = window.dom;
-	var classes   = dom.classes;
-	var tag       = dom.tag;
-	var on        = dom.events.on;
-	var off       = dom.events.off;
-	var trigger   = dom.events.trigger;
-	var curry     = Fn.curry;
-	var isDefined = Fn.isDefined;
-	var overload  = Fn.overload;
+	const Fn         = window.Fn;
+	const Stream     = window.Stream;
+	const frame      = window.frame;
+	const Observable = window.Observable;
 
-	var activeClass = "active";
-	var onClass   = "on";
-	var location  = window.location;
-	var id        = location.hash;
-	var settings  = { cache: true };
-
-	var store     = new WeakMap();
-
-	var apply = curry(function apply(node, fn) {
-		return fn(node);
-	});
+	const assign     = Object.assign;
+    const get        = Fn.get;
+	const id         = Fn.id;
+	const noop       = Fn.noop;
+	const pipe       = Fn.pipe;
+	const remove     = Fn.remove;
+    const getPath    = Fn.getPath;
+    const setPath    = Fn.setPath;
+	const cue        = frame.cue;
+	const uncue      = frame.uncue;
+	const observe    = Observable.observe;
 
 
-	// We need a place to register node matchers for activate events
-	Object.defineProperties(dom, {
-		activeMatchers: { value: [] }
-	});
-
-	function findButtons(id) {
-		return dom
-		.query('[href$="#' + id + '"]', dom.body)
-		.filter(overload(tag, {
-			a:       dom.isInternalLink,
-			default: function() { return true; }
-		}))
-		.concat(dom.query('[data-href="#' + id + '"]', document));
-	}
-
-	function getData(node) {
-		var data = store.get(node);
-		if (!data) {
-			data = {};
-			store.set(node, data);
-		}
-		return data;
-	}
-
-	function cacheData(target) {
-		var data = getData(target);
-		var id   = target.id;
-
-		if (!data.node) { data.node = target; }
-		if (!data.buttons) { data.buttons = settings.cache && id && findButtons(id); }
-
-		return data;
-	}
-
-	function getButtons(data) {
-		return (settings.cache && data.buttons) || (data.node.id && findButtons(data.node.id));
-	}
-
-	// Listen to activate events
-
-	function defaultActivate() {
-		var data = this.data || cacheData(this.target);
-		var buttons;
-
-		// Don't do anything if elem is already active
-		if (data.active) { return; }
-		data.active = true;
-		this.preventDefault();
-
-		if (debug) { console.log('[activate] default | target:', this.target.id, 'data:', data); }
-
-		classes(data.node).add(activeClass);
-		buttons = getButtons(data);
-
-		if (buttons) {
-			buttons.forEach(function(node) {
-				dom.classes(node).add(onClass);
-			});
-		}
-	}
-
-	function defaultDeactivate() {
-		var data = this.data || cacheData(this.target);
-		var buttons;
-
-		// Don't do anything if elem is already inactive
-		if (!data.active) { return; }
-		data.active = false;
-		this.preventDefault();
-
-		if (debug) { console.log('[deactivate] default | target:', this.target.id, 'data:', data); }
-
-		classes(data.node).remove(activeClass);
-		buttons = getButtons(data);
-
-		if (buttons) {
-			buttons.forEach(function(node) {
-				dom.classes(node).remove(onClass);
-			});
-		}
-	}
-
-	on(document, 'dom-activate', function(e) {
-		if (e.defaultPrevented) { return; }
-
-		var data = cacheData(e.target);
-
-		// Don't do anything if elem is already active
-		if (data.active) {
-			e.preventDefault();
-			return;
-		}
-
-		e.data    = data;
-		e.default = defaultActivate;
-	});
-
-	on(document, 'dom-deactivate', function(e) {
-		if (e.defaultPrevented) { return; }
-
-		var data = cacheData(e.target);
-
-		// Don't do anything if elem is already inactive
-		if (!data.active) {
-			e.preventDefault();
-			return;
-		}
-
-		e.data    = data;
-		e.default = defaultDeactivate;
-	});
-
-
-	// Listen to clicks
-
-	var triggerActivate = dom.trigger('dom-activate');
-
-	var nodeCache = {};
-
-	var dialogs = {};
-
-	var targets = {
-		dialog: function(e) {
-			var href = e.delegateTarget.getAttribute('data-href') || e.delegateTarget.hash || e.delegateTarget.href;
-
-			//Todo: more reliable way of getting id from a hash ref
-			var id = href.substring(1);
-			var fragment;
-
-//			if (!id) { return loadResource(e, href); }
-
-//			if (parts = /([\w-]+)\/([\w-]+)/.exec(id)) {
-//				id = parts[1];
+//    var toLog   = overload(toType, {
+//        function: function(fn) { return fn.toString(); },
+//        object: JSON.stringify,
+//        default: id
+//    });
+//
+//    function catchIfDebug(fn, struct) {
+//		return function(value) {
+//			try {
+//				return fn.apply(this, arguments);
 //			}
-
-			var node = nodeCache[id] || (nodeCache[id] = document.getElementById(id));
-
-//			if (!node) { return loadResource(e, href); }
-
-			e.preventDefault();
-
-			// If the node is html hidden inside a text/html script tag,
-			// extract the html.
-			if (node.getAttribute && node.getAttribute('type') === 'text/html') {
-				// Todo: trim whitespace from html?
-				fragment = dom.create('fragment', node.innerHTML);
-			}
-
-			// If it's a template...
-			if (node.tagName && node.tagName.toLowerCase() === 'template') {
-				// If it is not inert (like in IE), remove it from the DOM to
-				// stop ids in it clashing with ids in the rendered result.
-				if (!node.content) { dom.remove(node); }
-				fragment = dom.fragmentFromContent(node);
-			}
-
-			var dialog = dialogs[id] || (dialogs[id] = createDialog(fragment));
-			trigger(dialog, 'dom-activate');
-		}
-	};
-
-//	var rImage   = /\.(?:png|jpeg|jpg|gif|PNG|JPEG|JPG|GIF)$/;
-//	var rYouTube = /youtube\.com/;
-
-	function createDialog(content) {
-		var layer = dom.create('div', { class: 'dialog-layer layer' });
-		var dialog = dom.create('div', { class: 'dialog popable' });
-		var button = dom.create('button', { class: 'close-thumb thumb' });
-
-		dom.append(dialog, content);
-		dom.append(layer, dialog);
-		dom.append(layer, button);
-		dom.append(document.body, layer);
-
-		return dialog;
-	}
-
-//	function loadResource(e, href) {
-//		var link = e.currentTarget;
-//		var path = link.pathname;
-//		var node, elem, dialog;
-//
-//		if (rImage.test(link.pathname)) {
-//			e.preventDefault();
-//			img = new Image();
-//			dialog = createDialog();
-//			var classes = dom.classes(dialog);
-//			classes.add('loading');
-//			dom.append(dialog, img);
-//			on(img, 'load', function() {
-//				classes.remove('loading');
-//			});
-//			img.src = href;
-//			return;
-//		}
-//
-//		if (rYouTube.test(link.hostname)) {
-//			e.preventDefault();
-//
-//			// We don't need a loading indicator because youtube comes with
-//			// it's own.
-//			elem = dom.create('iframe', {
-//				src:             href,
-//				class:           "youtube_iframe",
-//				width:           "560",
-//				height:          "315",
-//				frameborder:     "0",
-//				allowfullscreen: true
-//			});
-//
-//			node = elem[0];
-//			elem.dialog('lightbox');
-//			return;
+//			catch(e) {
+//				//console.log('Original error:', e.stack);
+//				throw new Error('Sparky failed to render ' + struct.token + ' with value ' + toLog(value) + '.\n' + e.stack);
+//			}
 //		}
 //	}
 
-	function preventClick(e) {
-		// Prevent the click that follows the mousedown. The preventDefault
-		// handler unbinds itself as soon as the click is heard.
-		if (e.type === 'mousedown') {
-			on(e.currentTarget, 'click', function prevent(e) {
-				off(e.currentTarget, 'click', prevent);
-				e.preventDefault();
-			});
-		}
-	}
+    // Transform
 
-	function isIgnorable(e) {
-		// Default is prevented indicates that this link has already
-		// been handled. Save ourselves the overhead of further handling.
-		if (e.defaultPrevented) { return true; }
+	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
 
-		// Ignore mousedowns on any button other than the left (or primary)
-		// mouse button, or when a modifier key is pressed.
-		if (!dom.isPrimaryButton(e)) { return true; }
+	// TODO: make parseParams() into a module - it is used by sparky.js also
+	var parseParams = (function() {
+		//                       null   true   false   number                                     "string"                   'string'                   string
+		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
 
-		// Ignore key presses other than the enter key
-		if ((e.type === 'keydown' || e.type === 'keyup') && e.keyCode !== 13) { return true; }
-	}
+		function toValue(result, string) {
+			if (!result) {
+				throw new Error('Sparky: unable to parse transform args "' + string + '"');
+			}
 
-	function activate(e, node) {
-		e.preventDefault();
-
-		if (e.type === 'mousedown') {
-			preventClick(e);
+			return result[1] ? null :
+				result[2] ? true :
+				result[3] ? false :
+				result[4] ? parseFloat(result[4]) :
+				result[5] ? result[5] :
+				result[6] ? result[6] :
+				result[7] ? result[7] :
+				undefined ;
 		}
 
-		//if (data.active === undefined ?
-		//		data.bolt.elem.hasClass('active') :
-		//		data.active ) {
-		//	return;
-		//}
+		return function parseParams(string) {
+			var params = [];
 
-		trigger(node, 'dom-activate', { relatedTarget: e.currentTarget });
-	}
+			rvalue.lastIndex = 0;
 
-	function getHash(node) {
-		return (isDefined(node.hash) ?
-			node.hash :
-			node.getAttribute('href')
-		).substring(1);
-	}
+			while (rvalue.lastIndex < string.length) {
+				params.push(toValue(rvalue.exec(string), string));
+			}
 
-	function activateId(e, id) {
-		// Does it point to a node?
-		var node = document.getElementById(id);
-		if (!node) { return; }
-
-		// Is the node popable, switchable or toggleable?
-		var classes = dom.classes(node);
-
-		if (dom.activeMatchers.find(apply(node))) {
-			activate(e, node);
-		}
-		// A bit of a fudge, but smooth scrolling is so project-dependent it is
-		// hard to design a consistent way of doing it. The function
-		// dom.activateOther() is an optional hook that allows otherwise
-		// inactivateable things to get some action.
-		else if (dom.activateOther) {
-			dom.activateOther(node);
-		}
-	}
-
-	function activateHref(e) {
-		if (isIgnorable(e)) { return; }
-		if (e.delegateTarget.hostname && !dom.isInternalLink(e.delegateTarget)) { return; }
-
-		// Does it point to an id?
-		var id = getHash(e.delegateTarget);
-		if (!id) { return; }
-
-		activateId(e, id);
-	}
-
-	function activateTarget(e) {
-		var target = e.delegateTarget.target;
-
-		if (isIgnorable(e)) { return; }
-
-		// If the target is not listed, ignore
-		if (!targets[target]) { return; }
-		return targets[target](e);
-	}
-
-	// Clicks on buttons toggle activate on their hash
-	on(document, 'click', dom.delegate('a[href]', activateHref));
-
-	// Clicks on buttons toggle activate on their targets
-	on(document, 'click', dom.delegate('a[target]', activateTarget));
-
-	// Document setup
-	dom.ready(function() {
-		// Setup all things that should start out active
-		dom('.' + activeClass).forEach(triggerActivate);
-
-		// Activate the node that corresponds to the hashref in
-		// location.hash, checking if it's an alphanumeric id selector
-		// (not a hash bang)
-		if (!id || !(/^#\S+$/.test(id))) { return; }
-
-		// Catch errors, as id may nonetheless be an invalid selector
-		try { dom(id).forEach(triggerActivate); }
-		catch(e) {}
-	});
-})(this);
-(function(window) {
-	"use strict";
-
-	var Fn     = window.Fn;
-	var Stream = window.Stream;
-	var dom    = window.dom;
-
-
-	// Number of pixels a pressed pointer travels before movestart
-	// event is fired.
-	var threshold = 8;
-
-	var ignoreTags = {
-			textarea: true,
-			input: true,
-			select: true,
-			button: true
+			return params;
 		};
-
-	var mouseevents = {
-		move:   'mousemove',
-		cancel: 'mouseup dragstart',
-		end:    'mouseup'
-	};
-
-	var touchevents = {
-		move:   'touchmove',
-		cancel: 'touchend',
-		end:    'touchend'
-	};
-
-
-	// Functions
-
-	var requestTick     = Fn.requestTick;
-	var on              = dom.events.on;
-	var off             = dom.events.off;
-	var trigger         = dom.events.trigger;
-	var isPrimaryButton = dom.isPrimaryButton;
-	var preventDefault  = dom.preventDefault;
-
-	function isIgnoreTag(e) {
-		var tag = e.target.tagName;
-		return tag && !!ignoreTags[tag.toLowerCase()];
-	}
-
-	function identifiedTouch(touchList, id) {
-		var i, l;
-
-		if (touchList.identifiedTouch) {
-			return touchList.identifiedTouch(id);
-		}
-
-		// touchList.identifiedTouch() does not exist in
-		// webkit yet… we must do the search ourselves...
-
-		i = -1;
-		l = touchList.length;
-
-		while (++i < l) {
-			if (touchList[i].identifier === id) {
-				return touchList[i];
-			}
-		}
-	}
-
-	function changedTouch(e, data) {
-		var touch = identifiedTouch(e.changedTouches, data.identifier);
-
-		// This isn't the touch you're looking for.
-		if (!touch) { return; }
-
-		// Chrome Android (at least) includes touches that have not
-		// changed in e.changedTouches. That's a bit annoying. Check
-		// that this touch has changed.
-		if (touch.pageX === data.pageX && touch.pageY === data.pageY) { return; }
-
-		return touch;
-	}
-
-
-	// Handlers that decide when the first movestart is triggered
-
-	function mousedown(e){
-		// Ignore non-primary buttons
-		if (!isPrimaryButton(e)) { return; }
-
-		// Ignore form and interactive elements
-		if (isIgnoreTag(e)) { return; }
-
-		on(document, mouseevents.move, mousemove, [e]);
-		on(document, mouseevents.cancel, mouseend, [e]);
-	}
-
-	function mousemove(e, events){
-		events.push(e);
-		checkThreshold(e, events, e, removeMouse);
-	}
-
-	function mouseend(e, data) {
-		removeMouse();
-	}
-
-	function removeMouse() {
-		off(document, mouseevents.move, mousemove);
-		off(document, mouseevents.cancel, mouseend);
-	}
-
-	function touchstart(e) {
-		// Don't get in the way of interaction with form elements
-		if (ignoreTags[e.target.tagName.toLowerCase()]) { return; }
-
-		var touch = e.changedTouches[0];
-
-		// iOS live updates the touch objects whereas Android gives us copies.
-		// That means we can't trust the touchstart object to stay the same,
-		// so we must copy the data. This object acts as a template for
-		// movestart, move and moveend event objects.
-		var event = {
-			target:     touch.target,
-			pageX:      touch.pageX,
-			pageY:      touch.pageY,
-			identifier: touch.identifier,
-
-			// The only way to make handlers individually unbindable is by
-			// making them unique. This is a crap place to put them, but it
-			// will work.
-			touchmove:  function() { touchmove.apply(this, arguments); },
-			touchend:   function() { touchend.apply(this, arguments); }
-		};
-
-		on(document, touchevents.move, event.touchmove, [event]);
-		on(document, touchevents.cancel, event.touchend, [event]);
-	}
-
-	function touchmove(e, events) {
-		var touch = changedTouch(e, events[0]);
-		if (!touch) { return; }
-		checkThreshold(e, events, touch, removeTouch);
-	}
-
-	function touchend(e, events) {
-		var touch = identifiedTouch(e.changedTouches, events[0].identifier);
-		if (!touch) { return; }
-		removeTouch(events);
-	}
-
-	function removeTouch(events) {
-		off(document, touchevents.move, events[0].touchmove);
-		off(document, touchevents.cancel, events[0].touchend);
-	}
-
-	function checkThreshold(e, events, touch, fn) {
-		var distX = touch.pageX - events[0].pageX;
-		var distY = touch.pageY - events[0].pageY;
-
-		// Do nothing if the threshold has not been crossed.
-		if ((distX * distX) + (distY * distY) < (threshold * threshold)) { return; }
-
-		var e0   = events[0];
-		var node = events[0].target;
-		var stream;
-
-		// Unbind handlers that tracked the touch or mouse up till now.
-		fn(events);
-
-		// Trigger the touch event
-		trigger(events[0].target, 'dom-touch', {
-			pageX:  e0.pageX,
-			pageY:  e0.pageY,
-			detail: function() {
-				if (!stream) {
-					stream = TouchStream(node, events);
-				}
-
-				//return stream.clone();
-				return stream;
-			}
-		});
-	}
-
-
-	// Handlers that control what happens following a movestart
-
-	function activeMousemove(e, data) {
-		data.touch = e;
-		data.timeStamp = e.timeStamp;
-		data.stream.push(e);
-	}
-
-	function activeMouseend(e, data) {
-		var target = data.target;
-
-		removeActiveMouse();
-		data.stream.stop();
-	}
-
-	function removeActiveMouse() {
-		off(document, mouseevents.move, activeMousemove);
-		off(document, mouseevents.end, activeMouseend);
-	}
-
-	function activeTouchmove(e, data) {
-		var touch = changedTouch(e, data);
-
-		if (!touch) { return; }
-
-		// Stop the interface from gesturing
-		e.preventDefault();
-
-		data.touch = touch;
-		data.timeStamp = e.timeStamp;
-		data.stream.push(touch);
-	}
-
-	function activeTouchend(e, data) {
-		var touch  = identifiedTouch(e.changedTouches, data.identifier);
-
-		// This isn't the touch you're looking for.
-		if (!touch) { return; }
-
-		removeActiveTouch(data);
-		data.stream.stop();
-	}
-
-	function removeActiveTouch(data) {
-		off(document, touchevents.move, data.activeTouchmove);
-		off(document, touchevents.end, data.activeTouchend);
-	}
-
-	function TouchStream(node, events) {
-		var stream = Stream.from(events).map(function(e) {
-			return {
-				x:    e.pageX - events[0].pageX,
-				y:    e.pageY - events[0].pageY,
-				time: (e.timeStamp - events[0].timeStamp) / 1000
-			};
-		});
-
-		var data = {
-			stream:     stream,
-			target:     node,
-			touch:      undefined,
-			identifier: events[0].identifier
-		};
-
-		if (data.identifier === undefined) {
-			// We're dealing with a mouse event.
-			// Stop clicks from propagating during a move
-			on(node, 'click', preventDefault);
-			on(document, mouseevents.move, activeMousemove, data);
-			on(document, mouseevents.cancel, activeMouseend, data);
-		}
-		else {
-			// In order to unbind correct handlers they have to be unique
-			data.activeTouchmove = function(e, data) { activeTouchmove(e, data); };
-			data.activeTouchend  = function(e, data) { activeTouchend(e, data); };
-
-			// We're dealing with a touch.
-			on(document, touchevents.move, data.activeTouchmove, data);
-			on(document, touchevents.end, data.activeTouchend, data);
-		}
-
-		stream.then(function() {
-			// Unbind the click suppressor, waiting until after mouseup
-			// has been handled. I don't know why it has to be any longer than
-			// a tick, but it does, in Chrome at least.
-			setTimeout(function() {
-				off(node, 'click', preventDefault);
-			}, 200);
-		});
-
-		return stream;
-	}
-
-	on(document, 'mousedown', mousedown);
-	on(document, 'touchstart', touchstart);
-
-})(this);
-(function(window) {
-	"use strict";
-
-	var Fn      = window.Fn;
-	var dom     = window.dom;
-
-	var on      = dom.events.on;
-	var trigger = dom.events.trigger;
-	var closest = dom.closest;
-
-//	var settings = {
-//		// Ratio of distance over target finger must travel to be
-//		// considered a swipe.
-//		threshold: 0.4,
-//		// Faster fingers can travel shorter distances to be considered
-//		// swipes. 'sensitivity' controls how much. Bigger is shorter.
-//		sensitivity: 6
-//	};
-
-	function touchdone(node, data) {
-		data = data.shift();
-
-		//var x = data.x;
-		//var y = data.y;
-		//var w = node.offsetWidth;
-		//var h = node.offsetHeight;
-		var polar = Fn.toPolar([data.x, data.y]);
-
-		// Todo: check if swipe has enough velocity and distance
-		//x/w > settings.threshold || e.velocityX * x/w * settings.sensitivity > 1
-
-		trigger(node, 'dom-swipe', {
-			detail:   data,
-			angle:    polar[1],
-			velocity: polar[0] / data.time
-		});
-	}
-
-	on(document, 'dom-touch', function(e) {
-		if (e.defaultPrevented) { return; }
-
-		var node = closest('.swipeable', e.target);
-		if (!node) { return; }
-
-		var touch = e.detail();
-		var data  = touch.clone().latest();
-
-		data.then(function() {
-			touchdone(node, data);
-		});
-	});
-})(this);
-// dom.popable
-//
-// Extends the default behaviour of events for the .tip class.
-
-(function(window) {
-
-	var dom     = window.dom;
-	var trigger = dom.events.trigger;
-	var matches = dom.matches('.popable, [popable]');
-
-	function activate(e) {
-		// Use method detection - e.defaultPrevented is not set in time for
-		// subsequent listeners on the same node
-		if (!e.default) { return; }
-
-		var node    = e.target;
-		if (!matches(node)) { return; }
-
-		// Make user actions outside node deactivat the node
-
-		requestAnimationFrame(function() {
-			function click(e) {
-				if (node.contains(e.target) || node === e.target) { return; }
-				trigger(node, 'dom-deactivate');
-			}
-
-			function deactivate(e) {
-				if (node !== e.target) { return; }
-				if (e.defaultPrevented) { return; }
-				document.removeEventListener('click', click);
-				document.removeEventListener('dom-deactivate', deactivate);
-			}
-
-			document.addEventListener('click', click);
-			document.addEventListener('dom-deactivate', deactivate);
-		});
-
-		e.default();
-	}
-
-	function deactivate(e) {
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-		e.default();
-	}
-
-	document.addEventListener('dom-activate', activate);
-	document.addEventListener('dom-deactivate', deactivate);
-	dom.activeMatchers.push(matches);
-})(this);
-// dom.toggleable
-
-(function(window) {
-	"use strict";
-
-	var dom     = window.dom;
-
-	// Define
-
-	var matches = dom.matches('.toggleable, [toggleable]');
-
-	// Functions
-
-	var on      = dom.events.on;
-	var off     = dom.events.off;
-	var trigger = dom.events.trigger;
-
-	function click(e, activeTarget) {
-		// A prevented default means this link has already been handled.
-		if (e.defaultPrevented) { return; }
-		if (!dom.isPrimaryButton(e)) { return; }
-
-		var node = e.currentTarget;
-		if (!node) { return; }
-
-		trigger(activeTarget, 'dom-deactivate', {
-			relatedTarget: e.target
-		});
-
-		e.preventDefault();
-	}
-
-	function activate(e) {
-		// Use method detection - e.defaultPrevented is not set in time for
-		// subsequent listeners on the same node
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-
-		var id = dom.identify(target);
-
-		dom('a[href$="#' + id + '"]')
-		.forEach(function(node) {
-			on(node, 'click', click, e.target);
-		});
-
-		e.default();
-	}
-
-	function deactivate(e, data, fn) {
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-
-		var id = e.target.id;
-
-		dom('a[href$="#' + id + '"]')
-		.forEach(function(node) {
-			off(node, 'click', click);
-		});
-
-		e.default();
-	}
-
-	on(document, 'dom-activate', activate);
-	on(document, 'dom-deactivate', deactivate);
-
-	dom.activeMatchers.push(matches);
-})(this);
-// dom.switchable
-//
-// Extends the default behaviour of the activate and deactivate
-// events with things to do when they are triggered on nodes.
-
-(function(window) {
-	"use strict";
-
-	// Import
-
-	var Fn      = window.Fn;
-	var dom     = window.dom;
-
-	// Define
-
-	var matches = dom.matches('.switchable, [switchable]');
-	var on      = dom.events.on;
-	var triggerDeactivate = dom.trigger('dom-deactivate');
-
-	function activate(e) {
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-
-		var nodes = dom.query('.switchable', target.parentNode);
-		var i     = nodes.indexOf(target);
-
-		nodes.splice(i, 1);
-		var active = nodes.filter(dom.matches('.active'));
-
-		e.default();
-
-		// Deactivate the previous active pane AFTER this pane has been
-		// activated. It's important for panes who's style depends on the
-		// current active pane, eg: .slide.active ~ .slide
-		Fn.from(active).each(triggerDeactivate);
-	}
-
-	function deactivate(e) {
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-
-		e.default();
-	}
-
-	on(document, 'dom-activate', activate);
-	on(document, 'dom-deactivate', deactivate);
-	dom.activeMatchers.push(matches);
-})(this);
-(function(window) {
-	"use strict";
-
-	var Fn       = window.Fn;
-	var last     = Fn.last;
-	var dom      = window.dom;
-	var children = dom.children;
-	var on       = dom.events.on;
-	var trigger  = dom.events.trigger;
-	var closest  = dom.closest;
-	var tau      = Math.PI * 2;
-
-	var elasticDistance = 800;
-
-	var rspaces = /\s+/;
-
-	function elasticEase(n) {
-		return Math.atan(n) / Math.PI ;
-	}
-
-	function xMinFromChildren(node) {
-		var child = last(children(node).filter(dom.matches('.switchable')));
-
-		// Get the right-most x of the last switchable child's right-most edge
-		var w1 = child.offsetLeft + child.clientWidth;
-		var w2 = node.parentNode.clientWidth;
-		return w2 - w1;
-	}
-
-	on(document, 'dom-touch', function(e) {
-		if (e.defaultPrevented) { return; }
-
-		var node = closest('.swipeable', e.target);
-		if (!node) { return; }
-
-		var classes = dom.classes(node);
-		var transform = dom.style('transform', node);
-
-		transform = !transform || transform === 'none' ? '' : transform ;
-
-		var x = dom.style('transform:translateX', node);
-
-		// Elastic flags and limits
-		var eMin = false;
-		var eMax = false;
-		var xMin = dom.attribute('data-slide-min', node);
-		var xMax = dom.attribute('data-slide-max', node);
-
-		if (!xMin && !xMax) {
-			eMin = true;
-			eMax = true;
-			xMin = xMinFromChildren(node);
-			xMax = 0;
-		}
-		else {
-			eMin = /elastic/.test(xMin);
-			eMax = /elastic/.test(xMax);
-			xMin = parseFloat(xMin) || 0;
-			xMax = parseFloat(xMax) || 0;
-		}
-
-		classes.add('notransition');
-
-		var ax = x;
-
-		// e.detail() is a stream of touch coordinates
-		e.detail()
-		.map(function(data) {
-			ax = x + data.x;
-			var tx = ax > 0 ?
-					eMax ? elasticEase(ax / elasticDistance) * elasticDistance - x :
-					xMax :
-				ax < xMin ?
-					eMin ? elasticEase((ax - xMin) / elasticDistance) * elasticDistance + xMin - x :
-					xMin :
-				data.x ;
-
-			return transform + ' translate(' + tx + 'px, 0px)';
-		})
-		.each(function(transform) {
-			node.style.transform = transform;
-		})
-		.then(function() {
-			classes.remove('notransition');
-
-			// Todo: Watch out, this may interfere with slides
-			var xSnaps = dom.attribute('data-slide-snap', node);
-
-			if (!xSnaps) { return; }
-			xSnaps = xSnaps.split(rspaces).map(parseFloat);
-
-			// Get closest x from list of snaps
-			var tx = xSnaps.reduce(function(prev, curr) {
-				return Math.abs(curr - ax) < Math.abs(prev - ax) ?
-					curr : prev ;
-			});
-
-			//requestAnimationFrame(function() {
-				node.style.transform = transform + ' translate(' + tx + 'px, 0px)';
-			//});
-		});
-	});
-
-	function transform(node, active) {
-		var l1 = dom.box(node).left;
-		var l2 = dom.box(active).left;
-
-		// Round the translation - without rounding images and text become
-		// slightly fuzzy as they are antialiased.
-		var l  = Math.round(l1 - l2 - dom.style('margin-left', active));
-		node.style.transform = 'translate(' + l + 'px, 0px)';
-	}
-
-	on(document, 'dom-swipe', function(e) {
-		if (e.defaultPrevented) { return; }
-
-		var node = closest('.swipeable', e.target);
-		if (!node) { return; }
-
-		var angle = Fn.wrap(0, tau, e.angle || 0);
-
-			// If angle is rightwards
-		var prop = (angle > tau * 1/8 && angle < tau * 3/8) ?
-				'previousElementSibling' :
-			// If angle is leftwards
-			(angle > tau * 5/8 && angle < tau * 7/8) ?
-				'nextElementSibling' :
-				false ;
-
-		if (!prop) { return; }
-
-		var active = children(node)
-		.filter(dom.matches('.active'))
-		.shift();
-
-		if (active[prop]) {
-			trigger(active[prop], 'dom-activate');
-		}
-		else {
-			transform(node, active);
-		}
-	});
-
-	on(document, 'dom-activate', function(e) {
-		// Use method detection - e.defaultPrevented is not set in time for
-		// subsequent listeners on the same node
-		if (!e.default) { return; }
-
-		var node   = e.target;
-		var parent = node.parentNode;
-
-		if (!dom.matches('.swipeable', parent)) { return; }
-
-		var classes = dom.classes(parent);
-		classes.remove('notransition');
-		document.documentElement.clientWidth;
-
-		var l1 = dom.box(node).left;
-		var l2 = dom.box(parent).left;
-		var l  = l1 - l2 - dom.style('margin-left', node);
-
-		parent.style.transform = 'translate(' + (-l) + 'px, 0px)';
-		e.preventDefault();
-	});
-})(this);
-(function(window) {
-	"use strict";
-
-	var Fn      = window.Fn;
-	var dom     = window.dom;
-
-	var noop          = Fn.noop;
-	var on            = dom.events.on;
-	var off           = dom.events.off;
-	var trigger       = dom.events.trigger;
-	var disableScroll = dom.disableScroll;
-	var enableScroll  = dom.enableScroll;
-	var trapFocus     = dom.trapFocus;
-	var untrapFocus   = noop;
-
-	var matches = dom.matches('.focusable, [focusable]');
-	var delay   = 600;
-
-	on(document, 'dom-activate', function(e) {
-		if (e.defaultPrevented) { return; }
-		if (!matches(e.target)) { return; }
-
-		// Trap focus
-
-		var node = e.target;
-		var trap = function trap(e) {
-			clearTimeout(timer);
-			off(e.target, 'transitionend', trap);
-			untrapFocus = trapFocus(e.target);
-		};
-
-		var timer = setTimeout(trap, delay, e);
-		on(e.target, 'transitionend', trap);
-
-		// Prevent scrolling of main document
-
-		disableScroll(dom.root);
-
-		// Make the escape key deactivate the focusable
-
-		requestAnimationFrame(function() {
-			function keydown(e) {
-				if (e.keyCode !== 27) { return; }
-				trigger(node, 'dom-deactivate');
-				e.preventDefault();
-			}
-
-			function deactivate(e) {
-				if (node !== e.target) { return; }
-				if (e.defaultPrevented) { return; }
-				document.removeEventListener('keydown', keydown);
-				document.removeEventListener('dom-deactivate', deactivate);
-			}
-
-			document.addEventListener('keydown', keydown);
-			document.addEventListener('dom-deactivate', deactivate);
-		});
-	});
-
-	on(document, 'dom-deactivate', function(e) {
-		if (e.defaultPrevented) { return; }
-		if (!matches(e.target)) { return; }
-
-		var untrap = function untrap(e) {
-			clearTimeout(timer);
-			off(e.target, 'transitionend', untrap);
-			untrapFocus();
-			untrapFocus = noop;
-		};
-
-		var timer = setTimeout(untrap, delay, e);
-		on(e.target, 'transitionend', untrap);
-		enableScroll(dom.root);
-	});
-
-	dom.activeMatchers.push(matches);
-})(this);
-// dom.toggleable
-
-(function(window) {
-	"use strict";
-
-	// Import
-	var dom         = window.dom;
-
-	// Define
-	var matches     = dom.matches('.removeable, [removeable]');
-
-	// Max duration of deactivation transition in seconds
-	var maxDuration = 1;
-
-	// Functions
-	var on      = dom.events.on;
-	var off     = dom.events.off;
-	var remove  = dom.remove;
-
-	function deactivate(e, data, fn) {
-		if (!e.default) { return; }
-
-		var target = e.target;
-		if (!matches(target)) { return; }
-
-		function update() {
-			clearTimeout(timer);
-			off(target, 'transitionend', update);
-			remove(target);
-		}
-
-		var timer = setTimeout(update, maxDuration * 1000);
-		on(target, 'transitionend', update);
-
-		e.default();
-	}
-
-	on(document, 'dom-deactivate', deactivate);
-})(this);
-// dom.locateable
-//
-// Extends the default behaviour of events for the .tip class.
-
-(function(window) {
-
-    var Fn       = window.Fn;
-    var dom      = window.dom;
-
-    var by       = Fn.by;
-    var noop     = Fn.noop;
-    var powOut   = Fn.exponentialOut;
-    var animate  = dom.animate;
-    var box      = dom.box;
-    var offset   = dom.offset;
-    var on       = dom.events.on;
-    var matches  = dom.matches(".locateable, [locateable]");
-
-    // Time after scroll event to consider the document is scrolling
-    var idleTime = 90;
-
-    // Duration and easing of scroll animation
-    var scrollDuration  = 0.8;
-    var scrollTransform = powOut(6);
-
-    // Time of latest scroll event
-    var scrollTime = 0;
-
-    var activeNode;
-    var cancel = noop;
-
-    function activate(e) {
-        if (!e.default) { return; }
-
-        var target = e.target;
-        if (!matches(target)) { return; }
-
-        // If node is already active, ignore
-        if (target === activeNode) { return; }
-
-        if (activeNode) {
-            if (target === activeNode) {
-                return;
-            }
-
-            cancel();
-            //scrollTime = e.timeStamp;
-            dom.trigger('dom-deactivate', activeNode);
-        }
-
-        var t = e.timeStamp;
-        var coords, safeTop;
-
-        // Heuristic for whether we are currently actively scrolling. Checks:
-        // Is scroll currently being animated OR
-        // was the last scroll event ages ago ?
-        // TODO: test on iOS
-        if (scrollTime > t || t > scrollTime + idleTime) {
-            coords     = offset(dom.view, target);
-            safeTop    = dom.safe.top;
-            scrollTime = t + scrollDuration * 1000;
-            cancel     = animate(scrollDuration, scrollTransform, 'scrollTop', dom.view, coords[1] - safeTop);
-        }
-
-        e.default();
-        activeNode = target;
-    }
-
-	function deactivate(e) {
-        if (!e.default) { return; }
-
-        var target = e.target;
-
-        if (!matches(target)) { return; }
-
-        e.default();
-
-        // If node is already active, ignore
-        if (target === activeNode) {
-            activeNode = undefined;
-        }
-	}
-
-    function windowBox() {
-        return {
-            left:   0,
-            top:    0,
-            right:  window.innerWidth,
-            bottom: window.innerHeight,
-            width:  window.innerWidth,
-            height: window.innerHeight
-        };
-    }
-
-    function update() {
-        var locateables = dom('.locateable');
-        var boxes       = locateables.map(box).sort(by('top'));
-        var winBox      = windowBox();
-
-        var n = -1;
-        while (boxes[++n]) {
-            // Stop on locateable lower than the break
-            if (boxes[n].top > winBox.height / 2) {
-                break;
-            }
-        }
-        --n;
-
-        if (n < 0) { return; }
-        if (n >= boxes.length) { return; }
-
-        var node = locateables[n];
-
-        if (activeNode) {
-            if (node === activeNode) {
-                return;
-            }
-
-            dom.trigger('dom-deactivate', activeNode);
-        }
-
-        dom.trigger('dom-activate', node);
-    }
-
-    function scroll(e) {
-        // If scrollTime is in the future we are currently animating scroll,
-        // best do nothing
-        if (scrollTime >= e.timeStamp) { return; }
-        scrollTime = e.timeStamp;
-        update();
-    }
-
-    on(document, 'dom-activate', activate);
-    on(document, 'dom-deactivate', deactivate);
-    on(window, 'scroll', scroll);
-    update();
-    dom.activeMatchers.push(matches);
-})(this);
-(function(window) {
-	"use strict";
-
-	var assign         = Object.assign;
-	var Fn             = window.Fn;
-	var Stream         = window.Stream;
-	var dom            = window.dom;
-
-	var get            = Fn.get;
-	var invoke         = Fn.invoke;
-	var nothing        = Fn.nothing;
-	var once           = Fn.once;
-
-	var after          = dom.after;
-	var attribute      = dom.attribute;
-	var classes        = dom.classes;
-    var matches        = dom.matches;
-    var next           = dom.next;
-	var remove         = dom.remove;
-
-    var isValidateable = matches('.validateable, .validateable input, .validateable textarea, .validateable select');
-	var isErrorLabel   = matches('.error-label');
-	var validatedClass = 'validated';
-
-	var types = {
-		patternMismatch: 'pattern',
-		rangeOverflow:   'max',
-		rangeUnderflow:  'min',
-		stepMismatch:    'step',
-		tooLong:         'maxlength',
-		typeMismatch:    'type',
-		valueMissing:    'required'
-	};
-
-	function negate(fn) {
-		return function() {
-			return !fn.apply(this, arguments);
-		};
-	}
-
-	function isValid(node) {
-		return node.validity ? node.validity.valid : true ;
-	}
-
-	function isShowingMessage(node) {
-		return node.nextElementSibling && isErrorLabel(node.nextElementSibling);
-	}
-
-	function toError(input) {
-		var node     = input;
-		var validity = node.validity;
-        var name, text;
-
-		for (name in validity) {
-			if (name !== 'valid' && validity[name]) {
-				text = dom.validation[types[name]];
-
-				if (text) {
-					input.setCustomValidity(text);
-				}
-
-				return {
-					type: name,
-					attr: types[name],
-					name: input.name,
-					text: node.validationMessage,
-					node: input
-				};
-			}
-		}
-	}
-
-	function renderError(error) {
-		var input  = error.node;
-		var node   = input;
-
-		while (node.nextElementSibling && isErrorLabel(node.nextElementSibling)) {
-			node = node.nextElementSibling;
-		}
-
-        var label = dom.create('label')
-        dom.assign(label, {
-            textContent: error.text,
-			for:         input.id,
-            class:       'error-label'
-		});
-
-		after(node, label);
-	}
-
-	function addValidatedClass(input) {
-		classes(input).add(validatedClass);
-	}
-
-	function removeMessages(input) {
-		var node = input;
-
-		while ((node = next(node)) && isErrorLabel(node)) {
-			remove(node);
-		}
-	}
-
-	// Clear validation on new input
-	dom
-	.event('input', document)
-	.map(get('target'))
-    .filter(isValidateable)
-	.tap(invoke('setCustomValidity', ['']))
-	.filter(isValid)
-	.each(removeMessages);
-
-	// Check validity on focus out
-	dom
-	.event('focusout', document)
-	.map(get('target'))
-	.filter(isValidateable)
-	.each(invoke('checkValidity', nothing));
-
-	// Check validation on form submit
-	// TODO doesnt work because 'submit' is not received if the validity
-	// check shows the form is invalid
-    dom
-	.event('submit', document)
-	.map(get('target'))
-	.filter(isValidateable)
-	.each(addValidatedClass);
-
-	// Add error labels after invalid inputs. Listen to events in the
-	// capture phase.
-	document.addEventListener(
-		'invalid',
-
-		// Push to stream
-		Stream.of()
-		.map(get('target'))
-        .filter(isValidateable)
-		.tap(addValidatedClass)
-		.filter(negate(isShowingMessage))
-		.map(toError)
-		.each(renderError)
-		.push,
-
-		// Capture phase
-		true
-	);
-
-    dom.validation = dom.validation || {};
-
-})(this);
-(function(window) {
-	"use strict";
-
-	var DEBUG      = window.DEBUG;
-
-	var Fn         = window.Fn;
-	var Observable = window.Observable;
-	var Stream     = window.Stream;
-	var dom        = window.dom;
-
-	var assign     = Object.assign;
-	var attribute  = dom.attribute;
-	var compose    = Fn.compose;
-	var curry      = Fn.curry;
-	var get        = Fn.get;
-	var id         = Fn.id;
-	var isDefined  = Fn.isDefined;
-	var isNaN      = Number.isNaN;
-	var nothing    = Fn.nothing;
-	var noop       = Fn.noop;
-	var overload   = Fn.overload;
-	var pipe       = Fn.pipe;
-	var set        = Fn.set;
-	var setPath    = Fn.setPath;
-	var toType     = Fn.toType;
-
-
-	// Matches tags plus any directly adjacent text
-	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
-	//var rclasstags;
-
-	// Matches filter string, capturing (filter name, filter parameter string)
-	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
-
-	// Matches anything with a space
-	var rspaces = /\s+/;
-
-	// Matches anything that contains a non-space character
-	var rtext = /\S/;
-
-	// Matches the arguments list in the result of a fn.toString()
-	var rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
-
-	var settings = {
-		attributePrefix: 'data-',
-		mount:           noop,
-		transforms:      {},
-		transformers:    {},
-		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
-	};
-
-	function addClasses(classList, text) {
-		var classes = toRenderString(text).trim().split(rspaces);
-		classList.add.apply(classList, classes);
-	}
-
-	function removeClasses(classList, text) {
-		var classes = toRenderString(text).trim().split(rspaces);
-		classList.remove.apply(classList, classes);
-	}
-
-
-	// Transform
-
-	var rtransform = /\|\s*([\w\-]+)\s*(?::([^|]+))?/g;
+	})();
 
 	function Transform(transforms, transformers, string) {
 		if (!string) { return id; }
 
 		var fns = [];
-		var token, name, fn, args;
+		var token, name, fn, params;
 
 		rtransform.lastIndex = 0;
 
@@ -7918,8 +5669,9 @@ function getPositionParent(node) {
 			}
 
 			if (token[2]) {
-				args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-				fns.push(fn.apply(null, args));
+				params = parseParams(token[2]);
+				//args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fns.push(fn.apply(null, params));
 			}
 			else {
 				fns.push(fn);
@@ -7964,19 +5716,292 @@ function getPositionParent(node) {
 		return pipe.apply(null, fns);
 	}
 
+    // Struct
+
+    var structs = [];
+
+    var removeStruct = remove(structs);
+
+    function addStruct(struct) {
+        structs.push(struct);
+    }
+
+    function Struct(node, token, path, render, pipe) {
+        //console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+
+        addStruct(this);
+        this.node    = node;
+        this.token   = token;
+        this.path    = path;
+        this.render  = render;
+        this.pipe    = pipe;
+    }
+
+    assign(Struct.prototype, {
+        render:  noop,
+        transform: id,
+
+        stop: function stop() {
+            uncue(this.cuer);
+            removeStruct(this);
+        },
+
+        update: function(time) {
+            var struct = this;
+            var transform = this.transform;
+            var value = struct.input && struct.input.shift();
+
+            if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
+
+            if (value === undefined) {
+                struct.render(struct.originalValue);
+            }
+            else {
+                struct.render(transform(value));
+            }
+        }
+    });
+
+    function ReadableStruct(node, token, path, render, type, read, pipe) {
+        // ReadableStruct extends Struct with listeners and read functions
+        Struct.call(this, node, token, path, render, pipe);
+        this.type = type;
+        this.read = read;
+    }
+
+    assign(ReadableStruct.prototype, Struct.prototype, {
+        listen: function listen(fn) {
+            if (this._listenFn) {
+                console.warn('Bad Steve. Attempt to listen without removing last listener');
+            }
+
+            this._listenFn = fn;
+            this.node.addEventListener(this.type, fn);
+        },
+
+        unlisten: function unlisten() {
+            var fn = this._listenFn;
+
+            this.node.removeEventListener(this.type, fn);
+            this._listenType = undefined;
+            this._listenFn   = undefined;
+        }
+    });
+
+
+    // Struct lifecycle
+
+    function setup(struct, options) {
+
+
+        struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
+        struct.originalValue = struct.read ? struct.read() : '' ;
+        if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
+    }
+
+    function eachFrame(stream, fn) {
+        var unobserve = noop;
+
+        function update(time) {
+            var scope = stream.shift();
+            // Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+            if (scope === undefined) { return; }
+
+            function render(time) {
+                fn(scope);
+            }
+
+            unobserve();
+            unobserve = observe(scope, '', function() {
+                cue(render);
+            });
+        }
+
+        cue(update);
+
+        if (stream.on) {
+            stream.on('push', function() {
+                cue(update);
+            });
+        }
+    }
+
+    function bind(struct, scope, options) {
+        if (DEBUG) { console.log('bind:  ', struct.token); }
+
+        var input = struct.input = Stream.observe(struct.path, scope).latest();
+
+        struct.scope = scope;
+
+        var flag = false;
+        var change;
+
+        // If struct is an internal struct (as opposed to a Sparky instance)
+        if (struct.render) {
+            if (struct.listen) {
+                change = listen(struct, scope, options);
+
+                struct.cuer = function updateReadable() {
+                    struct.update();
+
+                    if (flag) { return; }
+                    flag = true;
+
+                    input.on('push', function() {
+                        cue(updateReadable);
+                    });
+
+                    var value = getPath(struct.path, scope);
+
+                    // Where the initial value of struct.path is not set, set it to
+                    // the value of the <input/>.
+                    if (value === undefined) {
+                        change();
+                    }
+                };
+
+                cue(struct.cuer);
+                struct.listen(change);
+            }
+            else {
+                struct.cuer = function update() {
+                    struct.update();
+                    if (flag) { return; }
+                    flag = true;
+                    input.on('push', function() {
+                        cue(update);
+                    });
+                };
+
+                cue(struct.cuer);
+            }
+
+            return;
+        }
+
+        if (DEBUG) { console.log('struct is Sparky'); }
+        eachFrame(input, struct.push);
+    }
+
+    function listen(struct, scope, options) {
+        //console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
+
+        var set, invert;
+
+        if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
+
+        set    = setPath(struct.path, scope);
+        invert = InverseTransform(options.transformers, struct.pipe);
+        return pipe(function() { return struct.read(); }, invert, set);
+    }
+
+    function unbind(struct) {
+        if (DEBUG) { console.log('unbind:', struct.token); }
+        // Todo: only uncue on teardown
+        //struct.uncue();
+        struct.input && struct.input.stop();
+        struct.unlisten && struct.unlisten();
+        struct.scope = undefined;
+    }
+
+    function teardown(struct) {
+        if (DEBUG) { console.log('teardown', struct.token); }
+        unbind(struct);
+        struct.stop();
+    }
+
+    window.Struct = Struct;
+
+    Struct.Readable           = ReadableStruct;
+    Struct.setup = setup;
+    Struct.bind = bind;
+    Struct.listen = listen;
+    Struct.unbind = unbind;
+    Struct.teardown = teardown;
+    Struct.parseParams = parseParams;
+
+    Struct.findScope = function findScope(node) {
+		return get('scope', structs.find(function(struct) {
+			return struct.node === node;
+		}));
+	};
+})(window);
+(function(window) {
+	"use strict";
+
+	const DEBUG      = false;
+
+	const A          = Array.prototype;
+	const Fn         = window.Fn;
+	const dom        = window.dom;
+
+	const assign     = Object.assign;
+//	const define     = Object.defineProperties;
+	const attribute  = dom.attribute;
+	const get        = Fn.get;
+	const id         = Fn.id;
+	const isDefined  = Fn.isDefined;
+	const nothing    = Fn.nothing;
+	const noop       = Fn.noop;
+	const overload   = Fn.overload;
+	const set        = Fn.set;
+	const toType     = Fn.toType;
+
+	const Struct             = window.Struct;
+	const ReadableStruct     = Struct.Readable;
+	const setup              = Struct.setup;
+    const bind               = Struct.bind;
+    const unbind             = Struct.unbind;
+    const teardown           = Struct.teardown;
+	const findScope          = Struct.getScope;
+
+
+	// Matches tags plus any directly adjacent text
+	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
+	//var rclasstags;
+
+	// Matches filter string, capturing (filter name, filter parameter string)
+	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
+
+	// Matches anything with a space
+	const rspaces = /\s+/;
+
+	// Matches empty or spaces-only string
+	const rempty  = /^\s*$/;
+
+	// Matches anything that contains a non-space character
+	const rtext = /\S/;
+
+	// Matches the arguments list in the result of a fn.toString()
+	const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
+
+	const settings = {
+		attributePrefix: 'sparky-',
+		mount:           noop,
+		transforms:      {},
+		transformers:    {},
+		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+	};
+
+	function addClasses(classList, text) {
+		var classes = toRenderString(text).trim().split(rspaces);
+		classList.add.apply(classList, classes);
+	}
+
+	function removeClasses(classList, text) {
+		var classes = toRenderString(text).trim().split(rspaces);
+		classList.remove.apply(classList, classes);
+	}
+
+
+
+
 
 	// Mount
 
 	var cased = {
 		viewbox: 'viewBox'
 	};
-
-	var listen = curry(function(node, type, fn) {
-		node.addEventListener(type, fn);
-		return function unlisten() {
-			node.removeEventListener('input', fn);
-		};
-	}, true);
 
 	var toRenderString = overload(toType, {
 		'boolean': function(value) {
@@ -8009,29 +6034,35 @@ function getPositionParent(node) {
 		'default': JSON.stringify
 	});
 
-	function mountStringToken(render, strings, structs, match) {
-		var i = strings.length;
-		strings.push('');
-		structs.push({
-			token:  match[0],
-			path:   match[2],
-			pipe:   match[3],
-			render: function renderText(value) {
-				strings[i] = toRenderString(value);
-				render(strings);
-			}
-		});
+	function isTruthy(value) {
+		return !!value;
 	}
 
-	function mountString(string, render, options, structs) {
+	function matchToken(string, options) {
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+		return rtoken.exec(string);
+	}
+
+	function mountStringToken(node, render, strings, structs, match) {
+		var i = strings.length;
+		strings.push('');
+
+		// new Struct(node, token, path, render [, type, read, pipe])
+		structs.push(new Struct(node, match[0], match[2], function renderText(value) {
+			strings[i] = toRenderString(value);
+			render(strings);
+		}, match[3]));
+	}
+
+	function mountString(node, string, render, options, structs) {
 		var rtoken  = options.rtoken;
 		var i       = rtoken.lastIndex = 0;
 		var match   = rtoken.exec(string);
 
-		if (!match) { return nothing; }
+		if (!match) { return; }
 
 		var strings = [];
-
 		var renderStrings = function(strings) {
 			render(strings.join(''));
 		};
@@ -8041,7 +6072,7 @@ function getPositionParent(node) {
 				strings.push(string.slice(i, match.index));
 			}
 
-			mountStringToken(renderStrings, strings, structs, match);
+			mountStringToken(node, renderStrings, strings, structs, match);
 			i = rtoken.lastIndex;
 			match = rtoken.exec(string);
 		}
@@ -8059,63 +6090,96 @@ function getPositionParent(node) {
 		}
 	}
 
-	function mountAttribute(name, node, options, structs) {
-		var text = node.getAttribute(options.attributePrefix + name);
+	function mountAttribute(name, node, options, structs, prefixed) {
+		var text = prefixed !== false
+		&& node.getAttribute(options.attributePrefix + name)
+		|| node.getAttribute(cased[name] || name) ;
 
-		if (!text) {
-			text = node.getAttribute(cased[name] || name);
-		}
-		else {
-			// Remove the sparky attribute, just to keep the DOM clean.
-			// Not entirely necessary, perhaps limit to DEBUG mode?
-			node.removeAttribute(options.attributePrefix + name);
-		}
-
-		return text && mountString(text, function render(value) {
+		return text && mountString(node, text, function render(value) {
 			node.setAttribute(cased[name] || name, value);
 		}, options, structs);
 	}
 
-	function mountBoolean(name, node, options, structs) {
-		var rtoken = options.rtoken;
+	function renderBoolean(name, node) {
+		return name in node ?
 
+		// Assume attribute is also a boolean property
+		function renderBoolean(values) {
+			node[name] = !!values.find(isTruthy);
+		} :
+
+		// Attribute is not also a boolean property
+		function renderBoolean(values) {
+			if (values.find(isTruthy)) {
+				node.setAttribute(name, name);
+			}
+			else {
+				node.removeAttribute(name);
+			}
+		} ;
+	}
+
+	function mountBooleanToken(node, render, values, structs, match) {
+		var i = values.length;
+		values.push(false);
+
+		structs.push(new Struct(node, match[0], match[2], function(value) {
+			values[i] = value;
+			render(values);
+		}, match[3]));
+	}
+
+	function mountBoolean(name, node, options, structs) {
 		// Look for prefixed attributes before attributes.
 		//
 		// In FF, the disabled attribute is set to the previous value that the
 		// element had when the page is refreshed, so it contains no sparky
 		// tags. The proper way to address this problem is to set
 		// autocomplete="off" on the parent form or on the field.
-		//
-		// Remember SVG has case sensitive attributes.
 
-		var attr = node.getAttribute(options.attributePrefix + name) || node.getAttribute(name) ;
-		if (!attr) { return; }
+		var prefixed = node.getAttribute(options.attributePrefix + name);
+		var string   = prefixed || node.getAttribute(name);
 
-		rtoken.lastIndex = 0;
-		var tokens = rtoken.exec(attr.trim());
-		if (!tokens) { return; }
+		// Fast out
+		if (!string) { return; }
 
-		structs.push({
-			token:  attr.trim(),
-			path:   tokens[2],
-			pipe:   tokens[3],
-			render: name in node ?
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
 
-				// Attribute is also a boolean property
-				function render(value) {
-					node[name] = !!value;
-				} :
+		// Fast out
+		if (!match) { return; }
 
-				// Attribute is not also a boolean property
-				function render(value) {
-					if (value) {
-						node.setAttribute(name, name);
-					}
-					else {
-						node.removeAttribute(name);
-					}
+		var render = renderBoolean(name, node);
+
+		// Where the unprefixed attribute is populated, Return the property to
+		// the default value.
+		if (!prefixed) {
+			render(nothing);
+		}
+
+		var values = [];
+		var value;
+
+		while (match) {
+			if (match.index > i) {
+				value = string.slice(i, match.index);
+				if (!rempty.test(value)) {
+					values.push(value);
 				}
-		});
+			}
+
+			mountBooleanToken(node, render, values, structs, match);
+			i     = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i) {
+			value = string.slice(i);
+			if (!rempty.test(value)) {
+				values.push(value);
+			}
+		}
 	}
 
 	function mountClass(node, options, structs) {
@@ -8131,16 +6195,11 @@ function getPositionParent(node) {
 		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
 			var prev    = '';
 
-			structs.push({
-				token:  $0,
-				path:   $2,
-				pipe:   $3,
-				render: function render(string) {
-					if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
-					if (string && rtext.test(string)) { addClasses(classes, string); }
-					prev = string;
-				}
-			});
+			structs.push(new Struct(node, $0, $2, function render(string) {
+				if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
+				if (string && rtext.test(string)) { addClasses(classes, string); }
+				prev = string;
+			}, $3));
 
 			return '';
 		});
@@ -8148,22 +6207,129 @@ function getPositionParent(node) {
 		node.setAttribute('class', text);
 	}
 
-	function mountValue(node, options, structs) {
-		var string = attribute(options.attributePrefix + 'value', node) ||
-			attribute('value', node) ;
-		var rtoken = options.rtoken;
-		rtoken.lastIndex = 0;
+	function mountValueNumber(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node)
+			|| attribute('value', node) ;
 
-		var match = rtoken.exec(string);
+		var match = matchToken(string, options);
+
 		if (!match) { return; }
 
-		return mountValueByType(node, options, match, structs);
+		// ReadableStruct(node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueNumber, 'input', readValueNumber, match[3]));
 	}
 
-	var types = {
+	function mountValueString(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node)
+			|| attribute('value', node) ;
+		var match = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValue, 'input', readValue, match[3]));
+	}
+
+	function mountValueCheckbox(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueCheckbox, 'change', readValueCheckbox, match[3]));
+	}
+
+	function mountValueRadio(node, options, structs) {
+		var string = attribute(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
+	}
+
+	// Struct value read and write
+
+    function writeValue(value) {
+        var node = this.node;
+
+        // Avoid updating with the same value as it sends the cursor to
+        // the end of the field (in Chrome, at least).
+        if (value === node.value) { return; }
+
+        node.value = typeof value === 'string' ?
+            value :
+            '' ;
+    }
+
+    function writeValueNumber(value) {
+        var node = this.node;
+
+        // Avoid updating with the same value as it sends the cursor to
+        // the end of the field (in Chrome, at least).
+        if (value === parseFloat(node.value)) { return; }
+
+        node.value = typeof value === 'number' && !Number.isNaN(value) ?
+            value :
+            '' ;
+    }
+
+    function writeValueCheckbox(value) {
+        var node = this.node;
+
+        // Where value is defined check against it, otherwise
+        // value is "on", uselessly. Set checked state directly.
+        node.checked = isDefined(node.getAttribute('value')) ?
+            value === node.value :
+            value === true ;
+    }
+
+    function writeValueRadio(value) {
+        var node = this.node;
+
+        // Where value="" is defined check against it, otherwise
+        // value is "on", uselessly: set checked state directly.
+        node.checked = isDefined(node.getAttribute('value')) ?
+            value === node.value :
+            value === true ;
+    }
+
+    function readValue() {
+        var node = this.node;
+        return node.value;
+    }
+
+    function readValueNumber() {
+        var node = this.node;
+        return node.value ? parseFloat(node.value) : undefined ;
+    }
+
+    function readValueCheckbox() {
+        var node = this.node;
+
+        // TODO: Why do we check attribute here?
+        return isDefined(node.getAttribute('value')) ?
+            node.checked ? node.value : undefined :
+            node.checked ;
+    }
+
+    function readValueRadio() {
+        var node = this.node;
+
+        if (!node.checked) { return; }
+
+        return isDefined(node.getAttribute('value')) ?
+            node.value :
+            node.checked ;
+    }
+
+
+	const types = {
 		// element
 		1: function mountElement(node, options, structs) {
-			var children = node.childNodes;
+			// Get an immutable list of children. We don't want to mount
+			// elements that may be dynamically inserted by other sparky
+			// processes. Remember node.childNodes is dynamic.
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
 			var child;
 
@@ -8172,14 +6338,17 @@ function getPositionParent(node) {
 				mountNode(child, options, structs) ;
 			}
 
+			// This costs us, needlessly creating a struct for every element
+			//mountScope(node, options, structs);
 			mountClass(node, options, structs);
+			mountBoolean('hidden', node, options, structs);
 			mountAttributes(['id', 'title', 'style'], node, options, structs);
 			mountTag(node, options, structs);
 		},
 
 		// text
 		3: function mountText(node, options, structs) {
-			mountString(node.nodeValue, set('nodeValue', node), options, structs);
+			mountString(node, node.nodeValue, set('nodeValue', node), options, structs);
 		},
 
 		// comment
@@ -8187,9 +6356,9 @@ function getPositionParent(node) {
 
 		// document
 		9: function mountDocument(node, options, structs) {
-			var children = node.childNodes;
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
-			var child, renderer;
+			var child;
 
 			while (child = children[++n]) {
 				options.mount(child, options, structs) ||
@@ -8202,7 +6371,7 @@ function getPositionParent(node) {
 
 		// fragment
 		11: function mountFragment(node, options, structs) {
-			var children = node.childNodes;
+			var children = A.slice.apply(node.childNodes);
 			var n = -1;
 			var child;
 
@@ -8213,7 +6382,7 @@ function getPositionParent(node) {
 		}
 	};
 
-	var tags = {
+	const tags = {
 
 		// HTML
 
@@ -8225,20 +6394,31 @@ function getPositionParent(node) {
 			mountBoolean('disabled', node, options, structs);
 		},
 
-		input: function(node, options, structs) {
+		form: function(node, options, structs) {
+			mountAttribute('action', node, options, structs);
+		},
+
+		fieldset: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
-			mountBoolean('required', node, options, structs);
-			mountAttribute('name', node, options, structs);
-			mountInput(node, options, structs);
-			mountValue(node, options, structs);
 		},
 
 		img: function(node, options, structs) {
 			mountAttribute('alt', node, options, structs);
 		},
 
+		input: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountInput(node, options, structs);
+		},
+
 		label: function(node, options, structs) {
 			mountAttribute('for', node, options, structs);
+		},
+
+		meter: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
 		},
 
 		option: function(node, options, structs) {
@@ -8246,18 +6426,26 @@ function getPositionParent(node) {
 			mountAttribute('value', node, options, structs);
 		},
 
+		output: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		progress: function(node, options, structs) {
+			mountAttribute(['max', 'value'], node, options, structs);
+		},
+
 		select: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
 			mountAttribute('name', node, options, structs);
-			mountValue(node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
 		textarea: function(node, options, structs) {
 			mountBoolean('disabled', node, options, structs);
 			mountBoolean('required', node, options, structs);
 			mountAttribute('name', node, options, structs);
-			mountValue(node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
 		time: function(node, options, structs)  {
@@ -8287,7 +6475,7 @@ function getPositionParent(node) {
 		},
 
 		text: function(node, options, structs) {
-			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor'], node, options, structs);
+			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
 		},
 
 		use: function(node, options, structs) {
@@ -8297,326 +6485,197 @@ function getPositionParent(node) {
 		default: noop
 	};
 
-	var inputs = {
+	const inputs = {
+		button: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		checkbox: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueCheckbox(node, options, structs);
+		},
+
 		date: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		hidden: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		image: function(node, options, structs) {
+			mountAttribute('src', node, options, structs);
 		},
 
 		number: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		radio: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueRadio(node, options, structs);
 		},
 
 		range: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		reset: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		submit: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
 		},
 
 		time: function(node, options, structs) {
 			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
 		},
 
-		checkbox: function() {},
-
-		radio: function() {},
-
-		default: noop
-	};
-
-	var inputTypes = {
-		checkbox: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					// TODO: Why do we check attribute here?
-					return isDefined(node.getAttribute('value')) ?
-						node.checked ? node.value : undefined :
-						node.checked ;
-				},
-
-				render: function render(value) {
-					// Where value is defined check against it, otherwise
-					// value is "on", uselessly. Set checked state directly.
-					node.checked = isDefined(node.getAttribute('value')) ?
-						value === node.value :
-						value === true ;
-				},
-
-				listen: listen(node, 'change')
-			});
-		},
-
-		radio: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					if (!node.checked) { return; }
-
-					return isDefined(node.getAttribute('value')) ?
-						node.value :
-						true ;
-				},
-
-				render: function render(value) {
-					// Where value="" is defined check against it, otherwise
-					// value is "on", uselessly: set checked state directly.
-					node.checked = isDefined(node.getAttribute('value')) ?
-						value === node.value :
-						value === true ;
-				},
-
-				listen: listen(node, 'change')
-			});
-		},
-
-		number: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value ? parseFloat(node.value) : undefined ;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === parseFloat(node.value)) { return; }
-
-					node.value = typeof value === 'number' && !isNaN(value) ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
-		},
-
-		range: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value ? parseFloat(node.value) : undefined ;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === parseFloat(node.value)) { return; }
-
-					node.value = typeof value === 'number' && !isNaN(value) ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
-		},
-
-		default: function(node, options, match, structs) {
-			structs.push({
-				node:  node,
-				token: match[0],
-				path:  match[2],
-				pipe:  match[3],
-
-				read: function read() {
-					return node.value;
-				},
-
-				render: function render(value) {
-					// Avoid updating with the same value as it sends the cursor to
-					// the end of the field (in Chrome, at least).
-					if (value === node.value) { return; }
-
-					node.value = typeof value === 'string' ?
-						value :
-						'' ;
-				},
-
-				listen: listen(node, 'input')
-			});
+		default: function(node, options, structs) {
+			mountValueString(node, options, structs);
 		}
 	};
 
-	var mountNode        = overload(get('nodeType'), types);
-	var mountTag         = overload(dom.tag, tags);
-	var mountInput       = overload(get('type'), inputs);
-	var mountValueByType = overload(get('type'), inputTypes);
+	const mountNode  = overload(get('nodeType'), types);
+	const mountTag   = overload(dom.tag, tags);
+	const mountInput = overload(get('type'), inputs);
 
-	function setupStruct(struct, options) {
-		var transform = Transform(options.transforms, options.transformers, struct.pipe);
-		var update    = compose(struct.render, transform);
-		var throttle  = Fn.throttle(update, requestAnimationFrame, cancelAnimationFrame);
 
-		struct.update = update;
-		struct.push   = throttle;
+	function setupStructs(structs, options) {
+		structs.forEach(function(struct) {
+			// Set up structs to be pushable. Renderers already have
+			// a push method and should not be throttled.
+			if (struct.render) {
+				setup(struct, options);
+			}
+		});
 	}
 
-	function RenderStream(structs, options, node) {
-		var old;
-
-		return {
-			/* A read-only stream. */
-			shift: noop,
-
-			stop: function stopRenderer() {
-				structs.forEach(function(struct) {
-					struct.unbind && struct.unbind();
-					struct.stop && struct.stop();
-				});
-			},
-
-			push: function pushRenderer(data) {
-				if (old === data) { return; }
-				old = data;
-
-				if (DEBUG) { console.groupCollapsed('update:', node); }
-
-				var observable = Observable(data);
-				var unlisten;
-
-				// Rebind structs
-				structs.forEach(function(struct) {
-					// Unbind Structs
-					struct.unbind && struct.unbind();
-
-					// Set up structs to be pushable. Renderers already have
-					// a push method and should not be throttled.
-					if (!struct.push) {
-						setupStruct(struct, options);
-					}
-
-					struct.unbind = struct.unbind || function(data) {
-						// If the struct is not a Sparky it's .push() is a
-						// throttle and must be cancelled. TODO: dodgy.
-						struct.push.cancel && struct.push.cancel();
-						struct.input.stop();
-						if (struct.listen) { unlisten(); }
-					};
-
-					// Rebind struct
-					var input = struct.input = Stream.observe(struct.path, observable);
-					var value = input.latest().shift();
-
-					// If there is an initial scope render it synchronously, as
-					// it is assumed we are already working inside an animation
-					// frame
-					if (value !== undefined) { (struct.update || struct.push)(value); }
-
-					// Render future scopes at throttled frame rate, where
-					// throttle is defined
-					input.each(struct.push);
-
-					var set, invert, change;
-
-					// Listen to changes
-					if (struct.listen) {
-						if (struct.path === '') { console.warn('mount:  Cannot listen to path ""'); };
-						set = setPath(struct.path, observable);
-						invert = InverseTransform(options.transformers, struct.pipe);
-						change = pipe(function() { return struct.read(); }, invert, set);
-						unlisten = struct.listen(change);
-
-						if (value === undefined) { change(); }
-					}
-				});
-
-				if (DEBUG) { console.groupEnd(); }
-
-				return data;
-			}
-		}
+	function unbindStructs(structs) {
+		structs.forEach(unbind);
 	}
 
 	function mount(node, options) {
-		options = assign({}, settings, options);
-
 		if (DEBUG) {
 			console.groupCollapsed('mount: ', node);
 		}
 
+		options = assign({}, settings, options);
+
 		var structs = [];
 		mountNode(node, options, structs);
 
-		if (DEBUG) {
-			console.table(structs, ["token", "path", "pipe"]);
-			console.groupEnd();
+		if (DEBUG) { console.groupEnd(); }
+
+		var fn = setupStructs;
+		var old;
+
+		// Return a read-only stream
+		return {
+			shift: noop,
+
+			stop: function stop() {
+				structs.forEach(teardown);
+			},
+
+			push: function push(scope) {
+				//if (DEBUG) { console.log('mount: push(scope)', scope); }
+				if (old === scope) { return; }
+				old = scope;
+
+				// Setup structs on the first scope push, unbind them on
+				// later pushes
+				fn(structs, options);
+				fn = unbindStructs;
+
+				structs.forEach(function(struct) {
+					bind(struct, scope, options);
+				});
+			}
 		}
-
-		return RenderStream(structs, options, node);
 	}
-
 
 	// Export (temporary)
 	mount.types  = types;
 	mount.tags   = tags;
 	mount.inputs = inputs;
-	mount.mountAttribute = mountAttribute;
-	mount.mountBoolean   = mountBoolean;
-	mount.mountInput     = mountInput;
-	mount.mountValue     = mountValue;
+	mount.mountAttribute   = mountAttribute;
+	mount.mountBoolean     = mountBoolean;
+	mount.mountInput       = mountInput;
+	mount.mountValueString = mountValueString;
+	mount.mountValueNumber = mountValueNumber;
+	mount.parseParams      = Struct.parseParams;
 
-	// Legacy pre 2.0.3
-	mount.mountName = function mountName(node, options, structs) {
-		var string = node.name;
-		var rtoken = options.rtoken;
-		rtoken.lastIndex = 0;
 
-		var match = rtoken.exec(string);
-		if (!match) { return; }
+	// Expose a way to get scopes from node for event delegation and debugging
 
-		return mountValueByType(node, options, match, structs);
+	mount.getScope = function getScope(node) {
+		var scope = findScope(node);
+		return scope === undefined && node.parentNode ?
+			getScope(node.parentNode) :
+			scope ;
 	};
+
+//	define(mount, {
+//		streams: {
+//			get: function() {
+//				return structs.slice();
+//			}
+//		}
+//	});
 
 	window.mount = mount;
 
-})(this);
+})(window);
 (function(window) {
 	if (!window.console || !window.console.log) { return; }
 	console.log('Sparky      - https://github.com/cruncher/sparky');
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
 
-	var DEBUG      = window.DEBUG;
+	var DEBUG          = window.DEBUG;
 
-	var Fn         = window.Fn;
-	var Observable = window.Observable;
-	var Stream     = window.Stream;
-	var dom        = window.dom;
-	var mount      = window.mount;
+	var Fn             = window.Fn;
+	var Observable     = window.Observable;
+	var Stream         = window.Stream;
+	var dom            = window.dom;
+	var mount          = window.mount;
 
-	var assign     = Object.assign;
-	var deprecate  = Fn.deprecate;
-	var getPath    = Fn.getPath;
-	var invoke     = Fn.invoke;
-	var noop       = Fn.noop;
-	var nothing    = Fn.nothing;
-	var tag        = dom.tag;
+	var assign         = Object.assign;
+	var deprecate      = Fn.deprecate;
+	var getPath        = Fn.getPath;
+	var invoke         = Fn.invoke;
+	var noop           = Fn.noop;
+	var nothing        = Fn.nothing;
+	var tag            = dom.tag;
 	var preventDefault = dom.preventDefault;
+	var parseParams    = mount.parseParams;
 
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
-	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[\w-\[\]]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[\w-\[\]]*))*))?/;
+	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[^\s,]+))*))?/;
 
 	var settings = {
 		// Child mounting function
 		mount: function mount(node, options, streams) {
-			var fn = dom.attribute(Sparky.attributePrefix + 'fn', node);
+			var fn = dom.attribute(Sparky.attributeFn, node);
 			if (!fn) { return; }
 
 			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
@@ -8657,22 +6716,30 @@ function getPositionParent(node) {
 	}
 
 	function escapeSelector(selector) {
-		return selector.replace(/\//g, '\\\/');
+		return selector.replace(/\//g, '\\/');
 	}
-var i = 0;
+
+	function toObservableOrSelf(object) {
+		return Observable(object) || object;
+	}
+
 	function Sparky(selector, data, options) {
 		if (!Sparky.prototype.isPrototypeOf(this)) {
 			return new Sparky(selector, data, options);
 		}
-var id = ++i;
+
 		var node = typeof selector === 'string' ?
 			document.querySelector(escapeSelector(selector)) :
 			selector ;
 
-		var fnstring = options && options.fn || dom.attribute(Sparky.attributePrefix + 'fn', node) || '';
+		if (!node) {
+			throw new Error('Sparky: "' + selector + '" not found.');
+		}
+
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var input    = this;
+		var input;
 		var renderer = nothing;
 
 		this[0]      = node;
@@ -8700,25 +6767,38 @@ var id = ++i;
 			// Parse the fns and params to execute
 			var token = fnstring.match(rfn);
 
+			// No more tokens, launch Sparky
 			if (!token) {
 				sparky.continue = noop;
 				render();
 				return sparky;
 			}
 
+			//console.group(token[0].trim());
 			var fn = Sparky.fn[token[1]];
 
+			// Function not found
 			if (!fn) {
 				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 			}
 
 			// Gaurantee that params exists, at least.
-			var params = token[2] ?
-				JSON.parse('[' + token[2].replace(/'/g, '"') + ']') :
-				nothing ;
+			var params = token[2] ? parseParams(token[2]) : nothing ;
 
+			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
-			input      = fn.call(sparky, node, input, params) || input;
+
+			// Call Sparky fn, gauranteeing the output is a non-duplicate stream
+			// of observables. Todo: we should not need to be so strict about
+			// .dedup() when we create a disticntion between mutation and
+			// path changes in Observables.
+			var output = fn.call(sparky, node, input, params);
+
+			input = output ?
+				output.map(toObservableOrSelf).dedup() :
+				input ;
+			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
+			//console.groupEnd();
 
 			// If fns have been interrupted calling is false
 			return calling && start();
@@ -8729,7 +6809,7 @@ var id = ++i;
 				var object;
 
 				if (data !== undefined) {
-					object = Observable(data);
+					object = data;
 					data   = undefined;
 					return object;
 				}
@@ -8752,40 +6832,88 @@ var id = ++i;
 			};
 		}
 
+		// Initialise this as a stream and set input to a deduped version
 		Stream.call(this, Source);
+		input = this.map(toObservableOrSelf).dedup();
 
 		this.interrupt = interrupt;
 		this.continue  = start;
+
 		start();
 	}
 
 	Sparky.prototype = Stream.prototype;
 
 	assign(Sparky, {
+		attributeFn:     'sparky-fn',
 		attributePrefix: 'sparky-',
 
 		fn: {
-			find: function(node, stream, params) {
+			global: function(node, stream, params) {
 				var scope = getPath(params[0], window);
 
-				if (!scope) {
-					console.warn('Sparky: scope:path – no object at path ' + params[0]);
+				if (scope === undefined) {
+					console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
 					return Fn.of();
 				}
 
-				return Fn.of(getPath(params[0], window));
+				return Fn.of(scope);
 			},
 
 			scope: Fn.deprecate(function(node, stream, params) {
 				return Sparky.fn.find.apply(this, arguments);
 			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
-			get: function(node, stream, params) {
-				return stream.map(getPath(params[0]));
+			get: function(node, input, params) {
+				// TODO: We should be able to express this with
+				// input.chain( .. Stream.observe(params[0], objet) .. )
+				// but because Fn#join() doesn't know how to handle streams
+				// we cant.
+
+				var output = Stream.of();
+				var stop = noop;
+
+				input.each(function(object) {
+					stop();
+					stop = Stream
+					.observe(params[0], object)
+					.each(output.push)
+					.stop;
+				});
+
+				this.then(function() {
+					stop();
+				});
+
+				return output;
+			},
+
+			if: function(node, stream, params) {
+				var name = params[0];
+				var mark = Sparky.MarkerNode(node);
+				var visible = false;
+
+				// Put the marker in place and remove the node
+				dom.before(node, mark);
+				dom.remove(node);
+
+				return stream.tap(function(scope) {
+					var visibility = !!scope[name];
+
+					if(visibility === visible) { return; }
+					visible = visibility;
+
+					if (visible) {
+						dom.replace(mark, node);
+					}
+					else {
+						dom.replace(node, mark);
+					}
+				});
 			},
 
 			stop: function ignore(node, stream) {
-				console.log(this.interrupt(), node, stream);
+				this.interrupt();
 			},
 
 			ignore: deprecate(function ignore(node, stream) {
@@ -8830,9 +6958,11 @@ var id = ++i;
 				return dom.create('text', '');
 			}
 
-			var attrFn  = node && node.getAttribute(Sparky.attributePrefix + 'fn');
-			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributePrefix + '-fn="' + attrFn + '"' : ''));
-		}
+			var attrFn  = node && node.getAttribute(Sparky.attributeFn);
+			return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
+		},
+
+		getScope: mount.getScope
 	});
 
 	Object.defineProperties(Sparky, {
@@ -8846,7 +6976,7 @@ var id = ++i;
 
 	window.Sparky = Sparky;
 
-})(this);
+})(window);
 
 // Sparky.fn
 
@@ -8869,7 +6999,8 @@ Sparky.nodeToString = Fn.id;
 		function log(scope) {
 			//console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
 			//console.log('data ', sparky.data);
-			console.log('Sparky node:', node, 'scope:', scope);
+			console.log('Sparky: scope change', node, scope);
+			console.trace();
 			//console.log('fn   ', node, sparky.fn);
 			//console[isIE ? 'log' : 'groupEnd']('---');
 		}
@@ -8880,7 +7011,7 @@ Sparky.nodeToString = Fn.id;
 
 		return scopes.tap(log);
 	};
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -8898,7 +7029,7 @@ Sparky.nodeToString = Fn.id;
 			});
 		}
 	});
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
@@ -8913,37 +7044,35 @@ Sparky.nodeToString = Fn.id;
 			});
 		}
 	});
-})(this);
+})(window);
 
 (function(window) {
 	"use strict";
 
+	var assign = Object.assign;
 	var Fn = window.Fn;
 
 	function preventDefault(e) {
 		e.preventDefault();
 	}
 
-	Sparky.scope = function(node) {
-		console.warn('Sparky: Sparky.scope() deprecated in favour of Sparky.getScope()')
-		return Sparky.getScope(node);
-	};
+	function getCookie(name) {
+        var cookieValue = null;
+        var cookies, cookie, i;
 
-	Sparky.setScope = function(node, scope) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		window.jQuery && jQuery.data(node, 'scope', scope);
-	};
-
-	Sparky.getScope = function(node) {
-		if (!window.jQuery) {
-			throw new Error(Sparky.attributePrefix + 'fn="store-scope" requires jQuery.');
-		}
-
-		return jQuery.data(node, 'scope');
-	};
+        if (document.cookie && document.cookie !== '') {
+            cookies = document.cookie.split(';');
+            for (i = 0; i < cookies.length; i++) {
+                cookie = cookies[i] && cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 
 	Object.assign(Sparky.fn, {
 		"prevent": function(node, scopes, params) {
@@ -8963,9 +7092,11 @@ Sparky.nodeToString = Fn.id;
 			node.addEventListener('submit', preventDefault);
 
 			scopes.tap(function(scope) {
-				if (submit) { node.removeEventListener(submit); }
+				if (submit) { node.removeEventListener('submit', submit); }
 
 				submit = function(e) {
+					var url = node.getAttribute('action');
+
 					// Axios
 					axios
 					.post(url, scope, {
@@ -8973,6 +7104,10 @@ Sparky.nodeToString = Fn.id;
 					})
 					.then(function (response) {
 						console.log(response);
+
+						if (response.data) {
+							assign(scope, response.data);
+						}
 					})
 					.catch(function (error) {
 						console.log(error);
@@ -8997,15 +7132,9 @@ Sparky.nodeToString = Fn.id;
 			//.on('destroy', function() {
 			//	node.removeEventListener('submit', submit);
 			//});
-		},
-
-		"expose-scope": function(node, scopes) {
-			scopes.tap(function(scope) {
-				Sparky.setScope(node, scope);
-			});
 		}
 	});
-})(this);
+})(window);
 
 
 (function() {
@@ -9096,9 +7225,21 @@ Sparky.nodeToString = Fn.id;
         throw new Error('Sparky: no axios, jQuery or fetch found for request "' + path + '"');
     } ;
 
+    function importScope(url, scopes) {
+        request(url)
+        .then(function(data) {
+            if (!data) { return; }
+            cache[url] = data;
+            scopes.push(data);
+        })
+        .catch(function(error) {
+            throw error;
+        });
+    }
+
     assign(Sparky.fn, {
         load: function load(node, stream, params) {
-            var path  = params[0];
+            var path = params[0];
 
             if (DEBUG && !path) {
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
@@ -9116,46 +7257,59 @@ Sparky.nodeToString = Fn.id;
         },
 
         import: function(node, stream, params) {
-            var path  = params[0];
+            var path = params[0];
 
             if (DEBUG && !path) {
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
             }
 
-            // If the resource is cached, return it as an shiftable
-            if (cache[path]) {
-                return Stream.of(cache[path]);
-            }
-
             var scopes = Stream.of();
 
-            request(path)
-            .then(function(data) {
-                if (!data) { return; }
-                cache[path] = data;
-                scopes.push(data);
-            })
-            .catch(function(error) {
-                console.warn(error);
-            });
+            if (/\$\{(\w+)\}/.test(path)) {
+                stream.each(function(scope) {
+                    var url = path.replace(/\$\{(\w+)\}/g, function($0, $1) {
+                        return scope[$1];
+                    });
 
+                    // If the resource is cached...
+                    if (cache[url]) {
+                        scopes.push(cache[url]);
+                    }
+                    else {
+                        importScope(url, scopes);
+                    }
+                });
+
+                return scopes;
+            }
+
+            // If the resource is cached, return it as a readable
+            if (cache[path]) {
+                return Fn.of(cache[path]);
+            }
+
+            importScope(path, scopes);
             return scopes;
         }
     });
-})(this);
+})(window);
 (function(window) {
     "use strict";
 
-    var DEBUG   = window.DEBUG;
+    var DEBUG   = false;
     var axios   = window.axios;
     var jQuery  = window.jQuery;
     var Fn      = window.Fn;
+    var Stream  = window.Stream;
     var dom     = window.dom;
     var Sparky  = window.Sparky;
+    var frame   = window.frame;
 
     var assign  = Object.assign;
+    var cue     = frame.cue;
     var fetch   = window.fetch;
     var get     = Fn.get;
+    var noop    = Fn.noop;
     var getData = get('data');
     var parseHTML = dom.parse('html');
 
@@ -9184,10 +7338,7 @@ Sparky.nodeToString = Fn.id;
     fetch ? function fetchRequest(url, id) {
         return fetch(url)
         .then(getData)
-        .then(parseHTML)
-        .then(function() {
-
-        });
+        .then(parseHTML);
     } :
 
     function errorRequest(url, id) {
@@ -9199,18 +7350,45 @@ Sparky.nodeToString = Fn.id;
             throw new Error('Sparky: template ' + id + ' not found.');
         }
 
-        scopes
-        .clone()
-        .take(1)
-        .each(function(scope) {
+        var run = function first() {
+            run = noop;
             var fragment = dom.clone(template);
             dom.empty(node);
             dom.append(node, fragment);
+            if (DEBUG) { console.log('Sparky fn=template:', node); }
             sparky.continue();
+        };
+
+        var stream = Stream.of();
+
+        scopes.each(function(scope) {
+            cue(function() {
+                run();
+                stream.push(scope);
+            });
         });
+
+        return stream;
     }
 
-    function templateFromCache(sparky, node, scopes, path, id, template) {
+    function templateFromCache(sparky, node, scopes, path, id) {
+        var doc, elem;
+
+        var template = cache[path][id];
+
+        if (!template) {
+            doc  = cache[path][''];
+            elem = doc.getElementById(id);
+
+            template = cache[path][id] = doc === document ?
+                dom.fragmentFromId(id) :
+                elem && dom.fragmentFromHTML(elem.innerHTML) ;
+        }
+
+        return insertTemplate(sparky, node, scopes, id, template);
+    }
+
+    function templateFromCache2(sparky, node, scopes, path, id, template) {
         var doc, elem;
 
         if (!template) {
@@ -9222,10 +7400,36 @@ Sparky.nodeToString = Fn.id;
                 elem && dom.fragmentFromHTML(elem.innerHTML) ;
         }
 
-        insertTemplate(sparky, node, scopes, id, template);
+        if (!template) {
+            throw new Error('Sparky: template ' + id + ' not found.');
+        }
+
+        //return scopes.tap(function(scope) {
+            var fragment = dom.clone(template);
+            dom.empty(node);
+            dom.append(node, fragment);
+            sparky.continue();
+        //});
     }
 
-    function templateFromDocument(sparky, node, scopes, path, id, doc) {
+    function templateFromDocument(sparky, node, scopes, path, id) {
+        var stream = Stream.of();
+
+        request(path)
+        .then(function(doc) {
+            if (!doc) { return; }
+            var tapped = templateFromDocument2(sparky, node, scopes, path, id, doc);
+            sparky.continue();
+            tapped.each(stream.push);
+        })
+        .catch(function(error) {
+            console.warn(error);
+        });
+
+        return stream;
+    }
+
+    function templateFromDocument2(sparky, node, scopes, path, id, doc) {
         var template, elem;
 
         cache[path] = { '': doc };
@@ -9238,12 +7442,12 @@ Sparky.nodeToString = Fn.id;
             throw new Error('Sparky: template url has no hash id ' + path);
         }
 
-        insertTemplate(sparky, node, scopes, id, template);
+        return insertTemplate(sparky, node, scopes, id, template);
     }
 
     assign(Sparky.fn, {
         template: function(node, scopes, params) {
-            var url   = params[0];
+            var url = params[0];
             var parts, path, id;
 
             // Support legacy ids instead of urls for just now
@@ -9264,52 +7468,97 @@ Sparky.nodeToString = Fn.id;
             }
 
             var sparky = this;
-
             sparky.interrupt();
 
             // If the resource is cached, return it as an shiftable
-            if (cache[path]) {
-                templateFromCache(sparky, node, scopes, path, id, cache[path][id]);
-            }
-            else {
-                request(path)
-                .then(function(doc) {
-                    if (!doc) { return; }
-                    templateFromDocument(sparky, node, scopes, path, id, doc);
-                })
-                .catch(function(error) {
-                    console.warn(error);
+            return cache[path] ?
+                templateFromCache(sparky, node, scopes, path, id) :
+                templateFromDocument(sparky, node, scopes, path, id) ;
+        },
+
+
+        // TODO: Do this, but better
+
+        'template-from': function(node, scopes, params) {
+            var string = params[0];
+            var sparky = this;
+            var outputScopes = Stream.of();
+            sparky.interrupt();
+
+            if (/\$\{([\w._]+)\}/.test(string)) {
+                scopes.each(function(scope) {
+                    var notParsed = false;
+                    var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
+                        var value = Fn.getPath($1, scope);
+                        if (value === undefined) { notParsed = true; }
+                        return value;
+                    });
+
+                    if (notParsed) {
+                        console.log('Sparky: template-from not properly assembled from scope', string, scope);
+                        return;
+                    }
+
+                    var parts = url.split('#');
+                    var path  = parts[0] || '';
+                    var id    = parts[1] || '';
+
+                    if (DEBUG && !id) {
+                        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
+                    }
+
+                    // If the resource is cached, return it as an shiftable
+                    if (cache[path]) {
+                        templateFromCache2(sparky, node, scopes, path, id, cache[path][id]);
+                        outputScopes.push(scope);
+                    }
+                    else {
+                        request(path)
+                        .then(function(doc) {
+                            if (!doc) { return; }
+                            templateFromDocument(sparky, node, scopes, path, id, doc);
+                        })
+                        .catch(function(error) {
+                            console.warn(error);
+                        });
+                    }
                 });
+
+                return outputScopes;
             }
 
-            return scopes;
+            throw new Error('Sparky: template-from must have ${prop} in the url string');
         }
     });
-})(this);
+})(window);
 (function(window) {
 	"use strict";
+
+	var DEBUG      = false;
 
 	var Fn         = window.Fn;
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
+	var frame      = window.frame;
 	var A          = Array.prototype;
 
 	var noop       = Fn.noop;
+	var before     = dom.before;
 	var clone      = dom.clone;
+	var remove     = dom.remove;
 	var tag        = dom.tag;
+	var cue        = frame.cue;
+	var uncue      = frame.uncue;
 	var observe    = Observable.observe;
 	var MarkerNode = Sparky.MarkerNode;
 
 	var $object    = Symbol('object');
 
-	// We maintain a list of sparkies that are scheduled for destruction. This
-	// time determines how long we wait during periods of inactivity before
-	// destroying those sparkies.
-	var destroyDelay = 8000;
-
 	function create(node, object, options) {
+		if (DEBUG) { console.groupCollapsed('each: create', node); }
 		var sparky = new Sparky(node, object, options);
+		if (DEBUG) { console.groupEnd(); }
 		sparky[$object] = object;
 		return sparky;
 	}
@@ -9327,7 +7576,8 @@ Sparky.nodeToString = Fn.id;
 				continue;
 			}
 
-			i = -1;
+			// i = -1
+			i = n - 1;
 			while (sparkies[++i] && sparkies[i][$object] !== object);
 
 			sparky = i === sparkies.length ?
@@ -9336,15 +7586,15 @@ Sparky.nodeToString = Fn.id;
 
 			sparkies.splice(n, 0, sparky);
 		}
-	}
 
-	function reorderNodes(node, array, sparkies) {
 		// Reordering has pushed all removed sparkies to the end of the
 		// sparkies. Remove them.
 		while (sparkies.length > array.length) {
-			A.forEach.call(sparkies.pop().stop(), dom.remove);
+			A.forEach.call(sparkies.pop().stop(), remove);
 		}
+	}
 
+	function reorderNodes(node, array, sparkies) {
 		// Reorder nodes in the DOM
 		var l = sparkies.length;
 		var n = -1;
@@ -9355,9 +7605,54 @@ Sparky.nodeToString = Fn.id;
 			node = node ? node.nextSibling : null ;
 
 			while (++n < l && sparkies[n][0] !== node) {
+				// Passing null to insertBefore appends to the end I think
 				parent.insertBefore(sparkies[n][0], node);
 			}
 		}
+	}
+
+	function eachFrame(stream, fn) {
+		var unobserve = noop;
+
+		function update(time) {
+//console.log('UPDATE')
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
+
+			function render(time) {
+				fn(scope);
+			}
+
+			unobserve();
+
+			var uno = observe(scope, '', function() {
+				cue(render);
+			});
+
+			unobserve = function() {
+				uno();
+				uncue(render);
+			};
+		}
+
+		function push() {
+		//console.log('PUSH')
+			cue(update);
+		}
+
+		if (stream.on) {
+			stream.on('push', push);
+		}
+		else {
+			push();
+		}
+
+		return function() {
+			stream.off('push', push);
+			unobserve();
+			uncue(update);
+		};
 	}
 
 	Sparky.fn.each = function each(node, scopes, params) {
@@ -9375,6 +7670,7 @@ Sparky.nodeToString = Fn.id;
 			// selects retain their value.
 			var value = isSelect ? marker.parentNode.value : undefined ;
 
+			if (DEBUG) { console.log('render: each ' + JSON.stringify(array)); }
 			reorderCache(template, options, array, sparkies);
 			reorderNodes(marker, array, sparkies);
 
@@ -9386,39 +7682,26 @@ Sparky.nodeToString = Fn.id;
 			}
 		}
 
-		var throttle = Fn.throttle(update, requestAnimationFrame, noop);
-		//var timer;
-
-		//fns.unshift(function() {
-		//	this.data = Object.create(data);
-		//});
-
 		// Stop Sparky trying to bind the same scope and ctrls again.
-		//template.removeAttribute('data-scope');
-		template.removeAttribute(Sparky.attributePrefix + 'fn');
+		template.removeAttribute(Sparky.attributeFn);
 
 		// Put the marker in place and remove the node
-		dom.before(node, marker);
-		dom.remove(node);
+		before(node, marker);
+		remove(node);
 
-		var unobserve = noop;
-		var initial = scopes.latest().shift();
+		// Get the value of scopes in frames after it has changed
+		var stream = scopes.latest().dedup();
+		var unEachFrame = eachFrame(stream, update);
 
-		if (initial) {
-			observe(initial, '', update);
-		}
-
-		scopes.each(function(scope) {
-			unobserve();
-			unobserve = observe(scope, '', throttle);
-		});
-
-		this.then(function destroy() {
-			throttle.cancel();
-			unobserve();
+		this.then(function() {
+			remove(marker);
+			unEachFrame();
+			sparkies.forEach(function(sparky) {
+				sparky.stop();
+			});
 		});
 	};
-})(this);
+})(window);
 
 // Sparky.filter
 
@@ -9428,7 +7711,6 @@ Sparky.nodeToString = Fn.id;
 	var Fn        = window.Fn;
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
-	var Time      = window.Time;
 
 	var A         = Array.prototype;
 	var assign    = Object.assign;
@@ -9436,6 +7718,7 @@ Sparky.nodeToString = Fn.id;
 	var get       = Fn.get;
 	var isDefined = Fn.isDefined;
 	var last      = Fn.last;
+	var formatDate = Fn.formatDate;
 
 	function spaces(n) {
 		var s = '';
@@ -9468,7 +7751,13 @@ Sparky.nodeToString = Fn.id;
 	}
 
 	assign(Sparky.transformers = {}, {
-		add:         { tx: Fn.add,         ix: curry(function(m, n) { return n - m; }) },
+		add:         {
+			tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
+			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+		},
+
+		'add-date':  { tx: Fn.addDate,     ix: Fn.subDate },
+		'add-time':  { tx: Fn.addTime,     ix: Fn.subTime },
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
@@ -9482,6 +7771,7 @@ Sparky.nodeToString = Fn.id;
 		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
 		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
 		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: Fn.toInt },
 
 		interpolate: {
 			tx: function(point) {
@@ -9508,13 +7798,14 @@ Sparky.nodeToString = Fn.id;
 
 		// Transforms from Fn's map functions
 
-		add:          Fn.add,
 		append:       Fn.append,
 		contains:     Fn.contains,
 		diff:         Fn.diff,
 		equals:       Fn.equals,
 		//exp:          Fn.exp,
 		factorise:    Fn.factorise,
+		formatdate:   Fn.formatDate,
+		formattime:   Fn.formatTime,
 		gcd:          Fn.gcd,
 		get:          Fn.get,
 		getPath:      Fn.getPath,
@@ -9556,14 +7847,6 @@ Sparky.nodeToString = Fn.id;
 
 
 		// Sparky transforms
-
-		timeformat: function timeformat(format, lang) {
-			lang = lang || document.documentElement.lang;
-
-			return function(value) {
-				return Time(value).render(format, lang);
-			};
-		},
 
 		divide: curry(function(n, value) {
 			if (typeof value !== 'number') { return; }
@@ -9630,8 +7913,22 @@ Sparky.nodeToString = Fn.id;
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, path, array) {
-			return array && array.map(Sparky.transforms[method](path));
+		map: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
+		}, true),
+
+		filter: curry(function(method, args, array) {
+			return array && array.map(Sparky.transforms[method].apply(null,args));
+		}, true),
+
+		match: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return regex.exec(string);
+		}),
+
+		matches: curry(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return !!regex.test(string);
 		}),
 
 		pluralise: curry(function(str1, str2, lang, value) {
@@ -9679,7 +7976,7 @@ Sparky.nodeToString = Fn.id;
 
 		reduce: curry(function(name, initialValue, array) {
 			return array && array.reduce(Fn[name], initialValue || 0);
-		}),
+		}, true),
 
 		replace: curry(function(str1, str2, value) {
 			if (typeof value !== 'string') { return; }
@@ -9694,7 +7991,7 @@ Sparky.nodeToString = Fn.id;
 			return typeof value === 'string' ?
 				value.slice(i0, i1) :
 				Array.prototype.slice.call(value, i0, i1) ;
-		}),
+		}, true),
 
 		striptags: (function() {
 			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
@@ -9764,4 +8061,4 @@ Sparky.nodeToString = Fn.id;
 			return value ? truthy : falsy ;
 		})
 	});
-})(this);
+})(window);

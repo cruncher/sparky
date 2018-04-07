@@ -15,8 +15,8 @@
 	const queue = new Set();
 	const data  = [];
 
-	let point;
-	let frame;
+	var point;
+	var frame;
 
 	function run(time) {
 		if (DEBUG) {

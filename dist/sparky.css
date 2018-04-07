@@ -8,11 +8,11 @@ layer or tip descendents).
 Styleguide: zutilities.transition
 */
 
-.notransition,
-.notransition .swipeable,
-.notransition .switchable,
-.notransition .popable,
-.notransition .toggleable {
+.no-transition,
+.no-transition .swipeable,
+.no-transition .switchable,
+.no-transition .popable,
+.no-transition .toggleable {
 	-webkit-transition: none !important;
 	   -moz-transition: none !important;
 	     -o-transition: all 0 linear 0 !important;

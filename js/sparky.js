@@ -205,15 +205,15 @@
 		attributePrefix: 'sparky-',
 
 		fn: {
-			find: function(node, stream, params) {
+			global: function(node, stream, params) {
 				var scope = getPath(params[0], window);
 
-				if (!scope) {
-					console.warn('Sparky: scope:path – no object at path ' + params[0]);
+				if (scope === undefined) {
+					console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
 					return Fn.of();
 				}
 
-				return Fn.of(getPath(params[0], window));
+				return Fn.of(scope);
 			},
 
 			scope: Fn.deprecate(function(node, stream, params) {

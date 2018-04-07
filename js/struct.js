@@ -11,8 +11,6 @@
 	const assign     = Object.assign;
     const get        = Fn.get;
 	const id         = Fn.id;
-	const isDefined  = Fn.isDefined;
-	const isNaN      = Number.isNaN;
 	const noop       = Fn.noop;
 	const pipe       = Fn.pipe;
 	const remove     = Fn.remove;
