@@ -467,6 +467,7 @@
 		},
 
 		form: function(node, options, structs) {
+			mountAttribute('method', node, options, structs);
 			mountAttribute('action', node, options, structs);
 		},
 
