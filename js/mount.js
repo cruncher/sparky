@@ -120,7 +120,7 @@
 		var i = strings.length;
 		strings.push('');
 
-		// new Struct(node, token, path, render [, type, read, pipe])
+		// new Struct(node, token, path, render)
 		structs.push(new Struct(node, match[0], match[2], function renderText(value) {
 			strings[i] = toRenderString(value);
 			render(strings);
