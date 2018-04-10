@@ -44,7 +44,8 @@
             scopes.push(data);
         })
         .catch(function(error) {
-            throw error;
+            console.warn('Sparky: no data found at', url);
+            //throw error;
         });
     }
 
