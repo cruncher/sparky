@@ -10,6 +10,7 @@
 	var frame      = window.frame;
 	var A          = Array.prototype;
 
+	var isArray    = Array.isArray;
 	var noop       = Fn.noop;
 	var before     = dom.before;
 	var clone      = dom.clone;
@@ -82,7 +83,6 @@
 		var unobserve = noop;
 
 		function update(time) {
-//console.log('UPDATE')
 			var scope = stream.shift();
 			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 			if (scope === undefined) { return; }
@@ -104,7 +104,6 @@
 		}
 
 		function push() {
-		//console.log('PUSH')
 			cue(update);
 		}
 
@@ -119,6 +118,13 @@
 			stream.off('push', push);
 			unobserve();
 			uncue(update);
+		};
+	}
+
+	function entryToKeyValue(entry) {
+		return {
+			key:   entry[0],
+			value: entry[1]
 		};
 	}
 
@@ -137,7 +143,12 @@
 			// selects retain their value.
 			var value = isSelect ? marker.parentNode.value : undefined ;
 
+			if (!isArray(array)) {
+				array = Object.entries(array).map(entryToKeyValue);
+			}
+
 			if (DEBUG) { console.log('render: each ' + JSON.stringify(array)); }
+
 			reorderCache(template, options, array, sparkies);
 			reorderNodes(marker, array, sparkies);
 
