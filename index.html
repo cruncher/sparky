@@ -346,9 +346,11 @@ My name is {[title]} and I'm {[version]}!
 				<p>For debugging. Logs node and scopes to the console.</p>
 			</div>
 
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-post-on-submit">
-				<h3 class="text-5"><a href="#fn-post-on-submit"><code class="js">post-on-submit</code></a></h3>
-				<p>Posts the content of a form as JSON.</p>
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-request-on-submit">
+				<h3 class="text-5"><a href="#fn-request-on-submit"><code class="js">request-on-submit</code></a></h3>
+				<p>Sends a request on form <code class="js">submit</code>, where the type of request is determined
+				by the current state of the <code class="js">method</code> attribute and the URL determined by the
+				<code class="js">action</code> attribute of the form. The JSON data payload is the current scope.</p>
 			</div>
 
 			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-prevent">
@@ -568,8 +570,8 @@ My name is {[title]} and I'm {[version]}!
 				<p>Sparky looks for tags in prefixed attributes before trying unprefixed attributes. There are three main cases where this is useful:</p>
 				<ul>
 					<li>
-					In IE, where the <code class="js-code">style</code> attribute cannot be parsed
-					(because IE does not provide access to the original text of the <code class="js-code">style</code> attribute),
+					In IE, where Sparky cannot mount the <code class="js-code">style</code> attribute
+					(because IE does not provide access to the original text of the attribute),
 					use <code class="js-code">sparky-style</code>.
 					</li>
 					<li>

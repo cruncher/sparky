@@ -216,10 +216,6 @@
 				return Fn.of(scope);
 			},
 
-			scope: Fn.deprecate(function(node, stream, params) {
-				return Sparky.fn.find.apply(this, arguments);
-			}, 'Deprecated Sparky fn scope:path renamed find:path'),
-
 			get: function(node, input, params) {
 				// TODO: We should be able to express this with
 				// input.chain( .. Stream.observe(params[0], objet) .. )
@@ -272,11 +268,7 @@
 				this.interrupt();
 			},
 
-			ignore: deprecate(function ignore(node, stream) {
-				console.log(this.interrupt(), node, stream);
-			}, 'Sparky: fn "ignore" renamed "stop".'),
-
-			prevent: function preventSubmitCtrl(node, stream, params) {
+			'prevent-on': function preventSubmitCtrl(node, stream, params) {
 				node.addEventListener(params[0], preventDefault);
 
 				this.then(function() {
@@ -300,7 +292,15 @@
 				console.groupEnd('---');
 
 				return scopes.tap(log);
-			}
+			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
+
+			ignore: deprecate(function ignore(node, stream) {
+				console.log(this.interrupt(), node, stream);
+			}, 'Sparky: fn "ignore" renamed "stop".')
 		},
 
 		transforms: {},

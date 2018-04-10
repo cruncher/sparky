@@ -3,15 +3,19 @@
     var axios   = window.axios;
     var jQuery  = window.jQuery;
     var Fn      = window.Fn;
+    var dom     = window.dom;
     var Sparky  = window.Sparky;
     var Stream  = window.Stream;
 
-    var assign  = Object.assign;
-    var fetch   = window.fetch;
-    var get     = Fn.get;
-    var getData = get('data');
+    var assign    = Object.assign;
+    var attribute = dom.attribute;
+    var events    = dom.events;
+    var preventDefault = dom.preventDefault;
+    var fetch     = window.fetch;
+    var get       = Fn.get;
+    var getData   = get('data');
 
-    var cache   = {};
+    var cache     = {};
 
     var request = axios ? function axiosRequest(path) {
         return axios
@@ -101,6 +105,44 @@
 
             importScope(path, scopes);
             return scopes;
+        },
+
+        'request-on-submit': function(node, scopes) {
+            var type = 'submit';
+            var scope;
+
+            events(type, node)
+            .tap(preventDefault)
+            .each(function(e) {
+                var method = attribute('method', node);
+                var action = attribute('action', node);
+
+                // Todo: Use request fn from resouce, not from this file!
+                request({
+                    url:    action,
+                    method: method,
+                    data:   scope,
+                    headers: {
+                        // Make Sparky.csrftoken a getter property that gets a cookie...
+                        //cookies.get('csrftoken')
+                        "X-CSRFToken": Sparky.csrftoken
+                    }
+                })
+                .then(function(object) {
+                    //console.log('SUCCESS', method, object);
+                    assign(scope, object);
+                })
+                .catch(function(thing) {
+                    //console.log('FAIL', thing, thing.response.data);
+                    dom.events.trigger(node, 'dom-error', {
+                        detail: thing.response.data
+                    });
+                });
+            });
+
+            return scopes.tap(function(object) {
+                scope = object;
+            });
         }
     });
 })(window);
