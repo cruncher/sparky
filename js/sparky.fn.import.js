@@ -49,23 +49,23 @@
     }
 
     assign(Sparky.fn, {
-        //load: function load(node, stream, params) {
-        //    var path = params[0];
-        //
-        //    if (DEBUG && !path) {
-        //        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
-        //    }
-        //
-        //    var scopes = Stream.of();
-        //
-        //    request(path)
-        //    .then(scopes.push)
-        //    .catch(function (error) {
-        //        console.warn(error);
-        //    });
-        //
-        //    return scopes;
-        //},
+        load: function load(node, stream, params) {
+            var path = params[0];
+
+            if (DEBUG && !path) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
+            }
+
+            var scopes = Stream.of();
+
+            request(path)
+            .then(scopes.push)
+            .catch(function (error) {
+                console.warn(error);
+            });
+
+            return scopes;
+        },
 
         import: function(node, stream, params) {
             var path = params[0];
