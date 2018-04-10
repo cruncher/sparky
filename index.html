@@ -553,6 +553,34 @@ My name is {[title]} and I'm {[version]}!
 				<p>Returns <code>value1</code> where value is truthy, otherwise <code>value2</code>.</p>
 			</div>
 
+		</article><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
+			<h2 class="block">Sparky options</h2>
+
+			<!-- Objects -->
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="options-attributeFn">
+				<h3 class="text-5"><a href="#options-attributeFn"><code class="js">Sparky.attributeFn</code></a></h3>
+				<p>A string that names the <code class="js-code">fn</code> attribute. The default is <code class="js-code">'sparky-fn'</code>.</p>
+			</div>
+
+			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="options-attributePrefix">
+				<h3 class="text-5"><a href="#options-attributePrefix"><code class="js">Sparky.attributePrefix</code></a></h3>
+				<p>A string that prefixes attributes where Sparky looks for tags. The default is <code class="js-code">'sparky-'</code>.</p>
+				<p>Sparky looks for tags in prefixed attributes before trying unprefixed attributes. There are three main cases where this is useful:</p>
+				<ul>
+					<li>
+					In IE, where the <code class="js-code">style</code> attribute cannot be parsed
+					(because IE does not provide access to the original text of the <code class="js-code">style</code> attribute),
+					use <code class="js-code">sparky-style</code>.
+					</li>
+					<li>
+					For the <code class="js-code">value</code> attribute, where you don't want to interfere with the
+					browser's autocompletion or default values, use <code class="js-code">sparky-value</code>.
+					</li>
+					<li>
+					Where you want to provide different html content to browsers that fail to run Sparky.
+					</li>
+				</ul>
+			</div>
 		</article>
 	</div>
 
