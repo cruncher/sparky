@@ -1,14 +1,11 @@
 (function(window) {
 	"use strict";
 
-	var assign = Object.assign;
+	var Fn     = window.Fn;
 	var Sparky = window.Sparky;
+	var set    = Fn.set;
 
-	assign(Sparky.fn, {
-		html: function(node, scopes) {
-			scopes.tap(function(html) {
-				node.innerHTML = html;
-			});
-		}
-	});
+	Sparky.fn.html = function each(node, scopes, params) {
+        return scopes.tap(set('innerHTML', node));
+	};
 })(window);

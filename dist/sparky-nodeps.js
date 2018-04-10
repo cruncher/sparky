@@ -564,7 +564,7 @@
 		var i = strings.length;
 		strings.push('');
 
-		// new Struct(node, token, path, render [, type, read, pipe])
+		// new Struct(node, token, path, render)
 		structs.push(new Struct(node, match[0], match[2], function renderText(value) {
 			strings[i] = toRenderString(value);
 			render(strings);
@@ -911,6 +911,7 @@
 		},
 
 		form: function(node, options, structs) {
+			mountAttribute('method', node, options, structs);
 			mountAttribute('action', node, options, structs);
 		},
 
@@ -1376,10 +1377,6 @@
 				return Fn.of(scope);
 			},
 
-			scope: Fn.deprecate(function(node, stream, params) {
-				return Sparky.fn.find.apply(this, arguments);
-			}, 'Deprecated Sparky fn scope:path renamed find:path'),
-
 			get: function(node, input, params) {
 				// TODO: We should be able to express this with
 				// input.chain( .. Stream.observe(params[0], objet) .. )
@@ -1432,11 +1429,7 @@
 				this.interrupt();
 			},
 
-			ignore: deprecate(function ignore(node, stream) {
-				console.log(this.interrupt(), node, stream);
-			}, 'Sparky: fn "ignore" renamed "stop".'),
-
-			prevent: function preventSubmitCtrl(node, stream, params) {
+			'prevent-on': function preventSubmitCtrl(node, stream, params) {
 				node.addEventListener(params[0], preventDefault);
 
 				this.then(function() {
@@ -1460,7 +1453,15 @@
 				console.groupEnd('---');
 
 				return scopes.tap(log);
-			}
+			},
+
+			scope: Fn.deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
+
+			ignore: deprecate(function ignore(node, stream) {
+				console.log(this.interrupt(), node, stream);
+			}, 'Sparky: fn "ignore" renamed "stop".')
 		},
 
 		transforms: {},
@@ -1493,216 +1494,6 @@
 	window.Sparky = Sparky;
 
 })(window);
-
-// Sparky.fn
-
-Sparky.nodeToString = Fn.id;
-
-(function(window) {
-	var Sparky = window.Sparky;
-
-	// Detect IE
-	var isIE = !!(document.all && document.compatMode || window.navigator.msPointerEnabled);
-
-	// Logs nodes, scopes and data.
-	Sparky.fn.log = function(node, scopes) {
-		var sparky = this;
-
-		// In IE11 and probably below, and possibly Edge, who knows,
-		// console.groups can arrive in really weird orders. They are not at all
-		// useful for debugging as a result. Rely on console.log.
-
-		function log(scope) {
-			//console[isIE ? 'log' : 'group']('Sparky: scope ' + Sparky.nodeToString(node));
-			//console.log('data ', sparky.data);
-			console.log('Sparky: scope change', node, scope);
-			console.trace();
-			//console.log('fn   ', node, sparky.fn);
-			//console[isIE ? 'log' : 'groupEnd']('---');
-		}
-
-		//console[isIE ? 'log' : 'group']('Sparky: run   ' + Sparky.nodeToString(node));
-		//console.log('data ', sparky.data);
-		//console[isIE ? 'log' : 'groupEnd']('---');
-
-		return scopes.tap(log);
-	};
-})(window);
-
-(function(window) {
-	"use strict";
-
-	var assign = Object.assign;
-	var dom    = window.dom;
-	var Sparky = window.Sparky;
-
-	assign(Sparky.fn, {
-		"show-on-scope": function(node, scopes) {
-			scopes.tap(function() {
-				window.requestAnimationFrame(function() {
-					dom.classes(node).remove('sparky-hidden');
-				});
-			});
-		}
-	});
-})(window);
-
-(function(window) {
-	"use strict";
-
-	var assign = Object.assign;
-	var Sparky = window.Sparky;
-
-	assign(Sparky.fn, {
-		html: function(node, scopes) {
-			scopes.tap(function(html) {
-				node.innerHTML = html;
-			});
-		}
-	});
-})(window);
-
-(function(window) {
-	"use strict";
-
-	var assign = Object.assign;
-	var Fn = window.Fn;
-
-	function preventDefault(e) {
-		e.preventDefault();
-	}
-
-	function getCookie(name) {
-        var cookieValue = null;
-        var cookies, cookie, i;
-
-        if (document.cookie && document.cookie !== '') {
-            cookies = document.cookie.split(';');
-            for (i = 0; i < cookies.length; i++) {
-                cookie = cookies[i] && cookies[i].trim();
-                // Does this cookie string begin with the name we want?
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-	Object.assign(Sparky.fn, {
-		"prevent": function(node, scopes, params) {
-			node.addEventListener(params[0], preventDefault);
-		},
-
-		"ajax-on-submit": function(node, scopes, params) {
-			var method = node.getAttribute('method') || 'POST';
-			var url    = node.getAttribute('action');
-
-			if (!Fn.isDefined(url)) {
-				throw new Error('Sparky: fn ajax-on-submit requires an action="url" attribute.');
-			}
-
-			var submit;
-
-			node.addEventListener('submit', preventDefault);
-
-			scopes.tap(function(scope) {
-				if (submit) { node.removeEventListener('submit', submit); }
-
-				submit = function(e) {
-					var url = node.getAttribute('action');
-
-					// Axios
-					axios
-					.post(url, scope, {
-						headers: { "X-CSRFToken": getCookie('csrftoken') }
-					})
-					.then(function (response) {
-						console.log(response);
-
-						if (response.data) {
-							assign(scope, response.data);
-						}
-					})
-					.catch(function (error) {
-						console.log(error);
-					});
-
-					// jQuery
-					//jQuery.ajax({
-					//	//type: method.toLowerCase(),
-					//	//url:  url,
-					//	//data: JSON.stringify(scope),
-					//	//dataType: 'json'
-					//})
-					//.then(function(value) {
-					//	console.log(value);
-					//});
-				};
-
-				node.addEventListener('submit', submit);
-			})
-
-			//this
-			//.on('destroy', function() {
-			//	node.removeEventListener('submit', submit);
-			//});
-		}
-	});
-})(window);
-
-
-(function() {
-	"use strict";
-
-	Sparky.fn['x-scroll-slave'] = function(node) {
-		var name = node.getAttribute(Sparky.attributePrefix + 'x-scroll-master');
-		var master;
-
-		function update() {
-			node.scrollLeft = master.scrollLeft;
-		}
-
-		this
-		.on('dom-add', function() {
-			master = document.getElementById(name);
-
-			if (!master) {
-				console.error(node);
-				throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
-			}
-
-			master.addEventListener('scroll', update);
-			update();
-		})
-		.on('destroy', function() {
-			if (!master) { return; }
-			master.removeEventListener('scroll', update);
-		});
-	};
-
-	Sparky.fn['y-scroll-slave'] = function(node) {
-		var name = node.getAttribute(Sparky.attributePrefix + 'y-scroll-master');
-		var master = document.getElementById(name);
-
-		if (!master) {
-			console.error(node);
-			throw new Error('Sparky scroll-x-slave: id="' + name + '" not in the DOM.');
-		}
-
-		function update() {
-			node.scrollTop = master.scrollTop;
-		}
-
-		master.addEventListener('scroll', update);
-		update();
-
-		this.on('destroy', function() {
-			master.removeEventListener('scroll', update);
-		});
-	};
-})();
 (function(window) {
     var DEBUG   = window.DEBUG;
     var axios   = window.axios;
@@ -1711,12 +1502,12 @@ Sparky.nodeToString = Fn.id;
     var Sparky  = window.Sparky;
     var Stream  = window.Stream;
 
-    var assign  = Object.assign;
-    var fetch   = window.fetch;
-    var get     = Fn.get;
-    var getData = get('data');
+    var assign    = Object.assign;
+    var fetch     = window.fetch;
+    var get       = Fn.get;
+    var getData   = get('data');
 
-    var cache   = {};
+    var cache     = {};
 
     var request = axios ? function axiosRequest(path) {
         return axios
@@ -1806,6 +1597,75 @@ Sparky.nodeToString = Fn.id;
 
             importScope(path, scopes);
             return scopes;
+        }
+    });
+})(window);
+(function(window) {
+    "use strict";
+
+    var DEBUG          = window.DEBUG;
+
+    var dom            = window.dom;
+    var Sparky         = window.Sparky;
+
+    var assign         = Object.assign;
+    var attribute      = dom.attribute;
+    var events         = dom.events;
+    var preventDefault = dom.preventDefault;
+
+    function getCookie(name) {
+        var cookieValue = null;
+        var cookies, cookie, i;
+
+        if (document.cookie && document.cookie !== '') {
+            cookies = document.cookie.split(';');
+            for (i = 0; i < cookies.length; i++) {
+                cookie = cookies[i] && cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    assign(Sparky.fn, {
+        'request-on-submit': function(node, scopes) {
+            var type = 'submit';
+            var scope;
+
+            events(type, node)
+            .tap(preventDefault)
+            .each(function(e) {
+                var method = attribute('method', node);
+                var action = attribute('action', node);
+
+                // Todo: Use request fn from resouce
+                request({
+                    url:    action,
+                    method: method,
+                    data:   scope,
+                    headers: {
+                        "X-CSRFToken": getCookie('csrftoken')
+                    }
+                })
+                .then(function(object) {
+                    //console.log('SUCCESS', method, object);
+                    assign(scope, object);
+                })
+                .catch(function(thing) {
+                    //console.log('FAIL', thing, thing.response.data);
+                    dom.events.trigger(node, 'dom-error', {
+                        detail: thing.response.data
+                    });
+                });
+            });
+
+            return scopes.tap(function(object) {
+                scope = object;
+            });
         }
     });
 })(window);
