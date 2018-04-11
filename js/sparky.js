@@ -95,7 +95,7 @@
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
-		var state    = {};
+		var state    = Observable({});
 		var input;
 		var renderer = nothing;
 
