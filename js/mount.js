@@ -697,14 +697,6 @@
 			scope ;
 	};
 
-//	define(mount, {
-//		streams: {
-//			get: function() {
-//				return structs.slice();
-//			}
-//		}
-//	});
-
 	window.mount = mount;
 
 })(window);

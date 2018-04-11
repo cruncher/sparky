@@ -9,6 +9,7 @@
 	const Observable = window.Observable;
 
 	const assign     = Object.assign;
+    const define     = Object.defineProperties;
     const get        = Fn.get;
 	const id         = Fn.id;
 	const noop       = Fn.noop;
@@ -181,6 +182,8 @@
 
             if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
 
+            struct.currentValue = value;
+
             if (value === undefined) {
                 struct.render(struct.originalValue);
             }
@@ -235,6 +238,8 @@
 
             input = struct.input = Stream.observe(struct.path, state).latest();
 
+            struct.scope = state;
+
             if (struct.listen) {
                 change = listen(struct, state, options);
 
@@ -272,12 +277,7 @@
 
                 cue(struct.cuer);
             }
-
-            return;
         }
-
-
-
     }
 
     function eachFrame(stream, fn) {
@@ -310,13 +310,12 @@
     function bind(struct, scope, options) {
         if (DEBUG) { console.log('bind:  ', struct.token); }
 
-        //struct.scope = scope;
-
         var flag = false;
         var change;
 
         if (struct.isStateStruct) { return; }
 
+        struct.scope = scope;
         var input = struct.input = Stream.observe(struct.path, scope).latest();
 
         // If struct is an internal struct (as opposed to a Sparky instance)
@@ -380,6 +379,7 @@
 
     function unbind(struct) {
         if (DEBUG) { console.log('unbind:', struct.token); }
+        if (struct.isStateStruct) { return; }
         // Todo: only uncue on teardown
         //struct.uncue();
         struct.input && struct.input.stop();
@@ -389,7 +389,9 @@
 
     function teardown(struct) {
         if (DEBUG) { console.log('teardown', struct.token); }
-        unbind(struct);
+        struct.input && struct.input.stop();
+        struct.unlisten && struct.unlisten();
+        struct.scope = undefined;
         struct.stop();
     }
 
@@ -408,4 +410,12 @@
 			return struct.node === node;
 		}));
 	};
+
+    define(Struct, {
+		streams: {
+			get: function() {
+				return structs.slice();
+			}
+		}
+	});
 })(window);

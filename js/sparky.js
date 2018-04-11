@@ -230,7 +230,10 @@
 					stop();
 					stop = Stream
 					.observe(params[0], object)
-					.each(output.push)
+					.each(function(o) {
+						console.log('GET object push', o);
+						output.push(o);
+					})
 					.stop;
 				});
 
