@@ -157,9 +157,10 @@
         //console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
 
         addStruct(this);
+        this.isStateStruct = path[0] === '.';
         this.node    = node;
         this.token   = token;
-        this.path    = path;
+        this.path    = path[0] === '.' ? path.slice(1) : path ;
         this.render  = render;
         this.pipe    = pipe;
     }
@@ -218,12 +219,65 @@
 
     // Struct lifecycle
 
-    function setup(struct, options) {
-
-
+    function setup(struct, options, state) {
         struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
         struct.originalValue = struct.read ? struct.read() : '' ;
         if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
+
+
+
+        var flag = false;
+        var input;
+        var change;
+
+        // If struct is an internal struct (as opposed to a Sparky instance)
+        if (struct.render && struct.isStateStruct) {
+
+            input = struct.input = Stream.observe(struct.path, state).latest();
+
+            if (struct.listen) {
+                change = listen(struct, state, options);
+
+                struct.cuer = function updateReadable() {
+                    struct.update();
+
+                    if (flag) { return; }
+                    flag = true;
+
+                    input.on('push', function() {
+                        cue(updateReadable);
+                    });
+
+                    var value = getPath(struct.path, state);
+
+                    // Where the initial value of struct.path is not set, set it to
+                    // the value of the <input/>.
+                    if (value === undefined) {
+                        change();
+                    }
+                };
+
+                cue(struct.cuer);
+                struct.listen(change);
+            }
+            else {
+                struct.cuer = function update() {
+                    struct.update();
+                    if (flag) { return; }
+                    flag = true;
+                    input.on('push', function() {
+                        cue(update);
+                    });
+                };
+
+                cue(struct.cuer);
+            }
+
+            return;
+        }
+
+
+
     }
 
     function eachFrame(stream, fn) {
@@ -256,12 +310,14 @@
     function bind(struct, scope, options) {
         if (DEBUG) { console.log('bind:  ', struct.token); }
 
-        var input = struct.input = Stream.observe(struct.path, scope).latest();
-
-        struct.scope = scope;
+        //struct.scope = scope;
 
         var flag = false;
         var change;
+
+        if (struct.isStateStruct) { return; }
+
+        var input = struct.input = Stream.observe(struct.path, scope).latest();
 
         // If struct is an internal struct (as opposed to a Sparky instance)
         if (struct.render) {

@@ -50,12 +50,12 @@
 		}
 	};
 
-	function createRenderStream(sparky, settings) {
+	function createRenderStream(sparky, settings, state) {
 		var streams = [];
 		var n = -1;
 
 		while (sparky[++n]) {
-			streams.push(mount(sparky[n], settings));
+			streams.push(mount(sparky[n], settings, state));
 		}
 
 		// An aggragate stream for all the mounted streams. How many nested
@@ -95,6 +95,7 @@
 		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
 		var calling  = true;
 		var sparky   = this;
+		var state    = {};
 		var input;
 		var renderer = nothing;
 
@@ -114,7 +115,7 @@
 
 			// Launch rendering
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
-			renderer = createRenderStream(sparky, settings);
+			renderer = createRenderStream(sparky, settings, state);
 			input.each(renderer.push);
 			if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 		}
@@ -148,7 +149,7 @@
 			// of observables. Todo: we should not need to be so strict about
 			// .dedup() when we create a disticntion between mutation and
 			// path changes in Observables.
-			var output = fn.call(sparky, node, input, params);
+			var output = fn.call(sparky, node, input, params, state);
 
 			input = output ?
 				output.map(toObservableOrSelf).dedup() :

@@ -27,14 +27,6 @@
     const teardown           = Struct.teardown;
 	const findScope          = Struct.getScope;
 
-
-	// Matches tags plus any directly adjacent text
-	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
-	//var rclasstags;
-
-	// Matches filter string, capturing (filter name, filter parameter string)
-	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
-
 	// Matches anything with a space
 	const rspaces = /\s+/;
 
@@ -100,6 +92,7 @@
 		'undefined': function() { return ''; },
 
 		'object': function(value) {
+			// Weed out null values
 			return value ? JSON.stringify(value) : '';
 		},
 
@@ -629,12 +622,12 @@
 	const mountInput = overload(get('type'), inputs);
 
 
-	function setupStructs(structs, options) {
+	function setupStructs(structs, options, state) {
 		structs.forEach(function(struct) {
 			// Set up structs to be pushable. Renderers already have
 			// a push method and should not be throttled.
 			if (struct.render) {
-				setup(struct, options);
+				setup(struct, options, state);
 			}
 		});
 	}
@@ -643,7 +636,7 @@
 		structs.forEach(unbind);
 	}
 
-	function mount(node, options) {
+	function mount(node, options, state) {
 		if (DEBUG) {
 			console.groupCollapsed('mount: ', node);
 		}
@@ -658,7 +651,7 @@
 		var fn = setupStructs;
 		var old;
 
-		// Return a read-only stream
+		// Return a read-only stream-like object
 		return {
 			shift: noop,
 
@@ -673,7 +666,7 @@
 
 				// Setup structs on the first scope push, unbind them on
 				// later pushes
-				fn(structs, options);
+				fn(structs, options, state);
 				fn = unbindStructs;
 
 				structs.forEach(function(struct) {
