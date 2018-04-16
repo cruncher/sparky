@@ -47,7 +47,7 @@
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
 		//                       null   true   false   number                                     "string"                   'string'                   string
-		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
+		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:(?:\d+\.)?\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
 
 		function toValue(result, string) {
 			if (!result) {
