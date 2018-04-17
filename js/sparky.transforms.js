@@ -279,9 +279,11 @@
 			return value.replace(RegExp(str1, 'g'), str2);
 		}),
 
-		round: curry(function round(n, value) {
-			return Math.round(value / n) * n;
-		}),
+		round: function round(n, value) {
+			return n && n !== 1 ?
+				function round(value) { return Math.round(value / n) * n; } :
+				Math.round ;
+		},
 
 		slice: curry(function(i0, i1, value) {
 			return typeof value === 'string' ?
