@@ -66,7 +66,7 @@
 		boolean:     { tx: Boolean,        ix: Fn.toString },
 		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
 		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
-		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+		formatfloat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
 		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: Fn.toInt },
 
 		interpolate: {
@@ -156,12 +156,6 @@
 		}),
 
 		first: Fn.get(0),
-
-		floatformat: curry(function(n, value) {
-			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-				!isDefined(value) ? '' :
-				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-		}),
 
 		floor: function(value) {
 			return Math.floor(value);
@@ -358,5 +352,12 @@
 		yesno: curry(function(truthy, falsy, value) {
 			return value ? truthy : falsy ;
 		})
+	});
+
+	assign(Sparky.transforms, {
+		// Django template gotchas
+		floatformat: function(n, value) {
+			throw new Error("Trying to use the Django filter floatformat:'number' in Sparky? It's formatfloat:number. Because reasons.");
+		}
 	});
 })(window);
