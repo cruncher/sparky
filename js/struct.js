@@ -42,25 +42,36 @@
     // Transform
 
 	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
+    var rsinglequotes = /'/g;
 
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
-		//                       null   true   false   number                                     "string"                   'string'                   function(args) string
-		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\w+)\(([^)]+)|([^,\s]+))\s*,?/g;
+		//                   null   true   false   number                                     "string"                   'string'                   array        function(args)   string
+		var rvalue = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*,?/g;
 
 		function toValue(result, string) {
 			if (!result) {
 				throw new Error('Sparky: unable to parse transform args "' + string + '"');
 			}
 
+                // null
 			return result[1] ? null :
+                // boolean
 				result[2] ? true :
 				result[3] ? false :
+                // number
 				result[4] ? parseFloat(result[4]) :
+                // "string"
 				result[5] ? result[5] :
+                // 'string'
 				result[6] ? result[6] :
-                result[7] ? Sparky.transforms[result[7]].apply(null, JSON.parse('[' + result[8].replace("'", '"') + ']')) :
-				result[9] ? result[9] :
+                // array
+                result[7] ? JSON.parse(result[7].replace(rsinglequotes, '"')) :
+                // function()
+                result[8] ? Sparky.transforms[result[8]].apply(null, JSON.parse('[' + result[9].replace(rsinglequotes, '"') + ']')) :
+                // string
+                result[10] ? result[10] :
+                //
 				undefined ;
 		}
 

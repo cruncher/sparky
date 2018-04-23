@@ -698,19 +698,11 @@
 	// Expose a way to get scopes from node for event delegation and debugging
 
 	mount.getScope = function getScope(node) {
-		var scope = findScope(node);
+		var scope = Struct.findScope(node);
 		return scope === undefined && node.parentNode ?
 			getScope(node.parentNode) :
 			scope ;
 	};
-
-//	define(mount, {
-//		streams: {
-//			get: function() {
-//				return structs.slice();
-//			}
-//		}
-//	});
 
 	window.mount = mount;
 

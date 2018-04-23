@@ -209,8 +209,11 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, args, array) {
-			return array && array.map(Sparky.transforms[method].apply(null,args));
+		map: curry(function(method, fn, array) {
+
+console.log('>>', fn, array);
+
+			return array && array.map(fn);
 		}, true),
 
 		filter: curry(function(method, args, array) {
