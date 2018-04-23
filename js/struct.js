@@ -45,8 +45,8 @@
 
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
-		//                       null   true   false   number                                     "string"                   'string'                   string
-		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
+		//                       null   true   false   number                                     "string"                   'string'                   function(args) string
+		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\w+)\(([^)]+)|([^,\s]+))\s*,?/g;
 
 		function toValue(result, string) {
 			if (!result) {
@@ -59,7 +59,8 @@
 				result[4] ? parseFloat(result[4]) :
 				result[5] ? result[5] :
 				result[6] ? result[6] :
-				result[7] ? result[7] :
+                result[7] ? Sparky.transforms[result[7]].apply(null, JSON.parse('[' + result[8].replace("'", '"') + ']')) :
+				result[9] ? result[9] :
 				undefined ;
 		}
 
