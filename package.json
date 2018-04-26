@@ -2,7 +2,7 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Live data binding templating library for the DOM.",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
@@ -38,10 +38,13 @@
   },
   "license": "private",
   "scripts": {
-    "lint":          "eslint js/*.js modules/polyfills*.js plugins/*.js",
-    "test":          "karma start",
-    "build-nodeps":  "cat js/frame.js js/struct.js js/mount.js js/sparky.js js/sparky.fn.import.js js/sparky.fn.request.js js/sparky.fn.template.js js/sparky.fn.each.js js/sparky.transforms.js > dist/sparky-nodeps.js && minify dist/sparky-nodeps.js",
-    "build":         "npm run build-nodeps && cat fn/js/fn.js fn/js/observable.js fn/js/stream.js fn/js/stream.observe.js fn/js/time.js dom/polyfills/customevent.js dom/polyfills/document.scrollingelement.js dom/js/dom.js dist/sparky-nodeps.js > dist/sparky.js && minify dist/sparky.js && cat dom/css/dom.css css/sparky.css > dist/sparky.css",
-    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.3.0.js && cp dist/sparky.min.js dist/sparky-2.3.0.min.js && cp dist/sparky.css dist/sparky-2.3.0.css"
+    "lint": "eslint js/*.js modules/polyfills*.js plugins/*.js",
+    "test": "karma start",
+    "build-nodeps": "cat js/frame.js js/struct.js js/mount.js js/sparky.js js/sparky.fn.import.js js/sparky.fn.request.js js/sparky.fn.template.js js/sparky.fn.each.js js/sparky.transforms.js > dist/sparky-nodeps.js && minify dist/sparky-nodeps.js",
+    "build": "npm run build-nodeps && cat fn/js/fn.js fn/js/observable.js fn/js/stream.js fn/js/stream.observe.js fn/js/time.js dom/polyfills/customevent.js dom/polyfills/document.scrollingelement.js dom/js/dom.js dist/sparky-nodeps.js > dist/sparky.js && minify dist/sparky.js && cat dom/css/dom.css css/sparky.css > dist/sparky.css",
+    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.3.1.js && cp dist/sparky.min.js dist/sparky-2.3.1.min.js && cp dist/sparky.css dist/sparky-2.3.1.css"
+  },
+  "dependencies": {
+    "npm": "^6.0.0"
   }
 }

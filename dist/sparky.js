@@ -5615,24 +5615,36 @@ if (!('scrollingElement' in document)) (function() {
     // Transform
 
 	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
+    var rsinglequotes = /'/g;
 
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
-		//                       null   true   false   number                                     "string"                   'string'                   string
-		var rvalue     = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+))\s*,?/g;
+		//                   null   true   false   number                                     "string"                   'string'                   array        function(args)   string
+		var rvalue = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*,?/g;
 
 		function toValue(result, string) {
 			if (!result) {
 				throw new Error('Sparky: unable to parse transform args "' + string + '"');
 			}
 
+                // null
 			return result[1] ? null :
+                // boolean
 				result[2] ? true :
 				result[3] ? false :
+                // number
 				result[4] ? parseFloat(result[4]) :
+                // "string"
 				result[5] ? result[5] :
+                // 'string'
 				result[6] ? result[6] :
-				result[7] ? result[7] :
+                // array
+                result[7] ? JSON.parse(result[7].replace(rsinglequotes, '"')) :
+                // function()
+                result[8] ? Sparky.transforms[result[8]].apply(null, JSON.parse('[' + result[9].replace(rsinglequotes, '"') + ']')) :
+                // string
+                result[10] ? result[10] :
+                //
 				undefined ;
 		}
 
@@ -6626,19 +6638,11 @@ if (!('scrollingElement' in document)) (function() {
 	// Expose a way to get scopes from node for event delegation and debugging
 
 	mount.getScope = function getScope(node) {
-		var scope = findScope(node);
+		var scope = Struct.findScope(node);
 		return scope === undefined && node.parentNode ?
 			getScope(node.parentNode) :
 			scope ;
 	};
-
-//	define(mount, {
-//		streams: {
-//			get: function() {
-//				return structs.slice();
-//			}
-//		}
-//	});
 
 	window.mount = mount;
 
@@ -7024,7 +7028,8 @@ if (!('scrollingElement' in document)) (function() {
             scopes.push(data);
         })
         .catch(function(error) {
-            throw error;
+            console.warn('Sparky: no data found at', url);
+            //throw error;
         });
     }
 
@@ -7403,6 +7408,7 @@ if (!('scrollingElement' in document)) (function() {
 	var frame      = window.frame;
 	var A          = Array.prototype;
 
+	var isArray    = Array.isArray;
 	var noop       = Fn.noop;
 	var before     = dom.before;
 	var clone      = dom.clone;
@@ -7475,7 +7481,6 @@ if (!('scrollingElement' in document)) (function() {
 		var unobserve = noop;
 
 		function update(time) {
-//console.log('UPDATE')
 			var scope = stream.shift();
 			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 			if (scope === undefined) { return; }
@@ -7497,7 +7502,6 @@ if (!('scrollingElement' in document)) (function() {
 		}
 
 		function push() {
-		//console.log('PUSH')
 			cue(update);
 		}
 
@@ -7512,6 +7516,13 @@ if (!('scrollingElement' in document)) (function() {
 			stream.off('push', push);
 			unobserve();
 			uncue(update);
+		};
+	}
+
+	function entryToKeyValue(entry) {
+		return {
+			key:   entry[0],
+			value: entry[1]
 		};
 	}
 
@@ -7530,7 +7541,12 @@ if (!('scrollingElement' in document)) (function() {
 			// selects retain their value.
 			var value = isSelect ? marker.parentNode.value : undefined ;
 
+			if (!isArray(array)) {
+				array = Object.entries(array).map(entryToKeyValue);
+			}
+
 			if (DEBUG) { console.log('render: each ' + JSON.stringify(array)); }
+
 			reorderCache(template, options, array, sparkies);
 			reorderNodes(marker, array, sparkies);
 
@@ -7773,8 +7789,11 @@ if (!('scrollingElement' in document)) (function() {
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, args, array) {
-			return array && array.map(Sparky.transforms[method].apply(null,args));
+		map: curry(function(method, fn, array) {
+
+console.log('>>', fn, array);
+
+			return array && array.map(fn);
 		}, true),
 
 		filter: curry(function(method, args, array) {
