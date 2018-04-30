@@ -46,14 +46,10 @@
 
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
-		//                   null   true   false   number                                     "string"                   'string'                   array        function(args)   string
-		var rvalue = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*,?/g;
+		//                     null   true   false   number                                     "string"                   'string'                   array        function(args)   string
+		var rvalue = /^\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*(?:,|$)/;
 
-		function toValue(result, string) {
-			if (!result) {
-				throw new Error('Sparky: unable to parse transform args "' + string + '"');
-			}
-
+		function toValue(result) {
                 // null
 			return result[1] ? null :
                 // boolean
@@ -75,16 +71,22 @@
 				undefined ;
 		}
 
-		return function parseParams(string) {
-			var params = [];
+        function parse(params, string) {
+            var result = rvalue.exec(string);
 
-			rvalue.lastIndex = 0;
-
-			while (rvalue.lastIndex < string.length) {
-				params.push(toValue(rvalue.exec(string), string));
+            if (!result) {
+				throw new Error('Sparky: unable to parse transform args "' + string + '"');
 			}
 
-			return params;
+            params.push(toValue(result));
+
+            return result[0].length !== string.length ?
+                parse(params, string.slice(result[0].length)) :
+                params ;
+        }
+
+		return function parseParams(string) {
+            return parse([], string);
 		};
 	})();
 
