@@ -1,5 +1,5 @@
 (function(window) {
-    "use strict";
+	"use strict";
 
 	const DEBUG      = false;
 
@@ -9,13 +9,13 @@
 	const Observable = window.Observable;
 
 	const assign     = Object.assign;
-    const get        = Fn.get;
+	const get        = Fn.get;
 	const id         = Fn.id;
 	const noop       = Fn.noop;
 	const pipe       = Fn.pipe;
 	const remove     = Fn.remove;
-    const getPath    = Fn.getPath;
-    const setPath    = Fn.setPath;
+	const getPath    = Fn.getPath;
+	const setPath    = Fn.setPath;
 	const cue        = frame.cue;
 	const uncue      = frame.uncue;
 	const observe    = Observable.observe;
@@ -39,54 +39,54 @@
 //		}
 //	}
 
-    // Transform
+	// Transform
 
 	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
-    var rsinglequotes = /'/g;
+	var rsinglequotes = /'/g;
 
 	// TODO: make parseParams() into a module - it is used by sparky.js also
 	var parseParams = (function() {
-		//                     null   true   false   number                                     "string"                   'string'                   array        function(args)   string
+		//                    null   true   false   number                                     "string"                   'string'                   array        function(args)   string
 		var rvalue = /^\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*(?:,|$)/;
 
 		function toValue(result) {
-                // null
+				// null
 			return result[1] ? null :
-                // boolean
+				// boolean
 				result[2] ? true :
 				result[3] ? false :
-                // number
+				// number
 				result[4] ? parseFloat(result[4]) :
-                // "string"
+				// "string"
 				result[5] ? result[5] :
-                // 'string'
+				// 'string'
 				result[6] ? result[6] :
-                // array
-                result[7] ? JSON.parse(result[7].replace(rsinglequotes, '"')) :
-                // function()
-                result[8] ? Sparky.transforms[result[8]].apply(null, JSON.parse('[' + result[9].replace(rsinglequotes, '"') + ']')) :
-                // string
-                result[10] ? result[10] :
-                //
+				// array
+				result[7] ? JSON.parse(result[7].replace(rsinglequotes, '"')) :
+				// function()
+				result[8] ? Sparky.transforms[result[8]].apply(null, JSON.parse('[' + result[9].replace(rsinglequotes, '"') + ']')) :
+				// string
+				result[10] ? result[10] :
+				//
 				undefined ;
 		}
 
-        function parse(params, string) {
-            var result = rvalue.exec(string);
+		function parse(params, string) {
+			var result = rvalue.exec(string);
 
-            if (!result) {
-				throw new Error('Sparky: unable to parse transform args "' + string + '"');
+			if (!result) {
+				throw new Error('Sparky: unable to parse params "' + string + '"');
 			}
 
-            params.push(toValue(result));
+			params.push(toValue(result));
 
-            return result[0].length !== string.length ?
-                parse(params, string.slice(result[0].length)) :
-                params ;
-        }
+			return result[0].length !== string.length ?
+				parse(params, string.slice(result[0].length)) :
+				params ;
+		}
 
 		return function parseParams(string) {
-            return parse([], string);
+			return parse([], string);
 		};
 	})();
 
@@ -157,211 +157,211 @@
 		return pipe.apply(null, fns);
 	}
 
-    // Struct
+	// Struct
 
-    var structs = [];
+	var structs = [];
 
-    var removeStruct = remove(structs);
+	var removeStruct = remove(structs);
 
-    function addStruct(struct) {
-        structs.push(struct);
-    }
+	function addStruct(struct) {
+		structs.push(struct);
+	}
 
-    function Struct(node, token, path, render, pipe) {
-        //console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+	function Struct(node, token, path, render, pipe) {
+		//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
 
-        addStruct(this);
-        this.node    = node;
-        this.token   = token;
-        this.path    = path;
-        this.render  = render;
-        this.pipe    = pipe;
-    }
+		addStruct(this);
+		this.node    = node;
+		this.token   = token;
+		this.path    = path;
+		this.render  = render;
+		this.pipe    = pipe;
+	}
 
-    assign(Struct.prototype, {
-        render:  noop,
-        transform: id,
+	assign(Struct.prototype, {
+		render:  noop,
+		transform: id,
 
-        stop: function stop() {
-            uncue(this.cuer);
-            removeStruct(this);
-        },
+		stop: function stop() {
+			uncue(this.cuer);
+			removeStruct(this);
+		},
 
-        update: function(time) {
-            var struct = this;
-            var transform = this.transform;
-            var value = struct.input && struct.input.shift();
+		update: function(time) {
+			var struct = this;
+			var transform = this.transform;
+			var value = struct.input && struct.input.shift();
 
-            if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
+			if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
 
-            if (value === undefined) {
-                struct.render(struct.originalValue);
-            }
-            else {
-                struct.render(transform(value));
-            }
-        }
-    });
+			if (value === undefined) {
+				struct.render(struct.originalValue);
+			}
+			else {
+				struct.render(transform(value));
+			}
+		}
+	});
 
-    function ReadableStruct(node, token, path, render, type, read, pipe) {
-        // ReadableStruct extends Struct with listeners and read functions
-        Struct.call(this, node, token, path, render, pipe);
-        this.type = type;
-        this.read = read;
-    }
+	function ReadableStruct(node, token, path, render, type, read, pipe) {
+		// ReadableStruct extends Struct with listeners and read functions
+		Struct.call(this, node, token, path, render, pipe);
+		this.type = type;
+		this.read = read;
+	}
 
-    assign(ReadableStruct.prototype, Struct.prototype, {
-        listen: function listen(fn) {
-            if (this._listenFn) {
-                console.warn('Bad Steve. Attempt to listen without removing last listener');
-            }
+	assign(ReadableStruct.prototype, Struct.prototype, {
+		listen: function listen(fn) {
+			if (this._listenFn) {
+				console.warn('Bad Steve. Attempt to listen without removing last listener');
+			}
 
-            this._listenFn = fn;
-            this.node.addEventListener(this.type, fn);
-        },
+			this._listenFn = fn;
+			this.node.addEventListener(this.type, fn);
+		},
 
-        unlisten: function unlisten() {
-            var fn = this._listenFn;
+		unlisten: function unlisten() {
+			var fn = this._listenFn;
 
-            this.node.removeEventListener(this.type, fn);
-            this._listenType = undefined;
-            this._listenFn   = undefined;
-        }
-    });
-
-
-    // Struct lifecycle
-
-    function setup(struct, options) {
+			this.node.removeEventListener(this.type, fn);
+			this._listenType = undefined;
+			this._listenFn   = undefined;
+		}
+	});
 
 
-        struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
-        struct.originalValue = struct.read ? struct.read() : '' ;
-        if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
-    }
+	// Struct lifecycle
 
-    function eachFrame(stream, fn) {
-        var unobserve = noop;
+	function setup(struct, options) {
 
-        function update(time) {
-            var scope = stream.shift();
-            // Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-            if (scope === undefined) { return; }
 
-            function render(time) {
-                fn(scope);
-            }
+		struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
+		struct.originalValue = struct.read ? struct.read() : '' ;
+		if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
+	}
 
-            unobserve();
-            unobserve = observe(scope, '', function() {
-                cue(render);
-            });
-        }
+	function eachFrame(stream, fn) {
+		var unobserve = noop;
 
-        cue(update);
+		function update(time) {
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
 
-        if (stream.on) {
-            stream.on('push', function() {
-                cue(update);
-            });
-        }
-    }
+			function render(time) {
+				fn(scope);
+			}
 
-    function bind(struct, scope, options) {
-        if (DEBUG) { console.log('bind:  ', struct.token); }
+			unobserve();
+			unobserve = observe(scope, '', function() {
+				cue(render);
+			});
+		}
 
-        var input = struct.input = Stream.observe(struct.path, scope).latest();
+		cue(update);
 
-        struct.scope = scope;
+		if (stream.on) {
+			stream.on('push', function() {
+				cue(update);
+			});
+		}
+	}
 
-        var flag = false;
-        var change;
+	function bind(struct, scope, options) {
+		if (DEBUG) { console.log('bind:  ', struct.token); }
 
-        // If struct is an internal struct (as opposed to a Sparky instance)
-        if (struct.render) {
-            if (struct.listen) {
-                change = listen(struct, scope, options);
+		var input = struct.input = Stream.observe(struct.path, scope).latest();
 
-                struct.cuer = function updateReadable() {
-                    struct.update();
+		struct.scope = scope;
 
-                    if (flag) { return; }
-                    flag = true;
+		var flag = false;
+		var change;
 
-                    input.on('push', function() {
-                        cue(updateReadable);
-                    });
+		// If struct is an internal struct (as opposed to a Sparky instance)
+		if (struct.render) {
+			if (struct.listen) {
+				change = listen(struct, scope, options);
 
-                    var value = getPath(struct.path, scope);
+				struct.cuer = function updateReadable() {
+					struct.update();
 
-                    // Where the initial value of struct.path is not set, set it to
-                    // the value of the <input/>.
-                    if (value === undefined) {
-                        change();
-                    }
-                };
+					if (flag) { return; }
+					flag = true;
 
-                cue(struct.cuer);
-                struct.listen(change);
-            }
-            else {
-                struct.cuer = function update() {
-                    struct.update();
-                    if (flag) { return; }
-                    flag = true;
-                    input.on('push', function() {
-                        cue(update);
-                    });
-                };
+					input.on('push', function() {
+						cue(updateReadable);
+					});
 
-                cue(struct.cuer);
-            }
+					var value = getPath(struct.path, scope);
 
-            return;
-        }
+					// Where the initial value of struct.path is not set, set it to
+					// the value of the <input/>.
+					if (value === undefined) {
+						change();
+					}
+				};
 
-        if (DEBUG) { console.log('struct is Sparky'); }
-        eachFrame(input, struct.push);
-    }
+				cue(struct.cuer);
+				struct.listen(change);
+			}
+			else {
+				struct.cuer = function update() {
+					struct.update();
+					if (flag) { return; }
+					flag = true;
+					input.on('push', function() {
+						cue(update);
+					});
+				};
 
-    function listen(struct, scope, options) {
-        //console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
+				cue(struct.cuer);
+			}
 
-        var set, invert;
+			return;
+		}
 
-        if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
+		if (DEBUG) { console.log('struct is Sparky'); }
+		eachFrame(input, struct.push);
+	}
 
-        set    = setPath(struct.path, scope);
-        invert = InverseTransform(options.transformers, struct.pipe);
-        return pipe(function() { return struct.read(); }, invert, set);
-    }
+	function listen(struct, scope, options) {
+		//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
 
-    function unbind(struct) {
-        if (DEBUG) { console.log('unbind:', struct.token); }
-        // Todo: only uncue on teardown
-        //struct.uncue();
-        struct.input && struct.input.stop();
-        struct.unlisten && struct.unlisten();
-        struct.scope = undefined;
-    }
+		var set, invert;
 
-    function teardown(struct) {
-        if (DEBUG) { console.log('teardown', struct.token); }
-        unbind(struct);
-        struct.stop();
-    }
+		if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
 
-    window.Struct = Struct;
+		set    = setPath(struct.path, scope);
+		invert = InverseTransform(options.transformers, struct.pipe);
+		return pipe(function() { return struct.read(); }, invert, set);
+	}
 
-    Struct.Readable           = ReadableStruct;
-    Struct.setup = setup;
-    Struct.bind = bind;
-    Struct.listen = listen;
-    Struct.unbind = unbind;
-    Struct.teardown = teardown;
-    Struct.parseParams = parseParams;
+	function unbind(struct) {
+		if (DEBUG) { console.log('unbind:', struct.token); }
+		// Todo: only uncue on teardown
+		//struct.uncue();
+		struct.input && struct.input.stop();
+		struct.unlisten && struct.unlisten();
+		struct.scope = undefined;
+	}
 
-    Struct.findScope = function findScope(node) {
+	function teardown(struct) {
+		if (DEBUG) { console.log('teardown', struct.token); }
+		unbind(struct);
+		struct.stop();
+	}
+
+	window.Struct = Struct;
+
+	Struct.Readable           = ReadableStruct;
+	Struct.setup = setup;
+	Struct.bind = bind;
+	Struct.listen = listen;
+	Struct.unbind = unbind;
+	Struct.teardown = teardown;
+	Struct.parseParams = parseParams;
+
+	Struct.findScope = function findScope(node) {
 		return get('scope', structs.find(function(struct) {
 			return struct.node === node;
 		}));

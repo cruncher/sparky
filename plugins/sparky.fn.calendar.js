@@ -19,27 +19,40 @@
     var formatDate = Fn.formatDate;
     var formatDateISO = Fn.formatDateISO;
     var diffDateDays = Fn.diffDateDays;
+    var parseDate  = Fn.parseDate;
     var nothing    = Fn.nothing;
     var observe    = Observable.observe;
 
+    var addDate1   = addDate('0000-00-01');
+
     function floorReducer(date, token) {
-        //console.log('FLOOR', date, string, floorDate(string, date))
         return floorDate(token, date);
     }
 
-	Sparky.fn.calendar = function(node, scopes, params) {
-        var name      = params[0];
+    // calendar: name, duration, floor
+    //
+    // name     = property name to get calendar date from
+    // duration = length of dates to generate, in the form 0000-00-00
+    // floor    = a string of pipe-seperated floor operations
+    //
+    // Outputs a scope with the properties
+    //
+    // date     = the current calendar date as an ISO string
+    // dates    = array of { date: x } objects
 
+	Sparky.fn.calendar = function(node, scopes, params) {
+        var name     = params[0];
+
+        // Support the old way of defining a duration as number of days
         if (typeof params[1] === 'number') {
             console.warn('Sparky calendar: duration expressed as number, should be form xxxx-xx-xx.' )
         }
 
-        var duration  = typeof params[1] === 'string' ? params[1] :
+        var duration = typeof params[1] === 'string' ? params[1] :
             typeof params[1] === 'number' ? ('0000-00-' + prepad('0', 2, params[1])) :
             '0000-00-42';
 
-
-        var floor     = params[2] && params[2].split('|');
+        var floor    = params[2] && params[2].split('|');
         var calendar = Observable({ dates: [] });
 
         // View
@@ -74,10 +87,8 @@
             var d  = d1;
 
             while (d < d2) {
-                calendar.dates.push({
-                    date: formatDateISO(d)
-                });
-                d = addDate('0000-00-01', d);
+                calendar.dates.push({ date: formatDateISO(d) });
+                d = addDate1(d);
             }
 
             updateSelected()
@@ -105,26 +116,40 @@
         return Fn.of(calendar);
     };
 
-    Sparky.fn.prevNextCalendar = function(node, scopes, params) {
-        // Controller
+    // calendar-move-on-click: duration, min, max
+    //
+    // duration - in the form 0000-00-00
+    // min      - a iso date string or 'now'
+    // max      = a iso date string or 'now'
 
+    Sparky.fn['calendar-move-on-click'] = function(node, scopes, params) {
         var calendar = nothing;
 
-        dom.events('click', node)
-        .map(get('target'))
-        .map(dom.closest('.next-thumb'))
-        .each(function(value) {
-            calendar.date = formatDateISO(floorDate('fortnight', addDate('0000-00-' + dayCount, calendar.date)));
-        });
+        if (!params[0]) {
+            throw new Error('Sparky calendar-date-add-on-click:duration requires a duration param');
+        }
 
-        dom.events('click', node)
+        var add = addDate(params[0]);
+
+        dom
+        .events('click', node)
         .map(get('target'))
-        .map(dom.closest('.prev-thumb'))
+        .map(dom.closest('button, a'))
         .each(function(value) {
-            // Restrict back button to never go before current date
-            var now  = nowDate();
-            var date = floorDate('fortnight', addDate('-0000-00-' + dayCount, calendar.date));
-            calendar.date = formatDateISO(date > now ? date : now);
+            var min = params[1] === 'now' ?
+                nowDate() :
+                parseDate(params[1]) ;
+
+            var max = params[2] === 'now' ?
+                nowDate() :
+                parseDate(params[2]) ;
+
+            // Restrict back button to never go before min or after max date
+            //var date = floorDate('fortnight', addDate('-' + duration, calendar.date));
+            var date = add(calendar.date);
+            date = min && date < min ? min : date ;
+            date = max && date > max ? max : date ;
+            calendar.date = formatDateISO(date);
         });
 
         return scopes.tap(function(scope) {

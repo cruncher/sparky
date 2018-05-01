@@ -209,12 +209,24 @@
 			return String.prototype.toLowerCase.apply(value);
 		},
 
-		map: curry(function(method, fn, array) {
+		map: function(method, params) {
+			var fn;
 
-console.log('>>', fn, array);
+			if (typeof params === undefined) {
+				fn = parse(method);
 
-			return array && array.map(fn);
-		}, true),
+				return function(array) {
+					return array.map(fn);
+				};
+			}
+
+			fn = ((Sparky.transformers[method] && Sparky.transformers[method].tx)
+				|| Sparky.transforms[method]).apply(null, params);
+
+			return function(array) {
+				return array && array.map(fn);
+			};
+		},
 
 		filter: curry(function(method, args, array) {
 			return array && array.map(Sparky.transforms[method].apply(null,args));
