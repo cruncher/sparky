@@ -766,7 +766,7 @@ var Sparky = (function () {
 	        } ;
 	}
 
-	const A = Array.prototype;
+	const A$1 = Array.prototype;
 
 	function call(value, fn) {
 	    return fn(value);
@@ -775,7 +775,7 @@ var Sparky = (function () {
 	function pipe() {
 	    const fns = arguments;
 	    return function pipe(value) {
-	        return A.reduce.call(fns, call, value);
+	        return A$1.reduce.call(fns, call, value);
 	    };
 	}
 
@@ -1507,7 +1507,7 @@ var Sparky = (function () {
 	}
 
 	var debug     = false;
-	var A$1         = Array.prototype;
+	var A$2         = Array.prototype;
 	var assign$1    = Object.assign;
 
 
@@ -1775,7 +1775,7 @@ var Sparky = (function () {
 	});
 
 	Stream$1.Combine = function(fn) {
-	    var sources = A$1.slice.call(arguments, 1);
+	    var sources = A$2.slice.call(arguments, 1);
 
 	    if (sources.length < 2) {
 	        throw new Error('Stream: Combine requires more than ' + sources.length + ' source streams')
@@ -2359,6 +2359,16 @@ var Sparky = (function () {
 		});
 	}
 
+	function contains(value, object) {
+	    return object.includes ?
+	        object.includes(value) :
+	    object.contains ?
+	        object.contains(value) :
+	    A.includes ?
+	        A.includes.call(object, value) :
+	        A.indexOf.call(object, value) !== -1 ;
+	}
+
 	function equals(a, b) {
 	    // Fast out if references are for the same object
 	    if (a === b) { return true; }
@@ -2485,6 +2495,9 @@ var Sparky = (function () {
 	    // https://en.wikipedia.org/wiki/Modulo_operation
 	    var value = n % d;
 	    return value < 0 ? value + d : value ;
+	}
+	function limit(min, max, n) {
+	    return n > max ? max : n < min ? min : n ;
 	}
 	function todB(n) { return 20 * Math.log10(n); }function toLevel(n) { return Math.pow(2, n/6); }function toRad(n) { return n / angleFactor; }function toDeg(n) { return n * angleFactor; }
 
@@ -3133,10 +3146,13 @@ var Sparky = (function () {
 		return _floorTime(token, parseTime(time));
 	});
 
-	const toFloat = parseFloat;
-
+	function not(a) { return !a; }const toFloat = parseFloat;
+	const and     = curry$1(function and(a, b) { return !!(a && b); });
+	const or      = curry$1(function or(a, b) { return a || b; });
+	const xor     = curry$1(function or(a, b) { return (a || b) && (!!a !== !!b); });
 
 	const assign$3      = curry$1(Object.assign, true, 2);
+	const contains$1    = curry$1(contains, true);
 	const define      = curry$1(Object.defineProperties, true, 2);
 	const equals$1      = curry$1(equals, true);
 	const get$1         = curry$1(get, true);
@@ -3161,6 +3177,7 @@ var Sparky = (function () {
 	const exp$1         = curry$1(exp);
 	const log$1         = curry$1(log);
 	const root$1        = curry$1(root);
+	const limit$1       = curry$1(limit);
 	const normalise$1   = curry$1(normalise);
 	const denormalise$1 = curry$1(denormalise);
 
@@ -4651,7 +4668,7 @@ var Sparky = (function () {
 	const attribute              = dom.attribute;
 	const children               = dom.children;
 	const closest                = dom.closest;
-	const contains               = dom.contains;
+	const contains$2               = dom.contains;
 	const find                   = dom.find;
 	const get$2                    = dom.get;
 	const matches                = dom.matches;
@@ -6881,45 +6898,35 @@ var Sparky = (function () {
 
 			// Transforms from Fn's map functions
 
-			append:       Fn.append,
-			contains:     Fn.contains,
-			diff:         Fn.diff,
-			equals:       Fn.equals,
-			//exp:          Fn.exp,
-			factorise:    Fn.factorise,
+			append:       append$1,
+			contains:     contains$1,
+			equals:       equals$1,
+			exp:          exp$1,
 			formatdate:   formatDate,
 			formattime:   formatTime,
-			gcd:          Fn.gcd,
 			get:          get$1,
 			getPath:      getPath$1,
-			intersect:    Fn.intersect,
-			invoke:       Fn.invoke,
-			is:           Fn.is,
-			lcm:          Fn.lcm,
-			limit:        Fn.limit,
-			//log:          Fn.log,
-			max:          Fn.max,
-			min:          Fn.min,
+			invoke:       invoke$1,
+			is:           is,
+			limit:        limit$1,
+			log:          log$1,
+			max:          max$1,
+			min:          min$1,
 			mod:          mod$1,
-			not:          Fn.not,
+			not:          not,
 			percent:      multiply$1(100),
 			prepend:      prepend$2,
-			rest:         Fn.rest,
-			root:         Fn.nthRoot,
+			root:         root$1,
 			slugify:      slugify,
-			sort:         Fn.sort,
-			take:         Fn.take,
-			toCartesian:  Fn.toCartesian,
-			todB:         Fn.todB,
-			decibels:     Fn.todB,
-			toDeg:        Fn.toDeg,
-			toLevel:      Fn.toLevel,
-			toPolar:      Fn.toPolar,
-			toRad:        Fn.toRad,
-			toStringType: Fn.toStringType,
-			typeof:       Fn.toType,
-			unique:       Fn.unique,
-			unite:        Fn.unite,
+			//sort:         Fn.sort,
+			//take:         Fn.take,
+			//toCartesian:  Fn.toCartesian,
+			decibels:     todB,
+			toDeg:        toDeg,
+			toLevel:      toLevel,
+			//toPolar:      Fn.toPolar,
+			toRad:        toRad,
+			//toStringType: Fn.toStringType,
 
 
 			// Transforms from dom's map functions
@@ -6950,9 +6957,7 @@ var Sparky = (function () {
 					(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 			}),
 
-			floor: function(value) {
-				return Math.floor(value);
-			},
+			floor: Math.floor,
 
 			"greater-than": curry$1(function(value2, value1) {
 				return value1 > value2;
@@ -6963,16 +6968,12 @@ var Sparky = (function () {
 			},
 
 			join: curry$1(function(string, value) {
-				return Array.prototype.join.call(value, string);
+				return A.join.call(value, string);
 			}),
 
-			json: function(value) {
-				return JSON.stringify(value);
-			},
+			json: JSON.stringify,
 
-			last: function(value) {
-				return value[value.length - 1];
-			},
+			last: last,
 
 			"less-than": curry$1(function(value2, value1) {
 				return value1 < value2 ;
@@ -7068,9 +7069,9 @@ var Sparky = (function () {
 				return array.join(char || ' ');
 			}),
 
-			random: function(value) {
-				return value[Math.floor(Math.random() * value.length)];
-			},
+			//random: function(value) {
+			//	return value[Math.floor(Math.random() * value.length)];
+			//},
 
 			reduce: curry$1(function(name, initialValue, array) {
 				return array && array.reduce(Fn[name], initialValue || 0);
@@ -7140,9 +7141,7 @@ var Sparky = (function () {
 					value ;
 			}),
 
-			type: function(value) {
-				return typeof value;
-			},
+			type: toType,
 
 			uppercase: function(value) {
 				if (typeof value !== 'string') { return; }

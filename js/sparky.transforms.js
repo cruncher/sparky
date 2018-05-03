@@ -2,31 +2,42 @@
 // Sparky.filter
 
 import {
+	append,
 	curry,
+	contains,
+	equals,
 	formatDate,
 	formatTime,
 	get,
 	getPath,
+	invoke,
+	is,
 	isDefined,
 	last,
+	limit,
 	addDate,
 	addTime,
 	subTime,
-	todB,
-	toLevel,
+	max,
+	min,
 	mod,
 	multiply,
+	not,
 	pow,
 	prepend,
 	exp,
 	log,
+	root,
 	slugify,
 	toDeg,
 	toRad,
+	toLevel,
+	todB,
 	toInt,
 	toFloat,
 	toFixed,
 	toString,
+	toType,
 	normalise,
 	denormalise
 } from '../../fn/fn.js';
@@ -120,45 +131,35 @@ import {
 
 		// Transforms from Fn's map functions
 
-		append:       Fn.append,
-		contains:     Fn.contains,
-		diff:         Fn.diff,
-		equals:       Fn.equals,
-		//exp:          Fn.exp,
-		factorise:    Fn.factorise,
+		append:       append,
+		contains:     contains,
+		equals:       equals,
+		exp:          exp,
 		formatdate:   formatDate,
 		formattime:   formatTime,
-		gcd:          Fn.gcd,
 		get:          get,
 		getPath:      getPath,
-		intersect:    Fn.intersect,
-		invoke:       Fn.invoke,
-		is:           Fn.is,
-		lcm:          Fn.lcm,
-		limit:        Fn.limit,
-		//log:          Fn.log,
-		max:          Fn.max,
-		min:          Fn.min,
+		invoke:       invoke,
+		is:           is,
+		limit:        limit,
+		log:          log,
+		max:          max,
+		min:          min,
 		mod:          mod,
-		not:          Fn.not,
+		not:          not,
 		percent:      multiply(100),
 		prepend:      prepend,
-		rest:         Fn.rest,
-		root:         Fn.nthRoot,
+		root:         root,
 		slugify:      slugify,
-		sort:         Fn.sort,
-		take:         Fn.take,
-		toCartesian:  Fn.toCartesian,
-		todB:         Fn.todB,
-		decibels:     Fn.todB,
-		toDeg:        Fn.toDeg,
-		toLevel:      Fn.toLevel,
-		toPolar:      Fn.toPolar,
-		toRad:        Fn.toRad,
-		toStringType: Fn.toStringType,
-		typeof:       Fn.toType,
-		unique:       Fn.unique,
-		unite:        Fn.unite,
+		//sort:         Fn.sort,
+		//take:         Fn.take,
+		//toCartesian:  Fn.toCartesian,
+		decibels:     todB,
+		toDeg:        toDeg,
+		toLevel:      toLevel,
+		//toPolar:      Fn.toPolar,
+		toRad:        toRad,
+		//toStringType: Fn.toStringType,
 
 
 		// Transforms from dom's map functions
@@ -189,9 +190,7 @@ import {
 				(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 		}),
 
-		floor: function(value) {
-			return Math.floor(value);
-		},
+		floor: Math.floor,
 
 		"greater-than": curry(function(value2, value1) {
 			return value1 > value2;
@@ -202,16 +201,12 @@ import {
 		},
 
 		join: curry(function(string, value) {
-			return Array.prototype.join.call(value, string);
+			return A.join.call(value, string);
 		}),
 
-		json: function(value) {
-			return JSON.stringify(value);
-		},
+		json: JSON.stringify,
 
-		last: function(value) {
-			return value[value.length - 1];
-		},
+		last: last,
 
 		"less-than": curry(function(value2, value1) {
 			return value1 < value2 ;
@@ -307,9 +302,9 @@ import {
 			return array.join(char || ' ');
 		}),
 
-		random: function(value) {
-			return value[Math.floor(Math.random() * value.length)];
-		},
+		//random: function(value) {
+		//	return value[Math.floor(Math.random() * value.length)];
+		//},
 
 		reduce: curry(function(name, initialValue, array) {
 			return array && array.reduce(Fn[name], initialValue || 0);
@@ -379,9 +374,7 @@ import {
 				value ;
 		}),
 
-		type: function(value) {
-			return typeof value;
-		},
+		type: toType,
 
 		uppercase: function(value) {
 			if (typeof value !== 'string') { return; }
