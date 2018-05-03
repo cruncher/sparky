@@ -692,7 +692,6 @@
 	mount.mountInput       = mountInput;
 	mount.mountValueString = mountValueString;
 	mount.mountValueNumber = mountValueNumber;
-	mount.parseParams      = Struct.parseParams;
 
 
 	// Expose a way to get scopes from node for event delegation and debugging

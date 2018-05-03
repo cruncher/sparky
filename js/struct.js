@@ -1,3 +1,5 @@
+import { parsePipe } from './parse.js';
+
 (function(window) {
     "use strict";
 
@@ -42,87 +44,7 @@
     // Transform
 
 	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
-    var rsinglequotes = /'/g;
 
-	// TODO: make parseParams() into a module - it is used by sparky.js also
-	var parseParams = (function() {
-		//                   null   true   false   number                                     "string"                   'string'                   array        function(args)   string
-		var rvalue = /\s*(?:(null)|(true)|(false)|(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(\[[^\]]*\])|(\w+)\(([^)]+)\)|([^,\s]+))\s*,?/g;
-
-		function toValue(result, string) {
-			if (!result) {
-				throw new Error('Sparky: unable to parse transform args "' + string + '"');
-			}
-
-                // null
-			return result[1] ? null :
-                // boolean
-				result[2] ? true :
-				result[3] ? false :
-                // number
-				result[4] ? parseFloat(result[4]) :
-                // "string"
-				result[5] ? result[5] :
-                // 'string'
-				result[6] ? result[6] :
-                // array
-                result[7] ? JSON.parse(result[7].replace(rsinglequotes, '"')) :
-                // function()
-                result[8] ? Sparky.transforms[result[8]].apply(null, JSON.parse('[' + result[9].replace(rsinglequotes, '"') + ']')) :
-                // string
-                result[10] ? result[10] :
-                //
-				undefined ;
-		}
-
-		return function parseParams(string) {
-			var params = [];
-
-			rvalue.lastIndex = 0;
-
-			while (rvalue.lastIndex < string.length) {
-				params.push(toValue(rvalue.exec(string), string));
-			}
-
-			return params;
-		};
-	})();
-
-	function Transform(transforms, transformers, string) {
-		if (!string) { return id; }
-
-		var fns = [];
-		var token, name, fn, params;
-
-		rtransform.lastIndex = 0;
-
-		while (
-			rtransform.lastIndex < string.length
-			&& (token = rtransform.exec(string))
-		) {
-			name = token[1];
-			fn   = transformers[name] ? transformers[name].tx : transforms[name] ;
-
-			if (!fn) {
-				throw new Error('mount:  transform "' + name + '" not found');
-			}
-
-			if (token[2]) {
-				params = parseParams(token[2]);
-				//args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-				fns.push(fn.apply(null, params));
-			}
-			else {
-				fns.push(fn);
-			}
-
-			if (!(typeof fns[fns.length - 1] === 'function')) {
-				throw new Error('mount:  transform "' + name + '" not resulting in fn');
-			}
-		}
-
-		return pipe.apply(null, fns);
-	}
 
 	function InverseTransform(transformers, string) {
 		if (!string) { return id; }
@@ -211,7 +133,7 @@
     assign(ReadableStruct.prototype, Struct.prototype, {
         listen: function listen(fn) {
             if (this._listenFn) {
-                console.warn('Bad Steve. Attempt to listen without removing last listener');
+                console.warn('Bad Steve. Attempt to listen without removing last listener. Shouldnt happen.');
             }
 
             this._listenFn = fn;
@@ -231,9 +153,8 @@
     // Struct lifecycle
 
     function setup(struct, options) {
-
-
-        struct.transform = Transform(options.transforms, options.transformers, struct.pipe);
+        // Todo: We need rid of the leading '|' in struct.pipe
+        struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
         struct.originalValue = struct.read ? struct.read() : '' ;
         if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
     }
@@ -357,7 +278,6 @@
     Struct.listen = listen;
     Struct.unbind = unbind;
     Struct.teardown = teardown;
-    Struct.parseParams = parseParams;
 
     Struct.findScope = function findScope(node) {
 		return get('scope', structs.find(function(struct) {

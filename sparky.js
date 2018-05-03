@@ -1,3 +1,7 @@
+import '../fn/fn.js'
+import '../fn/js/time.js'
+import '../dom/dom.js'
+
 import './js/frame.js'
 import './js/struct.js'
 import './js/mount.js'

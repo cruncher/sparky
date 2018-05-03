@@ -34,14 +34,15 @@
     "karma-safari-launcher": "latest",
     "minifier": "^0.8.1",
     "qunit": "latest",
-    "qunitjs": "latest"
+    "qunitjs": "latest",
+    "rollup": "^0.58.2"
   },
   "license": "private",
   "scripts": {
     "lint": "eslint js/*.js modules/polyfills*.js plugins/*.js",
     "test": "karma start",
+    "build": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 2.3.1\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
     "build-nodeps": "cat js/frame.js js/struct.js js/mount.js js/sparky.js js/sparky.fn.import.js js/sparky.fn.request.js js/sparky.fn.template.js js/sparky.fn.each.js js/sparky.transforms.js > dist/sparky-nodeps.js && minify dist/sparky-nodeps.js",
-    "build": "npm run build-nodeps && cat fn/js/fn.js fn/js/observable.js fn/js/stream.js fn/js/stream.observe.js fn/js/time.js dom/polyfills/customevent.js dom/polyfills/document.scrollingelement.js dom/js/dom.js dist/sparky-nodeps.js > dist/sparky.js && minify dist/sparky.js && cat dom/css/dom.css css/sparky.css > dist/sparky.css",
     "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.3.1.js && cp dist/sparky.min.js dist/sparky-2.3.1.min.js && cp dist/sparky.css dist/sparky-2.3.1.css"
   },
   "dependencies": {

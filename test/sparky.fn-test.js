@@ -1,7 +1,6 @@
 group('[sparky-fn]', function(test, log, fixture) {
 	test('[sparky-fn]', function(equals, done) {
 		var sparky;
-		var scope = { property: 'value-1' };
 		var p = fixture.querySelector('p');
 
 		var model   = { n: 0 };

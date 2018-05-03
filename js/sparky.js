@@ -3,6 +3,8 @@
 	console.log('Sparky      - https://github.com/cruncher/sparky');
 })(window);
 
+import { parseParams } from './parse.js';
+
 (function(window) {
 	"use strict";
 
@@ -22,7 +24,6 @@
 	var nothing        = Fn.nothing;
 	var tag            = dom.tag;
 	var preventDefault = dom.preventDefault;
-	var parseParams    = mount.parseParams;
 
 
 	// Matches:     xxxx: xxx, "xxx", 'xxx'
@@ -139,8 +140,7 @@
 			}
 
 			// Gaurantee that params exists, at least.
-			var params = token[2] ? parseParams(token[2]) : nothing ;
-
+			var params = token[2] ? parseParams([], token[2]) : nothing ;
 			calling    = true;
 			fnstring   = fnstring.slice(token[0].length);
 

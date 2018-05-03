@@ -1,4 +1,9 @@
 
+
+"build": "npm run build-nodeps && cat fn/js/fn.js fn/js/observable.js fn/js/stream.js fn/js/stream.observe.js fn/js/time.js dom/polyfills/customevent.js dom/polyfills/document.scrollingelement.js dom/js/dom.js dist/sparky-nodeps.js > dist/sparky.js && minify dist/sparky.js && cat dom/css/dom.css css/sparky.css > dist/sparky.css",
+
+
+
 # Sparky
 
 ![alt tag](https://raw.githubusercontent.com/cruncher/sparky/master/images/sparky-logo.png)
