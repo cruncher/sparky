@@ -837,10 +837,10 @@ var Sparky = (function () {
 	    return functor;
 	}
 
-	function Fn(fn) {
+	function Fn$1(fn) {
 	    // Accept constructor without `new`
-	    if (!this || !Fn.prototype.isPrototypeOf(this)) {
-	        return new Fn(fn);
+	    if (!this || !Fn$1.prototype.isPrototypeOf(this)) {
+	        return new Fn$1(fn);
 	    }
 
 	    var source = this;
@@ -873,11 +873,11 @@ var Sparky = (function () {
 	}
 
 
-	assign(Fn, {
+	assign(Fn$1, {
 
 	    // Constructors
 
-	    of: function() { return Fn.from(arguments); },
+	    of: function() { return Fn$1.from(arguments); },
 
 	    from: function(object) {
 	        var i;
@@ -887,7 +887,7 @@ var Sparky = (function () {
 	        if (typeof object.length === 'number') {
 	            i = -1;
 
-	            return new Fn(function shiftArray() {
+	            return new Fn$1(function shiftArray() {
 	                // Ignore undefined holes in arrays
 	                return ++i >= object.length ?
 	                    undefined :
@@ -899,14 +899,14 @@ var Sparky = (function () {
 
 	        // object is an object with a shift function
 	        if (typeof object.shift === "function" && object.length === undefined) {
-	            return new Fn(function shiftObject() {
+	            return new Fn$1(function shiftObject() {
 	                return object.shift();
 	            });
 	        }
 
 	        // object is an iterator
 	        if (typeof object.next === "function") {
-	            return new Fn(function shiftIterator() {
+	            return new Fn$1(function shiftIterator() {
 	                var result = object.next();
 
 	                // Ignore undefined holes in iterator results
@@ -922,7 +922,7 @@ var Sparky = (function () {
 	    }
 	});
 
-	assign(Fn.prototype, {
+	assign(Fn$1.prototype, {
 	    shift: noop$1,
 
 	    // Input
@@ -1010,7 +1010,7 @@ var Sparky = (function () {
 	            }
 	        };
 
-	        var clone = new Fn(function shiftClone() {
+	        var clone = new Fn$1(function shiftClone() {
 	            var value;
 
 	            if (buffer2.length) {
@@ -1136,7 +1136,7 @@ var Sparky = (function () {
 	                if (buffer.length >= n) {
 	                    _buffer = buffer;
 	                    buffer = [];
-	                    return Fn.of.apply(Fn, _buffer);
+	                    return Fn$1.of.apply(Fn$1, _buffer);
 	                }
 	            } :
 
@@ -1164,7 +1164,7 @@ var Sparky = (function () {
 	        var buffer = [];
 	        var streams = new Map();
 
-	        fn = fn || Fn.id;
+	        fn = fn || Fn$1.id;
 
 	        function createPart(key, value) {
 	            var stream = Stream.of().on('pull', shiftPull);
@@ -1233,7 +1233,7 @@ var Sparky = (function () {
 	    },
 
 	    sort: function(fn) {
-	        fn = fn || Fn.byGreater ;
+	        fn = fn || Fn$1.byGreater ;
 
 	        var source = this;
 	        var buffer = [];
@@ -1367,7 +1367,7 @@ var Sparky = (function () {
 
 	    tap: function(fn) {
 	        // Overwrite shift to copy values to tap fn
-	        this.shift = Fn.compose(tap(fn), this.shift);
+	        this.shift = Fn$1.compose(tap(fn), this.shift);
 	        return this;
 	    },
 
@@ -1394,7 +1394,7 @@ var Sparky = (function () {
 	    }, '.last() is now .latest()'),
 	});
 
-	Fn.prototype.toArray = Fn.prototype.toJSON;
+	Fn$1.prototype.toArray = Fn$1.prototype.toJSON;
 
 	// Todo: As of Nov 2016 fantasy land spec requires namespaced methods:
 	//
@@ -1420,7 +1420,7 @@ var Sparky = (function () {
 
 	if (window.Symbol) {
 	    // A functor is it's own iterator
-	    Fn.prototype[Symbol.iterator] = function() {
+	    Fn$1.prototype[Symbol.iterator] = function() {
 	        return this;
 	    };
 	}
@@ -1702,7 +1702,7 @@ var Sparky = (function () {
 	Stream$1.from = function(source) {
 	    return new Stream$1(function setup(notify, stop) {
 	        var buffer = source === undefined ? [] :
-	            Fn.prototype.isPrototypeOf(source) ? source :
+	            Fn$1.prototype.isPrototypeOf(source) ? source :
 	            Array.from(source).filter(isValue) ;
 
 	        return new BufferSource(notify, stop, buffer);
@@ -2071,7 +2071,7 @@ var Sparky = (function () {
 
 	// Stream Methods
 
-	Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
+	Stream$1.prototype = assign$1(Object.create(Fn$1.prototype), {
 	    clone: function() {
 	        var source  = this;
 	        var shift   = this.shift;
@@ -2154,17 +2154,17 @@ var Sparky = (function () {
 	        var source = this;
 
 	        // Flush and observe
-	        Fn.prototype.each.apply(source, args);
+	        Fn$1.prototype.each.apply(source, args);
 
 	        return this.on('push', function each$$1() {
 	            // Delegate to Fn#each().
-	            Fn.prototype.each.apply(source, args);
+	            Fn$1.prototype.each.apply(source, args);
 	        });
 	    },
 
 	    pipe: function(stream) {
 	        this.each(stream.push);
-	        return Fn.prototype.pipe.apply(this, arguments);
+	        return Fn$1.prototype.pipe.apply(this, arguments);
 	    },
 
 
@@ -6082,10 +6082,10 @@ var Sparky = (function () {
 
 					if (scope === undefined) {
 						console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
-						return Fn.of();
+						return Fn$1.of();
 					}
 
-					return Fn.of(scope);
+					return Fn$1.of(scope);
 				},
 
 				get: function(node, input, params) {
@@ -6715,7 +6715,7 @@ var Sparky = (function () {
 
 	            // If the resource is cached, return it as a readable
 	            if (cache$$1[path]) {
-	                return Fn.of(cache$$1[path]);
+	                return Fn$1.of(cache$$1[path]);
 	            }
 
 	            importScope(path, scopes);
@@ -6795,7 +6795,7 @@ var Sparky = (function () {
 
 	(function(window) {
 
-		var Fn$$1 = {};
+		var Fn = {};
 
 		var dom       = window.dom;
 		var Sparky    = window.Sparky;
@@ -6881,45 +6881,45 @@ var Sparky = (function () {
 
 			// Transforms from Fn's map functions
 
-			append:       Fn$$1.append,
-			contains:     Fn$$1.contains,
-			diff:         Fn$$1.diff,
-			equals:       Fn$$1.equals,
+			append:       Fn.append,
+			contains:     Fn.contains,
+			diff:         Fn.diff,
+			equals:       Fn.equals,
 			//exp:          Fn.exp,
-			factorise:    Fn$$1.factorise,
+			factorise:    Fn.factorise,
 			formatdate:   formatDate,
 			formattime:   formatTime,
-			gcd:          Fn$$1.gcd,
+			gcd:          Fn.gcd,
 			get:          get$1,
 			getPath:      getPath$1,
-			intersect:    Fn$$1.intersect,
-			invoke:       Fn$$1.invoke,
-			is:           Fn$$1.is,
-			lcm:          Fn$$1.lcm,
-			limit:        Fn$$1.limit,
+			intersect:    Fn.intersect,
+			invoke:       Fn.invoke,
+			is:           Fn.is,
+			lcm:          Fn.lcm,
+			limit:        Fn.limit,
 			//log:          Fn.log,
-			max:          Fn$$1.max,
-			min:          Fn$$1.min,
+			max:          Fn.max,
+			min:          Fn.min,
 			mod:          mod$1,
-			not:          Fn$$1.not,
+			not:          Fn.not,
 			percent:      multiply$1(100),
 			prepend:      prepend$2,
-			rest:         Fn$$1.rest,
-			root:         Fn$$1.nthRoot,
+			rest:         Fn.rest,
+			root:         Fn.nthRoot,
 			slugify:      slugify,
-			sort:         Fn$$1.sort,
-			take:         Fn$$1.take,
-			toCartesian:  Fn$$1.toCartesian,
-			todB:         Fn$$1.todB,
-			decibels:     Fn$$1.todB,
-			toDeg:        Fn$$1.toDeg,
-			toLevel:      Fn$$1.toLevel,
-			toPolar:      Fn$$1.toPolar,
-			toRad:        Fn$$1.toRad,
-			toStringType: Fn$$1.toStringType,
-			typeof:       Fn$$1.toType,
-			unique:       Fn$$1.unique,
-			unite:        Fn$$1.unite,
+			sort:         Fn.sort,
+			take:         Fn.take,
+			toCartesian:  Fn.toCartesian,
+			todB:         Fn.todB,
+			decibels:     Fn.todB,
+			toDeg:        Fn.toDeg,
+			toLevel:      Fn.toLevel,
+			toPolar:      Fn.toPolar,
+			toRad:        Fn.toRad,
+			toStringType: Fn.toStringType,
+			typeof:       Fn.toType,
+			unique:       Fn.unique,
+			unite:        Fn.unite,
 
 
 			// Transforms from dom's map functions
@@ -6938,7 +6938,7 @@ var Sparky = (function () {
 
 			'find-in': curry$1(function(path, id$$1) {
 				if (!isDefined(id$$1)) { return; }
-				var collection = Fn$$1.getPath(path, Sparky.data);
+				var collection = Fn.getPath(path, Sparky.data);
 				return collection && collection.find(id$$1);
 			}),
 
@@ -7073,7 +7073,7 @@ var Sparky = (function () {
 			},
 
 			reduce: curry$1(function(name, initialValue, array) {
-				return array && array.reduce(Fn$$1[name], initialValue || 0);
+				return array && array.reduce(Fn[name], initialValue || 0);
 			}, true),
 
 			replace: curry$1(function(str1, str2, value) {
