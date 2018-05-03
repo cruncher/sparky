@@ -1,9 +1,10 @@
+import { noop } from '../../fn/fn.js';
+
 (function(window) {
 	"use strict";
 
 	var DEBUG      = false;
 
-	var Fn         = window.Fn;
 	var dom        = window.dom;
 	var Observable = window.Observable;
 	var Sparky     = window.Sparky;
@@ -11,7 +12,6 @@
 	var A          = Array.prototype;
 
 	var isArray    = Array.isArray;
-	var noop       = Fn.noop;
 	var before     = dom.before;
 	var clone      = dom.clone;
 	var remove     = dom.remove;

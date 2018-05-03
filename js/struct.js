@@ -1,3 +1,5 @@
+
+import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream } from '../../fn/fn.js'
 import { parsePipe } from './parse.js';
 
 (function(window) {
@@ -5,19 +7,12 @@ import { parsePipe } from './parse.js';
 
 	const DEBUG      = false;
 
-	const Fn         = window.Fn;
 	const Stream     = window.Stream;
 	const frame      = window.frame;
 	const Observable = window.Observable;
 
 	const assign     = Object.assign;
-	const get        = Fn.get;
-	const id         = Fn.id;
-	const noop       = Fn.noop;
-	const pipe       = Fn.pipe;
-	const remove     = Fn.remove;
-	const getPath    = Fn.getPath;
-	const setPath    = Fn.setPath;
+
 	const cue        = frame.cue;
 	const uncue      = frame.uncue;
 	const observe    = Observable.observe;
@@ -120,10 +115,6 @@ import { parsePipe } from './parse.js';
             this.node.addEventListener(this.type, fn);
         },
 
-			this._listenFn = fn;
-			this.node.addEventListener(this.type, fn);
-		},
-
 		unlisten: function unlisten() {
 			var fn = this._listenFn;
 
@@ -170,7 +161,7 @@ import { parsePipe } from './parse.js';
 	function bind(struct, scope, options) {
 		if (DEBUG) { console.log('bind:  ', struct.token); }
 
-		var input = struct.input = Stream.observe(struct.path, scope).latest();
+		var input = struct.input = ObservableStream(struct.path, scope).latest();
 
 		struct.scope = scope;
 

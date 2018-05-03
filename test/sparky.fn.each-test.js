@@ -1,3 +1,5 @@
+import { Functor as Fn, noop } from '../../fn/fn.js';
+
 group('[sparky-fn="each"]', function(test, log, fixture) {
 
 	test('[sparky-fn="each"]', function(equals, done) {
@@ -62,7 +64,7 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 */});
 
 
-Fn.noop('[sparky-fn="each"]', function(test, log, fixture) {
+noop('[sparky-fn="each"]', function(test, log, fixture) {
 
 	test('[sparky-fn="each"] empty array', function(equals, done) {
 		var ul = fixture.querySelector('[sparky-fn="nothing"]');

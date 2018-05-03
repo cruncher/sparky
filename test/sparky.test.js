@@ -1,4 +1,6 @@
 
+import { Functor as Fn } from '../../fn/fn.js';
+
 //Sparky.fn['ctrl'] = function(node, scopes) {
 //	return Fn.of({ property: 'peas' });
 //};

@@ -3,6 +3,7 @@
 	console.log('Sparky      - https://github.com/cruncher/sparky');
 })(window);
 
+import { Functor as Fn, Stream, Observable as ObserveStream, deprecate, getPath, invoke, noop, nothing } from '../../fn/fn.js';
 import { parseParams } from './parse.js';
 
 (function(window) {
@@ -10,18 +11,11 @@ import { parseParams } from './parse.js';
 
 	var DEBUG          = window.DEBUG;
 
-	var Fn             = window.Fn;
 	var Observable     = window.Observable;
-	var Stream         = window.Stream;
 	var dom            = window.dom;
 	var mount          = window.mount;
 
 	var assign         = Object.assign;
-	var deprecate      = Fn.deprecate;
-	var getPath        = Fn.getPath;
-	var invoke         = Fn.invoke;
-	var noop           = Fn.noop;
-	var nothing        = Fn.nothing;
 	var tag            = dom.tag;
 	var preventDefault = dom.preventDefault;
 
@@ -227,8 +221,7 @@ import { parseParams } from './parse.js';
 
 				input.each(function(object) {
 					stop();
-					stop = Stream
-					.observe(params[0], object)
+					stop = ObserveStream(params[0], object)
 					.each(output.push)
 					.stop;
 				});
@@ -294,7 +287,7 @@ import { parseParams } from './parse.js';
 				return scopes.tap(log);
 			},
 
-			scope: Fn.deprecate(function(node, stream, params) {
+			scope: deprecate(function(node, stream, params) {
 				return Sparky.fn.find.apply(this, arguments);
 			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 

@@ -1,5 +1,4 @@
 import '../fn/fn.js'
-import '../fn/js/time.js'
 import '../dom/dom.js'
 
 import './js/frame.js'

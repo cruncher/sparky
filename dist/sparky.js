@@ -1,1948 +1,10 @@
-// Sparky 2.3.1
+// Sparky 2.3.2
 //
 // by @stephband
 // http://stephen.band/sparky
 
 var Sparky = (function () {
 	'use strict';
-
-	(function(window) {
-		if (!window.console || !window.console.log) { return; }
-		window.console.log('Fn          - https://github.com/stephband/fn');
-	})(window);
-
-	(function(window) {
-
-		var DEBUG = window.DEBUG === true;
-
-
-		// Import
-
-		var A = Array.prototype;
-		var N = Number.prototype;
-		var O = Object.prototype;
-		var S = String.prototype;
-		var assign = Object.assign;
-
-
-		// Define
-
-		var nothing = Object.freeze(Object.defineProperties([], {
-			shift: { value: noop }
-		}));
-
-
-		// Constant for converting radians to degrees
-		var angleFactor = 180 / Math.PI;
-
-
-		// Feature test
-
-		var isFunctionLengthDefineable = (function() {
-			var fn = function() {};
-
-			try {
-				// Can't do this on Safari - length non configurable :(
-				Object.defineProperty(fn, 'length', { value: 2 });
-			}
-			catch(e) {
-				return false;
-			}
-
-			return fn.length === 2;
-		})();
-
-
-		// Debug helpers
-
-		function setFunctionProperties(text, parity, fn1, fn2) {
-			// Make the string representation of fn2 display parameters of fn1
-			fn2.toString = function() {
-				return /function\s*[\w\d]*\s*\([,\w\d\s]*\)/.exec(fn1.toString()) + ' { [' + text + '] }';
-			};
-
-			// Where possible, define length so that curried functions show how
-			// many arguments they are yet expecting
-			if (isFunctionLengthDefineable) {
-				Object.defineProperty(fn2, 'length', { value: parity });
-			}
-
-			return fn2;
-		}
-
-		function deprecate(fn, message) {
-			// Recall any function and log a depreciation warning
-			return function deprecate() {
-				console.warn('Deprecation warning: ' + message);
-				return fn.apply(this, arguments);
-			};
-		}
-
-		function debug() {
-			if (!window.console) { return fn; }
-
-			var fn   = arguments[arguments.length - 1];
-			var logs = A.slice.call(arguments, 0, arguments.length - 1);
-
-			logs.push((fn.name || 'function') + '(');
-
-			return function() {
-				logs.push.apply(logs, arguments);
-				logs.push(')');
-				console.group.apply(console, logs);
-				var value = fn.apply(this, arguments);
-				console.groupEnd();
-				console.log('⬅', value);
-				return value;
-			};
-		}
-
-
-		// Functional functions
-
-		function noop() {}
-
-		function args() { return arguments; }
-
-		function id(object) { return object; }
-
-		function self() { return this; }
-
-		function call(value, fn) {
-			return fn(value);
-		}
-
-		function bind(args, fn) {
-			return function() {
-				fn.apply(this, concat(arguments, args));
-			};
-		}
-
-		function compose(fn2, fn1) {
-			return function compose() {
-				return fn2(fn1.apply(null, arguments));
-			};
-		}
-
-		function pipe() {
-			var fns = arguments;
-			return function pipe(value) {
-				return A.reduce.call(fns, call, value);
-			};
-		}
-
-		function cache(fn) {
-			var map = new Map();
-
-			return function cache(object) {
-				if (DEBUG && arguments.length > 1) {
-					throw new Error('Fn: cache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
-				}
-
-				if (map.has(object)) {
-					return map.get(object);
-				}
-
-				var value = fn(object);
-				map.set(object, value);
-				return value;
-			};
-		}
-
-		function weakCache(fn) {
-			var map = new WeakMap();
-
-			return function weakCache(object) {
-				if (DEBUG && arguments.length > 1) {
-					throw new Error('Fn: weakCache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
-				}
-
-				if (map.has(object)) {
-					return map.get(object);
-				}
-
-				var value = fn(object);
-				map.set(object, value);
-				return value;
-			};
-		}
-
-		function applyFn(fn, args) {
-			return typeof fn === 'function' ? fn.apply(null, args) : fn ;
-		}
-
-		function curry(fn, muteable, arity) {
-			arity = arity || fn.length;
-
-			var memo = arity === 1 ?
-				// Don't cache if `muteable` flag is true
-				muteable ? fn : cache(fn) :
-
-				// It's ok to always cache intermediate memos, though
-				cache(function(object) {
-					return curry(function() {
-						var args = [object];
-						args.push.apply(args, arguments);
-						return fn.apply(null, args);
-					}, muteable, arity - 1) ;
-				}) ;
-
-			return function partial(object) {
-				return arguments.length === 0 ?
-					partial :
-				arguments.length === 1 ?
-					memo(object) :
-				arguments.length === arity ?
-					fn.apply(null, arguments) :
-				arguments.length > arity ?
-					applyFn(fn.apply(null, A.splice.call(arguments, 0, arity)), arguments) :
-				applyFn(memo(object), A.slice.call(arguments, 1)) ;
-			};
-		}
-
-		function once(fn) {
-			return function once() {
-				var value = fn.apply(this, arguments);
-				fn = noop;
-				return value;
-			};
-		}
-
-		function flip(fn) {
-			return function(a, b) {
-				return fn(b, a);
-			};
-		}
-
-		function overload(fn, map) {
-			return typeof map.get === 'function' ?
-				function overload() {
-					var key = fn.apply(null, arguments);
-					return map.get(key).apply(this, arguments);
-				} :
-				function overload() {
-					var key = fn.apply(null, arguments);
-					return (map[key] || map.default).apply(this, arguments);
-				} ;
-		}
-
-		function choose(map) {
-			return function choose(key) {
-				var fn = map[key] || map.default;
-				return fn && fn.apply(this, rest(1, arguments)) ;
-			};
-		}
-
-		if (DEBUG) {
-			var _curry = curry;
-
-			// Make curried functions log a pretty version of their partials
-			curry = function curry(fn, muteable, arity) {
-				arity  = arity || fn.length;
-				return setFunctionProperties('curried', arity, fn, _curry(fn, muteable, arity));
-			};
-		}
-
-
-		// Types
-
-		var regex = {
-			//         / (  (  (  (   http:         ) //  ) domain          /path   )(more /path  ) /   (path/      ) chars  )(hash or query string      )  /
-			url:       /^(?:(?:(?:(?:[fht]{1,2}tps?:)?\/\/)?[-\w]+\.[-\w]+|\/[-\w.]+)(?:\/?[-\w.]+)*\/?|(?:[-\w.]+\/)+[-\w.]*)(?:[#?][#?!\[\]$\,;&=-\w.]*)?$/,
-			email:     /^((([a-z]|\d|[!#$%&'*+\-\/=?^_`{|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#$%&'*+\-\/=?^_`{|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i,
-			date:      /^\d{4}-(?:0[1-9]|1[012])-(?:0[1-9]|[12][0-9]|3[01])$/,
-			hexColor:  /^(#)?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
-			hslColor:  /^(?:(hsl)(\())?\s?(\d{1,3}(?:\.\d+)?)\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?(\))?$/,
-			rgbColor:  /^(?:(rgb)(\())?\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?(\d{1,3})\s?(\))?$/,
-			hslaColor: /^(?:(hsla)(\())?\s?(\d{1,3}(?:\.\d+)?)\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?(\d{1,3}(?:\.\d+)?)%\s?,\s?([01](?:\.\d+)?)\s?(\))?$/,
-			rgbaColor: /^(?:(rgba)(\())?\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?(\d{1,3})\s?,\s?([01](?:\.\d+)?)\s?(\))?$/,
-			cssValue:  /^(-?\d+(?:\.\d+)?)(px|%|em|ex|pt|in|cm|mm|pt|pc)?$/,
-			cssAngle:  /^(-?\d+(?:\.\d+)?)(deg)?$/,
-			image:     /(?:\.png|\.gif|\.jpeg|\.jpg)$/,
-			float:     /^[+-]?(?:\d*\.)?\d+$/,
-			int:       /^(-?\d+)$/
-		};
-
-		function equals(a, b) {
-			// Fast out if references are for the same object
-			if (a === b) { return true; }
-
-			// Or if values are not objects
-			if (a === null ||
-				b === null ||
-				typeof a !== 'object' ||
-				typeof b !== 'object') {
-				return false;
-			}
-
-			var akeys = Object.keys(a);
-			var bkeys = Object.keys(b);
-
-			// Are their enumerable keys different?
-			if (akeys.length !== bkeys.length) { return false; }
-
-			var n = akeys.length;
-
-			while (n--) {
-				if (!equals(a[akeys[n]], b[akeys[n]])) {
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		var is = Object.is || function is(a, b) { return a === b; } ;
-
-		function isDefined(value) {
-			// !!value is a fast out for non-zero numbers, non-empty strings
-			// and other objects, the rest checks for 0, '', etc.
-			return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
-		}
-
-		function isNot(a, b) { return a !== b; }
-
-		function toType(object) {
-			return typeof object;
-		}
-
-		function toClass(object) {
-			return O.toString.apply(object).slice(8, -1);
-		}
-
-		function toArray(object) {
-			if (object.toArray) { return object.toArray(); }
-
-			// Speed test for array conversion:
-			// https://jsperf.com/nodelist-to-array/27
-
-			var array = [];
-			var l = object.length;
-			var i;
-
-			if (typeof object.length !== 'number') { return array; }
-
-			array.length = l;
-
-			for (i = 0; i < l; i++) {
-				array[i] = object[i];
-			}
-
-			return array;
-		}
-
-		function toInt(object) {
-			return object === undefined ?
-				undefined :
-				parseInt(object, 10);
-		}
-
-		function toString(object) {
-			return object.toString();
-		}
-
-
-		// Arrays
-
-		function nth(n, object) {
-			return object[n];
-		}
-
-		function sortedSplice(array, fn, value) {
-			// Splices value into array at position determined by result of fn,
-			// where result is either in the range [-1, 0, 1] or [true, false]
-			var n = sortIndex(array, function(n) {
-				return fn(value, n);
-			});
-			array.splice(n, 0, value);
-		}
-
-		function sortIndex(array, fn) {
-			var l = array.length;
-			var n = l + l % 2;
-			var i = 0;
-
-			while ((n = Math.floor(n / 2)) && (i + n <= l)) {
-				if (fn(array[i + n - 1]) >= 0) {
-					i += n;
-					n += n % 2;
-				}
-			}
-
-			return i;
-		}
-
-		//function sparseShift(array) {
-		//	// Shift values ignoring undefined holes
-		//	var value;
-		//	while (array.length) {
-		//		value = A.shift.apply(array);
-		//		if (value !== undefined) { return value; }
-		//	}
-		//}
-
-		function uniqueReducer(array, value) {
-			if (array.indexOf(value) === -1) { array.push(value); }
-			return array;
-		}
-
-		function arrayReducer(array, value) {
-			array.push(value);
-			return array;
-		}
-
-		//function whileArray(fn, array) {
-		//	var values = [];
-		//	var n = -1;
-		//	while (++n < array.length && fn(array[n])) {
-		//		values.push(object[n]);
-		//	}
-		//	return values;
-		//}
-
-		function byGreater(a, b) {
-			return a === b ? 0 : a > b ? 1 : -1 ;
-		}
-
-		function concat(array2, array1) {
-			// A.concat only works with arrays - it does not flatten array-like
-			// objects. We need a robust concat that will glue any old thing
-			// together.
-			return Array.isArray(array1) ?
-				// 1 is an array. Convert 2 to an array if necessary
-				array1.concat(Array.isArray(array2) ? array2 : toArray(array2)) :
-
-			array1.concat ?
-				// It has it's own concat method. Lets assume it's robust
-				array1.concat(array2) :
-			// 1 is not an array, but 2 is
-			toArray(array1).concat(Array.isArray(array2) ? array2 : toArray(array2)) ;
-		}
-
-		function contains(value, object) {
-			return object.includes ?
-				object.includes(value) :
-			object.contains ?
-				object.contains(value) :
-			A.includes ?
-				A.includes.call(object, value) :
-				A.indexOf.call(object, value) !== -1 ;
-		}
-
-		var isIn = flip(contains);
-
-		function map(fn, object) {
-			return object && object.map ? object.map(fn) : A.map.call(object, fn) ;
-		}
-
-		function each(fn, object) {
-			// A stricter version of .forEach, where the callback fn
-			// gets a single argument and no context.
-			var l, n;
-
-			if (typeof object.each === 'function') {
-				object.each(fn);
-			}
-			else {
-				l = object.length;
-				n = -1;
-				while (++n < l) { fn(object[n]); }
-			}
-
-			return object;
-		}
-
-		function filter(fn, object) {
-			return object.filter ?
-				object.filter(fn) :
-				A.filter.call(object, fn) ;
-		}
-
-		function last(array) {
-			if (typeof array.length === 'number') {
-				return array[array.length - 1];
-			}
-
-			// Todo: handle Fns and Streams
-		}
-
-		function reduce(fn, seed, object) {
-			return object.reduce ?
-				object.reduce(fn, seed) :
-				A.reduce.call(object, fn, seed);
-		}
-
-		function rest(i, object) {
-			if (object.slice) { return object.slice(i); }
-			if (object.rest)  { return object.rest(i); }
-
-			var a = [];
-			var n = object.length - i;
-			while (n--) { a[n] = object[n + i]; }
-			return a;
-		}
-
-		function slice(n, m, object) {
-			return object.slice ? object.slice(n, m) : A.slice.call(object, n, m);
-		}
-
-		function take(i, object) {
-			if (object.slice) { return object.slice(0, i); }
-			if (object.take)  { return object.take(i); }
-
-			var a = [];
-			var n = i;
-			while (n--) { a[n] = object[n]; }
-			return a;
-		}
-
-		function find(fn, object) {
-			return A.find.call(object, fn);
-		}
-
-		function insert(fn, array, object) {
-			var n = -1;
-			var l = array.length;
-			var value = fn(object);
-			while(++n < l && fn(array[n]) <= value);
-			array.splice(n, 0, object);
-		}
-
-		function update(fn, target, array) {
-			return array.reduce(function(target, obj2) {
-				var obj1 = target.find(compose(Fn.is(fn(obj2)), fn));
-				if (obj1) {
-					assign(obj1, obj2);
-				}
-				else {
-					insert(fn, target, obj2);
-				}
-				return target;
-			}, target);
-		}
-
-		function remove(array, value) {
-			if (array.remove) { array.remove(value); }
-			var i = array.indexOf(value);
-			if (i !== -1) { array.splice(i, 1); }
-		}
-
-		function split(fn, object) {
-			if (object.split && typeof object !== 'string') { return object.split(fn); }
-
-			var array = [];
-			var n     = -1;
-			var value;
-
-			while((value = object[++n]) !== undefined) {
-				if (fn(value) || n === 0) { array.push([value]); }
-				else { array[array.length].push(value); }
-			}
-
-			return array;
-		}
-
-		function diff(array, object) {
-			var values = toArray(array);
-
-			return filter(function(value) {
-				var i = values.indexOf(value);
-				if (i === -1) { return true; }
-				values.splice(i, 1);
-				return false;
-			}, object)
-			.concat(values);
-		}
-
-		function intersect(array, object) {
-			var values = toArray(array);
-
-			return filter(function(value) {
-				var i = values.indexOf(value);
-				if (i === -1) { return false; }
-				values.splice(i, 1);
-				return true;
-			}, object);
-		}
-
-		function unite(array, object) {
-			var values = toArray(array);
-
-			return map(function(value) {
-				var i = values.indexOf(value);
-				if (i > -1) { values.splice(i, 1); }
-				return value;
-			}, object)
-			.concat(values);
-		}
-
-		function unique(object) {
-			return object.unique ?
-				object.unique() :
-				reduce(uniqueReducer, [], object) ;
-		}
-
-		function sort(fn, object) {
-			return object.sort ? object.sort(fn) : A.sort.call(object, fn);
-		}
-
-		var tap = curry(function tap(fn, object) {
-			return object === undefined ? undefined : (fn(object), object) ;
-		}, true);
-
-
-		// Objects
-
-
-		var rpath  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
-
-		function get(key, object) {
-			// Todo? Support WeakMaps and Maps and other map-like objects with a
-			// get method - but not by detecting the get method
-			return object[key] === null ?
-				undefined :
-				object[key] ;
-		}
-
-		function set(key, object, value) {
-			return typeof object.set === "function" ?
-				object.set(key, value) :
-				(object[key] = value) ;
-		}
-
-		function findByProperty(key, value, array) {
-			var l = array.length;
-			var n = -1;
-
-			while (++n < l) {
-				if (array[n][key] === value) {
-					return array[n];
-				}
-			}
-		}
-
-		function getRegexPathThing(regex, path, object, fn) {
-			var tokens = regex.exec(path);
-
-			if (!tokens) {
-				throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
-			}
-
-			var key      = tokens[1];
-			var property = tokens[3] ?
-				findByProperty(key,
-					tokens[2] ? tokens[3] :
-					tokens[4] ? Boolean(tokens[4]) :
-					parseFloat(tokens[5]),
-				object) :
-				object[key] ;
-
-			return fn(regex, path, property);
-		}
-
-		function getRegexPath(regex, path, object) {
-			return regex.lastIndex === path.length ?
-				object :
-			!(object && typeof object === 'object') ?
-				undefined :
-			getRegexPathThing(regex, path, object, getRegexPath) ;
-		}
-
-		function setRegexPath(regex, path, object, thing) {
-			var tokens = regex.exec(path);
-
-			if (!tokens) {
-				throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
-			}
-
-			var key = tokens[1];
-
-			if (regex.lastIndex === path.length) {
-				// Cannot set to [prop=value] selector
-				if (tokens[3]) {
-					throw new Error('Fn.setPath(path, object): invalid path "' + path + '"');
-				}
-
-				return object[key] = thing;
-			}
-
-			var value = tokens[3] ?
-				findByProperty(key,
-					tokens[2] ? tokens[3] :
-					tokens[4] ? Boolean(tokens[4]) :
-					parseFloat(tokens[5])
-				) :
-				object[key] ;
-
-			if (!(value && typeof value === 'object')) {
-				value = {};
-
-				if (tokens[3]) {
-					if (object.push) {
-						value[key] = tokens[2] ?
-							tokens[3] :
-							parseFloat(tokens[3]) ;
-
-						object.push(value);
-					}
-					else {
-						throw new Error('Not supported');
-					}
-				}
-
-				set(key, object, value);
-			}
-
-			return setRegexPath(regex, path, value, thing);
-		}
-
-		function getPath(path, object) {
-			rpath.lastIndex = 0;
-			return getRegexPath(rpath, path, object) ;
-		}
-
-		function setPath(path, object, value) {
-			rpath.lastIndex = 0;
-			return setRegexPath(rpath, path, object, value);
-		}
-
-
-		// Strings
-
-		function prepend(string1, string2) {
-			return string1 + string2;
-		}
-
-		function append(string1, string2) {
-			return string2 + string1;
-		}
-
-		function prepad(chars, n, value) {
-			var string = value + '';
-			var i = -1;
-			var pre = '';
-
-			while (pre.length < n - string.length) {
-				pre += chars[++i % chars.length];
-			}
-
-			string = pre + string;
-			return string.slice(string.length - n);
-		}
-
-		function postpad(chars, n, value) {
-			var string = value + '';
-
-			while (string.length < n) {
-				string = string + chars;
-			}
-
-			return string.slice(0, n);
-		}
-
-
-		// Numbers
-
-		function gcd(a, b) {
-			// Greatest common divider
-			return b ? gcd(b, a % b) : a ;
-		}
-
-		function lcm(a, b) {
-			// Lowest common multiple.
-			return a * b / gcd(a, b);
-		}
-
-		function sampleCubicBezier(a, b, c, t) {
-			// `ax t^3 + bx t^2 + cx t' expanded using Horner's rule.
-			return ((a * t + b) * t + c) * t;
-		}
-
-		function sampleCubicBezierDerivative(a, b, c, t) {
-			return (3 * a * t + 2 * b) * t + c;
-		}
-
-		function solveCubicBezierX(a, b, c, x, epsilon) {
-			// Solve x for a cubic bezier
-			var x2, d2, i;
-			var t2 = x;
-
-			// First try a few iterations of Newton's method -- normally very fast.
-			for(i = 0; i < 8; i++) {
-				x2 = sampleCubicBezier(a, b, c, t2) - x;
-				if (Math.abs(x2) < epsilon) {
-					return t2;
-				}
-				d2 = sampleCubicBezierDerivative(a, b, c, t2);
-				if (Math.abs(d2) < 1e-6) {
-					break;
-				}
-				t2 = t2 - x2 / d2;
-			}
-
-			// Fall back to the bisection method for reliability.
-			var t0 = 0;
-			var t1 = 1;
-
-			t2 = x;
-
-			if(t2 < t0) { return t0; }
-			if(t2 > t1) { return t1; }
-
-			while(t0 < t1) {
-				x2 = sampleCubicBezier(a, b, c, t2);
-				if(Math.abs(x2 - x) < epsilon) {
-					return t2;
-				}
-				if (x > x2) { t0 = t2; }
-				else { t1 = t2; }
-				t2 = (t1 - t0) * 0.5 + t0;
-			}
-
-			// Failure.
-			return t2;
-		}
-
-
-		// Time
-
-		function now() {
-			// Return time in seconds
-			return +new Date() / 1000;
-		}
-
-		var requestFrame = window.requestAnimationFrame;
-
-		var resolved = Promise.resolve();
-
-		function requestTick(fn) {
-			resolved.then(fn);
-			return true;
-		}
-
-
-		// Timer
-		//
-		// Create an object with a request/cancel pair of functions that
-		// fire request(fn) callbacks at a given duration.
-		//
-		// .request()
-		// .cancel()
-		// .now()
-
-		function Timer(duration, getTime) {
-			if (typeof duration !== 'number') { throw new Error('Timer(duration) requires a duration in seconds (' + duration + ')'); }
-
-			// Optional second argument is a function that returns
-			// current time (in seconds)
-			getTime = getTime || now;
-
-			var fns = [];
-			var id;
-			var t0  = -Infinity;
-
-			function frame() {
-				var n = fns.length;
-
-				id = undefined;
-				t0 = getTime();
-
-				while (n--) {
-					fns.shift()(t0);
-				}
-			}
-
-			return {
-				now: getTime,
-
-				request: function(fn) {
-					if (typeof fn !== 'function') { throw new Error('fn is not a function.'); }
-
-					// Add fn to queue
-					fns.push(fn);
-
-					// If the timer is cued do nothing
-					if (id) { return; }
-
-					var t1 = getTime();
-
-					// Set the timer and return something truthy
-					if (t0 + duration > t1) {
-						id = setTimeout(frame, (t0 + duration - t1) * 1000);
-					}
-					else {
-						requestTick(frame) ;
-					}
-
-					// Use the fn reference as the request id, because why not
-					return fn;
-				},
-
-				cancel: function(fn) {
-					var i = fns.indexOf(fn);
-					if (i === -1) { return; }
-
-					fns.splice(i, 1);
-
-					if (!fns.length) {
-						clearTimeout(id);
-						id = undefined;
-					}
-				}
-			};
-		}
-
-
-		// Throttle
-		//
-		// Returns a function that calls `fn` once on the next timer frame, using
-		// the context and arguments from the latest invocation.
-
-		function Throttle(fn, request, cancel) {
-			request = request || window.requestAnimationFrame;
-			cancel  = cancel  || window.cancelAnimationFrame;
-
-			var queue = schedule;
-			var context, args, id;
-
-			function schedule() {
-				queue = noop;
-				id = request(update);
-			}
-
-			function update() {
-				queue = schedule;
-				fn.apply(context, args);
-			}
-
-			function stop(callLast) {
-				// If there is an update queued apply it now
-				//if (callLast !== false && queue === noop) { update(); }
-
-				// An update is queued
-				if (queue === noop && id !== undefined) {
-					cancel(id);
-				}
-
-				// Don't permit further changes to be queued
-				queue = noop;
-			}
-
-			function throttle() {
-				// Store the latest context and arguments
-				context = this;
-				args    = arguments;
-
-				// Queue the update
-				queue();
-			}
-
-			throttle.cancel = stop;
-			return throttle;
-		}
-
-
-		// Wait
-		//
-		// Returns a function that waits for `time` seconds without being invoked
-		// before calling `fn` using the context and arguments from the latest
-		// invocation
-
-		function Wait(fn, time) {
-			var timer, context, args;
-			var cue = function cue() {
-				if (timer) { clearTimeout(timer); }
-				timer = setTimeout(update, (time || 0) * 1000);
-			};
-
-			function update() {
-				timer = false;
-				fn.apply(context, args);
-			}
-
-			function cancel() {
-				// Don't permit further changes to be queued
-				cue = noop;
-
-				// If there is an update queued apply it now
-				if (timer) { clearTimeout(timer); }
-			}
-
-			function wait() {
-				// Store the latest context and arguments
-				context = this;
-				args = arguments;
-
-				// Cue the update
-				cue();
-			}
-
-			wait.cancel = cancel;
-			return wait;
-		}
-
-		// Choke or wait? A simpler implementation without cancel(), I leave this here for reference...
-	//	function choke(seconds, fn) {
-	//		var timeout;
-	//
-	//		function update(context, args) {
-	//			fn.apply(context, args);
-	//		}
-	//
-	//		return function choke() {
-	//			clearTimeout(timeout);
-	//			timeout = setTimeout(update, seconds * 1000, this, arguments);
-	//		};
-	//	}
-
-
-		// Fn
-
-		function isDone(source) {
-			return source.length === 0 || source.status === 'done' ;
-		}
-
-		function latest(source) {
-			var value = source.shift();
-			return value === undefined ? arguments[1] : latest(source, value) ;
-		}
-
-		function create(object, fn) {
-			var functor = Object.create(object);
-			functor.shift = fn;
-			return functor;
-		}
-
-		function Fn(fn) {
-			// Accept constructor without `new`
-			if (!this || !Fn.prototype.isPrototypeOf(this)) {
-				return new Fn(fn);
-			}
-
-			var source = this;
-
-			if (!fn) {
-				source.status = 'done';
-				return;
-			}
-
-			var value = fn();
-
-			if (value === undefined) {
-				source.status = 'done';
-				return;
-			}
-
-			this.shift = function shift() {
-				if (source.status === 'done') { return; }
-
-				var v = value;
-
-				// Where the next value is undefined mark the functor as done
-				value = fn();
-				if (value === undefined) {
-					source.status = 'done';
-				}
-
-				return v;
-			};
-		}
-
-		assign(Fn.prototype, {
-			shift: noop,
-
-			// Input
-
-			of: function() {
-				// Delegate to the constructor's .of()
-				return this.constructor.of.apply(this.constructor, arguments);
-			},
-
-			// Transform
-
-			ap: function(object) {
-				var shift = this.shift;
-
-				return create(this, function ap() {
-					var fn = shift();
-					return fn === undefined ?
-						undefined :
-						object.map(fn) ;
-				});
-			},
-
-			unshift: function() {
-				// Create an unshift buffer, such that objects can be inserted
-				// back into the stream at will with stream.unshift(object).
-				var source = this;
-				var buffer = toArray(arguments);
-
-				return create(this, function() {
-					return (buffer.length ? buffer : source).shift() ;
-				});
-			},
-
-			catch: function(fn) {
-				var source = this;
-
-				return create(this, function() {
-					try {
-						return source.shift();
-					}
-					catch(e) {
-						return fn(e);
-					}
-				});
-			},
-
-			chain: function(fn) {
-				return this.map(fn).join();
-			},
-
-			clone: function() {
-				var source  = this;
-				var shift   = this.shift;
-				var buffer1 = [];
-				var buffer2 = [];
-				var doneFlag = false;
-
-				// Messy. But it works. Just.
-
-				this.shift = function() {
-					var value;
-
-					if (buffer1.length) {
-						value = buffer1.shift();
-
-						if (!buffer1.length && doneFlag) {
-							source.status = 'done';
-						}
-
-						return value;
-					}
-
-					if (!doneFlag) {
-						value = shift();
-
-						if (source.status === 'done') {
-							doneFlag = true;
-						}
-
-						if (value !== undefined) {
-							buffer2.push(value);
-						}
-
-						return value;
-					}
-				};
-
-				var clone = new Fn(function shiftClone() {
-					var value;
-
-					if (buffer2.length) {
-						return buffer2.shift();
-						//if (!buffer2.length && doneFlag) {
-						//	clone.status = 'done';
-						//}
-					}
-
-					if (!doneFlag) {
-						value = shift();
-
-						if (source.status === 'done') {
-							doneFlag = true;
-							source.status = undefined;
-						}
-
-						if (value !== undefined) {
-							buffer1.push(value);
-						}
-
-						return value;
-					}
-				});
-
-				return clone;
-			},
-
-			concat: function() {
-				var sources = toArray(arguments);
-				var source  = this;
-
-				var stream  = create(this, function concat() {
-					if (source === undefined) {
-						stream.status = 'done';
-						return;
-					}
-
-					if (isDone(source)) {
-						source = sources.shift();
-						return concat();
-					}
-
-					var value = source.shift();
-
-					stream.status = sources.length === 0 && isDone(source) ?
-						'done' : undefined ;
-
-					return value;
-				});
-
-				return stream;
-			},
-
-			dedup: function() {
-				var v;
-				return this.filter(function(value) {
-					var old = v;
-					v = value;
-					return old !== value;
-				});
-			},
-
-			filter: function(fn) {
-				var source = this;
-
-				return create(this, function filter() {
-					var value;
-					while ((value = source.shift()) !== undefined && !fn(value));
-					return value;
-				});
-			},
-
-			first: function() {
-				var source = this;
-				return create(this, once(function first() {
-					source.status = 'done';
-					return source.shift();
-				}));
-			},
-
-			join: function() {
-				var source = this;
-				var buffer = nothing;
-
-				return create(this, function join() {
-					var value = buffer.shift();
-					if (value !== undefined) { return value; }
-					buffer = source.shift();
-					if (buffer !== undefined) { return join(); }
-					buffer = nothing;
-				});
-			},
-
-			latest: function() {
-				var source = this;
-				return create(this, function shiftLast() {
-					return latest(source);
-				});
-			},
-
-			map: function(fn) {
-				return create(this, compose(function map(object) {
-					return object === undefined ? undefined : fn(object) ;
-				}, this.shift));
-			},
-
-			chunk: function(n) {
-				var source = this;
-				var buffer = [];
-
-				return create(this, n ?
-					// If n is defined batch into arrays of length n.
-					function shiftChunk() {
-						var value, _buffer;
-
-						while (buffer.length < n) {
-							value = source.shift();
-							if (value === undefined) { return; }
-							buffer.push(value);
-						}
-
-						if (buffer.length >= n) {
-							_buffer = buffer;
-							buffer = [];
-							return Fn.of.apply(Fn, _buffer);
-						}
-					} :
-
-					// If n is undefined or 0, batch all values into an array.
-					function shiftChunk() {
-						buffer = source.toArray();
-						// An empty array is equivalent to undefined
-						return buffer.length ? buffer : undefined ;
-					}
-				);
-			},
-
-			fold: function(fn, seed) {
-				var i = 0;
-				return this
-				.map(function fold(value) {
-					seed = fn(seed, value, i++);
-					return seed;
-				})
-				.unshift(seed);
-			},
-
-			partition: function(fn) {
-				var source = this;
-				var buffer = [];
-				var streams = new Map();
-
-				fn = fn || Fn.id;
-
-				function createPart(key, value) {
-					var stream = Stream.of().on('pull', shiftPull);
-					stream.key = key;
-					streams.set(key, stream);
-					return stream;
-				}
-
-				function shiftPull(type, pullStream) {
-					var value  = source.shift();
-					if (value === undefined) { return; }
-
-					var key    = fn(value);
-					var stream = streams.get(key);
-
-					if (stream === pullStream) { return value; }
-
-					if (stream === undefined) {
-						stream = createPart(key, value);
-						buffer.push(stream);
-					}
-
-					stream.push(value);
-					return shiftPull(type, pullStream);
-				}
-
-				return create(this, function shiftStream() {
-					if (buffer.length) { return buffer.shift(); }
-
-					var value = source.shift();
-					if (value === undefined) { return; }
-
-					var key    = fn(value);
-					var stream = streams.get(key);
-
-					if (stream === undefined) {
-						stream = createPart(key, value);
-						stream.push(value);
-						return stream;
-					}
-
-					stream.push(value);
-					return shiftStream();
-				});
-			},
-
-			reduce: function reduce(fn, seed) {
-				return this.fold(fn, seed).latest().shift();
-			},
-
-			take: function(n) {
-				var source = this;
-				var i = 0;
-
-				return create(this, function take() {
-					var value;
-
-					if (i < n) {
-						value = source.shift();
-						// Only increment i where an actual value has been shifted
-						if (value === undefined) { return; }
-						if (++i === n) { source.status = 'done'; }
-						return value;
-					}
-				});
-			},
-
-			sort: function(fn) {
-				fn = fn || Fn.byGreater ;
-
-				var source = this;
-				var buffer = [];
-
-				return create(this, function sort() {
-					var value;
-
-					while((value = source.shift()) !== undefined) {
-						sortedSplice(buffer, fn, value);
-					}
-
-					return buffer.shift();
-				});
-			},
-
-			split: function(fn) {
-				var source = this;
-				var buffer = [];
-
-				return create(this, function split() {
-					var value = source.shift();
-					var temp;
-
-					if (value === undefined) {
-						if (buffer.length) {
-							temp = buffer;
-							buffer = [];
-							return temp;
-						}
-
-						return;
-					}
-
-					if (fn(value)) {
-						temp = buffer;
-						buffer = [value];
-						return temp.length ? temp : split() ;
-					}
-
-					buffer.push(value);
-					return split();
-				});
-			},
-
-			syphon: function(fn) {
-				var shift   = this.shift;
-				var buffer1 = [];
-				var buffer2 = [];
-
-				this.shift = function() {
-					if (buffer1.length) { return buffer1.shift(); }
-
-					var value;
-
-					while ((value = shift()) !== undefined && fn(value)) {
-						buffer2.push(value);
-					}
-
-					return value;
-				};
-
-				return create(this, function filter() {
-					if (buffer2.length) { return buffer2.shift(); }
-
-					var value;
-
-					while ((value = shift()) !== undefined && !fn(value)) {
-						buffer1.push(value);
-					}
-
-					return value;
-				});
-			},
-
-			rest: function(i) {
-				var source = this;
-
-				return create(this, function rest() {
-					while (i-- > 0) { source.shift(); }
-					return source.shift();
-				});
-			},
-
-			unique: function() {
-				var source = this;
-				var values = [];
-
-				return create(this, function unique() {
-					var value = source.shift();
-
-					return value === undefined ? undefined :
-						values.indexOf(value) === -1 ? (values.push(value), value) :
-						unique() ;
-				});
-			},
-
-			// Consumers
-
-			each: function(fn) {
-				var value;
-
-				while ((value = this.shift()) !== undefined) {
-					fn.call(this, value);
-				}
-
-				return this;
-			},
-
-			find: function(fn) {
-				return this
-				.filter(fn)
-				.first()
-				.shift();
-			},
-
-			next: function() {
-				return {
-					value: this.shift(),
-					done:  this.status
-				};
-			},
-
-			pipe: function(stream) {
-				// Target must be evented
-				if (!stream || !stream.on) {
-					throw new Error('Fn: Fn.pipe(object) object must be a stream. (' + stream + ')');
-				}
-
-				return stream.on('pull', this.shift);
-			},
-
-			tap: function(fn) {
-				// Overwrite shift to copy values to tap fn
-				this.shift = Fn.compose(tap(fn), this.shift);
-				return this;
-			},
-
-			toJSON: function() {
-				return this.reduce(arrayReducer, []);
-			},
-
-			toString: function() {
-				return this.reduce(prepend, '');
-			},
-
-
-			// Deprecated
-
-			process: deprecate(function(fn) {
-				return fn(this);
-			}, '.process() is deprecated'),
-
-			last: deprecate(function() {
-				var source = this;
-				return create(this, function shiftLast() {
-					return latest(source);
-				});
-			}, '.last() is now .latest()'),
-		});
-
-		Fn.prototype.toArray = Fn.prototype.toJSON;
-
-		// Todo: As of Nov 2016 fantasy land spec requires namespaced methods:
-		//
-		// equals: 'fantasy-land/equals',
-		// lte: 'fantasy-land/lte',
-		// concat: 'fantasy-land/concat',
-		// empty: 'fantasy-land/empty',
-		// map: 'fantasy-land/map',
-		// contramap: 'fantasy-land/contramap',
-		// ap: 'fantasy-land/ap',
-		// of: 'fantasy-land/of',
-		// alt: 'fantasy-land/alt',
-		// zero: 'fantasy-land/zero',
-		// reduce: 'fantasy-land/reduce',
-		// traverse: 'fantasy-land/traverse',
-		// chain: 'fantasy-land/chain',
-		// chainRec: 'fantasy-land/chainRec',
-		// extend: 'fantasy-land/extend',
-		// extract: 'fantasy-land/extract',
-		// bimap: 'fantasy-land/bimap',
-		// promap: 'fantasy-land/promap'
-
-
-		if (window.Symbol) {
-			// A functor is it's own iterator
-			Fn.prototype[Symbol.iterator] = function() {
-				return this;
-			};
-		}
-
-
-		// Export
-
-		window.Fn = assign(Fn, {
-
-			// Constructors
-
-			of: function() { return Fn.from(arguments); },
-
-			from: function(object) {
-				var i;
-
-				// object is an array or array-like object. Iterate over it without
-				// mutating it.
-				if (typeof object.length === 'number') {
-					i = -1;
-
-					return new Fn(function shiftArray() {
-						// Ignore undefined holes in arrays
-						return ++i >= object.length ?
-							undefined :
-						object[i] === undefined ?
-							shiftArray() :
-							object[i] ;
-					});
-				}
-
-				// object is an object with a shift function
-				if (typeof object.shift === "function" && object.length === undefined) {
-					return new Fn(function shiftObject() {
-						return object.shift();
-					});
-				}
-
-				// object is an iterator
-				if (typeof object.next === "function") {
-					return new Fn(function shiftIterator() {
-						var result = object.next();
-
-						// Ignore undefined holes in iterator results
-						return result.done ?
-							result.value :
-						result.value === undefined ?
-							shiftIterator() :
-							result.value ;
-					});
-				}
-
-				throw new Error('Fn: from(object) object is not a list of a known kind (array, functor, stream, iterator).')
-			},
-
-			Timer:    Timer,
-
-
-			// Objects
-
-			nothing:  nothing,
-
-
-			// Functions
-
-			id:        id,
-			noop:      noop,
-			args:      args,
-			self:      self,
-			cache:     cache,
-			compose:   compose,
-			curry:     curry,
-			choose:    choose,
-			flip:      flip,
-			once:      once,
-			nth:       curry(nth),
-			overload:  curry(overload),
-			pipe:      pipe,
-			//choke:     choke,
-			throttle:  Throttle,
-			wait:      Wait,
-			weakCache: weakCache,
-
-
-			// Logic
-
-			equals:    curry(equals),
-			is:        curry(is),
-			isDefined: isDefined,
-			isIn:      curry(isIn, true),
-			isNot:     curry(isNot),
-
-			and: curry(function and(a, b) { return !!(a && b); }),
-
-			not: function not(a) { return !a; },
-
-			or: curry(function or(a, b) { return a || b; }),
-
-			xor: curry(function or(a, b) { return (a || b) && (!!a !== !!b); }),
-
-			isGreater: curry(function byGreater(a, b) { return b > a ; }),
-
-			by: curry(function by(fn, a, b) {
-				return byGreater(fn(a), fn(b));
-			}, true),
-
-			byGreater: curry(byGreater),
-
-			byAlphabet: curry(function byAlphabet(a, b) {
-				return S.localeCompare.call(a, b);
-			}),
-
-
-			// Types
-
-			toType:    toType,
-			toClass:   toClass,
-			toArray:   toArray,
-			toString:  toString,
-			toInt:     toInt,
-			toFloat:   parseFloat,
-
-			toPlainText: function toPlainText(string) {
-				return string
-				// Decompose string to normalized version
-				.normalize('NFD')
-				// Remove accents
-				.replace(/[\u0300-\u036f]/g, '');
-			},
-
-			toStringType: (function(regex, types) {
-				return function toStringType(string) {
-					// Determine the type of string from its content.
-					var n = types.length;
-
-					// Test regexable string types
-					while (n--) {
-						if(regex[types[n]].test(string)) {
-							return types[n];
-						}
-					}
-
-					// Test for JSON
-					try {
-						JSON.parse(string);
-						return 'json';
-					}
-					catch(e) {}
-
-					// Default to 'string'
-					return 'string';
-				};
-			})(regex, ['url', 'date', 'email', 'float', 'int']),
-
-
-			// Collections
-
-			concat:    curry(concat, true),
-			contains:  curry(contains, true),
-			diff:      curry(diff, true),
-			each:      curry(each, true),
-			filter:    curry(filter, true),
-			find:      curry(find, true),
-			insert:    curry(insert, true),
-			intersect: curry(intersect, true),
-			last:      last,
-			latest:    latest,
-			map:       curry(map, true),
-			tap:       curry(tap),
-			reduce:    curry(reduce, true),
-			remove:    curry(remove, true),
-			rest:      curry(rest, true),
-			sort:      curry(sort, true),
-			split:     curry(split, true),
-			take:      curry(take, true),
-			unite:     curry(unite, true),
-			unique:    unique,
-			update:    curry(update, true),
-
-
-			// Objects
-
-			assign:    curry(assign, true, 2),
-			get:       curry(get, true),
-			set:       curry(set, true),
-			getPath:   curry(getPath, true),
-			setPath:   curry(setPath, true),
-
-			invoke: curry(function invoke(name, values, object) {
-				return object[name].apply(object, values);
-			}, true),
-
-
-			// Numbers
-
-			add:      curry(function add(a, b) { return b + a; }),
-			multiply: curry(function mul(a, b) { return b * a; }),
-
-			mod:      curry(function mod(d, n) {
-				// JavaScript's modulu operator uses Euclidean division, but for
-				// stuff that cycles through 0 the symmetrics of floored division
-				// are more useful.
-				// https://en.wikipedia.org/wiki/Modulo_operation
-				var value = n % d;
-				return value < 0 ? value + d : value ;
-			}),
-
-			min:      curry(function min(a, b) { return a > b ? b : a ; }),
-			max:      curry(function max(a, b) { return a < b ? b : a ; }),
-			pow:      curry(function pow(n, x) { return Math.pow(x, n); }),
-			exp:      curry(function exp(n, x) { return Math.pow(n, x); }),
-			log:      curry(function log(n, x) { return Math.log(x) / Math.log(n); }),
-			root:     curry(function nthRoot(n, x) { return Math.pow(x, 1/n); }),
-			gcd:      curry(gcd),
-			lcm:      curry(lcm),
-			todB:     function todB(n) { return 20 * Math.log10(n); },
-			toLevel:  function toLevel(n) { return Math.pow(2, n/6); },
-			toRad:    function toRad(n) { return n / angleFactor; },
-			toDeg:    function toDeg(n) { return n * angleFactor; },
-
-			factorise: function factorise(n, d) {
-				// Reduce a fraction by finding the Greatest Common Divisor and
-				// dividing by it.
-				var f = gcd(n, d);
-				return [n/f, d/f];
-			},
-
-			gaussian: function gaussian() {
-				// Returns a random number with a bell curve probability centred
-				// around 0 and limits -1 to 1.
-				return Math.random() + Math.random() - 1;
-			},
-
-			toPolar: function toPolar(cartesian) {
-				var x = cartesian[0];
-				var y = cartesian[1];
-
-				return [
-					// Distance
-					x === 0 ?
-						Math.abs(y) :
-					y === 0 ?
-						Math.abs(x) :
-						Math.sqrt(x*x + y*y) ,
-					// Angle
-					Math.atan2(x, y)
-				];
-			},
-
-			toCartesian: function toCartesian(polar) {
-				var d = polar[0];
-				var a = polar[1];
-
-				return [
-					Math.sin(a) * d ,
-					Math.cos(a) * d
-				];
-			},
-
-			toFixed:  curry(function toFixed(n, value) {
-				if (isNaN(value)) {
-					throw new Error('Fn.toFixed does not accept NaN.');
-				}
-
-				return N.toFixed.call(value, n);
-			}),
-
-			limit:    curry(function limit(min, max, n) { return n > max ? max : n < min ? min : n ; }),
-
-			wrap:     curry(function wrap(min, max, n) { return (n < min ? max : min) + (n - min) % (max - min); }),
-
-			normalise:   curry(function normalise(min, max, n) { return (n - min) / (max - min); }),
-
-			denormalise: curry(function denormalise(min, max, n) { return n * (max - min) + min; }),
-
-			rangeLog:    curry(function rangeLog(min, max, n) {
-				return Fn.denormalise(min, max, Math.log(n / min) / Math.log(max / min));
-			}),
-
-			rangeLogInv: curry(function rangeLogInv(min, max, n) {
-				return min * Math.pow(max / min, Fn.normalise(min, max, n));
-			}),
-
-
-			// Cubic bezier function (originally translated from
-			// webkit source by Christian Effenberger):
-			// http://www.netzgesta.de/dev/cubic-bezier-timing-function.html
-
-			cubicBezier: curry(function cubicBezier(p1, p2, duration, x) {
-				// The epsilon value to pass given that the animation is going
-				// to run over duruation seconds. The longer the animation, the
-				// more precision is needed in the timing function result to
-				// avoid ugly discontinuities.
-				var epsilon = 1 / (200 * duration);
-
-				// Calculate the polynomial coefficients. Implicit first and last
-				// control points are (0,0) and (1,1).
-				var cx = 3 * p1[0];
-				var bx = 3 * (p2[0] - p1[0]) - cx;
-				var ax = 1 - cx - bx;
-				var cy = 3 * p1[1];
-				var by = 3 * (p2[1] - p1[1]) - cy;
-				var ay = 1 - cy - by;
-
-				var y = solveCubicBezierX(ax, bx, cx, x, epsilon);
-				return sampleCubicBezier(ay, by, cy, y);
-			}),
-
-			// Exponential functions
-			//
-			// e - exponent
-			// x - range 0-1
-			//
-			// eg.
-			// var easeInQuad   = exponential(2);
-			// var easeOutCubic = exponentialOut(3);
-			// var easeOutQuart = exponentialOut(4);
-
-			exponentialOut: curry(function exponentialOut(e, x) {
-				return 1 - Math.pow(1 - x, e);
-			}),
-
-			// Strings
-
-			append:      curry(append),
-			prepend:     curry(prepend),
-			postpad:     curry(postpad),
-			prepad:      curry(prepad),
-			match:       curry(function match(regex, string) { return regex.test(string); }),
-			exec:        curry(function parse(regex, string) { return regex.exec(string) || undefined; }),
-			replace:     curry(function replace(regex, fn, string) { return string.replace(regex, fn); }),
-
-			slugify: function slugify(string) {
-				if (typeof string !== 'string') { return; }
-				return string.trim().toLowerCase().replace(/[\W_]/g, '-');
-			},
-
-
-			// Regexp
-
-			rspaces: /\s+/,
-
-
-			// Time
-
-			now:          now,
-			requestTick:  requestTick,
-			requestFrame: requestFrame,
-
-
-			// Debugging
-
-			debug:        debug,
-			deprecate:    deprecate,
-
-
-			// Deprecated
-
-			bind:     deprecate(bind, 'Review bind: it doesnt do what you think'),
-			dB:       deprecate(noop, 'dB() is now todB()'),
-			degToRad: deprecate(noop, 'degToRad() is now toRad()'),
-			radToDeg: deprecate(noop, 'radToDeg() is now toDeg()'),
-
-			nthRoot:  curry(
-				deprecate(function nthRoot(n, x) { return Math.pow(x, 1/n); },
-				'nthRoot(n, x) is now simply root(n, x)'), false, 2),
-
-			Throttle: deprecate(Throttle, 'Throttle(fn, time) removed, is now throttle(fn, time)'),
-			Wait: deprecate(Wait, 'Wait(fn, time) removed, is now wait(fn, time)'),
-
-			slice: curry(slice, true, 3),
-
-			returnThis: deprecate(self, 'returnThis() is now self()'),
-
-			run: curry(deprecate(function apply(values, fn) {
-				return fn.apply(null, values);
-			}, 'run() is now apply()'), true, 2),
-
-			overloadLength: curry(deprecate(overload, 'overloadLength(map) is now overload(fn, map)'), true, 2)(function() {
-				return arguments.length;
-			}),
-
-			overloadTypes: curry(deprecate(overload, 'overloadTypes(map) is now overload(fn, map)'), true, 2)(function() {
-				return A.map.call(arguments, toType).join(' ');
-			})
-		});
-
-		Object.defineProperties(Fn, {
-			empty: {
-				get: deprecate(
-					function() { return nothing; },
-					'Fn.empty is now Fn.nothing'
-				)
-			}
-		});
-	})(window);
 
 	(function(window) {
 
@@ -2470,788 +532,164 @@ var Sparky = (function () {
 
 	})(window);
 
-	(function(window) {
+	const DEBUG$1 = true;
 
-		var debug     = false;
+	/*
+	function curry(fn, muteable, arity) {
+	    arity = arity || fn.length;
+
+	    var memo = arity === 1 ?
+	        // Don't cache if `muteable` flag is true
+	        muteable ? fn : cache(fn) :
+
+	        // It's ok to always cache intermediate memos, though
+	        cache(function(object) {
+	            return curry(function() {
+	                var args = [object];
+	                args.push.apply(args, arguments);
+	                return fn.apply(null, args);
+	            }, muteable, arity - 1) ;
+	        }) ;
+
+	    return function partial(object) {
+	        return arguments.length === 0 ?
+	            partial :
+	        arguments.length === 1 ?
+	            memo(object) :
+	        arguments.length === arity ?
+	            fn.apply(null, arguments) :
+	        arguments.length > arity ?
+	            applyFn(fn.apply(null, A.splice.call(arguments, 0, arity)), arguments) :
+	        applyFn(memo(object), A.slice.call(arguments, 1)) ;
+	    };
+	}
+	*/
+
+	function curry(fn) {
+	    var parity = fn.length;
+	    return function curried() {
+	        return arguments.length >= parity ?
+	            fn.apply(null, arguments) :
+	            curried.bind(null, ...arguments) ;
+	    };
+	}
 
 
-		// Import
+	if (DEBUG$1) {
+	    const _curry = curry;
 
-		var Fn        = window.Fn;
-		var A         = Array.prototype;
+	    // Feature test
+		const isFunctionLengthDefineable = (function() {
+			var fn = function() {};
 
-		var assign    = Object.assign;
-		var curry     = Fn.curry;
-		var each      = Fn.each;
-		var latest    = Fn.latest;
-		var noop      = Fn.noop;
-		var now       = Fn.now;
-		var nothing   = Fn.nothing;
-		var rest      = Fn.rest;
-		var throttle  = Fn.throttle;
-		var wait      = Fn.wait;
-		var Timer     = Fn.Timer;
-		var toArray   = Fn.toArray;
-
-
-		// Functions
-
-		function call(value, fn) {
-			return fn(value);
-		}
-
-		function isValue(n) { return n !== undefined; }
-
-		function isDone(stream) {
-			return stream.status === 'done';
-		}
-
-		function checkSource(source) {
-			// Check for .shift()
-			if (!source.shift) {
-				throw new Error('Stream: Source must create an object with .shift() ' + source);
+			try {
+				// Can't do this on Safari - length non configurable :(
+				Object.defineProperty(fn, 'length', { value: 2 });
 			}
-		}
-
-
-		// Events
-
-		var $events = Symbol('events');
-
-		function notify(type, object) {
-			var events = object[$events];
-
-			if (!events) { return; }
-			if (!events[type]) { return; }
-
-			var n = -1;
-			var l = events[type].length;
-			var value;
-
-			while (++n < l) {
-				value = events[type][n](type, object);
-				if (value !== undefined) {
-					return value;
-				}
-			}
-		}
-
-		function createNotify(stream) {
-			var _notify = notify;
-
-			return function trigger(type) {
-				// Prevent nested events, so a 'push' event triggered while
-				// the stream is 'pull'ing will do nothing. A bit of a fudge.
-				var notify = _notify;
-				_notify = noop;
-				var value = notify(type, stream);
-				_notify = notify;
-				return value;
-			};
-		}
-
-
-		// Sources
-		//
-		// Sources that represent stopping and stopped states of a stream
-
-		var doneSource = {
-			shift: noop,
-			push:  noop,
-			start: noop,
-			stop:  noop
-		};
-
-		function StopSource(source, n, done) {
-			this.source = source;
-			this.n      = n;
-			this.done   = done;
-		}
-
-		assign(StopSource.prototype, doneSource, {
-			shift: function() {
-				if (--this.n < 1) { this.done(); }
-				return this.source.shift();
-			}
-		});
-
-
-		// Stream
-
-		function Stream(Source, options) {
-			// Enable construction without the `new` keyword
-			if (!Stream.prototype.isPrototypeOf(this)) {
-				return new Stream(Source, options);
+			catch(e) {
+				return false;
 			}
 
-			var stream  = this;
-			var getSource;
-
-			var promise = new Promise(function(resolve, reject) {
-				var source;
-
-				function done() {
-					stream.status = 'done';
-					source = doneSource;
-				}
-
-				function stop(n, value) {
-					// Neuter events and schedule shutdown of the stream
-					// after n values
-					delete stream[$events];
-
-					if (n) { source = new StopSource(source, n, done); }
-					else { done(); }
-
-					// Note that we cannot resolve with stream because Chrome sees
-					// it as a promise (resolving with promises is special)
-					resolve(value);
-				}
-
-				getSource = function() {
-					var notify = createNotify(stream);
-					source = new Source(notify, stop, options);
-
-					// Check for sanity
-					if (debug) { checkSource(source); }
-
-					// Gaurantee that source has a .stop() method
-					if (!source.stop) { source.stop = noop; }
-
-					getSource = function() { return source; };
-
-					return source;
-				};
-			});
-
-			// Properties and methods
-
-			this[$events] = {};
-
-			this.push = function push() {
-				var source = getSource();
-				source.push.apply(source, arguments);
-				return stream;
-			};
-
-			this.shift = function shift() {
-				return getSource().shift();
-			};
-
-			this.start = function start() {
-				var source = getSource();
-				source.start.apply(source, arguments);
-				return stream;
-			};
-
-			this.stop = function stop() {
-				var source = getSource();
-				source.stop.apply(source, arguments);
-				return stream;
-			};
-
-			this.then = promise.then.bind(promise);
-		}
-
-
-		// Stream Constructors
-
-		function BufferSource(notify, stop, buffer) {
-			this._buffer = buffer;
-			this._notify = notify;
-			this._stop   = stop;
-		}
-
-		assign(BufferSource.prototype, {
-			shift: function() {
-				var buffer = this._buffer;
-				var notify = this._notify;
-				return buffer.length ? buffer.shift() : notify('pull') ;
-			},
-
-			push: function() {
-				var buffer = this._buffer;
-				var notify = this._notify;
-				buffer.push.apply(buffer, arguments);
-				notify('push');
-			},
-
-			stop: function() {
-				var buffer = this._buffer;
-				this._stop(buffer.length);
-			}
-		});
-
-		Stream.from = function(source) {
-			return new Stream(function setup(notify, stop) {
-				var buffer = source === undefined ? [] :
-					Fn.prototype.isPrototypeOf(source) ? source :
-					Array.from(source).filter(isValue) ;
-
-				return new BufferSource(notify, stop, buffer);
-			});
-		};
-
-		Stream.of = function() { return Stream.from(arguments); };
-
-
-		// Stream.Combine
-
-		function toValue(data) {
-			var source = data.source;
-			var value  = data.value;
-			return data.value = value === undefined ? latest(source) : value ;
-		}
-
-		function CombineSource(notify, stop, fn, sources) {
-			var object = this;
-
-			this._notify  = notify;
-			this._stop    = stop;
-			this._fn      = fn;
-			this._sources = sources;
-			this._hot     = true;
-
-			this._store = sources.map(function(source) {
-				var data = {
-					source: source,
-					listen: listen
-				};
-
-				// Listen for incoming values and flag as hot
-				function listen() {
-					data.value = undefined;
-					object._hot = true;
-				}
-
-				source.on('push', listen);
-				source.on('push', notify);
-				return data;
-			});
-		}
-
-		assign(CombineSource.prototype, {
-			shift: function combine() {
-				// Prevent duplicate values going out the door
-				if (!this._hot) { return; }
-				this._hot = false;
-
-				var sources = this._sources;
-				var values  = this._store.map(toValue);
-				if (sources.every(isDone)) { this._stop(0); }
-				return values.every(isValue) && this._fn.apply(null, values) ;
-			},
-
-			stop: function stop() {
-				var notify = this._notify;
-
-				// Remove listeners
-				each(function(data) {
-					var source = data.source;
-					var listen = data.listen;
-					source.off('push', listen);
-					source.off('push', notify);
-				}, this._store);
-
-				this._stop(this._hot ? 1 : 0);
-			}
-		});
-
-		Stream.Combine = function(fn) {
-			var sources = A.slice.call(arguments, 1);
-
-			if (sources.length < 2) {
-				throw new Error('Stream: Combine requires more than ' + sources.length + ' source streams')
-			}
-
-			return new Stream(function setup(notify, stop) {
-				return new CombineSource(notify, stop, fn, sources);
-			});
-		};
-
-
-		// Stream.Merge
-
-		function MergeSource(notify, stop, sources) {
-			var values = [];
-			var buffer = [];
-
-			function update(type, source) {
-				buffer.push(source);
-			}
-
-			this._notify  = notify;
-			this._stop    = stop;
-			this._sources = sources;
-			this._values  = values;
-			this._buffer  = buffer;
-			this._i       = 0;
-			this._update  = update;
-
-			each(function(source) {
-				// Flush the source
-				values.push.apply(values, toArray(source));
-
-				// Listen for incoming values
-				source.on('push', update);
-				source.on('push', notify);
-			}, sources);
-		}
-
-		assign(MergeSource.prototype, {
-			shift: function() {
-				var sources = this._sources;
-				var values  = this._values;
-				var buffer  = this._buffer;
-				var stop    = this._stop;
-
-				if (values.length) { return values.shift(); }
-				var stream = buffer.shift();
-				if (!stream) { return; }
-				var value = stream.shift();
-				// When all the sources are empty, stop
-				if (stream.status === 'done' && ++this._i >= sources.length) { stop(0); }
-				return value;
-			},
-
-			stop: function() {
-				var notify  = this._notify;
-				var sources = this._sources;
-				var stop    = this._stop;
-				var update  = this._update;
-
-				// Remove listeners
-				each(function(source) {
-					source.off('push', update);
-					source.off('push', notify);
-				}, sources);
-
-				stop(values.length + buffer.length);
-			}
-		});
-
-		Stream.Merge = function(source1, source2) {
-			var args = arguments;
-
-			return new Stream(function setup(notify, stop) {
-				return new MergeSource(notify, stop, Array.from(args));
-			});
-		};
-
-
-		// Stream.Events
-
-		Stream.Events = function(type, node) {
-			return new Stream(function setup(notify, stop) {
-				var buffer = [];
-
-				function update(value) {
-					buffer.push(value);
-					notify('push');
-				}
-
-				node.addEventListener(type, update);
-
-				return {
-					shift: function() {
-						return buffer.shift();
-					},
-
-					stop: function stop() {
-						node.removeEventListener(type, update);
-						stop(buffer.length);
-					}
-				};
-			});
-		};
-
-
-		// Stream Timers
-
-		Stream.Choke = function(time) {
-			return new Stream(function setup(notify, done) {
-				var value;
-				var update = wait(function() {
-					// Get last value and stick it in buffer
-					value = arguments[arguments.length - 1];
-					notify('push');
-				}, time);
-
-				return {
-					shift: function() {
-						var v = value;
-						value = undefined;
-						return v;
-					},
-
-					push: update,
-
-					stop: function stop() {
-						update.cancel(false);
-						done();
-					}
-				};
-			});
-		};
-
-
-
-		// Frame timer
-
-		var frameTimer = {
-			now:     now,
-			request: requestAnimationFrame.bind(window),
-			cancel:  cancelAnimationFrame.bind(window)
-		};
-
-
-		// Stream timer
-
-		function StreamTimer(stream) {
-			var timer = this;
-			var fns0  = [];
-			var fns1  = [];
-			this.fns = fns0;
-
-			stream.each(function() {
-				timer.fns = fns1;
-				fns0.reduce(call, undefined);
-				fns0.length = 0;
-				fns1 = fns0;
-				fns0 = timer.fns;
-			});
-		}
-
-		assign(StreamTimer.prototype, {
-			request: function(fn) {
-				this.fns.push(fn);
-				return fn;
-			},
-
-			cancel: function(fn) {
-				remove(this.fns, fn);
-			}
-		});
-
-
-		// Stream.throttle
-
-		function schedule() {
-			var timer   = this.timer;
-
-			this.queue = noop;
-			this.ref   = timer.request(this.update);
-		}
-
-		function ThrottleSource(notify, stop, timer) {
-			var source   = this;
-
-			this._stop   = stop;
-			this.timer   = timer;
-			this.queue   = schedule;
-			this.update  = function update() {
-				source.queue = schedule;
-				notify('push');
-			};
-		}
-
-		assign(ThrottleSource.prototype, {
-			shift: function shift() {
-				var value = this.value;
-				this.value = undefined;
-				return value;
-			},
-
-			stop: function stop(callLast) {
-				var timer = this.timer;
-
-				// An update is queued
-				if (this.queue === noop) {
-					timer.cancel && timer.cancel(this.ref);
-					this.ref = undefined;
-				}
-
-				// Don't permit further changes to be queued
-				this.queue = noop;
-
-				// If there is an update queued apply it now
-				// Hmmm. This is weird semantics. TODO: callLast should
-				// really be an 'immediate' flag, no?
-				this._stop(this.value !== undefined && callLast ? 1 : 0);
-			},
-
-			push: function throttle() {
-				// Store the latest value
-				this.value = arguments[arguments.length - 1];
-
-				// Queue the update
-				this.queue();
-			}
-		});
-
-		Stream.throttle = function(timer) {
-			if (typeof timer === 'function') {
-				throw new Error('Dont accept request and cancel functions anymore');
-			}
-
-			timer = typeof timer === 'number' ?
-				new Timer(timer) :
-			timer instanceof Stream ?
-				new StreamTimer(timer) :
-			timer ? timer :
-				frameTimer ;
-
-			return new Stream(function(notify, stop) {
-				return new ThrottleSource(notify, stop, timer);
-			});
-		};
-
-
-
-		function ClockSource(notify, stop, options) {
-			// requestAnimationFrame/cancelAnimationFrame cannot be invoked
-			// with context, so need to be referenced.
-
-			var source  = this;
-			var request = options.request;
-
-			function frame(time) {
-				source.value = time;
-				notify('push');
-				source.value = undefined;
-				source.id    = request(frame);
-			}
-
-			this.cancel = options.cancel || noop;
-			this.end    = stop;
-
-			// Start clock
-			this.id = request(frame);
-		}
-
-		assign(ClockSource.prototype, {
-			shift: function shift() {
-				var value = this.value;
-				this.value = undefined;
-				return value;
-			},
-
-			stop: function stop() {
-				var cancel = this.cancel;
-				cancel(this.id);
-				this.end();
-			}
-		});
-
-		Stream.clock = function ClockStream(options) {
-			var timer = typeof options === 'number' ?
-				new Timer(options) :
-				options || frameTimer ;
-
-			return new Stream(ClockSource, timer);
-		};
-
-
-		// Stream Methods
-
-		Stream.prototype = assign(Object.create(Fn.prototype), {
-			clone: function() {
-				var source  = this;
-				var shift   = this.shift;
-				var buffer1 = [];
-				var buffer2 = [];
-
-				var stream  = new Stream(function setup(notify, stop) {
-					var buffer = buffer2;
-
-					source.on('push', notify);
-
-					return {
-						shift: function() {
-							if (buffer.length) { return buffer.shift(); }
-							var value = shift();
-
-							if (value !== undefined) { buffer1.push(value); }
-							else if (source.status === 'done') {
-								stop(0);
-								source.off('push', notify);
-							}
-
-							return value;
-						},
-
-						stop: function() {
-							var value;
-
-							// Flush all available values into buffer
-							while ((value = shift()) !== undefined) {
-								buffer.push(value);
-								buffer1.push(value);
-							}
-
-							stop(buffer.length);
-							source.off('push', notify);
-						}
-					};
-				});
-
-				this.then(stream.stop);
-
-				this.shift = function() {
-					if (buffer1.length) { return buffer1.shift(); }
-					var value = shift();
-					if (value !== undefined && stream.status !== 'done') { buffer2.push(value); }
-					return value;
-				};
-
-				return stream;
-			},
-
-			combine: function(fn, source) {
-				return Stream.Combine(fn, this, source);
-			},
-
-			merge: function() {
-				var sources = toArray(arguments);
-				sources.unshift(this);
-				return Stream.Merge.apply(null, sources);
-			},
-
-			choke: function(time) {
-				return this.pipe(Stream.Choke(time));
-			},
-
-			throttle: function(timer) {
-				return this.pipe(Stream.throttle(timer));
-			},
-
-			clock: function(timer) {
-				return this.pipe(Stream.clock(timer));
-			},
-
-
-			// Consume
-
-			each: function(fn) {
-				var args   = arguments;
-				var source = this;
-
-				// Flush and observe
-				Fn.prototype.each.apply(source, args);
-
-				return this.on('push', function each() {
-					// Delegate to Fn#each().
-					Fn.prototype.each.apply(source, args);
-				});
-			},
-
-			pipe: function(stream) {
-				this.each(stream.push);
-				return Fn.prototype.pipe.apply(this, arguments);
-			},
-
-
-			// Events
-
-			on: function(type, fn) {
-				var events = this[$events];
-				if (!events) { return this; }
-
-				var listeners = events[type] || (events[type] = []);
-				listeners.push(fn);
-				return this;
-			},
-
-			off: function off(type, fn) {
-				var events = this[$events];
-				if (!events) { return this; }
-
-				// Remove all handlers for all types
-				if (arguments.length === 0) {
-					Object.keys(events).forEach(off, this);
-					return this;
-				}
-
-				var listeners = events[type];
-				if (!listeners) { return; }
-
-				// Remove all handlers for type
-				if (!fn) {
-					delete events[type];
-					return this;
-				}
-
-				// Remove handler fn for type
-				var n = listeners.length;
-				while (n--) {
-					if (listeners[n] === fn) { listeners.splice(n, 1); }
-				}
-
-				return this;
-			}
-		});
-
-
-		// Export
-
-		window.Stream = Stream;
-
-	})(window);
-
-	(function(window) {
-
-		var Fn         = window.Fn;
-		var Stream     = window.Stream;
-		var Observable = window.Observable;
-
-		// Dont import it yet - we may be about to overwrite it with our back-fill
-		// for browsers without Proxy.
-		//var Observable = window.Observable;
-		//var observe    = Observable.observe;
-
-		var curry      = Fn.curry;
-		var noop       = Fn.noop;
-		var setPath    = Fn.setPath;
-
-		function ObserveSource(end, object, path) {
-			this.observable = Observable(object);
-			this.path       = path;
-			this.end        = end;
-		}
-
-		ObserveSource.prototype = {
-			shift: function() {
-				var value = this.value;
-				this.value = undefined;
-				return value;
-			},
-
-			push: function() {
-				setPath(this.path, this.observable, arguments[arguments.length - 1]);
-			},
-
-			stop: function() {
-				this.unobserve();
-				this.end();
-			},
-
-			unobserve: noop
-		};
-
-		Stream.observe = curry(function(path, object) {
-			return new Stream(function setup(notify, stop) {
-				var source = new ObserveSource(stop, object, path);
-
-				function update(v) {
-					source.value = v === undefined ? null : v ;
-					notify('push');
-				}
-
-				source.unobserve = Observable.observe(object, path, update);
-				return source;
-			});
-		});
-	})(window);
+			return fn.length === 2;
+		})();
+
+	    const setFunctionProperties = function setFunctionProperties(text, parity, fn1, fn2) {
+	        // Make the string representation of fn2 display parameters of fn1
+	        fn2.toString = function() {
+	            return /function\s*[\w\d]*\s*\([,\w\d\s]*\)/.exec(fn1.toString()) + ' { [' + text + '] }';
+	        };
+
+	        // Where possible, define length so that curried functions show how
+	        // many arguments they are yet expecting
+	        if (isFunctionLengthDefineable) {
+	            Object.defineProperty(fn2, 'length', { value: parity });
+	        }
+
+	        return fn2;
+	    };
+
+	    // Make curried functions log a pretty version of their partials
+	    curry = function curry(fn, muteable, arity) {
+	        arity  = arity || fn.length;
+	        return setFunctionProperties('curried', arity, fn, _curry(fn, muteable, arity));
+	    };
+	}
+
+
+	var curry$1 = curry;
+
+	const DEBUG$2 = false;
+
+	function cache(fn) {
+	    var map = new Map();
+
+	    return function cache(object) {
+	        if (DEBUG$2 && arguments.length > 1) {
+	            throw new Error('Fn: cache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+	        }
+
+	        if (map.has(object)) {
+	            return map.get(object);
+	        }
+
+	        var value = fn(object);
+	        map.set(object, value);
+	        return value;
+	    };
+	}
+
+	// choke
+	//
+	// Returns a function that waits for `time` seconds without being invoked
+	// before calling `fn` using the context and arguments from the latest
+	// invocation
+
+	function choke(fn, time) {
+	    var timer, context, args;
+	    var cue = function cue() {
+	        if (timer) { clearTimeout(timer); }
+	        timer = setTimeout(update, (time || 0) * 1000);
+	    };
+
+	    function update() {
+	        timer = false;
+	        fn.apply(context, args);
+	    }
+
+	    function cancel() {
+	        // Don't permit further changes to be queued
+	        cue = noop;
+
+	        // If there is an update queued apply it now
+	        if (timer) { clearTimeout(timer); }
+	    }
+
+	    function wait() {
+	        // Store the latest context and arguments
+	        context = this;
+	        args = arguments;
+
+	        // Cue the update
+	        cue();
+	    }
+
+	    wait.cancel = cancel;
+	    return wait;
+	}
+
+	// Choke or wait? A simpler implementation without cancel(), I leave this here for reference...
+	//	function choke(seconds, fn) {
+	//		var timeout;
+	//
+	//		function update(context, args) {
+	//			fn.apply(context, args);
+	//		}
+	//
+	//		return function choke() {
+	//			clearTimeout(timeout);
+	//			timeout = setTimeout(update, seconds * 1000, this, arguments);
+	//		};
+	//	}
 
 	function rest(i, object) {
 	    if (object.slice) { return object.slice(i); }
@@ -3263,13 +701,1691 @@ var Sparky = (function () {
 	    return a;
 	}
 
-	function curry(fn) {
-	    var parity = fn.length;
-	    return function curried() {
-	        return arguments.length >= parity ?
-	            fn.apply(null, arguments) :
-	            curried.bind(null, ...arguments) ;
+	function choose(map) {
+	    return function choose(key) {
+	        var fn = map[key] || map.default;
+	        return fn && fn.apply(this, rest(1, arguments)) ;
 	    };
+	}
+
+	function compose(fn2, fn1) {
+	    return function compose() {
+	        return fn2(fn1.apply(null, arguments));
+	    };
+	}
+
+	function deprecate(fn, message) {
+	    // Recall any function and log a depreciation warning
+	    return function deprecate() {
+	        console.warn('Deprecation warning: ' + message);
+	        return fn.apply(this, arguments);
+	    };
+	}
+
+	function id(object) { return object; }
+
+	function isDefined(value) {
+	    // !!value is a fast out for non-zero numbers, non-empty strings
+	    // and other objects, the rest checks for 0, '', etc.
+	    return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
+	}
+
+	function last(array) {
+	    if (typeof array.length === 'number') {
+	        return array[array.length - 1];
+	    }
+
+	    // Todo: handle Fns and Streams
+	}
+
+	function latest(source) {
+	    var value = source.shift();
+	    return value === undefined ? arguments[1] : latest(source, value) ;
+	}
+
+	function noop$1() {}
+
+	var nothing$1 = Object.freeze(Object.defineProperties([], {
+	   shift: { value: noop$1 }
+	}));
+
+	function now() {
+	    // Return time in seconds
+	    return +new Date() / 1000;
+	}
+
+	function overload(fn, map) {
+	    return typeof map.get === 'function' ?
+	        function overload() {
+	            var key = fn.apply(null, arguments);
+	            return map.get(key).apply(this, arguments);
+	        } :
+	        function overload() {
+	            var key = fn.apply(null, arguments);
+	            return (map[key] || map.default).apply(this, arguments);
+	        } ;
+	}
+
+	const A = Array.prototype;
+
+	function call(value, fn) {
+	    return fn(value);
+	}
+
+	function pipe() {
+	    const fns = arguments;
+	    return function pipe(value) {
+	        return A.reduce.call(fns, call, value);
+	    };
+	}
+
+	const resolved = Promise.resolve();
+
+	function requestTick(fn) {
+	    resolved.then(fn);
+	    return true;
+	}
+
+	function toArray$1(object) {
+	    if (object.toArray) { return object.toArray(); }
+
+	    // Speed test for array conversion:
+	    // https://jsperf.com/nodelist-to-array/27
+
+	    var array = [];
+	    var l = object.length;
+	    var i;
+
+	    if (typeof object.length !== 'number') { return array; }
+
+	    array.length = l;
+
+	    for (i = 0; i < l; i++) {
+	        array[i] = object[i];
+	    }
+
+	    return array;
+	}
+
+	function toClass(object) {
+	    return O.toString.apply(object).slice(8, -1);
+	}
+
+	function toInt(object) {
+	    return object === undefined ?
+	        undefined :
+	        parseInt(object, 10);
+	}
+
+	function toString(object) {
+		return object.toString();
+	}
+
+	function toType(object) {
+	    return typeof object;
+	}
+
+	const assign = Object.assign;
+
+	function isDone(source) {
+	    return source.length === 0 || source.status === 'done' ;
+	}
+
+	function create(object, fn) {
+	    var functor = Object.create(object);
+	    functor.shift = fn;
+	    return functor;
+	}
+
+	function Fn(fn) {
+	    // Accept constructor without `new`
+	    if (!this || !Fn.prototype.isPrototypeOf(this)) {
+	        return new Fn(fn);
+	    }
+
+	    var source = this;
+
+	    if (!fn) {
+	        source.status = 'done';
+	        return;
+	    }
+
+	    var value = fn();
+
+	    if (value === undefined) {
+	        source.status = 'done';
+	        return;
+	    }
+
+	    this.shift = function shift() {
+	        if (source.status === 'done') { return; }
+
+	        var v = value;
+
+	        // Where the next value is undefined mark the functor as done
+	        value = fn();
+	        if (value === undefined) {
+	            source.status = 'done';
+	        }
+
+	        return v;
+	    };
+	}
+
+
+	assign(Fn, {
+
+	    // Constructors
+
+	    of: function() { return Fn.from(arguments); },
+
+	    from: function(object) {
+	        var i;
+
+	        // object is an array or array-like object. Iterate over it without
+	        // mutating it.
+	        if (typeof object.length === 'number') {
+	            i = -1;
+
+	            return new Fn(function shiftArray() {
+	                // Ignore undefined holes in arrays
+	                return ++i >= object.length ?
+	                    undefined :
+	                object[i] === undefined ?
+	                    shiftArray() :
+	                    object[i] ;
+	            });
+	        }
+
+	        // object is an object with a shift function
+	        if (typeof object.shift === "function" && object.length === undefined) {
+	            return new Fn(function shiftObject() {
+	                return object.shift();
+	            });
+	        }
+
+	        // object is an iterator
+	        if (typeof object.next === "function") {
+	            return new Fn(function shiftIterator() {
+	                var result = object.next();
+
+	                // Ignore undefined holes in iterator results
+	                return result.done ?
+	                    result.value :
+	                result.value === undefined ?
+	                    shiftIterator() :
+	                    result.value ;
+	            });
+	        }
+
+	        throw new Error('Fn: from(object) object is not a list of a known kind (array, functor, stream, iterator).')
+	    }
+	});
+
+	assign(Fn.prototype, {
+	    shift: noop$1,
+
+	    // Input
+
+	    of: function() {
+	        // Delegate to the constructor's .of()
+	        return this.constructor.of.apply(this.constructor, arguments);
+	    },
+
+	    // Transform
+
+	    ap: function(object) {
+	        var shift = this.shift;
+
+	        return create(this, function ap() {
+	            var fn = shift();
+	            return fn === undefined ?
+	                undefined :
+	                object.map(fn) ;
+	        });
+	    },
+
+	    unshift: function() {
+	        // Create an unshift buffer, such that objects can be inserted
+	        // back into the stream at will with stream.unshift(object).
+	        var source = this;
+	        var buffer = toArray(arguments);
+
+	        return create(this, function() {
+	            return (buffer.length ? buffer : source).shift() ;
+	        });
+	    },
+
+	    catch: function(fn) {
+	        var source = this;
+
+	        return create(this, function() {
+	            try {
+	                return source.shift();
+	            }
+	            catch(e) {
+	                return fn(e);
+	            }
+	        });
+	    },
+
+	    chain: function(fn) {
+	        return this.map(fn).join();
+	    },
+
+	    clone: function() {
+	        var source  = this;
+	        var shift   = this.shift;
+	        var buffer1 = [];
+	        var buffer2 = [];
+	        var doneFlag = false;
+
+	        // Messy. But it works. Just.
+
+	        this.shift = function() {
+	            var value;
+
+	            if (buffer1.length) {
+	                value = buffer1.shift();
+
+	                if (!buffer1.length && doneFlag) {
+	                    source.status = 'done';
+	                }
+
+	                return value;
+	            }
+
+	            if (!doneFlag) {
+	                value = shift();
+
+	                if (source.status === 'done') {
+	                    doneFlag = true;
+	                }
+
+	                if (value !== undefined) {
+	                    buffer2.push(value);
+	                }
+
+	                return value;
+	            }
+	        };
+
+	        var clone = new Fn(function shiftClone() {
+	            var value;
+
+	            if (buffer2.length) {
+	                return buffer2.shift();
+	                //if (!buffer2.length && doneFlag) {
+	                //	clone.status = 'done';
+	                //}
+	            }
+
+	            if (!doneFlag) {
+	                value = shift();
+
+	                if (source.status === 'done') {
+	                    doneFlag = true;
+	                    source.status = undefined;
+	                }
+
+	                if (value !== undefined) {
+	                    buffer1.push(value);
+	                }
+
+	                return value;
+	            }
+	        });
+
+	        return clone;
+	    },
+
+	    concat: function() {
+	        var sources = toArray(arguments);
+	        var source  = this;
+
+	        var stream  = create(this, function concat() {
+	            if (source === undefined) {
+	                stream.status = 'done';
+	                return;
+	            }
+
+	            if (isDone(source)) {
+	                source = sources.shift();
+	                return concat();
+	            }
+
+	            var value = source.shift();
+
+	            stream.status = sources.length === 0 && isDone(source) ?
+	                'done' : undefined ;
+
+	            return value;
+	        });
+
+	        return stream;
+	    },
+
+	    dedup: function() {
+	        var v;
+	        return this.filter(function(value) {
+	            var old = v;
+	            v = value;
+	            return old !== value;
+	        });
+	    },
+
+	    filter: function(fn) {
+	        var source = this;
+
+	        return create(this, function filter() {
+	            var value;
+	            while ((value = source.shift()) !== undefined && !fn(value));
+	            return value;
+	        });
+	    },
+
+	    first: function() {
+	        var source = this;
+	        return create(this, once(function first() {
+	            source.status = 'done';
+	            return source.shift();
+	        }));
+	    },
+
+	    join: function() {
+	        var source = this;
+	        var buffer = nothing;
+
+	        return create(this, function join() {
+	            var value = buffer.shift();
+	            if (value !== undefined) { return value; }
+	            buffer = source.shift();
+	            if (buffer !== undefined) { return join(); }
+	            buffer = nothing;
+	        });
+	    },
+
+	    latest: function() {
+	        var source = this;
+	        return create(this, function shiftLast() {
+	            return latest(source);
+	        });
+	    },
+
+	    map: function(fn) {
+	        return create(this, compose(function map(object) {
+	            return object === undefined ? undefined : fn(object) ;
+	        }, this.shift));
+	    },
+
+	    chunk: function(n) {
+	        var source = this;
+	        var buffer = [];
+
+	        return create(this, n ?
+	            // If n is defined batch into arrays of length n.
+	            function shiftChunk() {
+	                var value, _buffer;
+
+	                while (buffer.length < n) {
+	                    value = source.shift();
+	                    if (value === undefined) { return; }
+	                    buffer.push(value);
+	                }
+
+	                if (buffer.length >= n) {
+	                    _buffer = buffer;
+	                    buffer = [];
+	                    return Fn.of.apply(Fn, _buffer);
+	                }
+	            } :
+
+	            // If n is undefined or 0, batch all values into an array.
+	            function shiftChunk() {
+	                buffer = source.toArray();
+	                // An empty array is equivalent to undefined
+	                return buffer.length ? buffer : undefined ;
+	            }
+	        );
+	    },
+
+	    fold: function(fn, seed) {
+	        var i = 0;
+	        return this
+	        .map(function fold(value) {
+	            seed = fn(seed, value, i++);
+	            return seed;
+	        })
+	        .unshift(seed);
+	    },
+
+	    partition: function(fn) {
+	        var source = this;
+	        var buffer = [];
+	        var streams = new Map();
+
+	        fn = fn || Fn.id;
+
+	        function createPart(key, value) {
+	            var stream = Stream.of().on('pull', shiftPull);
+	            stream.key = key;
+	            streams.set(key, stream);
+	            return stream;
+	        }
+
+	        function shiftPull(type, pullStream) {
+	            var value  = source.shift();
+	            if (value === undefined) { return; }
+
+	            var key    = fn(value);
+	            var stream = streams.get(key);
+
+	            if (stream === pullStream) { return value; }
+
+	            if (stream === undefined) {
+	                stream = createPart(key, value);
+	                buffer.push(stream);
+	            }
+
+	            stream.push(value);
+	            return shiftPull(type, pullStream);
+	        }
+
+	        return create(this, function shiftStream() {
+	            if (buffer.length) { return buffer.shift(); }
+
+	            var value = source.shift();
+	            if (value === undefined) { return; }
+
+	            var key    = fn(value);
+	            var stream = streams.get(key);
+
+	            if (stream === undefined) {
+	                stream = createPart(key, value);
+	                stream.push(value);
+	                return stream;
+	            }
+
+	            stream.push(value);
+	            return shiftStream();
+	        });
+	    },
+
+	    reduce: function reduce(fn, seed) {
+	        return this.fold(fn, seed).latest().shift();
+	    },
+
+	    take: function(n) {
+	        var source = this;
+	        var i = 0;
+
+	        return create(this, function take() {
+	            var value;
+
+	            if (i < n) {
+	                value = source.shift();
+	                // Only increment i where an actual value has been shifted
+	                if (value === undefined) { return; }
+	                if (++i === n) { source.status = 'done'; }
+	                return value;
+	            }
+	        });
+	    },
+
+	    sort: function(fn) {
+	        fn = fn || Fn.byGreater ;
+
+	        var source = this;
+	        var buffer = [];
+
+	        return create(this, function sort() {
+	            var value;
+
+	            while((value = source.shift()) !== undefined) {
+	                sortedSplice(buffer, fn, value);
+	            }
+
+	            return buffer.shift();
+	        });
+	    },
+
+	    split: function(fn) {
+	        var source = this;
+	        var buffer = [];
+
+	        return create(this, function split() {
+	            var value = source.shift();
+	            var temp;
+
+	            if (value === undefined) {
+	                if (buffer.length) {
+	                    temp = buffer;
+	                    buffer = [];
+	                    return temp;
+	                }
+
+	                return;
+	            }
+
+	            if (fn(value)) {
+	                temp = buffer;
+	                buffer = [value];
+	                return temp.length ? temp : split() ;
+	            }
+
+	            buffer.push(value);
+	            return split();
+	        });
+	    },
+
+	    syphon: function(fn) {
+	        var shift   = this.shift;
+	        var buffer1 = [];
+	        var buffer2 = [];
+
+	        this.shift = function() {
+	            if (buffer1.length) { return buffer1.shift(); }
+
+	            var value;
+
+	            while ((value = shift()) !== undefined && fn(value)) {
+	                buffer2.push(value);
+	            }
+
+	            return value;
+	        };
+
+	        return create(this, function filter() {
+	            if (buffer2.length) { return buffer2.shift(); }
+
+	            var value;
+
+	            while ((value = shift()) !== undefined && !fn(value)) {
+	                buffer1.push(value);
+	            }
+
+	            return value;
+	        });
+	    },
+
+	    rest: function(i) {
+	        var source = this;
+
+	        return create(this, function rest() {
+	            while (i-- > 0) { source.shift(); }
+	            return source.shift();
+	        });
+	    },
+
+	    unique: function() {
+	        var source = this;
+	        var values = [];
+
+	        return create(this, function unique() {
+	            var value = source.shift();
+
+	            return value === undefined ? undefined :
+	                values.indexOf(value) === -1 ? (values.push(value), value) :
+	                unique() ;
+	        });
+	    },
+
+	    // Consumers
+
+	    each: function(fn) {
+	        var value;
+
+	        while ((value = this.shift()) !== undefined) {
+	            fn.call(this, value);
+	        }
+
+	        return this;
+	    },
+
+	    find: function(fn) {
+	        return this
+	        .filter(fn)
+	        .first()
+	        .shift();
+	    },
+
+	    next: function() {
+	        return {
+	            value: this.shift(),
+	            done:  this.status
+	        };
+	    },
+
+	    pipe: function(stream) {
+	        // Target must be evented
+	        if (!stream || !stream.on) {
+	            throw new Error('Fn: Fn.pipe(object) object must be a stream. (' + stream + ')');
+	        }
+
+	        return stream.on('pull', this.shift);
+	    },
+
+	    tap: function(fn) {
+	        // Overwrite shift to copy values to tap fn
+	        this.shift = Fn.compose(tap(fn), this.shift);
+	        return this;
+	    },
+
+	    toJSON: function() {
+	        return this.reduce(arrayReducer, []);
+	    },
+
+	    toString: function() {
+	        return this.reduce(prepend, '');
+	    },
+
+
+	    // Deprecated
+
+	    process: deprecate(function(fn) {
+	        return fn(this);
+	    }, '.process() is deprecated'),
+
+	    last: deprecate(function() {
+	        var source = this;
+	        return create(this, function shiftLast() {
+	            return latest(source);
+	        });
+	    }, '.last() is now .latest()'),
+	});
+
+	Fn.prototype.toArray = Fn.prototype.toJSON;
+
+	// Todo: As of Nov 2016 fantasy land spec requires namespaced methods:
+	//
+	// equals: 'fantasy-land/equals',
+	// lte: 'fantasy-land/lte',
+	// concat: 'fantasy-land/concat',
+	// empty: 'fantasy-land/empty',
+	// map: 'fantasy-land/map',
+	// contramap: 'fantasy-land/contramap',
+	// ap: 'fantasy-land/ap',
+	// of: 'fantasy-land/of',
+	// alt: 'fantasy-land/alt',
+	// zero: 'fantasy-land/zero',
+	// reduce: 'fantasy-land/reduce',
+	// traverse: 'fantasy-land/traverse',
+	// chain: 'fantasy-land/chain',
+	// chainRec: 'fantasy-land/chainRec',
+	// extend: 'fantasy-land/extend',
+	// extract: 'fantasy-land/extract',
+	// bimap: 'fantasy-land/bimap',
+	// promap: 'fantasy-land/promap'
+
+
+	if (window.Symbol) {
+	    // A functor is it's own iterator
+	    Fn.prototype[Symbol.iterator] = function() {
+	        return this;
+	    };
+	}
+
+	function each(fn, object) {
+	    // A stricter version of .forEach, where the callback fn
+	    // gets a single argument and no context.
+	    var l, n;
+
+	    if (typeof object.each === 'function') {
+	        object.each(fn);
+	    }
+	    else {
+	        l = object.length;
+	        n = -1;
+	        while (++n < l) { fn(object[n]); }
+	    }
+
+	    return object;
+	}
+
+	// Timer
+
+	function Timer(duration, getTime) {
+	    if (typeof duration !== 'number') { throw new Error('Timer(duration) requires a duration in seconds (' + duration + ')'); }
+
+	    // Optional second argument is a function that returns
+	    // current time (in seconds)
+	    getTime = getTime || now;
+
+	    var fns = [];
+	    var id;
+	    var t0  = -Infinity;
+
+	    function frame() {
+	        var n = fns.length;
+
+	        id = undefined;
+	        t0 = getTime();
+
+	        while (n--) {
+	            fns.shift()(t0);
+	        }
+	    }
+
+	    return {
+	        now: getTime,
+
+	        request: function(fn) {
+	            if (typeof fn !== 'function') { throw new Error('fn is not a function.'); }
+
+	            // Add fn to queue
+	            fns.push(fn);
+
+	            // If the timer is cued do nothing
+	            if (id) { return; }
+
+	            var t1 = getTime();
+
+	            // Set the timer and return something truthy
+	            if (t0 + duration > t1) {
+	                id = setTimeout(frame, (t0 + duration - t1) * 1000);
+	            }
+	            else {
+	                requestTick(frame) ;
+	            }
+
+	            // Use the fn reference as the request id, because why not
+	            return fn;
+	        },
+
+	        cancel: function(fn) {
+	            var i = fns.indexOf(fn);
+	            if (i === -1) { return; }
+
+	            fns.splice(i, 1);
+
+	            if (!fns.length) {
+	                clearTimeout(id);
+	                id = undefined;
+	            }
+	        }
+	    };
+	}
+
+	var debug     = false;
+	var A$1         = Array.prototype;
+	var assign$1    = Object.assign;
+
+
+	// Functions
+
+	function call$1(value, fn) {
+	    return fn(value);
+	}
+
+	function isValue(n) { return n !== undefined; }
+
+	function isDone$1(stream) {
+	    return stream.status === 'done';
+	}
+
+	function checkSource(source) {
+	    // Check for .shift()
+	    if (!source.shift) {
+	        throw new Error('Stream: Source must create an object with .shift() ' + source);
+	    }
+	}
+
+
+	// Events
+
+	var $events = Symbol('events');
+
+	function notify$1(type, object) {
+	    var events = object[$events];
+
+	    if (!events) { return; }
+	    if (!events[type]) { return; }
+
+	    var n = -1;
+	    var l = events[type].length;
+	    var value;
+
+	    while (++n < l) {
+	        value = events[type][n](type, object);
+	        if (value !== undefined) {
+	            return value;
+	        }
+	    }
+	}
+
+	function createNotify(stream) {
+	    var _notify = notify$1;
+
+	    return function trigger(type) {
+	        // Prevent nested events, so a 'push' event triggered while
+	        // the stream is 'pull'ing will do nothing. A bit of a fudge.
+	        var notify = _notify;
+	        _notify = noop$1;
+	        var value = notify(type, stream);
+	        _notify = notify;
+	        return value;
+	    };
+	}
+
+
+	// Sources
+	//
+	// Sources that represent stopping and stopped states of a stream
+
+	var doneSource = {
+	    shift: noop$1,
+	    push:  noop$1,
+	    start: noop$1,
+	    stop:  noop$1
+	};
+
+	function StopSource(source, n, done) {
+	    this.source = source;
+	    this.n      = n;
+	    this.done   = done;
+	}
+
+	assign$1(StopSource.prototype, doneSource, {
+	    shift: function() {
+	        if (--this.n < 1) { this.done(); }
+	        return this.source.shift();
+	    }
+	});
+
+
+	// Stream
+
+	function Stream$1(Source, options) {
+	    // Enable construction without the `new` keyword
+	    if (!Stream$1.prototype.isPrototypeOf(this)) {
+	        return new Stream$1(Source, options);
+	    }
+
+	    var stream  = this;
+	    var getSource;
+
+	    var promise = new Promise(function(resolve, reject) {
+	        var source;
+
+	        function done() {
+	            stream.status = 'done';
+	            source = doneSource;
+	        }
+
+	        function stop(n, value) {
+	            // Neuter events and schedule shutdown of the stream
+	            // after n values
+	            delete stream[$events];
+
+	            if (n) { source = new StopSource(source, n, done); }
+	            else { done(); }
+
+	            // Note that we cannot resolve with stream because Chrome sees
+	            // it as a promise (resolving with promises is special)
+	            resolve(value);
+	        }
+
+	        getSource = function() {
+	            var notify = createNotify(stream);
+	            source = new Source(notify, stop, options);
+
+	            // Check for sanity
+	            if (debug) { checkSource(source); }
+
+	            // Gaurantee that source has a .stop() method
+	            if (!source.stop) { source.stop = noop$1; }
+
+	            getSource = function() { return source; };
+
+	            return source;
+	        };
+	    });
+
+	    // Properties and methods
+
+	    this[$events] = {};
+
+	    this.push = function push() {
+	        var source = getSource();
+	        source.push.apply(source, arguments);
+	        return stream;
+	    };
+
+	    this.shift = function shift() {
+	        return getSource().shift();
+	    };
+
+	    this.start = function start() {
+	        var source = getSource();
+	        source.start.apply(source, arguments);
+	        return stream;
+	    };
+
+	    this.stop = function stop() {
+	        var source = getSource();
+	        source.stop.apply(source, arguments);
+	        return stream;
+	    };
+
+	    this.then = promise.then.bind(promise);
+	}
+
+
+	// Stream Constructors
+
+	function BufferSource(notify, stop, buffer) {
+	    this._buffer = buffer;
+	    this._notify = notify;
+	    this._stop   = stop;
+	}
+
+	assign$1(BufferSource.prototype, {
+	    shift: function() {
+	        var buffer = this._buffer;
+	        var notify = this._notify;
+	        return buffer.length ? buffer.shift() : notify('pull') ;
+	    },
+
+	    push: function() {
+	        var buffer = this._buffer;
+	        var notify = this._notify;
+	        buffer.push.apply(buffer, arguments);
+	        notify('push');
+	    },
+
+	    stop: function() {
+	        var buffer = this._buffer;
+	        this._stop(buffer.length);
+	    }
+	});
+
+	Stream$1.from = function(source) {
+	    return new Stream$1(function setup(notify, stop) {
+	        var buffer = source === undefined ? [] :
+	            Fn.prototype.isPrototypeOf(source) ? source :
+	            Array.from(source).filter(isValue) ;
+
+	        return new BufferSource(notify, stop, buffer);
+	    });
+	};
+
+	Stream$1.of = function() { return Stream$1.from(arguments); };
+
+
+	// Stream.Combine
+
+	function toValue(data) {
+	    var source = data.source;
+	    var value  = data.value;
+	    return data.value = value === undefined ? latest(source) : value ;
+	}
+
+	function CombineSource(notify, stop, fn, sources) {
+	    var object = this;
+
+	    this._notify  = notify;
+	    this._stop    = stop;
+	    this._fn      = fn;
+	    this._sources = sources;
+	    this._hot     = true;
+
+	    this._store = sources.map(function(source) {
+	        var data = {
+	            source: source,
+	            listen: listen
+	        };
+
+	        // Listen for incoming values and flag as hot
+	        function listen() {
+	            data.value = undefined;
+	            object._hot = true;
+	        }
+
+	        source.on('push', listen);
+	        source.on('push', notify);
+	        return data;
+	    });
+	}
+
+	assign$1(CombineSource.prototype, {
+	    shift: function combine() {
+	        // Prevent duplicate values going out the door
+	        if (!this._hot) { return; }
+	        this._hot = false;
+
+	        var sources = this._sources;
+	        var values  = this._store.map(toValue);
+	        if (sources.every(isDone$1)) { this._stop(0); }
+	        return values.every(isValue) && this._fn.apply(null, values) ;
+	    },
+
+	    stop: function stop() {
+	        var notify = this._notify;
+
+	        // Remove listeners
+	        each(function(data) {
+	            var source = data.source;
+	            var listen = data.listen;
+	            source.off('push', listen);
+	            source.off('push', notify);
+	        }, this._store);
+
+	        this._stop(this._hot ? 1 : 0);
+	    }
+	});
+
+	Stream$1.Combine = function(fn) {
+	    var sources = A$1.slice.call(arguments, 1);
+
+	    if (sources.length < 2) {
+	        throw new Error('Stream: Combine requires more than ' + sources.length + ' source streams')
+	    }
+
+	    return new Stream$1(function setup(notify, stop) {
+	        return new CombineSource(notify, stop, fn, sources);
+	    });
+	};
+
+
+	// Stream.Merge
+
+	function MergeSource(notify, stop, sources) {
+	    var values = [];
+	    var buffer = [];
+
+	    function update(type, source) {
+	        buffer.push(source);
+	    }
+
+	    this._notify  = notify;
+	    this._stop    = stop;
+	    this._sources = sources;
+	    this._values  = values;
+	    this._buffer  = buffer;
+	    this._i       = 0;
+	    this._update  = update;
+
+	    each(function(source) {
+	        // Flush the source
+	        values.push.apply(values, toArray$1(source));
+
+	        // Listen for incoming values
+	        source.on('push', update);
+	        source.on('push', notify);
+	    }, sources);
+	}
+
+	assign$1(MergeSource.prototype, {
+	    shift: function() {
+	        var sources = this._sources;
+	        var values  = this._values;
+	        var buffer  = this._buffer;
+	        var stop    = this._stop;
+
+	        if (values.length) { return values.shift(); }
+	        var stream = buffer.shift();
+	        if (!stream) { return; }
+	        var value = stream.shift();
+	        // When all the sources are empty, stop
+	        if (stream.status === 'done' && ++this._i >= sources.length) { stop(0); }
+	        return value;
+	    },
+
+	    stop: function() {
+	        var notify  = this._notify;
+	        var sources = this._sources;
+	        var stop    = this._stop;
+	        var update  = this._update;
+
+	        // Remove listeners
+	        each(function(source) {
+	            source.off('push', update);
+	            source.off('push', notify);
+	        }, sources);
+
+	        stop(values.length + buffer.length);
+	    }
+	});
+
+	Stream$1.Merge = function(source1, source2) {
+	    var args = arguments;
+
+	    return new Stream$1(function setup(notify, stop) {
+	        return new MergeSource(notify, stop, Array.from(args));
+	    });
+	};
+
+
+	// Stream.Events
+
+	Stream$1.Events = function(type, node) {
+	    return new Stream$1(function setup(notify, stop) {
+	        var buffer = [];
+
+	        function update(value) {
+	            buffer.push(value);
+	            notify('push');
+	        }
+
+	        node.addEventListener(type, update);
+
+	        return {
+	            shift: function() {
+	                return buffer.shift();
+	            },
+
+	            stop: function stop() {
+	                node.removeEventListener(type, update);
+	                stop(buffer.length);
+	            }
+	        };
+	    });
+	};
+
+
+	// Stream Timers
+
+	Stream$1.Choke = function(time) {
+	    return new Stream$1(function setup(notify, done) {
+	        var value;
+	        var update = choke(function() {
+	            // Get last value and stick it in buffer
+	            value = arguments[arguments.length - 1];
+	            notify('push');
+	        }, time);
+
+	        return {
+	            shift: function() {
+	                var v = value;
+	                value = undefined;
+	                return v;
+	            },
+
+	            push: update,
+
+	            stop: function stop() {
+	                update.cancel(false);
+	                done();
+	            }
+	        };
+	    });
+	};
+
+
+
+	// Frame timer
+
+	var frameTimer = {
+	    now:     now,
+	    request: requestAnimationFrame.bind(window),
+	    cancel:  cancelAnimationFrame.bind(window)
+	};
+
+
+	// Stream timer
+
+	function StreamTimer(stream) {
+	    var timer = this;
+	    var fns0  = [];
+	    var fns1  = [];
+	    this.fns = fns0;
+
+	    stream.each(function() {
+	        timer.fns = fns1;
+	        fns0.reduce(call$1, undefined);
+	        fns0.length = 0;
+	        fns1 = fns0;
+	        fns0 = timer.fns;
+	    });
+	}
+
+	assign$1(StreamTimer.prototype, {
+	    request: function(fn) {
+	        this.fns.push(fn);
+	        return fn;
+	    },
+
+	    cancel: function(fn) {
+	        remove(this.fns, fn);
+	    }
+	});
+
+
+	// Stream.throttle
+
+	function schedule() {
+	    var timer   = this.timer;
+
+	    this.queue = noop$1;
+	    this.ref   = timer.request(this.update);
+	}
+
+	function ThrottleSource(notify, stop, timer) {
+	    var source   = this;
+
+	    this._stop   = stop;
+	    this.timer   = timer;
+	    this.queue   = schedule;
+	    this.update  = function update() {
+	        source.queue = schedule;
+	        notify('push');
+	    };
+	}
+
+	assign$1(ThrottleSource.prototype, {
+	    shift: function shift() {
+	        var value = this.value;
+	        this.value = undefined;
+	        return value;
+	    },
+
+	    stop: function stop(callLast) {
+	        var timer = this.timer;
+
+	        // An update is queued
+	        if (this.queue === noop$1) {
+	            timer.cancel && timer.cancel(this.ref);
+	            this.ref = undefined;
+	        }
+
+	        // Don't permit further changes to be queued
+	        this.queue = noop$1;
+
+	        // If there is an update queued apply it now
+	        // Hmmm. This is weird semantics. TODO: callLast should
+	        // really be an 'immediate' flag, no?
+	        this._stop(this.value !== undefined && callLast ? 1 : 0);
+	    },
+
+	    push: function throttle() {
+	        // Store the latest value
+	        this.value = arguments[arguments.length - 1];
+
+	        // Queue the update
+	        this.queue();
+	    }
+	});
+
+	Stream$1.throttle = function(timer) {
+	    if (typeof timer === 'function') {
+	        throw new Error('Dont accept request and cancel functions anymore');
+	    }
+
+	    timer = typeof timer === 'number' ?
+	        new Timer(timer) :
+	    timer instanceof Stream$1 ?
+	        new StreamTimer(timer) :
+	    timer ? timer :
+	        frameTimer ;
+
+	    return new Stream$1(function(notify, stop) {
+	        return new ThrottleSource(notify, stop, timer);
+	    });
+	};
+
+
+
+	function ClockSource(notify, stop, options) {
+	    // requestAnimationFrame/cancelAnimationFrame cannot be invoked
+	    // with context, so need to be referenced.
+
+	    var source  = this;
+	    var request = options.request;
+
+	    function frame(time) {
+	        source.value = time;
+	        notify('push');
+	        source.value = undefined;
+	        source.id    = request(frame);
+	    }
+
+	    this.cancel = options.cancel || noop$1;
+	    this.end    = stop;
+
+	    // Start clock
+	    this.id = request(frame);
+	}
+
+	assign$1(ClockSource.prototype, {
+	    shift: function shift() {
+	        var value = this.value;
+	        this.value = undefined;
+	        return value;
+	    },
+
+	    stop: function stop() {
+	        var cancel = this.cancel;
+	        cancel(this.id);
+	        this.end();
+	    }
+	});
+
+	Stream$1.clock = function ClockStream(options) {
+	    var timer = typeof options === 'number' ?
+	        new Timer(options) :
+	        options || frameTimer ;
+
+	    return new Stream$1(ClockSource, timer);
+	};
+
+
+	// Stream Methods
+
+	Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
+	    clone: function() {
+	        var source  = this;
+	        var shift   = this.shift;
+	        var buffer1 = [];
+	        var buffer2 = [];
+
+	        var stream  = new Stream$1(function setup(notify, stop) {
+	            var buffer = buffer2;
+
+	            source.on('push', notify);
+
+	            return {
+	                shift: function() {
+	                    if (buffer.length) { return buffer.shift(); }
+	                    var value = shift();
+
+	                    if (value !== undefined) { buffer1.push(value); }
+	                    else if (source.status === 'done') {
+	                        stop(0);
+	                        source.off('push', notify);
+	                    }
+
+	                    return value;
+	                },
+
+	                stop: function() {
+	                    var value;
+
+	                    // Flush all available values into buffer
+	                    while ((value = shift()) !== undefined) {
+	                        buffer.push(value);
+	                        buffer1.push(value);
+	                    }
+
+	                    stop(buffer.length);
+	                    source.off('push', notify);
+	                }
+	            };
+	        });
+
+	        this.then(stream.stop);
+
+	        this.shift = function() {
+	            if (buffer1.length) { return buffer1.shift(); }
+	            var value = shift();
+	            if (value !== undefined && stream.status !== 'done') { buffer2.push(value); }
+	            return value;
+	        };
+
+	        return stream;
+	    },
+
+	    combine: function(fn, source) {
+	        return Stream$1.Combine(fn, this, source);
+	    },
+
+	    merge: function() {
+	        var sources = toArray$1(arguments);
+	        sources.unshift(this);
+	        return Stream$1.Merge.apply(null, sources);
+	    },
+
+	    choke: function(time) {
+	        return this.pipe(Stream$1.Choke(time));
+	    },
+
+	    throttle: function(timer) {
+	        return this.pipe(Stream$1.throttle(timer));
+	    },
+
+	    clock: function(timer) {
+	        return this.pipe(Stream$1.clock(timer));
+	    },
+
+
+	    // Consume
+
+	    each: function(fn) {
+	        var args   = arguments;
+	        var source = this;
+
+	        // Flush and observe
+	        Fn.prototype.each.apply(source, args);
+
+	        return this.on('push', function each$$1() {
+	            // Delegate to Fn#each().
+	            Fn.prototype.each.apply(source, args);
+	        });
+	    },
+
+	    pipe: function(stream) {
+	        this.each(stream.push);
+	        return Fn.prototype.pipe.apply(this, arguments);
+	    },
+
+
+	    // Events
+
+	    on: function(type, fn) {
+	        var events = this[$events];
+	        if (!events) { return this; }
+
+	        var listeners = events[type] || (events[type] = []);
+	        listeners.push(fn);
+	        return this;
+	    },
+
+	    off: function off(type, fn) {
+	        var events = this[$events];
+	        if (!events) { return this; }
+
+	        // Remove all handlers for all types
+	        if (arguments.length === 0) {
+	            Object.keys(events).forEach(off, this);
+	            return this;
+	        }
+
+	        var listeners = events[type];
+	        if (!listeners) { return; }
+
+	        // Remove all handlers for type
+	        if (!fn) {
+	            delete events[type];
+	            return this;
+	        }
+
+	        // Remove handler fn for type
+	        var n = listeners.length;
+	        while (n--) {
+	            if (listeners[n] === fn) { listeners.splice(n, 1); }
+	        }
+
+	        return this;
+	    }
+	});
+
+	function set(key, object, value) {
+	    return typeof object.set === "function" ?
+	        object.set(key, value) :
+	        (object[key] = value) ;
+	}
+
+	var rpath  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
+
+	function findByProperty(key, value, array) {
+	    var l = array.length;
+	    var n = -1;
+
+	    while (++n < l) {
+	        if (array[n][key] === value) {
+	            return array[n];
+	        }
+	    }
+	}
+
+
+	/* Get path */
+
+	function getRegexPathThing(regex, path, object, fn) {
+	    var tokens = regex.exec(path);
+
+	    if (!tokens) {
+	        throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
+	    }
+
+	    var key      = tokens[1];
+	    var property = tokens[3] ?
+	        findByProperty(key,
+	            tokens[2] ? tokens[3] :
+	            tokens[4] ? Boolean(tokens[4]) :
+	            parseFloat(tokens[5]),
+	        object) :
+	        object[key] ;
+
+	    return fn(regex, path, property);
+	}
+
+	function getRegexPath(regex, path, object) {
+	    return regex.lastIndex === path.length ?
+	        object :
+	    !(object && typeof object === 'object') ?
+	        undefined :
+	    getRegexPathThing(regex, path, object, getRegexPath) ;
+	}
+
+	function getPath(path, object) {
+	    rpath.lastIndex = 0;
+	    return getRegexPath(rpath, path, object) ;
+	}
+
+
+	/* Set path */
+
+	function setRegexPath(regex, path, object, thing) {
+	    var tokens = regex.exec(path);
+
+	    if (!tokens) {
+	        throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
+	    }
+
+	    var key = tokens[1];
+
+	    if (regex.lastIndex === path.length) {
+	        // Cannot set to [prop=value] selector
+	        if (tokens[3]) {
+	            throw new Error('Fn.setPath(path, object): invalid path "' + path + '"');
+	        }
+
+	        return object[key] = thing;
+	    }
+
+	    var value = tokens[3] ?
+	        findByProperty(key,
+	            tokens[2] ? tokens[3] :
+	            tokens[4] ? Boolean(tokens[4]) :
+	            parseFloat(tokens[5])
+	        ) :
+	        object[key] ;
+
+	    if (!(value && typeof value === 'object')) {
+	        value = {};
+
+	        if (tokens[3]) {
+	            if (object.push) {
+	                value[key] = tokens[2] ?
+	                    tokens[3] :
+	                    parseFloat(tokens[3]) ;
+
+	                object.push(value);
+	            }
+	            else {
+	                throw new Error('Not supported');
+	            }
+	        }
+
+	        set(key, object, value);
+	    }
+
+	    return setRegexPath(regex, path, value, thing);
+	}
+
+	function setPath(path, object, value) {
+	    rpath.lastIndex = 0;
+	    return setRegexPath(rpath, path, object, value);
+	}
+
+	const Observable = window.Observable;
+
+	function ObserveSource(end, object, path) {
+		this.observable = Observable(object);
+		this.path       = path;
+		this.end        = end;
+	}
+
+	ObserveSource.prototype = {
+		shift: function() {
+			var value = this.value;
+			this.value = undefined;
+			return value;
+		},
+
+		push: function() {
+			setPath(this.path, this.observable, arguments[arguments.length - 1]);
+		},
+
+		stop: function() {
+			this.unobserve();
+			this.end();
+		},
+
+		unobserve: noop$1
+	};
+
+	function ObserveStream(path, object) {
+		return new Stream$1(function setup(notify, stop) {
+			var source = new ObserveSource(stop, object, path);
+
+			function update(v) {
+				source.value = v === undefined ? null : v ;
+				notify('push');
+			}
+
+			source.unobserve = Observable.observe(object, path, update);
+			return source;
+		});
+	}
+
+	function equals(a, b) {
+	    // Fast out if references are for the same object
+	    if (a === b) { return true; }
+
+	    // Or if values are not objects
+	    if (a === null ||
+	        b === null ||
+	        typeof a !== 'object' ||
+	        typeof b !== 'object') {
+	        return false;
+	    }
+
+	    var akeys = Object.keys(a);
+	    var bkeys = Object.keys(b);
+
+	    // Are their enumerable keys different?
+	    if (akeys.length !== bkeys.length) { return false; }
+
+	    var n = akeys.length;
+
+	    while (n--) {
+	        if (!equals(a[akeys[n]], b[akeys[n]])) {
+	            return false;
+	        }
+	    }
+
+	    return true;
 	}
 
 	function get(key, object) {
@@ -3280,764 +2396,788 @@ var Sparky = (function () {
 	        object[key] ;
 	}
 
-	function set(key, object, value) {
-	    return typeof object.set === "function" ?
-	        object.set(key, value) :
-	        (object[key] = value) ;
+	var _is = Object.is || function is(a, b) { return a === b; };
+
+	function invoke(name, values, object) {
+	    return object[name].apply(object, values);
 	}
 
-	var Fn     = window.Fn;
+	function nth(n, object) {
+	    return object[n];
+	}
 
-	const rest$1      = curry(rest);
-	const get$1       = curry(get);
-	const set$1       = curry(set);
-	const sum       = Fn.add;
-	const assign    = Fn.assign;
-	const getPath   = Fn.getPath;
-	const id        = Fn.id;
-	const isDefined = Fn.isDefined;
-	const noop      = Fn.noop;
-	const nothing   = Fn.nothing;
-	const args      = Fn.args;
-	const self      = Fn.self;
-	const toString  = Fn.toString;
-	const cache     = Fn.cache;
-	const compose   = Fn.compose;
-	//export const curry     = Fn.curry;
-	//export const choose    = Fn.choose;
-	const flip      = Fn.flip;
-	const is        = Fn.is;
-	const once      = Fn.once;
-	const nth       = Fn.nth;
-	//export const overload  = Fn.overload;
-	const pipe      = Fn.pipe;
-	const throttle  = Fn.Throttle;
-	const wait      = Fn.Wait;
-	const weakCache = Fn.weakCache;
-	const update    = Fn.update;
+	function distribute(fns, object, data) {
+	    var n = -1;
 
-	const limit       = Fn.limit;
-	const pow         = Fn.pow;
-	const toCartesian = Fn.toCartesian;
-	const toPolar     = Fn.toPolar;
-	const Stream$1      = window.Stream;
+	    while (++n < data.length) {
+	        if (data[n] !== undefined && fns[n]) {
+	            object = fns[n](object, data[n], data);
+	        }
+	    }
 
-	(function(window) {
+	    return object;
+	}
 
-		var Fn        = window.Fn;
+	var parse$1 = curry$1(function parse(regex, fns, output, string) {
+	    var data;
 
-		var assign    = Object.assign;
-		var curry     = Fn.curry;
-		var choose    = Fn.choose;
-		var id        = Fn.id;
-		var isDefined = Fn.isDefined;
-		var mod       = Fn.mod;
-		var noop      = Fn.noop;
-		var overload  = Fn.overload;
-		var toType    = Fn.toType;
-		var toClass   = Fn.toClass;
+	    if (typeof string !== 'string') {
+	        data   = string;
+	        string = data.input.slice(data.index + data[0].length);
+	    }
 
-		function createOrdinals(ordinals) {
-			var array = [], n = 0;
+	    var result = regex.exec(string);
 
-			while (n++ < 31) {
-				array[n] = ordinals[n] || ordinals.n;
-			}
+	    if (!result) {
+	        throw new Error('Sparky: unable to parse "' + string + '" with ' + regex);
+	    }
 
-			return array;
+	    output = distribute(fns, output, result);
+
+	    // Call the close fn
+	    if (fns.close) {
+	        output = fns.close(output, result);
+	    }
+
+	    // Update outer result's index
+	    if (data) {
+	        data.index += result.index + result[0].length;
+	    }
+
+	    return output;
+	});
+
+	function remove$1(array, value) {
+	    if (array.remove) { array.remove(value); }
+	    var i = array.indexOf(value);
+	    if (i !== -1) { array.splice(i, 1); }
+	}
+
+	const N     = Number.prototype;
+	const isNaN = Number.isNaN;
+
+	function toFixed(n, value) {
+	    if (isNaN(value)) {
+	        throw new Error('Fn.toFixed does not accept NaN.');
+	    }
+
+	    return N.toFixed.call(value, n);
+	}
+
+	function append(string1, string2) {
+	    return '' + string2 + string1;
+	}
+
+	function prepend$1(string1, string2) {
+	    return '' + string1 + string2;
+	}
+
+	function slugify(string) {
+	    if (typeof string !== 'string') { return; }
+	    return string.trim().toLowerCase().replace(/[\W_]/g, '-');
+	}
+
+	function add(a, b) { return b + a; }function multiply(a, b) { return b * a; }function min(a, b) { return a > b ? b : a ; }function max(a, b) { return a < b ? b : a ; }function pow(n, x) { return Math.pow(x, n); }function exp(n, x) { return Math.pow(n, x); }function log(n, x) { return Math.log(x) / Math.log(n); }function root(n, x) { return Math.pow(x, 1/n); }
+	function mod(d, n) {
+	    // JavaScript's modulu operator % uses Euclidean division, but for
+	    // stuff that cycles through 0 the symmetrics of floored division
+	    // are more useful.
+	    // https://en.wikipedia.org/wiki/Modulo_operation
+	    var value = n % d;
+	    return value < 0 ? value + d : value ;
+	}
+	function todB(n) { return 20 * Math.log10(n); }function toLevel(n) { return Math.pow(2, n/6); }function toRad(n) { return n / angleFactor; }function toDeg(n) { return n * angleFactor; }
+
+	function normalise(min, max, n) { return (n - min) / (max - min); }
+
+	function denormalise(min, max, n) { return n * (max - min) + min; }
+
+	function createOrdinals(ordinals) {
+		var array = [], n = 0;
+
+		while (n++ < 31) {
+			array[n] = ordinals[n] || ordinals.n;
 		}
 
-		var langs = {
-			'en': {
-				days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
-				months:   ('January February March April May June July August September October November December').split(' '),
-				ordinals: createOrdinals({ n: 'th', 1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st' })
-			},
+		return array;
+	}
 
-			'fr': {
-				days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
-				months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
-				ordinals: createOrdinals({ n: "ième", 1: "er" })
-			},
+	var langs = {
+		'en': {
+			days:     ('Sunday Monday Tuesday Wednesday Thursday Friday Saturday').split(' '),
+			months:   ('January February March April May June July August September October November December').split(' '),
+			ordinals: createOrdinals({ n: 'th', 1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st' })
+		},
 
-			'de': {
-				days:     ('Sonntag Montag Dienstag Mittwoch Donnerstag Freitag Samstag').split(' '),
-				months:   ('Januar Februar März April Mai Juni Juli Oktober September Oktober November Dezember').split(' '),
-				ordinals: createOrdinals({ n: "er" })
-			},
+		'fr': {
+			days:     ('dimanche lundi mardi mercredi jeudi vendredi samedi').split(' '),
+			months:   ('janvier février mars avril mai juin juillet août septembre octobre novembre décembre').split(' '),
+			ordinals: createOrdinals({ n: "ième", 1: "er" })
+		},
 
-			'it': {
-				days:     ('domenica lunedì martedì mercoledì giovedì venerdì sabato').split(' '),
-				months:   ('gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre').split(' '),
-				ordinals: createOrdinals({ n: "o" })
-			}
+		'de': {
+			days:     ('Sonntag Montag Dienstag Mittwoch Donnerstag Freitag Samstag').split(' '),
+			months:   ('Januar Februar März April Mai Juni Juli Oktober September Oktober November Dezember').split(' '),
+			ordinals: createOrdinals({ n: "er" })
+		},
+
+		'it': {
+			days:     ('domenica lunedì martedì mercoledì giovedì venerdì sabato').split(' '),
+			months:   ('gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre').split(' '),
+			ordinals: createOrdinals({ n: "o" })
+		}
+	};
+
+
+	// Date string parsing
+	//
+	// Don't parse date strings with the JS Date object. It has variable
+	// time zone behaviour. Set up our own parsing.
+	//
+	// Accept BC dates by including leading '-'.
+	// (Year 0000 is 1BC, -0001 is 2BC.)
+	// Limit months to 01-12
+	// Limit dates to 01-31
+
+	var rdate     = /^(-?\d{4})(?:-(0[1-9]|1[012])(?:-(0[1-9]|[12]\d|3[01])(?:T([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d)(?:.(\d+))?)?)?)?)?)?([+-]([01]\d|2[0-3]):?([0-5]\d)?|Z)?$/;
+	//                sign   year        month       day               T or -
+	var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
+
+	var parseDate = overload(toType, {
+		number:  secondsToDate,
+		string:  exec(rdate, createDate),
+		object:  function(date) {
+			return isValidDate(date) ? date : undefined ;
+		},
+		default: noop$1
+	});
+
+	var parseDateLocal = overload(toType, {
+		number:  secondsToDate,
+		string:  exec(rdate, createDateLocal),
+		object:  function(date) {
+			return date instanceof Date ? date : undefined ;
+		},
+		default: noop$1
+	});
+
+	function isValidDate(date) {
+		return toClass(date) === "Date" && !Number.isNaN(date.getTime()) ;
+	}
+
+	function createDate(match, year, month, day, hour, minute, second, ms, zone, zoneHour, zoneMinute) {
+		// Month must be 0-indexed for the Date constructor
+		month = parseInt(month, 10) - 1;
+
+		var date = new Date(
+			ms ?     Date.UTC(year, month, day, hour, minute, second, ms) :
+			second ? Date.UTC(year, month, day, hour, minute, second) :
+			minute ? Date.UTC(year, month, day, hour, minute) :
+			hour ?   Date.UTC(year, month, day, hour) :
+			day ?    Date.UTC(year, month, day) :
+			month ?  Date.UTC(year, month) :
+			Date.UTC(year)
+		);
+
+		if (zone && (zoneHour !== '00' || (zoneMinute !== '00' && zoneMinute !== undefined))) {
+			setTimeZoneOffset(zone[0], zoneHour, zoneMinute, date);
+		}
+
+		return date;
+	}
+
+	function createDateLocal(year, month, day, hour, minute, second, ms, zone) {
+		if (zone) {
+			throw new Error('Time.parseDateLocal() will not parse a string with a time zone "' + zone + '".');
+		}
+
+		// Month must be 0-indexed for the Date constructor
+		month = parseInt(month, 10) - 1;
+
+		return ms ?  new Date(year, month, day, hour, minute, second, ms) :
+			second ? new Date(year, month, day, hour, minute, second) :
+			minute ? new Date(year, month, day, hour, minute) :
+			hour ?   new Date(year, month, day, hour) :
+			day ?    new Date(year, month, day) :
+			month ?  new Date(year, month) :
+			new Date(year) ;
+	}
+
+	function exec(regex, fn, error) {
+		return function exec(string) {
+			var parts = regex.exec(string);
+			if (!parts && error) { throw error; }
+			return parts ?
+				fn.apply(null, parts) :
+				undefined ;
 		};
+	}
+
+	function secondsToDate(n) {
+		return new Date(secondsToMilliseconds(n));
+	}
+
+	function setTimeZoneOffset(sign, hour, minute, date) {
+		if (sign === '+') {
+			date.setUTCHours(date.getUTCHours() - parseInt(hour, 10));
+			if (minute) {
+				date.setUTCMinutes(date.getUTCMinutes() - parseInt(minute, 10));
+			}
+		}
+		else if (sign === '-') {
+			date.setUTCHours(date.getUTCHours() + parseInt(hour, 10));
+			if (minute) {
+				date.setUTCMinutes(date.getUTCMinutes() + parseInt(minute, 10));
+			}
+		}
+
+		return date;
+	}
 
 
-		// Date string parsing
+
+	// Date object formatting
+	//
+	// Use the internationalisation methods for turning a date into a UTC or
+	// locale string, the date object for turning them into a local string.
+
+	var dateFormatters = {
+		YYYY: function(date)       { return ('000' + date.getFullYear()).slice(-4); },
+		YY:   function(date)       { return ('0' + date.getFullYear() % 100).slice(-2); },
+		MM:   function(date)       { return ('0' + (date.getMonth() + 1)).slice(-2); },
+		MMM:  function(date, lang) { return this.MMMM(date, lang).slice(0,3); },
+		MMMM: function(date, lang) { return langs[lang || Time.lang].months[date.getMonth()]; },
+		D:    function(date)       { return '' + date.getDate(); },
+		DD:   function(date)       { return ('0' + date.getDate()).slice(-2); },
+		ddd:  function(date, lang) { return this.dddd(date, lang).slice(0,3); },
+		dddd: function(date, lang) { return langs[lang || Time.lang].days[date.getDay()]; },
+		hh:   function(date)       { return ('0' + date.getHours()).slice(-2); },
+		//hh:   function(date)       { return ('0' + date.getHours() % 12).slice(-2); },
+		mm:   function(date)       { return ('0' + date.getMinutes()).slice(-2); },
+		ss:   function(date)       { return ('0' + date.getSeconds()).slice(-2); },
+		sss:  function(date)       { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+		ms:   function(date)       { return '' + date.getMilliseconds(); },
+
+		// Experimental
+		am:   function(date) { return date.getHours() < 12 ? 'am' : 'pm'; },
+		zz:   function(date) {
+			return (date.getTimezoneOffset() < 0 ? '+' : '-') +
+				 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
+		},
+		th:   function(date, lang) { return langs[lang || Time.lang].ordinals[date.getDate()]; },
+		n:    function(date) { return +date; },
+		ZZ:   function(date) { return -date.getTimezoneOffset() * 60; }
+	};
+
+	var componentFormatters = {
+		YYYY: function(data)       { return data.year; },
+		YY:   function(data)       { return ('0' + data.year).slice(-2); },
+		MM:   function(data)       { return data.month; },
+		MMM:  function(data, lang) { return this.MMMM(data, lang).slice(0,3); },
+		MMMM: function(data, lang) { return langs[lang].months[data.month - 1]; },
+		D:    function(data)       { return parseInt(data.day, 10) + ''; },
+		DD:   function(data)       { return data.day; },
+		ddd:  function(data)       { return data.weekday.slice(0,3); },
+		dddd: function(data, lang) { return data.weekday; },
+		hh:   function(data)       { return data.hour; },
+		//hh:   function(data)       { return ('0' + data.hour % 12).slice(-2); },
+		mm:   function(data)       { return data.minute; },
+		ss:   function(data)       { return data.second; },
+		//sss:  function(data)       { return (date.second + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
+		//ms:   function(data)       { return '' + date.getMilliseconds(); },
+	};
+
+	var componentKeys = {
+		// Components, in order of appearance in the locale string
+		'en-US': ['weekday', 'month', 'day', 'year', 'hour', 'minute', 'second'],
+		// fr: "lundi 12/02/2018 à 18:54:09" (different in IE/Edge, of course)
+		// de: "Montag, 12.02.2018, 19:28:39" (different in IE/Edge, of course)
+		default: ['weekday', 'day', 'month', 'year', 'hour', 'minute', 'second']
+	};
+
+	var options = {
+		// Time zone
+		timeZone:      'UTC',
+		// Use specified locale matcher
+		formatMatcher: 'basic',
+		// Use 24 hour clock
+		hour12:        false,
+		// Format string components
+		weekday:       'long',
+		year:          'numeric',
+		month:         '2-digit',
+		day:           '2-digit',
+		hour:          '2-digit',
+		minute:        '2-digit',
+		second:        '2-digit',
+		//timeZoneName:  'short'
+	};
+
+	var rtoken    = /([YZMDdhmswz]{2,4}|\+-)/g;
+	var rusdate   = /\w{3,}|\d+/g;
+	var rdatejson = /^"(-?\d{4,}-\d\d-\d\d)/;
+
+	function matchEach(regex, fn, text) {
+		var match = regex.exec(text);
+
+		return match ? (
+			fn.apply(null, match),
+			matchEach(regex, fn, text)
+		) :
+		undefined ;
+	}
+
+	function toLocaleString(timezone, locale, date) {
+		options.timeZone = timezone || 'UTC';
+		var string = date.toLocaleString(locale, options);
+		return string;
+	}
+
+	function toLocaleComponents(timezone, locale, date) {
+		var localedate = toLocaleString(timezone, locale, date);
+		var components = {};
+		var keys       = componentKeys[locale] || componentKeys.default;
+		var i          = 0;
+
+		matchEach(rusdate, function(value) {
+			components[keys[i++]] = value;
+		}, localedate);
+
+		return components;
+	}
+
+	function _formatDate(string, timezone, locale, date) {
+		// Derive lang from locale
+		var lang = locale ? locale.slice(0,2) : document.documentElement.lang ;
+
+		// Todo: only en-US and fr supported for the time being
+		locale = locale === 'en' ? 'en-US' :
+			locale ? locale :
+			'en-US';
+
+		var data    = toLocaleComponents(timezone, locale, date);
+		var formats = componentFormatters;
+
+		return string.replace(rtoken, function($0) {
+			return formats[$0] ? formats[$0](data, lang) : $0 ;
+		});
+	}
+
+	function formatDateLocal(string, locale, date) {
+		var formatters = dateFormatters;
+		var lang = locale.slice(0, 2);
+
+		// Use date formatters to get time as current local time
+		return string.replace(rtoken, function($0) {
+			return formatters[$0] ? formatters[$0](date, lang) : $0 ;
+		});
+	}
+
+	function formatDateISO(date) {
+		return rdatejson.exec(JSON.stringify(parseDate(date)))[1];
+	}
+
+
+	// Time operations
+
+	var days   = {
+		mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0
+	};
+
+	var dayMap = [6,0,1,2,3,4,5];
+
+	function toDay(date) {
+		return dayMap[date.getDay()];
+	}
+
+	function cloneDate(date) {
+		return new Date(+date);
+	}
+
+	function addDateComponents(sign, yy, mm, dd, date) {
+		date.setUTCFullYear(date.getUTCFullYear() + sign * parseInt(yy, 10));
+
+		if (!mm) { return; }
+
+		// Adding and subtracting months can give weird results with the JS
+		// date object. For example, taking a montha way from 2018-03-31 results
+		// in 2018-03-03 (or the 31st of February), whereas adding a month on to
+		// 2018-05-31 results in the 2018-07-01 (31st of June).
 		//
-		// Don't parse date strings with the JS Date object. It has variable
-		// time zone behaviour. Set up our own parsing.
-		//
-		// Accept BC dates by including leading '-'.
-		// (Year 0000 is 1BC, -0001 is 2BC.)
-		// Limit months to 01-12
-		// Limit dates to 01-31
+		// To mitigate this weirdness track the target month and roll days back
+		// until the month is correct, like Python's relativedelta utility:
+		// https://dateutil.readthedocs.io/en/stable/relativedelta.html#examples
+		var month       = date.getUTCMonth();
+		var monthDiff   = sign * parseInt(mm, 10);
+		var monthTarget = mod(12, month + monthDiff);
 
-		var rdate     = /^(-?\d{4})(?:-(0[1-9]|1[012])(?:-(0[1-9]|[12]\d|3[01])(?:T([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d)(?:.(\d+))?)?)?)?)?)?([+-]([01]\d|2[0-3]):?([0-5]\d)?|Z)?$/;
-		//                sign   year        month       day               T or -
-		var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
+		date.setUTCMonth(month + monthDiff);
 
-		var parseDate = overload(toType, {
-			number:  secondsToDate,
-			string:  exec(rdate, createDate),
-			object:  function(date) {
-				return isValidDate(date) ? date : undefined ;
-			},
-			default: noop
-		});
+		// If the month is too far in the future scan backwards through
+		// months until it fits. Setting date to 0 means setting to last
+		// day of previous month.
+		while (date.getUTCMonth() > monthTarget) { date.setUTCDate(0); }
 
-		var parseDateLocal = overload(toType, {
-			number:  secondsToDate,
-			string:  exec(rdate, createDateLocal),
-			object:  function(date) {
-				return date instanceof Date ? date : undefined ;
-			},
-			default: noop
-		});
+		if (!dd) { return; }
 
-		function isValidDate(date) {
-			return toClass(date) === "Date" && !Number.isNaN(date.getTime()) ;
+		date.setUTCDate(date.getUTCDate() + sign * parseInt(dd, 10));
+	}
+
+	function _addDate(duration, date) {
+		// Don't mutate the original date
+		date = cloneDate(date);
+
+		// First parse the date portion duration and add that to date
+		var tokens = rdatediff.exec(duration) ;
+		var sign = 1;
+
+		if (tokens) {
+			sign = tokens[1] === '-' ? -1 : 1 ;
+			addDateComponents(sign, tokens[2], tokens[3], tokens[4], date);
+
+			// If there is no 'T' separator go no further
+			if (!tokens[5]) { return date; }
+
+			// Prepare duration for time parsing
+			duration = duration.slice(tokens[0].length);
+
+			// Protect against parsing a stray sign before time
+			if (duration[0] === '-') { return date; }
 		}
 
-		function createDate(match, year, month, day, hour, minute, second, ms, zone, zoneHour, zoneMinute) {
-			// Month must be 0-indexed for the Date constructor
-			month = parseInt(month, 10) - 1;
+		// Then parse the time portion and add that to date
+		var time = parseTimeDiff(duration);
+		if (time === undefined) { return; }
 
-			var date = new Date(
-				ms ?     Date.UTC(year, month, day, hour, minute, second, ms) :
-				second ? Date.UTC(year, month, day, hour, minute, second) :
-				minute ? Date.UTC(year, month, day, hour, minute) :
-				hour ?   Date.UTC(year, month, day, hour) :
-				day ?    Date.UTC(year, month, day) :
-				month ?  Date.UTC(year, month) :
-				Date.UTC(year)
-			);
+		date.setTime(date.getTime() + sign * time * 1000);
+		return date;
+	}
 
-			if (zone && (zoneHour !== '00' || (zoneMinute !== '00' && zoneMinute !== undefined))) {
-				setTimeZoneOffset(zone[0], zoneHour, zoneMinute, date);
-			}
+	function diff(t, d1, d2) {
+		var y1 = d1.getUTCFullYear();
+		var m1 = d1.getUTCMonth();
+		var y2 = d2.getUTCFullYear();
+		var m2 = d2.getUTCMonth();
 
+		if (y1 === y2 && m1 === m2) {
+			return t + d2.getUTCDate() - d1.getUTCDate() ;
+		}
+
+		t += d2.getUTCDate() ;
+
+		// Set to last date of previous month
+		d2.setUTCDate(0);
+		return diff(t, d1, d2);
+	}
+
+	function _diffDateDays(date1, date2) {
+		var d1 = parseDate(date1);
+		var d2 = parseDate(date2);
+
+		return d2 > d1 ?
+			// 3rd argument mutates, so make sure we get a clean date if we
+			// have not just made one.
+			diff(0, d1, d2 === date2 || d1 === d2 ? cloneDate(d2) : d2) :
+			diff(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
+	}
+
+	function floorDateByGrain(grain, date) {
+		var diff, week;
+
+		if (grain === 'ms') { return date; }
+
+		date.setUTCMilliseconds(0);
+		if (grain === 'second') { return date; }
+
+		date.setUTCSeconds(0);
+		if (grain === 'minute') { return date; }
+
+		date.setUTCMinutes(0);
+		if (grain === 'hour') { return date; }
+
+		date.setUTCHours(0);
+		if (grain === 'day') { return date; }
+
+		if (grain === 'week') {
+			date.setDate(date.getDate() - toDay(date));
 			return date;
 		}
 
-		function createDateLocal(year, month, day, hour, minute, second, ms, zone) {
-			if (zone) {
-				throw new Error('Time.parseDateLocal() will not parse a string with a time zone "' + zone + '".');
-			}
-
-			// Month must be 0-indexed for the Date constructor
-			month = parseInt(month, 10) - 1;
-
-			return ms ?  new Date(year, month, day, hour, minute, second, ms) :
-				second ? new Date(year, month, day, hour, minute, second) :
-				minute ? new Date(year, month, day, hour, minute) :
-				hour ?   new Date(year, month, day, hour) :
-				day ?    new Date(year, month, day) :
-				month ?  new Date(year, month) :
-				new Date(year) ;
-		}
-
-		function exec(regex, fn, error) {
-			return function exec(string) {
-				var parts = regex.exec(string);
-				if (!parts && error) { throw error; }
-				return parts ?
-					fn.apply(null, parts) :
-					undefined ;
-			};
-		}
-
-		function secondsToDate(n) {
-			return new Date(secondsToMilliseconds(n));
-		}
-
-		function setTimeZoneOffset(sign, hour, minute, date) {
-			if (sign === '+') {
-				date.setUTCHours(date.getUTCHours() - parseInt(hour, 10));
-				if (minute) {
-					date.setUTCMinutes(date.getUTCMinutes() - parseInt(minute, 10));
-				}
-			}
-			else if (sign === '-') {
-				date.setUTCHours(date.getUTCHours() + parseInt(hour, 10));
-				if (minute) {
-					date.setUTCMinutes(date.getUTCMinutes() + parseInt(minute, 10));
-				}
-			}
-
+		if (grain === 'fortnight') {
+			week = floorDateByDay(1, new Date());
+			diff = mod(14, _diffDateDays(week, date));
+			date.setUTCDate(date.getUTCDate() - diff);
 			return date;
 		}
 
+		date.setUTCDate(1);
+		if (grain === 'month') { return date; }
+
+		date.setUTCMonth(0);
+		if (grain === 'year') { return date; }
+
+		date.setUTCFullYear(0);
+		return date;
+	}
+
+	function floorDateByDay(day, date) {
+		var currentDay = date.getUTCDay();
+
+		// If we are on the specified day, return this date
+		if (day === currentDay) { return date; }
+
+		var diff = currentDay - day;
+		if (diff < 0) { diff = diff + 7; }
+		return _addDate('-0000-00-0' + diff, date);
+	}
+
+	function _floorDate(grain, date) {
+		// Clone date before mutating it
+		date = cloneDate(date);
+
+		// Take a day string or number, find the last matching day
+		var day = typeof grain === 'number' ?
+			grain :
+			days[grain] ;
+
+		return isDefined(day) ?
+			floorDateByDay(day, date) :
+			floorDateByGrain(grain, date) ;
+	}
+
+	const addDate = curry$1(function(diff, date) {
+		return _addDate(diff, parseDate(date));
+	});
+
+	const diffDateDays = curry$1(_diffDateDays);
+
+	const floorDate = curry$1(function(token, date) {
+		return _floorDate(token, parseDate(date));
+	});
+
+	const formatDate = curry$1(function(string, timezone, locale, date) {
+		return string === 'ISO' ?
+			formatDateISO(parseDate(date)) :
+		timezone === 'local' ?
+			formatDateLocal(string, locale, date) :
+		_formatDate(string, timezone, locale, parseDate(date)) ;
+	});
 
 
-		// Date object formatting
-		//
-		// Use the internationalisation methods for turning a date into a UTC or
-		// locale string, the date object for turning them into a local string.
+	// Time
 
-		var dateFormatters = {
-			YYYY: function(date)       { return ('000' + date.getFullYear()).slice(-4); },
-			YY:   function(date)       { return ('0' + date.getFullYear() % 100).slice(-2); },
-			MM:   function(date)       { return ('0' + (date.getMonth() + 1)).slice(-2); },
-			MMM:  function(date, lang) { return this.MMMM(date, lang).slice(0,3); },
-			MMMM: function(date, lang) { return langs[lang || Time.lang].months[date.getMonth()]; },
-			D:    function(date)       { return '' + date.getDate(); },
-			DD:   function(date)       { return ('0' + date.getDate()).slice(-2); },
-			ddd:  function(date, lang) { return this.dddd(date, lang).slice(0,3); },
-			dddd: function(date, lang) { return langs[lang || Time.lang].days[date.getDay()]; },
-			hh:   function(date)       { return ('0' + date.getHours()).slice(-2); },
-			//hh:   function(date)       { return ('0' + date.getHours() % 12).slice(-2); },
-			mm:   function(date)       { return ('0' + date.getMinutes()).slice(-2); },
-			ss:   function(date)       { return ('0' + date.getSeconds()).slice(-2); },
-			sss:  function(date)       { return (date.getSeconds() + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
-			ms:   function(date)       { return '' + date.getMilliseconds(); },
+	// Decimal places to round to when comparing times
+	var precision = 9;
+	function minutesToSeconds(n) { return n * 60; }
+	function hoursToSeconds(n) { return n * 3600; }
 
-			// Experimental
-			am:   function(date) { return date.getHours() < 12 ? 'am' : 'pm'; },
-			zz:   function(date) {
-				return (date.getTimezoneOffset() < 0 ? '+' : '-') +
-					 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
-			},
-			th:   function(date, lang) { return langs[lang || Time.lang].ordinals[date.getDate()]; },
-			n:    function(date) { return +date; },
-			ZZ:   function(date) { return -date.getTimezoneOffset() * 60; }
-		};
+	function secondsToMilliseconds(n) { return n * 1000; }
+	function secondsToMinutes(n) { return n / 60; }
+	function secondsToHours(n) { return n / 3600; }
+	function secondsToDays(n) { return n / 86400; }
+	function secondsToWeeks(n) { return n / 604800; }
 
-		var componentFormatters = {
-			YYYY: function(data)       { return data.year; },
-			YY:   function(data)       { return ('0' + data.year).slice(-2); },
-			MM:   function(data)       { return data.month; },
-			MMM:  function(data, lang) { return this.MMMM(data, lang).slice(0,3); },
-			MMMM: function(data, lang) { return langs[lang].months[data.month - 1]; },
-			D:    function(data)       { return parseInt(data.day, 10) + ''; },
-			DD:   function(data)       { return data.day; },
-			ddd:  function(data)       { return data.weekday.slice(0,3); },
-			dddd: function(data, lang) { return data.weekday; },
-			hh:   function(data)       { return data.hour; },
-			//hh:   function(data)       { return ('0' + data.hour % 12).slice(-2); },
-			mm:   function(data)       { return data.minute; },
-			ss:   function(data)       { return data.second; },
-			//sss:  function(data)       { return (date.second + date.getMilliseconds() / 1000 + '').replace(/^\d\.|^\d$/, function($0){ return '0' + $0; }); },
-			//ms:   function(data)       { return '' + date.getMilliseconds(); },
-		};
+	function prefix(n) {
+		return n >= 10 ? '' : '0';
+	}
 
-		var componentKeys = {
-			// Components, in order of appearance in the locale string
-			'en-US': ['weekday', 'month', 'day', 'year', 'hour', 'minute', 'second'],
-			// fr: "lundi 12/02/2018 à 18:54:09" (different in IE/Edge, of course)
-			// de: "Montag, 12.02.2018, 19:28:39" (different in IE/Edge, of course)
-			default: ['weekday', 'day', 'month', 'year', 'hour', 'minute', 'second']
-		};
+	// Hours:   00-23 - 24 should be allowed according to spec
+	// Minutes: 00-59 -
+	// Seconds: 00-60 - 60 is allowed, denoting a leap second
 
+	//var rtime   = /^([+-])?([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d|60)(?:.(\d+))?)?)?$/;
+	//                sign   hh       mm           ss
+	var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
+	var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
 
-
-		var options = {
-			// Time zone
-			timeZone:      'UTC',
-			// Use specified locale matcher
-			formatMatcher: 'basic',
-			// Use 24 hour clock
-			hour12:        false,
-			// Format string components
-			weekday:       'long',
-			year:          'numeric',
-			month:         '2-digit',
-			day:           '2-digit',
-			hour:          '2-digit',
-			minute:        '2-digit',
-			second:        '2-digit',
-			//timeZoneName:  'short'
-		};
-
-		var rtoken    = /([YZMDdhmswz]{2,4}|\+-)/g;
-		var rusdate   = /\w{3,}|\d+/g;
-		var rdatejson = /^"(-?\d{4,}-\d\d-\d\d)/;
-
-		function matchEach(regex, fn, text) {
-			var match = regex.exec(text);
-
-			return match ? (
-				fn.apply(null, match),
-				matchEach(regex, fn, text)
-			) :
-			undefined ;
+	var parseTime = overload(toType, {
+		number:  id,
+		string:  exec(rtime, createTime),
+		default: function(object) {
+			throw new Error('parseTime() does not accept objects of type ' + (typeof object));
 		}
+	});
 
-		function toLocaleString(timezone, locale, date) {
-			options.timeZone = timezone || 'UTC';
-			var string = date.toLocaleString(locale, options);
-			return string;
+	var parseTimeDiff = overload(toType, {
+		number:  id,
+		string:  exec(rtimediff, createTime),
+		default: function(object) {
+			throw new Error('parseTime() does not accept objects of type ' + (typeof object));
 		}
+	});
 
-		function toLocaleComponents(timezone, locale, date) {
-			var localedate = toLocaleString(timezone, locale, date);
-			var components = {};
-			var keys       = componentKeys[locale] || componentKeys.default;
-			var i          = 0;
+	var _floorTime = choose({
+		week:   function(time) { return time - mod(604800, time); },
+		day:    function(time) { return time - mod(86400, time); },
+		hour:   function(time) { return time - mod(3600, time); },
+		minute: function(time) { return time - mod(60, time); },
+		second: function(time) { return time - mod(1, time); }
+	});
 
-			matchEach(rusdate, function(value) {
-				components[keys[i++]] = value;
-			}, localedate);
+	var timeFormatters = {
+		'+-': function sign(time) {
+			return time < 0 ? '-' : '' ;
+		},
 
-			return components;
+		www: function www(time) {
+			time = time < 0 ? -time : time;
+			var weeks = Math.floor(secondsToWeeks(time));
+			return prefix(weeks) + weeks;
+		},
+
+		dd: function dd(time) {
+			time = time < 0 ? -time : time;
+			var days = Math.floor(secondsToDays(time));
+			return prefix(days) + days;
+		},
+
+		hhh: function hhh(time) {
+			time = time < 0 ? -time : time;
+			var hours = Math.floor(secondsToHours(time));
+			return prefix(hours) + hours;
+		},
+
+		hh: function hh(time) {
+			time = time < 0 ? -time : time;
+			var hours = Math.floor(secondsToHours(time % 86400));
+			return prefix(hours) + hours;
+		},
+
+		mm: function mm(time) {
+			time = time < 0 ? -time : time;
+			var minutes = Math.floor(secondsToMinutes(time % 3600));
+			return prefix(minutes) + minutes;
+		},
+
+		ss: function ss(time) {
+			time = time < 0 ? -time : time;
+			var seconds = Math.floor(time % 60);
+			return prefix(seconds) + seconds ;
+		},
+
+		sss: function sss(time) {
+			time = time < 0 ? -time : time;
+			var seconds = time % 60;
+			return prefix(seconds) + toMaxDecimals(precision, seconds);
+		},
+
+		ms: function ms(time) {
+			time = time < 0 ? -time : time;
+			var ms = Math.floor(secondsToMilliseconds(time % 1));
+			return ms >= 100 ? ms :
+				ms >= 10 ? '0' + ms :
+				'00' + ms ;
 		}
-
-		function formatDate(string, timezone, locale, date) {
-			// Derive lang from locale
-			var lang = locale ? locale.slice(0,2) : document.documentElement.lang ;
-
-			// Todo: only en-US and fr supported for the time being
-			locale = locale === 'en' ? 'en-US' :
-				locale ? locale :
-				'en-US';
-
-			var data    = toLocaleComponents(timezone, locale, date);
-			var formats = componentFormatters;
-
-			return string.replace(rtoken, function($0) {
-				return formats[$0] ? formats[$0](data, lang) : $0 ;
-			});
-		}
-
-		function formatDateLocal(string, locale, date) {
-			var formatters = dateFormatters;
-			var lang = locale.slice(0, 2);
-
-			// Use date formatters to get time as current local time
-			return string.replace(rtoken, function($0) {
-				return formatters[$0] ? formatters[$0](date, lang) : $0 ;
-			});
-		}
-
-		function formatDateISO(date) {
-			return rdatejson.exec(JSON.stringify(parseDate(date)))[1];
-		}
-
-		function formatDateTimeISO(date) {
-			return JSON.stringify(parseDate(date)).slice(1,-1);
-		}
-
-
-		// Time operations
-
-		var days   = {
-			mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0
-		};
-
-		var dayMap = [6,0,1,2,3,4,5];
-
-		function toDay(date) {
-			return dayMap[date.getDay()];
-		}
-
-		function cloneDate(date) {
-			return new Date(+date);
-		}
-
-		function addDateComponents(sign, yy, mm, dd, date) {
-			date.setUTCFullYear(date.getUTCFullYear() + sign * parseInt(yy, 10));
-
-			if (!mm) { return; }
-
-			// Adding and subtracting months can give weird results with the JS
-			// date object. For example, taking a montha way from 2018-03-31 results
-			// in 2018-03-03 (or the 31st of February), whereas adding a month on to
-			// 2018-05-31 results in the 2018-07-01 (31st of June).
-			//
-			// To mitigate this weirdness track the target month and roll days back
-			// until the month is correct, like Python's relativedelta utility:
-			// https://dateutil.readthedocs.io/en/stable/relativedelta.html#examples
-			var month       = date.getUTCMonth();
-			var monthDiff   = sign * parseInt(mm, 10);
-			var monthTarget = mod(12, month + monthDiff);
-
-			date.setUTCMonth(month + monthDiff);
-
-			// If the month is too far in the future scan backwards through
-			// months until it fits. Setting date to 0 means setting to last
-			// day of previous month.
-			while (date.getUTCMonth() > monthTarget) { date.setUTCDate(0); }
-
-			if (!dd) { return; }
-
-			date.setUTCDate(date.getUTCDate() + sign * parseInt(dd, 10));
-		}
-
-		function addDate(duration, date) {
-			// Don't mutate the original date
-			date = cloneDate(date);
-
-			// First parse the date portion duration and add that to date
-			var tokens = rdatediff.exec(duration) ;
-			var sign = 1;
-
-			if (tokens) {
-				sign = tokens[1] === '-' ? -1 : 1 ;
-				addDateComponents(sign, tokens[2], tokens[3], tokens[4], date);
-
-				// If there is no 'T' separator go no further
-				if (!tokens[5]) { return date; }
-
-				// Prepare duration for time parsing
-				duration = duration.slice(tokens[0].length);
-
-				// Protect against parsing a stray sign before time
-				if (duration[0] === '-') { return date; }
-			}
-
-			// Then parse the time portion and add that to date
-			var time = parseTimeDiff(duration);
-			if (time === undefined) { return; }
-
-			date.setTime(date.getTime() + sign * time * 1000);
-			return date;
-		}
-
-		function diff(t, d1, d2) {
-			var y1 = d1.getUTCFullYear();
-			var m1 = d1.getUTCMonth();
-			var y2 = d2.getUTCFullYear();
-			var m2 = d2.getUTCMonth();
-
-			if (y1 === y2 && m1 === m2) {
-				return t + d2.getUTCDate() - d1.getUTCDate() ;
-			}
-
-			t += d2.getUTCDate() ;
-
-			// Set to last date of previous month
-			d2.setUTCDate(0);
-			return diff(t, d1, d2);
-		}
-
-		function diffDateDays(date1, date2) {
-			var d1 = parseDate(date1);
-			var d2 = parseDate(date2);
-
-			return d2 > d1 ?
-				// 3rd argument mutates, so make sure we get a clean date if we
-				// have not just made one.
-				diff(0, d1, d2 === date2 || d1 === d2 ? cloneDate(d2) : d2) :
-				diff(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
-		}
-
-		function floorDateByGrain(grain, date) {
-			var diff, week;
-
-			if (grain === 'ms') { return date; }
-
-			date.setUTCMilliseconds(0);
-			if (grain === 'second') { return date; }
-
-			date.setUTCSeconds(0);
-			if (grain === 'minute') { return date; }
-
-			date.setUTCMinutes(0);
-			if (grain === 'hour') { return date; }
-
-			date.setUTCHours(0);
-			if (grain === 'day') { return date; }
-
-			if (grain === 'week') {
-				date.setDate(date.getDate() - toDay(date));
-				return date;
-			}
-
-			if (grain === 'fortnight') {
-				week = floorDateByDay(1, new Date());
-				diff = Fn.mod(14, diffDateDays(week, date));
-				date.setUTCDate(date.getUTCDate() - diff);
-				return date;
-			}
-
-			date.setUTCDate(1);
-			if (grain === 'month') { return date; }
-
-			date.setUTCMonth(0);
-			if (grain === 'year') { return date; }
-
-			date.setUTCFullYear(0);
-			return date;
-		}
-
-		function floorDateByDay(day, date) {
-			var currentDay = date.getUTCDay();
-
-			// If we are on the specified day, return this date
-			if (day === currentDay) { return date; }
-
-			var diff = currentDay - day;
-			if (diff < 0) { diff = diff + 7; }
-			return addDate('-0000-00-0' + diff, date);
-		}
-
-		function floorDate(grain, date) {
-			// Clone date before mutating it
-			date = cloneDate(date);
-
-			// Take a day string or number, find the last matching day
-			var day = typeof grain === 'number' ?
-				grain :
-				days[grain] ;
-
-			return isDefined(day) ?
-				floorDateByDay(day, date) :
-				floorDateByGrain(grain, date) ;
-		}
-
-
-		assign(Fn, {
-			nowDate: function() {
-				return new Date();
-			},
-
-			addDate: curry(function(diff, date) {
-				return addDate(diff, parseDate(date));
-			}),
-
-			cloneDate: cloneDate,
-
-			dateDiff: function(d1, d2) {
-				return +parseDate(d2) - +parseDate(d1);
-			},
-
-			diffDateDays: curry(diffDateDays),
-
-			floorDate: curry(function(token, date) {
-				return floorDate(token, parseDate(date));
-			}),
-
-			formatDate: curry(function(string, timezone, locale, date) {
-				return string === 'ISO' ?
-					formatDateISO(parseDate(date)) :
-				timezone === 'local' ?
-					formatDateLocal(string, locale, date) :
-				formatDate(string, timezone, locale, parseDate(date)) ;
-			}),
-
-			formatDateISO:     formatDateISO,
-			formatDateTimeISO: formatDateTimeISO,
-			formatDateLocal:   curry(formatDateLocal),
-			parseDate:         parseDate,
-			parseDateLocal:    parseDateLocal,
-			toDay:             toDay,
-
-			toTimestamp: function(date) {
-				return date.getTime() / 1000;
-			}
-		});
-
-
-
-
-		// Time
-
-		var precision = 9;
-
-		function millisecondsToSeconds(n) { return n / 1000; }
-		function minutesToSeconds(n) { return n * 60; }
-		function hoursToSeconds(n) { return n * 3600; }
-		function daysToSeconds(n) { return n * 86400; }
-		function weeksToSeconds(n) { return n * 604800; }
-
-		function secondsToMilliseconds(n) { return n * 1000; }
-		function secondsToMinutes(n) { return n / 60; }
-		function secondsToHours(n) { return n / 3600; }
-		function secondsToDays(n) { return n / 86400; }
-		function secondsToWeeks(n) { return n / 604800; }
-
-		function prefix(n) {
-			return n >= 10 ? '' : '0';
-		}
-
-		// Hours:   00-23 - 24 should be allowed according to spec
-		// Minutes: 00-59 -
-		// Seconds: 00-60 - 60 is allowed, denoting a leap second
-
-		//var rtime   = /^([+-])?([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d|60)(?:.(\d+))?)?)?$/;
-		//                sign   hh       mm           ss
-		var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
-		var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
-
-		var parseTime = overload(toType, {
-			number:  id,
-			string:  exec(rtime, createTime),
-			default: function(object) {
-				throw new Error('parseTime() does not accept objects of type ' + (typeof object));
-			}
-		});
-
-		var parseTimeDiff = overload(toType, {
-			number:  id,
-			string:  exec(rtimediff, createTime),
-			default: function(object) {
-				throw new Error('parseTime() does not accept objects of type ' + (typeof object));
-			}
-		});
-
-		var floorTime = choose({
-			week:   function(time) { return time - mod(604800, time); },
-			day:    function(time) { return time - mod(86400, time); },
-			hour:   function(time) { return time - mod(3600, time); },
-			minute: function(time) { return time - mod(60, time); },
-			second: function(time) { return time - mod(1, time); }
-		});
-
-		var timeFormatters = {
-			'+-': function sign(time) {
-				return time < 0 ? '-' : '' ;
-			},
-
-			www: function www(time) {
-				time = time < 0 ? -time : time;
-				var weeks = Math.floor(secondsToWeeks(time));
-				return prefix(weeks) + weeks;
-			},
-
-			dd: function dd(time) {
-				time = time < 0 ? -time : time;
-				var days = Math.floor(secondsToDays(time));
-				return prefix(days) + days;
-			},
-
-			hhh: function hhh(time) {
-				time = time < 0 ? -time : time;
-				var hours = Math.floor(secondsToHours(time));
-				return prefix(hours) + hours;
-			},
-
-			hh: function hh(time) {
-				time = time < 0 ? -time : time;
-				var hours = Math.floor(secondsToHours(time % 86400));
-				return prefix(hours) + hours;
-			},
-
-			mm: function mm(time) {
-				time = time < 0 ? -time : time;
-				var minutes = Math.floor(secondsToMinutes(time % 3600));
-				return prefix(minutes) + minutes;
-			},
-
-			ss: function ss(time) {
-				time = time < 0 ? -time : time;
-				var seconds = Math.floor(time % 60);
-				return prefix(seconds) + seconds ;
-			},
-
-			sss: function sss(time) {
-				time = time < 0 ? -time : time;
-				var seconds = time % 60;
-				return prefix(seconds) + toMaxDecimals(precision, seconds);
-			},
-
-			ms: function ms(time) {
-				time = time < 0 ? -time : time;
-				var ms = Math.floor(secondsToMilliseconds(time % 1));
-				return ms >= 100 ? ms :
-					ms >= 10 ? '0' + ms :
-					'00' + ms ;
-			}
-		};
-
-		function createTime(match, sign, hh, mm, sss) {
-			var time = hoursToSeconds(parseInt(hh, 10)) + (
-				mm ? minutesToSeconds(parseInt(mm, 10)) + (
-					sss ? parseFloat(sss, 10) : 0
-				) : 0
-			);
-
-			return sign === '-' ? -time : time ;
-		}
-
-		function formatTime(string, time) {
-			return string.replace(rtoken, function($0) {
-				return timeFormatters[$0] ? timeFormatters[$0](time) : $0 ;
-			}) ;
-		}
-
-		function formatTimeISO(time) {
-			var sign = time < 0 ? '-' : '' ;
-
-			if (time < 0) { time = -time; }
-
-			var hours = Math.floor(time / 3600);
-			var hh = prefix(hours) + hours ;
-			time = time % 3600;
-			if (time === 0) { return sign + hh + ':00'; }
-
-			var minutes = Math.floor(time / 60);
-			var mm = prefix(minutes) + minutes ;
-			time = time % 60;
-			if (time === 0) { return sign + hh + ':' + mm; }
-
-			var sss = prefix(time) + toMaxDecimals(precision, time);
-			return sign + hh + ':' + mm + ':' + sss;
-		}
-
-		function toMaxDecimals(precision, n) {
-			// Make some effort to keep rounding errors under control by fixing
-			// decimals and lopping off trailing zeros
-			return n.toFixed(precision).replace(/\.?0+$/, '');
-		}
-
-		assign(Fn, {
-			nowTime: function() {
-				return window.performance.now();
-			},
-
-			parseTime: parseTime,
-
-			formatTime: curry(function(string, time) {
-				return string === 'ISO' ?
-					formatTimeISO(parseTime(time)) :
-					formatTime(string, parseTime(time)) ;
-			}),
-
-			formatTimeISO: function(time) {
-				// Undefined causes problems by outputting dates full of NaNs
-				return time === undefined ? undefined : formatTimeISO(time);
-			},
-
-			addTime: curry(function(time1, time2) {
-				return parseTime(time2) + parseTimeDiff(time1);
-			}),
-
-			subTime: curry(function(time1, time2) {
-				return parseTime(time2) - parseTimeDiff(time1);
-			}),
-
-			diffTime: curry(function(time1, time2) {
-				return parseTime(time1) - parseTime(time2);
-			}),
-
-			floorTime: curry(function(token, time) {
-				return floorTime(token, parseTime(time));
-			}),
-
-			secondsToMilliseconds: secondsToMilliseconds,
-			secondsToMinutes:      secondsToMinutes,
-			secondsToHours:        secondsToHours,
-			secondsToDays:         secondsToDays,
-			secondsToWeeks:        secondsToWeeks,
-
-			millisecondsToSeconds: millisecondsToSeconds,
-			minutesToSeconds:      minutesToSeconds,
-			hoursToSeconds:        hoursToSeconds,
-			daysToSeconds:         daysToSeconds,
-			weeksToSeconds:        weeksToSeconds,
-		});
-	})(window);
+	};
+
+	function createTime(match, sign, hh, mm, sss) {
+		var time = hoursToSeconds(parseInt(hh, 10)) + (
+			mm ? minutesToSeconds(parseInt(mm, 10)) + (
+				sss ? parseFloat(sss, 10) : 0
+			) : 0
+		);
+
+		return sign === '-' ? -time : time ;
+	}
+
+	function formatTimeString(string, time) {
+		return string.replace(rtoken, function($0) {
+			return timeFormatters[$0] ? timeFormatters[$0](time) : $0 ;
+		}) ;
+	}
+
+	function _formatTimeISO(time) {
+		var sign = time < 0 ? '-' : '' ;
+
+		if (time < 0) { time = -time; }
+
+		var hours = Math.floor(time / 3600);
+		var hh = prefix(hours) + hours ;
+		time = time % 3600;
+		if (time === 0) { return sign + hh + ':00'; }
+
+		var minutes = Math.floor(time / 60);
+		var mm = prefix(minutes) + minutes ;
+		time = time % 60;
+		if (time === 0) { return sign + hh + ':' + mm; }
+
+		var sss = prefix(time) + toMaxDecimals(precision, time);
+		return sign + hh + ':' + mm + ':' + sss;
+	}
+
+	function toMaxDecimals(precision, n) {
+		// Make some effort to keep rounding errors under control by fixing
+		// decimals and lopping off trailing zeros
+		return n.toFixed(precision).replace(/\.?0+$/, '');
+	}
+
+	const formatTime = curry$1(function(string, time) {
+		return string === 'ISO' ?
+			_formatTimeISO(parseTime(time)) :
+			formatTimeString(string, parseTime(time)) ;
+	});
+
+	const addTime = curry$1(function(time1, time2) {
+		return parseTime(time2) + parseTimeDiff(time1);
+	});
+
+	const subTime = curry$1(function(time1, time2) {
+		return parseTime(time2) - parseTimeDiff(time1);
+	});
+
+	const diffTime = curry$1(function(time1, time2) {
+		return parseTime(time1) - parseTime(time2);
+	});
+
+	const floorTime = curry$1(function(token, time) {
+		return _floorTime(token, parseTime(time));
+	});
+
+	const toFloat = parseFloat;
+
+
+	const assign$3      = curry$1(Object.assign, true, 2);
+	const define      = curry$1(Object.defineProperties, true, 2);
+	const equals$1      = curry$1(equals, true);
+	const get$1         = curry$1(get, true);
+	const is          = curry$1(_is, true);
+	const invoke$1      = curry$1(invoke, true);
+	const nth$1         = curry$1(nth);
+	const parse$2       = curry$1(parse$1);
+	const remove$2      = curry$1(remove$1, true);
+	const rest$1        = curry$1(rest, true);
+	const set$1         = curry$1(set, true);
+	const toFixed$1     = curry$1(toFixed);
+	const getPath$1     = curry$1(getPath, true);
+	const setPath$1     = curry$1(setPath, true);
+	const append$1      = curry$1(append, true);
+	const prepend$2     = curry$1(prepend$1);
+	const add$1         = curry$1(add);
+	const multiply$1    = curry$1(multiply);
+	const min$1         = curry$1(min);
+	const max$1         = curry$1(max);
+	const mod$1         = curry$1(mod);
+	const pow$1         = curry$1(pow);
+	const exp$1         = curry$1(exp);
+	const log$1         = curry$1(log);
+	const root$1        = curry$1(root);
+	const normalise$1   = curry$1(normalise);
+	const denormalise$1 = curry$1(denormalise);
+
+
+	/*
+	export const sum       = Fn.add;
+	export const flip      = Fn.flip;
+	export const throttle  = Fn.Throttle;
+	export const wait      = Fn.Wait;
+	export const update    = Fn.update;
+
+	export const limit       = Fn.limit;
+	export const pow         = Fn.pow;
+	export const toCartesian = Fn.toCartesian;
+	export const toPolar     = Fn.toPolar;
+	export const Stream      = window.Stream;
+	*/
 
 	(function(window) {
 		if (!window.console || !window.console.log) { return; }
@@ -4049,26 +3189,13 @@ var Sparky = (function () {
 
 		// Import
 
-		var Fn          = window.Fn;
 		var Node        = window.Node;
 		var SVGElement  = window.SVGElement;
 		var CustomEvent = window.CustomEvent;
 		var Stream      = window.Stream;
 
 		var assign      = Object.assign;
-		var define      = Object.defineProperties;
-		var cache       = Fn.cache;
-		var curry       = Fn.curry;
-		var denormalise = Fn.denormalise;
-		var deprecate   = Fn.deprecate;
-		var id          = Fn.id;
-		var noop        = Fn.noop;
-		var overload    = Fn.overload;
-		var pipe        = Fn.pipe;
-		var pow         = Fn.pow;
-		var set         = Fn.set;
-		var requestTick = Fn.requestTick;
-		var toType      = Fn.toType;
+		var define$$1      = Object.defineProperties;
 
 
 		// Var
@@ -4081,8 +3208,8 @@ var Sparky = (function () {
 
 		// Features
 
-		var features = define({
-			events: define({}, {
+		var features = define$$1({
+			events: define$$1({}, {
 				fullscreenchange: {
 					get: cache(function() {
 						// TODO: untested event names
@@ -4202,9 +3329,9 @@ var Sparky = (function () {
 		function bindTail(fn) {
 			// Takes arguments 1 and up and appends them to arguments
 			// passed to fn.
-			var args = A.slice.call(arguments, 1);
+			var args$$1 = A.slice.call(arguments, 1);
 			return function() {
-				A.push.apply(arguments, args);
+				A.push.apply(arguments, args$$1);
 				fn.apply(null, arguments);
 			};
 		}
@@ -4451,15 +3578,15 @@ var Sparky = (function () {
 		}
 
 		function identify(node) {
-			var id = node.id;
+			var id$$1 = node.id;
 
-			if (!id) {
-				do { id = Math.ceil(Math.random() * 100000); }
-				while (document.getElementById(id));
-				node.id = id;
+			if (!id$$1) {
+				do { id$$1 = Math.ceil(Math.random() * 100000); }
+				while (document.getElementById(id$$1));
+				node.id = id$$1;
 			}
 
-			return id;
+			return id$$1;
 		}
 
 		function tag(node) {
@@ -4651,7 +3778,7 @@ var Sparky = (function () {
 
 		var prefix = (function(prefixes) {
 			var node = document.createElement('div');
-			var cache = {};
+			var cache$$1 = {};
 
 			function testPrefix(prop) {
 				if (prop in node.style) { return prop; }
@@ -4672,7 +3799,7 @@ var Sparky = (function () {
 			}
 
 			return function prefix(prop){
-				return cache[prop] || (cache[prop] = testPrefix(prop));
+				return cache$$1[prop] || (cache$$1[prop] = testPrefix(prop));
 			};
 		})(['Khtml','O','Moz','Webkit','ms']);
 
@@ -4801,7 +3928,7 @@ var Sparky = (function () {
 
 		var eventsSymbol = Symbol('events');
 
-		var untrapFocus = noop;
+		var untrapFocus = noop$1;
 
 		function Event(type, properties) {
 			var options = assign({}, eventOptions, properties);
@@ -5006,7 +4133,7 @@ var Sparky = (function () {
 			requestTick(resetFocus);
 
 			return untrapFocus = function() {
-				untrapFocus = noop;
+				untrapFocus = noop$1;
 				document.removeEventListener('focus', preventFocus, true);
 
 				// Set focus back to the thing that was last focused when the
@@ -5049,10 +4176,10 @@ var Sparky = (function () {
 			return node.content || fragmentFromChildren(node);
 		}
 
-		function fragmentFromId(id) {
-			var node = document.getElementById(id);
+		function fragmentFromId(id$$1) {
+			var node = document.getElementById(id$$1);
 
-			if (!node) { throw new Error('DOM: element id="' + id + '" is not in the DOM.') }
+			if (!node) { throw new Error('DOM: element id="' + id$$1 + '" is not in the DOM.') }
 
 			var t = tag(node);
 
@@ -5171,30 +4298,30 @@ var Sparky = (function () {
 					if (progress > 0) {
 						fn(progress);
 					}
-					id = requestAnimationFrame(frame);
+					id$$1 = requestAnimationFrame(frame);
 				}
 				else {
 					fn(1);
 				}
 			}
 
-			var id = requestAnimationFrame(frame);
+			var id$$1 = requestAnimationFrame(frame);
 
 			return function cancel() {
-				cancelAnimationFrame(id);
+				cancelAnimationFrame(id$$1);
 			};
 		}
 
 		function animate(duration, transform, name, object, value) {
 			return transition(
 				duration,
-				pipe(transform, denormalise(object[name], value), set(name, object))
+				pipe(transform, denormalise$1(object[name], value), set$1(name, object))
 			);
 		}
 
 		function animateScroll(coords) {
 			var duration = 0.6;
-			var ease = pow(2);
+			var ease = pow$1(2);
 
 			// coords may be a single y value or a an [x, y] array
 			var x, y;
@@ -5208,8 +4335,8 @@ var Sparky = (function () {
 				y = coords[1];
 			}
 
-			var denormaliseX = x !== false && denormalise(dom.view.scrollLeft, x);
-			var denormaliseY = denormalise(dom.view.scrollTop, y);
+			var denormaliseX = x !== false && denormalise$1(dom.view.scrollLeft, x);
+			var denormaliseY = denormalise$1(dom.view.scrollTop, y);
 
 			return transition(
 				duration,
@@ -5292,29 +4419,29 @@ var Sparky = (function () {
 
 			// DOM traversal
 
-			get: function get(id) {
-				return document.getElementById(id) || undefined;
+			get: function get(id$$1) {
+				return document.getElementById(id$$1) || undefined;
 			},
 
-			find:     curry(find,     true),
-			query:    curry(query,    true),
-			closest:  curry(closest,  true),
-			contains: curry(contains, true),
-			matches:  curry(matches,  true),
+			find:     curry$1(find,     true),
+			query:    curry$1(query,    true),
+			closest:  curry$1(closest,  true),
+			contains: curry$1(contains, true),
+			matches:  curry$1(matches,  true),
 			children: children,
 			next:     next,
 			previous: previous,
 
 			// DOM mutation
 
-			assign:   curry(assignAttributes,  true),
+			assign:   curry$1(assignAttributes,  true),
 			create:   create,
 			clone:    clone,
 			identify: identify,
-			append:   curry(append,  true),
-			before:   curry(before,  true),
-			after:    curry(after,   true),
-			replace:  curry(replace, true),
+			append:   curry$1(append,  true),
+			before:   curry$1(before,  true),
+			after:    curry$1(after,   true),
+			replace:  curry$1(replace, true),
 			empty:    empty,
 			remove:   remove,
 
@@ -5357,18 +4484,18 @@ var Sparky = (function () {
 
 			type:        type,
 			tag:         tag,
-			attribute:   curry(attribute, true),
+			attribute:   curry$1(attribute, true),
 			classes:     classes,
-			addClass:    curry(addClass,    true),
-			removeClass: curry(removeClass, true),
-			flashClass:  curry(flashClass,  true),
+			addClass:    curry$1(addClass,    true),
+			removeClass: curry$1(removeClass, true),
+			flashClass:  curry$1(flashClass,  true),
 
 			box:         box,
 			bounds:      bounds,
-			offset:      curry(offset, true),
+			offset:      curry$1(offset, true),
 
 			prefix:      prefix,
-			style: curry(function(name, node) {
+			style: curry$1(function(name, node) {
 				// If name corresponds to a custom property name in styleParsers...
 				if (styleParsers[name]) { return styleParsers[name](node); }
 
@@ -5392,7 +4519,7 @@ var Sparky = (function () {
 			fragmentFromHTML:     fragmentFromHTML,
 			fragmentFromId:       fragmentFromId,
 			escape:               escape,
-			parse:                curry(parse),
+			parse:                curry$1(parse),
 
 			// DOM events
 
@@ -5403,22 +4530,22 @@ var Sparky = (function () {
 			preventDefault:  preventDefault,
 			toKey:           toKey,
 			trapFocus:       trapFocus,
-			trap:            Fn.deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
+			trap:            deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
 
-			trigger: curry(function(type, node) {
+			trigger: curry$1(function(type, node) {
 				trigger(node, type);
 				return node;
 			}, true),
 
-			events: assign(curry(event, true), {
+			events: assign(curry$1(event, true), {
 				on:      on,
 				once:    once,
 				off:     off,
 				trigger: trigger
 			}),
 
-			on:    Fn.deprecate(curry(event, true), 'dom.on() is now dom.events()'),
-			event: Fn.deprecate(curry(event, true), 'Deprecated dom.event() – now dom.events()'),
+			on:    deprecate(curry$1(event, true), 'dom.on() is now dom.events()'),
+			event: deprecate(curry$1(event, true), 'Deprecated dom.event() – now dom.events()'),
 
 			// DOM animation adn scrolling
 
@@ -5428,7 +4555,7 @@ var Sparky = (function () {
 			// fn        - callback that is called with a float representing
 			//             progress in the range 0-1
 
-			transition: curry(transition, true),
+			transition: curry$1(transition, true),
 			schedule:   deprecate(transition, 'dom: .schedule() is now .transition()'),
 
 			// animate(duration, transform, value, name, object)
@@ -5439,7 +4566,7 @@ var Sparky = (function () {
 			// object    - object to animate
 			// value     - target value
 
-			animate: curry(animate, true),
+			animate: curry$1(animate, true),
 
 			// animateScroll(n)
 			//
@@ -5472,7 +4599,7 @@ var Sparky = (function () {
 
 			requestFrame: requestAnimationFrame.bind(null),
 
-			requestFrameN: curry(deprecate(function requestFrameN(n, fn) {
+			requestFrameN: curry$1(deprecate(function requestFrameN(n, fn) {
 				(function frame() {
 					return requestAnimationFrame(--n ? frame : fn);
 				}());
@@ -5484,7 +4611,7 @@ var Sparky = (function () {
 
 			// Safe visible area
 
-			safe: define({
+			safe: define$$1({
 				left: 0
 			}, {
 				right:  { get: function() { return window.innerWidth; }, enumerable: true, configurable: true },
@@ -5493,7 +4620,7 @@ var Sparky = (function () {
 			})
 		});
 
-		define(dom, {
+		define$$1(dom, {
 			// Element shortcuts
 			root: { value: document.documentElement, enumerable: true },
 			head: { value: document.head, enumerable: true },
@@ -5512,12 +4639,12 @@ var Sparky = (function () {
 	// Lifecycle
 
 	const ready                  = dom.ready;
-	const now                    = dom.now;
+	const now$1                    = dom.now;
 
 	// HTML
 
 	const escape                 = dom.escape;
-	const parse                  = dom.parse;
+	const parse$3                  = dom.parse;
 
 	// Inspect
 
@@ -5542,16 +4669,16 @@ var Sparky = (function () {
 
 	// Mutate
 
-	const assign$1                 = dom.assign;
-	const create                 = dom.create;
+	const assign$4                 = dom.assign;
+	const create$1                 = dom.create;
 	const clone                  = dom.clone;
 	const identify               = dom.identify;
-	const append                 = dom.append;
+	const append$2                 = dom.append;
 	const before                 = dom.before;
 	const after                  = dom.after;
 	const replace                = dom.replace;
 	const empty                  = dom.empty;
-	const remove$1                 = dom.remove;
+	const remove$3                 = dom.remove;
 
 	// Style
 
@@ -5604,144 +4731,91 @@ var Sparky = (function () {
 	const disableScroll          = dom.disableScroll;
 	const enableScroll           = dom.enableScroll;
 
-	(function(window) {
+	const DEBUG$3  = false;
 
-		const DEBUG  = false;
+	const dom$1    = window.dom;
+	const now$2    = dom$1.now;
 
-		const Fn     = window.Fn;
-		const dom    = window.dom;
+	// Render queue
 
-		const invoke = Fn.invoke;
-		const now    = dom.now;
+	const queue = new Set();
+	const data  = [];
 
-		// Render queue
+	var point;
+	var frame;
 
-		const queue = new Set();
-		const data  = [];
-
-		var point;
-		var frame;
-
-		function run(time) {
-			if (DEBUG) {
-				point = {};
-				point.frameTime   = time / 1000;
-				point.runTime     = now();
-				point.queuedFns   = queue.size;
-				point.insertedFns = 0;
-				console.groupCollapsed('frame', point.frameTime.toFixed(3));
-			}
-
-			frame = true;
-
-			// Use a .forEach() to support IE11, which doesnt have for..of
-			queue.forEach(invoke('call', [null, time]));
-
-			//var fn;
-			//for (fn of queue) {
-			//	fn(time);
-			//}
-
-			queue.clear();
-			frame = undefined;
-
-			if (DEBUG) {
-				point.duration = now() - point.runTime;
-				data.push(point);
-				//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
-				console.groupEnd();
-			}
+	function run(time) {
+		if (DEBUG$3) {
+			point = {};
+			point.frameTime   = time / 1000;
+			point.runTime     = now$2();
+			point.queuedFns   = queue.size;
+			point.insertedFns = 0;
+			console.groupCollapsed('frame', point.frameTime.toFixed(3));
 		}
 
-		function cue(fn) {
-			if (queue.has(fn)) {
-				//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
-				return;
-			}
+		frame = true;
 
-			// Functions cued during frame are run syncronously (to preserve
-			// inner-DOM-first order of execution during setup)
-			if (frame === true) {
-				if (DEBUG) { ++point.insertedFns; }
-				fn();
-				return;
-			}
+		// Use a .forEach() to support IE11, which doesnt have for..of
+		queue.forEach(invoke$1('call', [null, time]));
 
-			queue.add(fn);
+		//var fn;
+		//for (fn of queue) {
+		//	fn(time);
+		//}
 
-			if (frame === undefined) {
-				//if (DEBUG) { console.log('(request master frame)'); }
-				frame = requestAnimationFrame(run);
-			}
+		queue.clear();
+		frame = undefined;
+
+		if (DEBUG$3) {
+			point.duration = now$2() - point.runTime;
+			data.push(point);
+			//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
+			console.groupEnd();
 		}
-
-		function uncue(fn) {
-			queue.delete(fn);
-
-			if (frame !== undefined && frame !== true && queue.size === 0) {
-				//if (DEBUG) { console.log('(cancel master frame)'); }
-				cancelAnimationFrame(frame);
-				frame = undefined;
-			}
-		}
-
-		window.frame = {
-			cue: cue,
-			uncue: uncue,
-			data: data
-		};
-	})(window);
-
-	function noop$1() {}
-
-	Object.freeze(Object.defineProperties([], {
-	   shift: { value: noop$1 }
-	}));
-
-	function distribute(fns, object, data) {
-	    var n = -1;
-
-	    while (++n < data.length) {
-	        if (data[n] !== undefined && fns[n]) {
-	            object = fns[n](object, data[n], data);
-	        }
-	    }
-
-	    return object;
 	}
 
-	var parse$1 = curry(function parse(regex, fns, output, string) {
-	    var data;
+	function cue(fn) {
+		if (queue.has(fn)) {
+			//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
+			return;
+		}
 
-	    if (typeof string !== 'string') {
-	        data   = string;
-	        string = data.input.slice(data.index + data[0].length);
-	    }
+		// Functions cued during frame are run syncronously (to preserve
+		// inner-DOM-first order of execution during setup)
+		if (frame === true) {
+			if (DEBUG$3) { ++point.insertedFns; }
+			fn();
+			return;
+		}
 
-	    var result = regex.exec(string);
+		queue.add(fn);
 
-	    if (!result) {
-	        throw new Error('Sparky: unable to parse "' + string + '" with ' + regex);
-	    }
+		if (frame === undefined) {
+			//if (DEBUG) { console.log('(request master frame)'); }
+			frame = requestAnimationFrame(run);
+		}
+	}
 
-	    output = distribute(fns, output, result);
+	function uncue(fn) {
+		queue.delete(fn);
 
-	    // Call the close fn
-	    if (fns.close) {
-	        output = fns.close(output, result);
-	    }
+		if (frame !== undefined && frame !== true && queue.size === 0) {
+			//if (DEBUG) { console.log('(cancel master frame)'); }
+			cancelAnimationFrame(frame);
+			frame = undefined;
+		}
+	}
 
-	    // Update outer result's index
-	    if (data) {
-	        data.index += result.index + result[0].length;
-	    }
-
-	    return output;
-	});
+	window.frame = {
+		cue: cue,
+		uncue: uncue,
+		data: data
+	};
 
 	/* Parse parameters */
 
-	const parseArrayClose = parse$1(/^\]\s*/, nothing);
+	const parseArrayClose = parse$1(/^\]\s*/, nothing$1);
 
 	//                                        number                                     "string"                   'string'                    null   true   false    array function(args)   string
 	const parseParams = parse$1(/^\s*(?:(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([^,\s\]]+))\s*(,)?\s*/, {
@@ -5850,59 +4924,32 @@ var Sparky = (function () {
 	        return object;
 	    },
 
-	    close: parse$1(/^\s*\]\}/, nothing)
+	    close: parse$1(/^\s*\]\}/, nothing$1)
 	});
 
 	(function(window) {
 
 		const DEBUG      = false;
 
-		const Fn         = window.Fn;
 		const Stream     = window.Stream;
 		const frame      = window.frame;
-		const Observable = window.Observable;
+		const Observable$$1 = window.Observable;
 
 		const assign     = Object.assign;
-	    const get        = Fn.get;
-		const id         = Fn.id;
-		const noop       = Fn.noop;
-		const pipe       = Fn.pipe;
-		const remove     = Fn.remove;
-	    const getPath    = Fn.getPath;
-	    const setPath    = Fn.setPath;
+
 		const cue        = frame.cue;
 		const uncue      = frame.uncue;
-		const observe    = Observable.observe;
+		const observe    = Observable$$1.observe;
 
-
-	//    var toLog   = overload(toType, {
-	//        function: function(fn) { return fn.toString(); },
-	//        object: JSON.stringify,
-	//        default: id
-	//    });
-	//
-	//    function catchIfDebug(fn, struct) {
-	//		return function(value) {
-	//			try {
-	//				return fn.apply(this, arguments);
-	//			}
-	//			catch(e) {
-	//				//console.log('Original error:', e.stack);
-	//				throw new Error('Sparky failed to render ' + struct.token + ' with value ' + toLog(value) + '.\n' + e.stack);
-	//			}
-	//		}
-	//	}
-
-	    // Transform
+		// Transform
 
 		var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
-
 
 		function InverseTransform(transformers, string) {
 			if (!string) { return id; }
 
 			var fns = [];
-			var token, name, fn, args;
+			var token, name, fn, args$$1;
 
 			rtransform.lastIndex = 0;
 
@@ -5918,8 +4965,8 @@ var Sparky = (function () {
 				}
 
 				if (token[2]) {
-					args = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-					fns.unshift(fn.apply(null, args));
+					args$$1 = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+					fns.unshift(fn.apply(null, args$$1));
 				}
 				else {
 					fns.unshift(fn);
@@ -5929,58 +4976,58 @@ var Sparky = (function () {
 			return pipe.apply(null, fns);
 		}
 
-	    // Struct
+		// Struct
 
-	    var structs = [];
+		var structs = [];
 
-	    var removeStruct = remove(structs);
+		var removeStruct = remove$2(structs);
 
-	    function addStruct(struct) {
-	        structs.push(struct);
-	    }
+		function addStruct(struct) {
+			structs.push(struct);
+		}
 
-	    function Struct(node, token, path, render, pipe) {
-	        //console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+		function Struct(node, token, path, render, pipe$$1) {
+			//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
 
-	        addStruct(this);
-	        this.node    = node;
-	        this.token   = token;
-	        this.path    = path;
-	        this.render  = render;
-	        this.pipe    = pipe;
-	    }
+			addStruct(this);
+			this.node    = node;
+			this.token   = token;
+			this.path    = path;
+			this.render  = render;
+			this.pipe    = pipe$$1;
+		}
 
-	    assign(Struct.prototype, {
-	        render:  noop,
-	        transform: id,
+		assign(Struct.prototype, {
+			render:  noop$1,
+			transform: id,
 
-	        stop: function stop() {
-	            uncue(this.cuer);
-	            removeStruct(this);
-	        },
+			stop: function stop() {
+				uncue(this.cuer);
+				removeStruct(this);
+			},
 
-	        update: function(time) {
-	            var struct = this;
-	            var transform = this.transform;
-	            var value = struct.input && struct.input.shift();
+			update: function(time) {
+				var struct = this;
+				var transform = this.transform;
+				var value = struct.input && struct.input.shift();
 
-	            if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
+				if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
 
-	            if (value === undefined) {
-	                struct.render(struct.originalValue);
-	            }
-	            else {
-	                struct.render(transform(value));
-	            }
-	        }
-	    });
+				if (value === undefined) {
+					struct.render(struct.originalValue);
+				}
+				else {
+					struct.render(transform(value));
+				}
+			}
+		});
 
-	    function ReadableStruct(node, token, path, render, type, read, pipe) {
-	        // ReadableStruct extends Struct with listeners and read functions
-	        Struct.call(this, node, token, path, render, pipe);
-	        this.type = type;
-	        this.read = read;
-	    }
+		function ReadableStruct(node, token, path, render, type, read, pipe$$1) {
+			// ReadableStruct extends Struct with listeners and read functions
+			Struct.call(this, node, token, path, render, pipe$$1);
+			this.type = type;
+			this.read = read;
+		}
 
 	    assign(ReadableStruct.prototype, Struct.prototype, {
 	        listen: function listen(fn) {
@@ -5992,17 +5039,14 @@ var Sparky = (function () {
 	            this.node.addEventListener(this.type, fn);
 	        },
 
-	        unlisten: function unlisten() {
-	            var fn = this._listenFn;
+			unlisten: function unlisten() {
+				var fn = this._listenFn;
 
-	            this.node.removeEventListener(this.type, fn);
-	            this._listenType = undefined;
-	            this._listenFn   = undefined;
-	        }
-	    });
-
-
-	    // Struct lifecycle
+				this.node.removeEventListener(this.type, fn);
+				this._listenType = undefined;
+				this._listenFn   = undefined;
+			}
+		});
 
 	    function setup(struct, options) {
 	        // Todo: We need rid of the leading '|' in struct.pipe
@@ -6011,98 +5055,98 @@ var Sparky = (function () {
 	        if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
 	    }
 
-	    function eachFrame(stream, fn) {
-	        var unobserve = noop;
+		function eachFrame(stream, fn) {
+			var unobserve = noop$1;
 
-	        function update(time) {
-	            var scope = stream.shift();
-	            // Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-	            if (scope === undefined) { return; }
+			function update(time) {
+				var scope = stream.shift();
+				// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+				if (scope === undefined) { return; }
 
-	            function render(time) {
-	                fn(scope);
-	            }
+				function render(time) {
+					fn(scope);
+				}
 
-	            unobserve();
-	            unobserve = observe(scope, '', function() {
-	                cue(render);
-	            });
-	        }
+				unobserve();
+				unobserve = observe(scope, '', function() {
+					cue(render);
+				});
+			}
 
-	        cue(update);
+			cue(update);
 
-	        if (stream.on) {
-	            stream.on('push', function() {
-	                cue(update);
-	            });
-	        }
-	    }
+			if (stream.on) {
+				stream.on('push', function() {
+					cue(update);
+				});
+			}
+		}
 
-	    function bind(struct, scope, options) {
-	        if (DEBUG) { console.log('bind:  ', struct.token); }
+		function bind(struct, scope, options) {
+			if (DEBUG) { console.log('bind:  ', struct.token); }
 
-	        var input = struct.input = Stream.observe(struct.path, scope).latest();
+			var input = struct.input = ObserveStream(struct.path, scope).latest();
 
-	        struct.scope = scope;
+			struct.scope = scope;
 
-	        var flag = false;
-	        var change;
+			var flag = false;
+			var change;
 
-	        // If struct is an internal struct (as opposed to a Sparky instance)
-	        if (struct.render) {
-	            if (struct.listen) {
-	                change = listen(struct, scope, options);
+			// If struct is an internal struct (as opposed to a Sparky instance)
+			if (struct.render) {
+				if (struct.listen) {
+					change = listen(struct, scope, options);
 
-	                struct.cuer = function updateReadable() {
-	                    struct.update();
+					struct.cuer = function updateReadable() {
+						struct.update();
 
-	                    if (flag) { return; }
-	                    flag = true;
+						if (flag) { return; }
+						flag = true;
 
-	                    input.on('push', function() {
-	                        cue(updateReadable);
-	                    });
+						input.on('push', function() {
+							cue(updateReadable);
+						});
 
-	                    var value = getPath(struct.path, scope);
+						var value = getPath$1(struct.path, scope);
 
-	                    // Where the initial value of struct.path is not set, set it to
-	                    // the value of the <input/>.
-	                    if (value === undefined) {
-	                        change();
-	                    }
-	                };
+						// Where the initial value of struct.path is not set, set it to
+						// the value of the <input/>.
+						if (value === undefined) {
+							change();
+						}
+					};
 
-	                cue(struct.cuer);
-	                struct.listen(change);
-	            }
-	            else {
-	                struct.cuer = function update() {
-	                    struct.update();
-	                    if (flag) { return; }
-	                    flag = true;
-	                    input.on('push', function() {
-	                        cue(update);
-	                    });
-	                };
+					cue(struct.cuer);
+					struct.listen(change);
+				}
+				else {
+					struct.cuer = function update() {
+						struct.update();
+						if (flag) { return; }
+						flag = true;
+						input.on('push', function() {
+							cue(update);
+						});
+					};
 
-	                cue(struct.cuer);
-	            }
+					cue(struct.cuer);
+				}
 
-	            return;
-	        }
+				return;
+			}
 
-	        if (DEBUG) { console.log('struct is Sparky'); }
-	        eachFrame(input, struct.push);
-	    }
+			if (DEBUG) { console.log('struct is Sparky'); }
+			eachFrame(input, struct.push);
+		}
 
-	    function listen(struct, scope, options) {
-	        //console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
+		function listen(struct, scope, options) {
+			//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
 
-	        var set, invert;
+			var set, invert;
 
-	        if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
+			if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
 
-	        set    = setPath(struct.path, scope);
+	        set    = setPath$1(struct.path, scope);
 	        invert = InverseTransform(options.transformers, struct.pipe);
 	        return pipe(function() { return struct.read(); }, invert, set);
 	    }
@@ -6132,7 +5176,7 @@ var Sparky = (function () {
 	    Struct.teardown = teardown;
 
 	    Struct.findScope = function findScope(node) {
-			return get('scope', structs.find(function(struct) {
+			return get$1('scope', structs.find(function(struct) {
 				return struct.node === node;
 			}));
 		};
@@ -6143,20 +5187,11 @@ var Sparky = (function () {
 		const DEBUG      = false;
 
 		const A          = Array.prototype;
-		const Fn         = window.Fn;
 		const dom        = window.dom;
 
 		const assign     = Object.assign;
 	//	const define     = Object.defineProperties;
 		const attribute  = dom.attribute;
-		const get        = Fn.get;
-		const id         = Fn.id;
-		const isDefined  = Fn.isDefined;
-		const nothing    = Fn.nothing;
-		const noop       = Fn.noop;
-		const overload   = Fn.overload;
-		const set        = Fn.set;
-		const toType     = Fn.toType;
 
 		const Struct             = window.Struct;
 		const ReadableStruct     = Struct.Readable;
@@ -6164,7 +5199,6 @@ var Sparky = (function () {
 	    const bind               = Struct.bind;
 	    const unbind             = Struct.unbind;
 	    const teardown           = Struct.teardown;
-		const findScope          = Struct.getScope;
 
 
 		// Matches tags plus any directly adjacent text
@@ -6188,7 +5222,7 @@ var Sparky = (function () {
 
 		const settings = {
 			attributePrefix: 'sparky-',
-			mount:           noop,
+			mount:           noop$1,
 			transforms:      {},
 			transformers:    {},
 			rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
@@ -6366,7 +5400,7 @@ var Sparky = (function () {
 			// Where the unprefixed attribute is populated, Return the property to
 			// the default value.
 			if (!prefixed) {
-				render(nothing);
+				render(nothing$1);
 			}
 
 			var values = [];
@@ -6559,11 +5593,11 @@ var Sparky = (function () {
 
 			// text
 			3: function mountText(node, options, structs) {
-				mountString(node, node.nodeValue, set('nodeValue', node), options, structs);
+				mountString(node, node.nodeValue, set$1('nodeValue', node), options, structs);
 			},
 
 			// comment
-			8: noop,
+			8: noop$1,
 
 			// document
 			9: function mountDocument(node, options, structs) {
@@ -6578,7 +5612,7 @@ var Sparky = (function () {
 			},
 
 			// doctype
-			10: noop,
+			10: noop$1,
 
 			// fragment
 			11: function mountFragment(node, options, structs) {
@@ -6694,7 +5728,7 @@ var Sparky = (function () {
 				mountAttributes(['href', 'transform'], node, options, structs);
 			},
 
-			default: noop
+			default: noop$1
 		};
 
 		const inputs = {
@@ -6763,9 +5797,9 @@ var Sparky = (function () {
 			}
 		};
 
-		const mountNode  = overload(get('nodeType'), types);
+		const mountNode  = overload(get$1('nodeType'), types);
 		const mountTag   = overload(dom.tag, tags);
-		const mountInput = overload(get('type'), inputs);
+		const mountInput = overload(get$1('type'), inputs);
 
 
 		function setupStructs(structs, options) {
@@ -6799,7 +5833,7 @@ var Sparky = (function () {
 
 			// Return a read-only stream
 			return {
-				shift: noop,
+				shift: noop$1,
 
 				stop: function stop() {
 					structs.forEach(teardown);
@@ -6855,18 +5889,11 @@ var Sparky = (function () {
 
 		var DEBUG          = window.DEBUG;
 
-		var Fn             = window.Fn;
-		var Observable     = window.Observable;
-		var Stream         = window.Stream;
+		var Observable$$1     = window.Observable;
 		var dom            = window.dom;
 		var mount          = window.mount;
 
 		var assign         = Object.assign;
-		var deprecate      = Fn.deprecate;
-		var getPath        = Fn.getPath;
-		var invoke         = Fn.invoke;
-		var noop           = Fn.noop;
-		var nothing        = Fn.nothing;
 		var tag            = dom.tag;
 		var preventDefault = dom.preventDefault;
 
@@ -6908,11 +5935,11 @@ var Sparky = (function () {
 			// streams do we need in this project?
 			return {
 				stop: function stop() {
-					return streams.forEach(invoke('stop', arguments));
+					return streams.forEach(invoke$1('stop', arguments));
 				},
 
 				push: function push() {
-					return streams.forEach(invoke('push', arguments));
+					return streams.forEach(invoke$1('push', arguments));
 				}
 			};
 		}
@@ -6922,7 +5949,7 @@ var Sparky = (function () {
 		}
 
 		function toObservableOrSelf(object) {
-			return Observable(object) || object;
+			return Observable$$1(object) || object;
 		}
 
 		function Sparky(selector, data, options) {
@@ -6942,7 +5969,7 @@ var Sparky = (function () {
 			var calling  = true;
 			var sparky   = this;
 			var input;
-			var renderer = nothing;
+			var renderer = nothing$1;
 
 			this[0]      = node;
 			this.length  = 1;
@@ -6971,7 +5998,7 @@ var Sparky = (function () {
 
 				// No more tokens, launch Sparky
 				if (!token) {
-					sparky.continue = noop;
+					sparky.continue = noop$1;
 					render();
 					return sparky;
 				}
@@ -6985,7 +6012,7 @@ var Sparky = (function () {
 				}
 
 				// Gaurantee that params exists, at least.
-				var params = token[2] ? parseParams([], token[2]) : nothing ;
+				var params = token[2] ? parseParams([], token[2]) : nothing$1 ;
 				calling    = true;
 				fnstring   = fnstring.slice(token[0].length);
 
@@ -7034,7 +6061,7 @@ var Sparky = (function () {
 			}
 
 			// Initialise this as a stream and set input to a deduped version
-			Stream.call(this, Source);
+			Stream$1.call(this, Source);
 			input = this.map(toObservableOrSelf).dedup();
 
 			this.interrupt = interrupt;
@@ -7043,7 +6070,7 @@ var Sparky = (function () {
 			start();
 		}
 
-		Sparky.prototype = Stream.prototype;
+		Sparky.prototype = Stream$1.prototype;
 
 		assign(Sparky, {
 			attributeFn:     'sparky-fn',
@@ -7051,7 +6078,7 @@ var Sparky = (function () {
 
 			fn: {
 				global: function(node, stream, params) {
-					var scope = getPath(params[0], window);
+					var scope = getPath$1(params[0], window);
 
 					if (scope === undefined) {
 						console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
@@ -7067,13 +6094,12 @@ var Sparky = (function () {
 					// but because Fn#join() doesn't know how to handle streams
 					// we cant.
 
-					var output = Stream.of();
-					var stop = noop;
+					var output = Stream$1.of();
+					var stop = noop$1;
 
 					input.each(function(object) {
 						stop();
-						stop = Stream
-						.observe(params[0], object)
+						stop = ObserveStream(params[0], object)
 						.each(output.push)
 						.stop;
 					});
@@ -7139,7 +6165,7 @@ var Sparky = (function () {
 					return scopes.tap(log);
 				},
 
-				scope: Fn.deprecate(function(node, stream, params) {
+				scope: deprecate(function(node, stream, params) {
 					return Sparky.fn.find.apply(this, arguments);
 				}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
@@ -7183,7 +6209,6 @@ var Sparky = (function () {
 
 		var DEBUG      = false;
 
-		var Fn         = window.Fn;
 		var dom        = window.dom;
 		var Observable = window.Observable;
 		var Sparky     = window.Sparky;
@@ -7191,7 +6216,6 @@ var Sparky = (function () {
 		var A          = Array.prototype;
 
 		var isArray    = Array.isArray;
-		var noop       = Fn.noop;
 		var before     = dom.before;
 		var clone      = dom.clone;
 		var remove     = dom.remove;
@@ -7260,7 +6284,7 @@ var Sparky = (function () {
 		}
 
 		function eachFrame(stream, fn) {
-			var unobserve = noop;
+			var unobserve = noop$1;
 
 			function update(time) {
 				var scope = stream.shift();
@@ -7366,8 +6390,6 @@ var Sparky = (function () {
 	    var DEBUG   = false;
 	    var axios   = window.axios;
 	    var jQuery  = window.jQuery;
-	    var Fn      = window.Fn;
-	    var Stream  = window.Stream;
 	    var dom     = window.dom;
 	    var Sparky  = window.Sparky;
 	    var frame   = window.frame;
@@ -7375,18 +6397,16 @@ var Sparky = (function () {
 	    var assign  = Object.assign;
 	    var cue     = frame.cue;
 	    var fetch   = window.fetch;
-	    var get     = Fn.get;
-	    var noop    = Fn.noop;
-	    var getData = get('data');
+	    var getData = get$1('data');
 	    var parseHTML = dom.parse('html');
 
-	    var cache   = {
+	    var cache$$1   = {
 	        '': {
 	            '': document
 	        }
 	    };
 
-	    var request = axios ? function axiosRequest(url, id) {
+	    var request = axios ? function axiosRequest(url, id$$1) {
 	        return axios
 	        .get(url)
 	        .then(getData)
@@ -7395,30 +6415,30 @@ var Sparky = (function () {
 
 	    // TODO test these functions
 
-	    jQuery ? function jQueryRequest(url, id) {
+	    jQuery ? function jQueryRequest(url, id$$1) {
 	        return jQuery
 	        .get(url)
 	        .then(getData)
 	        .then(parseHTML);
 	    } :
 
-	    fetch ? function fetchRequest(url, id) {
+	    fetch ? function fetchRequest(url, id$$1) {
 	        return fetch(url)
 	        .then(getData)
 	        .then(parseHTML);
 	    } :
 
-	    function errorRequest(url, id) {
+	    function errorRequest(url, id$$1) {
 	        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + url + '"');
 	    } ;
 
-	    function insertTemplate(sparky, node, scopes, id, template) {
+	    function insertTemplate(sparky, node, scopes, id$$1, template) {
 	        if (!template) {
-	            throw new Error('Sparky: template ' + id + ' not found.');
+	            throw new Error('Sparky: template ' + id$$1 + ' not found.');
 	        }
 
 	        var run = function first() {
-	            run = noop;
+	            run = noop$1;
 	            var fragment = dom.clone(template);
 	            dom.empty(node);
 	            dom.append(node, fragment);
@@ -7426,7 +6446,7 @@ var Sparky = (function () {
 	            sparky.continue();
 	        };
 
-	        var stream = Stream.of();
+	        var stream = Stream$1.of();
 
 	        scopes.each(function(scope) {
 	            cue(function() {
@@ -7438,37 +6458,37 @@ var Sparky = (function () {
 	        return stream;
 	    }
 
-	    function templateFromCache(sparky, node, scopes, path, id) {
+	    function templateFromCache(sparky, node, scopes, path, id$$1) {
 	        var doc, elem;
 
-	        var template = cache[path][id];
+	        var template = cache$$1[path][id$$1];
 
 	        if (!template) {
-	            doc  = cache[path][''];
-	            elem = doc.getElementById(id);
+	            doc  = cache$$1[path][''];
+	            elem = doc.getElementById(id$$1);
 
-	            template = cache[path][id] = doc === document ?
-	                dom.fragmentFromId(id) :
+	            template = cache$$1[path][id$$1] = doc === document ?
+	                dom.fragmentFromId(id$$1) :
 	                elem && dom.fragmentFromHTML(elem.innerHTML) ;
 	        }
 
-	        return insertTemplate(sparky, node, scopes, id, template);
+	        return insertTemplate(sparky, node, scopes, id$$1, template);
 	    }
 
-	    function templateFromCache2(sparky, node, scopes, path, id, template) {
+	    function templateFromCache2(sparky, node, scopes, path, id$$1, template) {
 	        var doc, elem;
 
 	        if (!template) {
-	            doc  = cache[path][''];
-	            elem = doc.getElementById(id);
+	            doc  = cache$$1[path][''];
+	            elem = doc.getElementById(id$$1);
 
-	            template = cache[path][id] = doc === document ?
-	                dom.fragmentFromId(id) :
+	            template = cache$$1[path][id$$1] = doc === document ?
+	                dom.fragmentFromId(id$$1) :
 	                elem && dom.fragmentFromHTML(elem.innerHTML) ;
 	        }
 
 	        if (!template) {
-	            throw new Error('Sparky: template ' + id + ' not found.');
+	            throw new Error('Sparky: template ' + id$$1 + ' not found.');
 	        }
 
 	        //return scopes.tap(function(scope) {
@@ -7479,13 +6499,13 @@ var Sparky = (function () {
 	        //});
 	    }
 
-	    function templateFromDocument(sparky, node, scopes, path, id) {
-	        var stream = Stream.of();
+	    function templateFromDocument(sparky, node, scopes, path, id$$1) {
+	        var stream = Stream$1.of();
 
 	        request(path)
 	        .then(function(doc) {
 	            if (!doc) { return; }
-	            var tapped = templateFromDocument2(sparky, node, scopes, path, id, doc);
+	            var tapped = templateFromDocument2(sparky, node, scopes, path, id$$1, doc);
 	            sparky.continue();
 	            tapped.each(stream.push);
 	        })
@@ -7496,41 +6516,41 @@ var Sparky = (function () {
 	        return stream;
 	    }
 
-	    function templateFromDocument2(sparky, node, scopes, path, id, doc) {
+	    function templateFromDocument2(sparky, node, scopes, path, id$$1, doc) {
 	        var template, elem;
 
-	        cache[path] = { '': doc };
+	        cache$$1[path] = { '': doc };
 
-	        if (id) {
-	            elem = doc.getElementById(id);
-	            template = cache[path][id] = elem && dom.fragmentFromHTML(elem.innerHTML);
+	        if (id$$1) {
+	            elem = doc.getElementById(id$$1);
+	            template = cache$$1[path][id$$1] = elem && dom.fragmentFromHTML(elem.innerHTML);
 	        }
 	        else {
 	            throw new Error('Sparky: template url has no hash id ' + path);
 	        }
 
-	        return insertTemplate(sparky, node, scopes, id, template);
+	        return insertTemplate(sparky, node, scopes, id$$1, template);
 	    }
 
 	    assign(Sparky.fn, {
 	        template: function(node, scopes, params) {
 	            var url = params[0];
-	            var parts, path, id;
+	            var parts, path, id$$1;
 
 	            // Support legacy ids instead of urls for just now
 	            if (!/#/.test(url)) {
 	                console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
 	                path = '';
-	                id   = url;
+	                id$$1   = url;
 	            }
 	            // Parse urls
 	            else {
 	                parts = url.split('#');
 	                path  = parts[0] || '';
-	                id    = parts[1] || '';
+	                id$$1    = parts[1] || '';
 	            }
 
-	            if (DEBUG && !id) {
+	            if (DEBUG && !id$$1) {
 	                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
 	            }
 
@@ -7538,9 +6558,9 @@ var Sparky = (function () {
 	            sparky.interrupt();
 
 	            // If the resource is cached, return it as an shiftable
-	            return cache[path] ?
-	                templateFromCache(sparky, node, scopes, path, id) :
-	                templateFromDocument(sparky, node, scopes, path, id) ;
+	            return cache$$1[path] ?
+	                templateFromCache(sparky, node, scopes, path, id$$1) :
+	                templateFromDocument(sparky, node, scopes, path, id$$1) ;
 	        },
 
 
@@ -7549,14 +6569,14 @@ var Sparky = (function () {
 	        'template-from': function(node, scopes, params) {
 	            var string = params[0];
 	            var sparky = this;
-	            var outputScopes = Stream.of();
+	            var outputScopes = Stream$1.of();
 	            sparky.interrupt();
 
 	            if (/\$\{([\w._]+)\}/.test(string)) {
 	                scopes.each(function(scope) {
 	                    var notParsed = false;
 	                    var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
-	                        var value = Fn.getPath($1, scope);
+	                        var value = getPath$1($1, scope);
 	                        if (value === undefined) { notParsed = true; }
 	                        return value;
 	                    });
@@ -7568,22 +6588,22 @@ var Sparky = (function () {
 
 	                    var parts = url.split('#');
 	                    var path  = parts[0] || '';
-	                    var id    = parts[1] || '';
+	                    var id$$1    = parts[1] || '';
 
-	                    if (DEBUG && !id) {
+	                    if (DEBUG && !id$$1) {
 	                        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
 	                    }
 
 	                    // If the resource is cached, return it as an shiftable
-	                    if (cache[path]) {
-	                        templateFromCache2(sparky, node, scopes, path, id, cache[path][id]);
+	                    if (cache$$1[path]) {
+	                        templateFromCache2(sparky, node, scopes, path, id$$1, cache$$1[path][id$$1]);
 	                        outputScopes.push(scope);
 	                    }
 	                    else {
 	                        request(path)
 	                        .then(function(doc) {
 	                            if (!doc) { return; }
-	                            templateFromDocument(sparky, node, scopes, path, id, doc);
+	                            templateFromDocument(sparky, node, scopes, path, id$$1, doc);
 	                        })
 	                        .catch(function(error) {
 	                            console.warn(error);
@@ -7603,16 +6623,13 @@ var Sparky = (function () {
 	    var DEBUG   = window.DEBUG;
 	    var axios   = window.axios;
 	    var jQuery  = window.jQuery;
-	    var Fn      = window.Fn;
 	    var Sparky  = window.Sparky;
-	    var Stream  = window.Stream;
 
 	    var assign    = Object.assign;
 	    var fetch     = window.fetch;
-	    var get       = Fn.get;
-	    var getData   = get('data');
+	    var getData   = get$1('data');
 
-	    var cache     = {};
+	    var cache$$1     = {};
 
 	    var request = axios ? function axiosRequest(path) {
 	        return axios
@@ -7641,7 +6658,7 @@ var Sparky = (function () {
 	        request(url)
 	        .then(function(data) {
 	            if (!data) { return; }
-	            cache[url] = data;
+	            cache$$1[url] = data;
 	            scopes.push(data);
 	        })
 	        .catch(function(error) {
@@ -7658,7 +6675,7 @@ var Sparky = (function () {
 	                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="load:url" requires a url.');
 	            }
 
-	            var scopes = Stream.of();
+	            var scopes = Stream$1.of();
 
 	            request(path)
 	            .then(scopes.push)
@@ -7676,7 +6693,7 @@ var Sparky = (function () {
 	                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
 	            }
 
-	            var scopes = Stream.of();
+	            var scopes = Stream$1.of();
 
 	            if (/\$\{(\w+)\}/.test(path)) {
 	                stream.each(function(scope) {
@@ -7685,8 +6702,8 @@ var Sparky = (function () {
 	                    });
 
 	                    // If the resource is cached...
-	                    if (cache[url]) {
-	                        scopes.push(cache[url]);
+	                    if (cache$$1[url]) {
+	                        scopes.push(cache$$1[url]);
 	                    }
 	                    else {
 	                        importScope(url, scopes);
@@ -7697,8 +6714,8 @@ var Sparky = (function () {
 	            }
 
 	            // If the resource is cached, return it as a readable
-	            if (cache[path]) {
-	                return Fn.of(cache[path]);
+	            if (cache$$1[path]) {
+	                return Fn.of(cache$$1[path]);
 	            }
 
 	            importScope(path, scopes);
@@ -7776,21 +6793,15 @@ var Sparky = (function () {
 	    });
 	})(window);
 
-	// Sparky.filter
-
 	(function(window) {
 
-		var Fn        = window.Fn;
+		var Fn$$1 = {};
+
 		var dom       = window.dom;
 		var Sparky    = window.Sparky;
 
 		var A         = Array.prototype;
 		var assign    = Object.assign;
-		var curry     = Fn.curry;
-		var get       = Fn.get;
-		var isDefined = Fn.isDefined;
-		var last      = Fn.last;
-		var formatDate = Fn.formatDate;
 
 		function spaces(n) {
 			var s = '';
@@ -7824,31 +6835,31 @@ var Sparky = (function () {
 
 		assign(Sparky.transformers = {}, {
 			add:         {
-				tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
-				ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+				tx: curry$1(function(a, b) { return b.add ? b.add(a) : b + a ; }),
+				ix: curry$1(function(a, c) { return c.add ? c.add(-a) : c - a ; })
 			},
 
-			'add-date':  { tx: Fn.addDate,     ix: Fn.subDate },
-			'add-time':  { tx: Fn.addTime,     ix: Fn.subTime },
-			decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
-			multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
-			degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
-			radians:     { tx: Fn.toRad,       ix: Fn.toDeg },
-			pow:         { tx: Fn.pow,         ix: curry(function(n, x) { return Fn.pow(1/n, x); }) },
-			exp:         { tx: Fn.exp,         ix: Fn.log },
-			log:         { tx: Fn.log,         ix: Fn.exp },
-			int:         { tx: Fn.toFixed(0),  ix: Fn.toInt },
-			float:       { tx: Fn.toFloat,     ix: Fn.toString },
-			boolean:     { tx: Boolean,        ix: Fn.toString },
-			normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
-			denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
-			floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
-			'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: Fn.toInt },
+			'add-date':  { tx: addDate,     ix: curry$1(function(d, n) { return addDate('-' + d, n); }) },
+			'add-time':  { tx: addTime,     ix: subTime },
+			decibels:    { tx: todB,        ix: toLevel },
+			multiply:    { tx: multiply$1,    ix: curry$1(function(d, n) { return n / d; }) },
+			degrees:     { tx: toDeg,       ix: toRad },
+			radians:     { tx: toRad,       ix: toDeg },
+			pow:         { tx: pow$1,         ix: curry$1(function(n, x) { return pow$1(1/n, x); }) },
+			exp:         { tx: exp$1,         ix: log$1 },
+			log:         { tx: log$1,         ix: exp$1 },
+			int:         { tx: toFixed$1(0),  ix: toInt },
+			float:       { tx: toFloat,     ix: toString },
+			boolean:     { tx: Boolean,     ix: toString },
+			normalise:   { tx: normalise$1,   ix: denormalise$1 },
+			denormalise: { tx: denormalise$1, ix: normalise$1 },
+			floatformat: { tx: toFixed$1,     ix: curry$1(function(n, str) { return parseFloat(str); }) },
+			'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
 
 			interpolate: {
 				tx: function(point) {
-					var xs = A.map.call(arguments, get('0'));
-					var ys = A.map.call(arguments, get('1'));
+					var xs = A.map.call(arguments, get$1('0'));
+					var ys = A.map.call(arguments, get$1('1'));
 
 					return function(value) {
 						return interpolateLinear(xs, ys, value);
@@ -7856,8 +6867,8 @@ var Sparky = (function () {
 				},
 
 				ix: function(point) {
-					var xs = A.map.call(arguments, get('0'));
-					var ys = A.map.call(arguments, get('1'));
+					var xs = A.map.call(arguments, get$1('0'));
+					var ys = A.map.call(arguments, get$1('1'));
 
 					return function(value) {
 						return interpolateLinear(ys, xs, value);
@@ -7870,45 +6881,45 @@ var Sparky = (function () {
 
 			// Transforms from Fn's map functions
 
-			append:       Fn.append,
-			contains:     Fn.contains,
-			diff:         Fn.diff,
-			equals:       Fn.equals,
+			append:       Fn$$1.append,
+			contains:     Fn$$1.contains,
+			diff:         Fn$$1.diff,
+			equals:       Fn$$1.equals,
 			//exp:          Fn.exp,
-			factorise:    Fn.factorise,
-			formatdate:   Fn.formatDate,
-			formattime:   Fn.formatTime,
-			gcd:          Fn.gcd,
-			get:          Fn.get,
-			getPath:      Fn.getPath,
-			intersect:    Fn.intersect,
-			invoke:       Fn.invoke,
-			is:           Fn.is,
-			lcm:          Fn.lcm,
-			limit:        Fn.limit,
+			factorise:    Fn$$1.factorise,
+			formatdate:   formatDate,
+			formattime:   formatTime,
+			gcd:          Fn$$1.gcd,
+			get:          get$1,
+			getPath:      getPath$1,
+			intersect:    Fn$$1.intersect,
+			invoke:       Fn$$1.invoke,
+			is:           Fn$$1.is,
+			lcm:          Fn$$1.lcm,
+			limit:        Fn$$1.limit,
 			//log:          Fn.log,
-			max:          Fn.max,
-			min:          Fn.min,
-			mod:          Fn.mod,
-			not:          Fn.not,
-			percent:      Fn.multiply(100),
-			prepend:      Fn.prepend,
-			rest:         Fn.rest,
-			root:         Fn.nthRoot,
-			slugify:      Fn.slugify,
-			sort:         Fn.sort,
-			take:         Fn.take,
-			toCartesian:  Fn.toCartesian,
-			todB:         Fn.todB,
-			decibels:     Fn.todB,
-			toDeg:        Fn.toDeg,
-			toLevel:      Fn.toLevel,
-			toPolar:      Fn.toPolar,
-			toRad:        Fn.toRad,
-			toStringType: Fn.toStringType,
-			typeof:       Fn.toType,
-			unique:       Fn.unique,
-			unite:        Fn.unite,
+			max:          Fn$$1.max,
+			min:          Fn$$1.min,
+			mod:          mod$1,
+			not:          Fn$$1.not,
+			percent:      multiply$1(100),
+			prepend:      prepend$2,
+			rest:         Fn$$1.rest,
+			root:         Fn$$1.nthRoot,
+			slugify:      slugify,
+			sort:         Fn$$1.sort,
+			take:         Fn$$1.take,
+			toCartesian:  Fn$$1.toCartesian,
+			todB:         Fn$$1.todB,
+			decibels:     Fn$$1.todB,
+			toDeg:        Fn$$1.toDeg,
+			toLevel:      Fn$$1.toLevel,
+			toPolar:      Fn$$1.toPolar,
+			toRad:        Fn$$1.toRad,
+			toStringType: Fn$$1.toStringType,
+			typeof:       Fn$$1.toType,
+			unique:       Fn$$1.unique,
+			unite:        Fn$$1.unite,
 
 
 			// Transforms from dom's map functions
@@ -7920,20 +6931,20 @@ var Sparky = (function () {
 
 			// Sparky transforms
 
-			divide: curry(function(n, value) {
+			divide: curry$1(function(n, value) {
 				if (typeof value !== 'number') { return; }
 				return value / n;
 			}),
 
-			'find-in': curry(function(path, id) {
-				if (!isDefined(id)) { return; }
-				var collection = Fn.getPath(path, Sparky.data);
-				return collection && collection.find(id);
+			'find-in': curry$1(function(path, id$$1) {
+				if (!isDefined(id$$1)) { return; }
+				var collection = Fn$$1.getPath(path, Sparky.data);
+				return collection && collection.find(id$$1);
 			}),
 
-			first: Fn.get(0),
+			first: get$1(0),
 
-			floatformat: curry(function(n, value) {
+			floatformat: curry$1(function(n, value) {
 				return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
 					!isDefined(value) ? '' :
 					(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
@@ -7943,7 +6954,7 @@ var Sparky = (function () {
 				return Math.floor(value);
 			},
 
-			"greater-than": curry(function(value2, value1) {
+			"greater-than": curry$1(function(value2, value1) {
 				return value1 > value2;
 			}),
 
@@ -7951,7 +6962,7 @@ var Sparky = (function () {
 				return typeof value === 'number' ? 1 / value : !value ;
 			},
 
-			join: curry(function(string, value) {
+			join: curry$1(function(string, value) {
 				return Array.prototype.join.call(value, string);
 			}),
 
@@ -7963,11 +6974,11 @@ var Sparky = (function () {
 				return value[value.length - 1];
 			},
 
-			"less-than": curry(function(value2, value1) {
+			"less-than": curry$1(function(value2, value1) {
 				return value1 < value2 ;
 			}),
 
-			localise: curry(function(digits, value) {
+			localise: curry$1(function(digits, value) {
 				var locale = document.documentElement.lang;
 				var options = {};
 
@@ -7985,28 +6996,40 @@ var Sparky = (function () {
 				return String.prototype.toLowerCase.apply(value);
 			},
 
-			map: curry(function(method, fn, array) {
+			map: function(method, params) {
+				var fn;
 
-	console.log('>>', fn, array);
+				if (typeof params === undefined) {
+					fn = parse(method);
 
-				return array && array.map(fn);
+					return function(array) {
+						return array.map(fn);
+					};
+				}
+
+				fn = ((Sparky.transformers[method] && Sparky.transformers[method].tx)
+					|| Sparky.transforms[method]).apply(null, params);
+
+				return function(array) {
+					return array && array.map(fn);
+				};
+			},
+
+			filter: curry$1(function(method, args$$1, array) {
+				return array && array.map(Sparky.transforms[method].apply(null,args$$1));
 			}, true),
 
-			filter: curry(function(method, args, array) {
-				return array && array.map(Sparky.transforms[method].apply(null,args));
-			}, true),
-
-			match: curry(function(regex, string) {
+			match: curry$1(function(regex, string) {
 				regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 				return regex.exec(string);
 			}),
 
-			matches: curry(function(regex, string) {
+			matches: curry$1(function(regex, string) {
 				regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 				return !!regex.test(string);
 			}),
 
-			pluralise: curry(function(str1, str2, lang, value) {
+			pluralise: curry$1(function(str1, str2, lang, value) {
 				if (typeof value !== 'number') { return; }
 
 				str1 = str1 || '';
@@ -8021,7 +7044,7 @@ var Sparky = (function () {
 
 			// TODO: these should copy postpadding and preppadding from Fn
 
-			postpad: curry(function(n, value) {
+			postpad: curry$1(function(n, value) {
 				var string = isDefined(value) ? value.toString() : '' ;
 				var l = string.length;
 				var m = parseInt(n, 10);
@@ -8031,7 +7054,7 @@ var Sparky = (function () {
 					string.substring(0, m) ;
 			}),
 
-			prepad: curry(function(n, char, value) {
+			prepad: curry$1(function(n, char, value) {
 				var string = isDefined(value) ? value.toString() : '' ;
 				var l = string.length;
 				var array = [];
@@ -8049,20 +7072,20 @@ var Sparky = (function () {
 				return value[Math.floor(Math.random() * value.length)];
 			},
 
-			reduce: curry(function(name, initialValue, array) {
-				return array && array.reduce(Fn[name], initialValue || 0);
+			reduce: curry$1(function(name, initialValue, array) {
+				return array && array.reduce(Fn$$1[name], initialValue || 0);
 			}, true),
 
-			replace: curry(function(str1, str2, value) {
+			replace: curry$1(function(str1, str2, value) {
 				if (typeof value !== 'string') { return; }
 				return value.replace(RegExp(str1, 'g'), str2);
 			}),
 
-			round: curry(function round(n, value) {
+			round: curry$1(function round(n, value) {
 				return Math.round(value / n) * n;
 			}),
 
-			slice: curry(function(i0, i1, value) {
+			slice: curry$1(function(i0, i1, value) {
 				return typeof value === 'string' ?
 					value.slice(i0, i1) :
 					Array.prototype.slice.call(value, i0, i1) ;
@@ -8111,7 +7134,7 @@ var Sparky = (function () {
 				};
 			})(),
 
-			truncatechars: curry(function(n, value) {
+			truncatechars: curry$1(function(n, value) {
 				return value.length > n ?
 					value.slice(0, n) + '…' :
 					value ;
@@ -8132,7 +7155,7 @@ var Sparky = (function () {
 			//wordcount
 			//wordwrap
 
-			yesno: curry(function(truthy, falsy, value) {
+			yesno: curry$1(function(truthy, falsy, value) {
 				return value ? truthy : falsy ;
 			})
 		});

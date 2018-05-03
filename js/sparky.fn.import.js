@@ -1,14 +1,13 @@
+import { Functor as Fn, Stream, get } from '../../fn/fn.js';
+
 (function(window) {
     var DEBUG   = window.DEBUG;
     var axios   = window.axios;
     var jQuery  = window.jQuery;
-    var Fn      = window.Fn;
     var Sparky  = window.Sparky;
-    var Stream  = window.Stream;
 
     var assign    = Object.assign;
     var fetch     = window.fetch;
-    var get       = Fn.get;
     var getData   = get('data');
 
     var cache     = {};

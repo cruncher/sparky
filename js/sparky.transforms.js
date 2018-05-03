@@ -1,20 +1,46 @@
 
 // Sparky.filter
 
+import {
+	curry,
+	formatDate,
+	formatTime,
+	get,
+	getPath,
+	isDefined,
+	last,
+	addDate,
+	addTime,
+	subTime,
+	todB,
+	toLevel,
+	mod,
+	multiply,
+	pow,
+	prepend,
+	exp,
+	log,
+	slugify,
+	toDeg,
+	toRad,
+	toInt,
+	toFloat,
+	toFixed,
+	toString,
+	normalise,
+	denormalise
+} from '../../fn/fn.js';
+
 (function(window) {
 	"use strict";
 
-	var Fn        = window.Fn;
+	var Fn = {};
+
 	var dom       = window.dom;
 	var Sparky    = window.Sparky;
 
 	var A         = Array.prototype;
 	var assign    = Object.assign;
-	var curry     = Fn.curry;
-	var get       = Fn.get;
-	var isDefined = Fn.isDefined;
-	var last      = Fn.last;
-	var formatDate = Fn.formatDate;
 
 	function spaces(n) {
 		var s = '';
@@ -52,22 +78,22 @@
 			ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
 		},
 
-		'add-date':  { tx: Fn.addDate,     ix: Fn.subDate },
-		'add-time':  { tx: Fn.addTime,     ix: Fn.subTime },
-		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
-		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
-		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
-		radians:     { tx: Fn.toRad,       ix: Fn.toDeg },
-		pow:         { tx: Fn.pow,         ix: curry(function(n, x) { return Fn.pow(1/n, x); }) },
-		exp:         { tx: Fn.exp,         ix: Fn.log },
-		log:         { tx: Fn.log,         ix: Fn.exp },
-		int:         { tx: Fn.toFixed(0),  ix: Fn.toInt },
-		float:       { tx: Fn.toFloat,     ix: Fn.toString },
-		boolean:     { tx: Boolean,        ix: Fn.toString },
-		normalise:   { tx: Fn.normalise,   ix: Fn.denormalise },
-		denormalise: { tx: Fn.denormalise, ix: Fn.normalise },
-		floatformat: { tx: Fn.toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
-		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: Fn.toInt },
+		'add-date':  { tx: addDate,     ix: curry(function(d, n) { return addDate('-' + d, n); }) },
+		'add-time':  { tx: addTime,     ix: subTime },
+		decibels:    { tx: todB,        ix: toLevel },
+		multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
+		degrees:     { tx: toDeg,       ix: toRad },
+		radians:     { tx: toRad,       ix: toDeg },
+		pow:         { tx: pow,         ix: curry(function(n, x) { return pow(1/n, x); }) },
+		exp:         { tx: exp,         ix: log },
+		log:         { tx: log,         ix: exp },
+		int:         { tx: toFixed(0),  ix: toInt },
+		float:       { tx: toFloat,     ix: toString },
+		boolean:     { tx: Boolean,     ix: toString },
+		normalise:   { tx: normalise,   ix: denormalise },
+		denormalise: { tx: denormalise, ix: normalise },
+		floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
 
 		interpolate: {
 			tx: function(point) {
@@ -100,11 +126,11 @@
 		equals:       Fn.equals,
 		//exp:          Fn.exp,
 		factorise:    Fn.factorise,
-		formatdate:   Fn.formatDate,
-		formattime:   Fn.formatTime,
+		formatdate:   formatDate,
+		formattime:   formatTime,
 		gcd:          Fn.gcd,
-		get:          Fn.get,
-		getPath:      Fn.getPath,
+		get:          get,
+		getPath:      getPath,
 		intersect:    Fn.intersect,
 		invoke:       Fn.invoke,
 		is:           Fn.is,
@@ -113,13 +139,13 @@
 		//log:          Fn.log,
 		max:          Fn.max,
 		min:          Fn.min,
-		mod:          Fn.mod,
+		mod:          mod,
 		not:          Fn.not,
-		percent:      Fn.multiply(100),
-		prepend:      Fn.prepend,
+		percent:      multiply(100),
+		prepend:      prepend,
 		rest:         Fn.rest,
 		root:         Fn.nthRoot,
-		slugify:      Fn.slugify,
+		slugify:      slugify,
 		sort:         Fn.sort,
 		take:         Fn.take,
 		toCartesian:  Fn.toCartesian,
@@ -155,7 +181,7 @@
 			return collection && collection.find(id);
 		}),
 
-		first: Fn.get(0),
+		first: get(0),
 
 		floatformat: curry(function(n, value) {
 			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :

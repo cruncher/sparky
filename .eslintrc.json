@@ -133,7 +133,6 @@
         "no-script-url": "error",
         "no-self-compare": "error",
         "no-sequences": "off",
-        // This would be nice, but it reports names of closure params as shadows
         "no-shadow": "off",
         "no-shadow-restricted-names": "off",
         "no-spaced-func": "error",

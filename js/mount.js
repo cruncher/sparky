@@ -1,23 +1,16 @@
+import { get, id, isDefined, nothing, noop, overload, set, toType } from '../../fn/fn.js'
+
 (function(window) {
 	"use strict";
 
 	const DEBUG      = false;
 
 	const A          = Array.prototype;
-	const Fn         = window.Fn;
 	const dom        = window.dom;
 
 	const assign     = Object.assign;
 //	const define     = Object.defineProperties;
 	const attribute  = dom.attribute;
-	const get        = Fn.get;
-	const id         = Fn.id;
-	const isDefined  = Fn.isDefined;
-	const nothing    = Fn.nothing;
-	const noop       = Fn.noop;
-	const overload   = Fn.overload;
-	const set        = Fn.set;
-	const toType     = Fn.toType;
 
 	const Struct             = window.Struct;
 	const ReadableStruct     = Struct.Readable;

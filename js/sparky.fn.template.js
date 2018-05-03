@@ -1,11 +1,11 @@
+import { get, getPath, noop, Stream } from '../../fn/fn.js';
+
 (function(window) {
     "use strict";
 
     var DEBUG   = false;
     var axios   = window.axios;
     var jQuery  = window.jQuery;
-    var Fn      = window.Fn;
-    var Stream  = window.Stream;
     var dom     = window.dom;
     var Sparky  = window.Sparky;
     var frame   = window.frame;
@@ -13,8 +13,6 @@
     var assign  = Object.assign;
     var cue     = frame.cue;
     var fetch   = window.fetch;
-    var get     = Fn.get;
-    var noop    = Fn.noop;
     var getData = get('data');
     var parseHTML = dom.parse('html');
 
@@ -194,7 +192,7 @@
                 scopes.each(function(scope) {
                     var notParsed = false;
                     var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
-                        var value = Fn.getPath($1, scope);
+                        var value = getPath($1, scope);
                         if (value === undefined) { notParsed = true; }
                         return value;
                     });

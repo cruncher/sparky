@@ -1,9 +1,10 @@
+import { Stream } from '../../fn/fn.js';
+
 (function(window) {
 	"use strict";
 
 	var Sparky     = window.Sparky;
 	var Observable = window.Observable;
-	var Fn         = window.Fn;
 
 	Sparky.fn.clock = function(node, scopes, params) {
 		var observable = Observable({
