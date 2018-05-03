@@ -25,7 +25,6 @@
     const bind               = Struct.bind;
     const unbind             = Struct.unbind;
     const teardown           = Struct.teardown;
-	const findScope          = Struct.getScope;
 
 
 	// Matches tags plus any directly adjacent text
