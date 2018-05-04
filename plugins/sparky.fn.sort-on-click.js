@@ -9,7 +9,7 @@
 	var is        = Fn.is;
 	var isNot     = Fn.isNot;
 	var byGreater = Fn.byGreater;
-	var rspaces   = Fn.rspaces;
+	var rspaces   = /\s+/;
 
 	function negate(fn) {
 		return function(a, b) { return -fn(a, b); }
@@ -40,11 +40,11 @@
 
 		quality: function(name) {
 			var i = procsea.data.qualities.indexOf(name);
-			return i === -1 ? Infinity : i;			
+			return i === -1 ? Infinity : i;
 		},
 
 		offer: function(value) {
-			return !value;			
+			return !value;
 		}
 	};
 	// ---------------------------------------------------------
