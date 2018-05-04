@@ -1,5 +1,5 @@
-import { get, getPath, noop, Stream } from '../../fn/fn.js';
-import dom    from '../../dom/dom.js';
+import { get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
+import { default as dom, before, remove, fragmentFromHTML } from '../../dom/dom.js';
 import { cue } from './frame.js';
 import Sparky from './sparky.js';
 
@@ -146,24 +146,37 @@ function templateFromDocument2(sparky, node, scopes, path, id, doc) {
 
 assign(Sparky.fn, {
     template: function(node, scopes, params) {
-        var url = params[0];
-        var parts, path, id;
+        var name = params[0];
+        var parts, path, hash;
 
-        // Support legacy ids instead of urls for just now
-        if (!/#/.test(url)) {
-            console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
-            path = '';
-            id   = url;
+        // If name is not a URL assume it's a path and get html from scope
+        if (!/#/.test(name)) {
+            stop = noop;
+
+            return scopes.map(function(scope) {
+                stop();
+
+                stop = ObservableStream(name, scope)
+                .map(overload(toType, {
+                    string:  fragmentFromHTML,
+                    default: id
+                }))
+                .each(function(fragment) {
+console.log('TEMPLATE', node);
+                    dom.empty(node);
+                    dom.append(node, fragment);
+                })
+                .stop;
+            });
         }
+
         // Parse urls
-        else {
-            parts = url.split('#');
-            path  = parts[0] || '';
-            id    = parts[1] || '';
-        }
+        parts = name.split('#');
+        path  = parts[0] || '';
+        hash  = parts[1] || '';
 
-        if (DEBUG && !id) {
-            throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
+        if (DEBUG && !hash) {
+            throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + name + '"');
         }
 
         var sparky = this;
@@ -171,8 +184,49 @@ assign(Sparky.fn, {
 
         // If the resource is cached, return it as an shiftable
         return cache[path] ?
-            templateFromCache(sparky, node, scopes, path, id) :
-            templateFromDocument(sparky, node, scopes, path, id) ;
+            templateFromCache(sparky, node, scopes, path, hash) :
+            templateFromDocument(sparky, node, scopes, path, hash) ;
+    },
+
+    replace: function(node, scopes, params) {
+        var name = params[0];
+        var parts, path, hash, stop;
+
+        // If name is not a URL assume it's a path and get html from scope
+        if (!/#/.test(name)) {
+            stop = noop;
+
+            return scopes.map(function(scope) {
+                stop();
+
+                stop = ObservableStream(name, scope)
+                .map(overload(toType, {
+                    string:  fragmentFromHTML,
+                    default: id
+                }))
+                .each(function(fragment) {
+                    before(node, fragment);
+                    remove(node);
+                })
+                .stop;
+            });
+        }
+
+        parts = name.split('#');
+        path  = parts[0] || '';
+        hash  = parts[1] || '';
+
+        if (DEBUG && !hash) {
+            throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + name + '"');
+        }
+
+        var sparky = this;
+        sparky.interrupt();
+
+        // If the resource is cached, return it as an shiftable
+        return cache[path] ?
+            templateFromCache(sparky, node, scopes, path, hash) :
+            templateFromDocument(sparky, node, scopes, path, hash) ;
     },
 
 

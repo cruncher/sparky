@@ -87,15 +87,17 @@ line { stroke-width: 1; stroke: inherit; }
 		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:package.json">
 			<h1>{[title]}
 			<span class="text-6">{[version]}</span></h1>
-
-			<p class="">
-			Sparky is a live data binding DOM templating engine that enhances HTML
-			with declarative tags and composeable templates, and batches
-			rendering changes to the browser frame rate.</p>
+			<p class="text-8">{[description]}</p>
 		</div
 
 		><img class="block @2-grid-3/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" src="images/sparky-logo-dark.svg" />
 	</header>
+
+	<script type="text/html" code="html">
+		<pre sparky-fn="global:location">
+		href: {[href]}
+		</pre>
+	</script>
 
 	<div class="spaced-grid-block grid-block block grid-1/1 @2-span-1/1">
 		<article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">

@@ -479,6 +479,10 @@ const tags = {
 		mountAttribute('for', node, options, structs);
 	},
 
+	meta: function(node, options, structs) {
+		mountAttribute('content', node, options, structs);
+	},
+
 	meter: function(node, options, structs) {
 		mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
 	},

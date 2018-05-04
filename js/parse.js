@@ -29,7 +29,13 @@ export const parseParams = parse(/^\s*(?:(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d
 
     // array
     7: function(params, value, data) {
-        params.push(parseParams([], data));
+        if (data.input[1] === ']') {
+            params.push([]);
+        }
+        else {
+            params.push(parseParams([], data));
+        }
+
         parseArrayClose(null, data);
         return params;
     },
