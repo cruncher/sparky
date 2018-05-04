@@ -1,7 +1,3 @@
-(function(window) {
-	if (!window.console || !window.console.log) { return; }
-	console.log('Sparky      - https://github.com/cruncher/sparky');
-})(window);
 
 import { Functor as Fn, Stream, Observable as ObserveStream, deprecate, getPath, invoke, noop, nothing } from '../../fn/fn.js';
 import dom             from '../../dom/dom.js';
