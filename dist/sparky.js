@@ -642,6 +642,8 @@ var Sparky = (function () {
 
 	var curry$1 = curry;
 
+	function args() { return arguments; }
+
 	// choke
 	//
 	// Returns a function that waits for `time` seconds without being invoked
@@ -750,6 +752,14 @@ var Sparky = (function () {
 	    return +new Date() / 1000;
 	}
 
+	function once$1(fn) {
+	    return function once() {
+	        var value = fn.apply(this, arguments);
+	        fn = noop$1;
+	        return value;
+	    };
+	}
+
 	function overload(fn, map) {
 	    return typeof map.get === 'function' ?
 	        function overload() {
@@ -782,7 +792,55 @@ var Sparky = (function () {
 	    return true;
 	}
 
+	function self() { return this; }
+
 	// Throttle
+	//
+	// Returns a function that calls `fn` once on the next timer frame, using
+	// the context and arguments from the latest invocation.
+
+	function throttle(fn, request, cancel) {
+	    request = request || window.requestAnimationFrame;
+	    cancel  = cancel  || window.cancelAnimationFrame;
+
+	    var queue = schedule;
+	    var context, args, id;
+
+	    function schedule() {
+	        queue = noop;
+	        id = request(update);
+	    }
+
+	    function update() {
+	        queue = schedule;
+	        fn.apply(context, args);
+	    }
+
+	    function stop(callLast) {
+	        // If there is an update queued apply it now
+	        //if (callLast !== false && queue === noop) { update(); }
+
+	        // An update is queued
+	        if (queue === noop && id !== undefined) {
+	            cancel(id);
+	        }
+
+	        // Don't permit further changes to be queued
+	        queue = noop;
+	    }
+
+	    function throttle() {
+	        // Store the latest context and arguments
+	        context = this;
+	        args    = arguments;
+
+	        // Queue the update
+	        queue();
+	    }
+
+	    throttle.cancel = stop;
+	    return throttle;
+	}
 
 	function toArray$1(object) {
 	    if (object.toArray) { return object.toArray(); }
@@ -821,6 +879,24 @@ var Sparky = (function () {
 
 	function toType(object) {
 	    return typeof object;
+	}
+
+	function weakCache(fn) {
+	    var map = new WeakMap();
+
+	    return function weakCache(object) {
+	        if (DEBUG && arguments.length > 1) {
+	            throw new Error('Fn: weakCache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+	        }
+
+	        if (map.has(object)) {
+	            return map.get(object);
+	        }
+
+	        var value = fn(object);
+	        map.set(object, value);
+	        return value;
+	    };
 	}
 
 	const assign = Object.assign;
@@ -2357,6 +2433,59 @@ var Sparky = (function () {
 		});
 	}
 
+	function call$2(fn) {
+		return fn();
+	}
+
+	// Just for debugging
+	var loggers = [];
+
+	// Pool
+	function Pool(options, prototype) {
+		var create = options.create || noop$1;
+		var reset  = options.reset  || noop$1;
+		var isIdle = options.isIdle;
+		var store = [];
+
+		// Todo: This is bad! It keeps a reference to the pools hanging around,
+		// accessible from the global scope, so even if the pools are forgotten
+		// they are never garbage collected!
+		loggers.push(function log() {
+			var total = store.length;
+			var idle  = store.filter(isIdle).length;
+			return {
+				name:   options.name,
+				total:  total,
+				active: total - idle,
+				idle:   idle
+			};
+		});
+
+		return function PoolObject() {
+			var object = store.find(isIdle);
+
+			if (!object) {
+				object = Object.create(prototype || null);
+				create.apply(object, arguments);
+				store.push(object);
+			}
+
+			reset.apply(object, arguments);
+			return object;
+		};
+	}
+
+	Pool.release = function() {
+		loggers.length = 0;
+	};
+
+	Pool.snapshot = function() {
+		return Fn
+		.from(loggers)
+		.map(call$2)
+		.toJSON();
+	};
+
 	function equals(a, b) {
 	    // Fast out if references are for the same object
 	    if (a === b) { return true; }
@@ -2948,6 +3077,10 @@ var Sparky = (function () {
 		return rdatejson.exec(JSON.stringify(parseDate(date)))[1];
 	}
 
+	function formatDateTimeISO(date) {
+		return JSON.stringify(parseDate(date)).slice(1,-1);
+	}
+
 
 	// Time operations
 
@@ -3116,6 +3249,17 @@ var Sparky = (function () {
 			floorDateByGrain(grain, date) ;
 	}
 
+
+
+	function nowDate() {
+		return new Date();
+	}
+	function dateDiff(d1, d2) {
+		return +parseDate(d2) - +parseDate(d1);
+	}
+	function toTimestamp(date) {
+		return date.getTime() / 1000;
+	}
 	const addDate = curry$1(function(diff, date) {
 		return _addDate(diff, parseDate(date));
 	});
@@ -3139,8 +3283,12 @@ var Sparky = (function () {
 
 	// Decimal places to round to when comparing times
 	var precision = 9;
+
+	function millisecondsToSeconds(n) { return n / 1000; }
 	function minutesToSeconds(n) { return n * 60; }
 	function hoursToSeconds(n) { return n * 3600; }
+	function daysToSeconds(n) { return n * 86400; }
+	function weeksToSeconds(n) { return n * 604800; }
 
 	function secondsToMilliseconds(n) { return n * 1000; }
 	function secondsToMinutes(n) { return n / 60; }
@@ -3282,11 +3430,24 @@ var Sparky = (function () {
 		return n.toFixed(precision).replace(/\.?0+$/, '');
 	}
 
+
+
+
+
+	const nowTime = function() {
+		return window.performance.now();
+	};
+
 	const formatTime = curry$1(function(string, time) {
 		return string === 'ISO' ?
 			_formatTimeISO(parseTime(time)) :
 			formatTimeString(string, parseTime(time)) ;
 	});
+
+	const formatTimeISO = function(time) {
+		// Undefined causes problems by outputting dates full of NaNs
+		return time === undefined ? undefined : _formatTimeISO(time);
+	};
 
 	const addTime = curry$1(function(time1, time2) {
 		return parseTime(time2) + parseTimeDiff(time1);
@@ -3303,6 +3464,10 @@ var Sparky = (function () {
 	const floorTime = curry$1(function(token, time) {
 		return _floorTime(token, parseTime(time));
 	});
+
+	if (window.console && window.console.log) {
+	    window.console.log('Fn          - https://github.com/stephband/fn');
+	}
 
 	function not(a) { return !a; }const toFloat = parseFloat;
 	const and     = curry$1(function and(a, b) { return !!(a && b); });
@@ -3355,6 +3520,126 @@ var Sparky = (function () {
 	const limit$1       = curry$1(limit);
 	const normalise$1   = curry$1(normalise);
 	const denormalise$1 = curry$1(denormalise);
+
+	var fn = /*#__PURE__*/Object.freeze({
+		curry: curry$1,
+		not: not,
+		toFloat: toFloat,
+		and: and,
+		or: or,
+		xor: xor,
+		assign: assign$4,
+		define: define,
+		equals: equals$1,
+		get: get$1,
+		is: is,
+		invoke: invoke$1,
+		parse: parse$2,
+		set: set$1,
+		toFixed: toFixed$1,
+		getPath: getPath$1,
+		setPath: setPath$1,
+		contains: contains$1,
+		filter: filter$1,
+		find: find$1,
+		insert: insert$1,
+		map: map$1,
+		reduce: reduce$1,
+		remove: remove$2,
+		rest: rest$1,
+		slice: slice$1,
+		take: take$1,
+		unique: unique$1,
+		update: update$1,
+		diff: diff$2,
+		intersect: intersect$1,
+		unite: unite$1,
+		append: append$1,
+		prepend: prepend$2,
+		prepad: prepad$1,
+		postpad: postpad$1,
+		add: add$1,
+		multiply: multiply$1,
+		min: min$1,
+		max: max$1,
+		mod: mod$1,
+		pow: pow$1,
+		exp: exp$1,
+		log: log$1,
+		root: root$1,
+		limit: limit$1,
+		normalise: normalise$1,
+		denormalise: denormalise$1,
+		args: args,
+		cache: cache,
+		choke: choke,
+		choose: choose,
+		compose: compose$1,
+		deprecate: deprecate,
+		id: id,
+		isDefined: isDefined,
+		latest: latest,
+		noop: noop$1,
+		nothing: nothing$1,
+		now: now,
+		once: once$1,
+		overload: overload,
+		pipe: pipe,
+		requestTick: requestTick,
+		self: self,
+		throttle: throttle,
+		toArray: toArray$1,
+		toClass: toClass,
+		toInt: toInt,
+		toString: toString,
+		toType: toType,
+		weakCache: weakCache,
+		Functor: Fn$1,
+		Observable: ObservableStream,
+		Stream: Stream$1,
+		Timer: Timer,
+		Pool: Pool,
+		last: last,
+		slugify: slugify,
+		todB: todB,
+		toLevel: toLevel,
+		toRad: toRad,
+		toDeg: toDeg,
+		toPolar: toPolar,
+		toCartesian: toCartesian,
+		nowDate: nowDate,
+		dateDiff: dateDiff,
+		toTimestamp: toTimestamp,
+		addDate: addDate,
+		diffDateDays: diffDateDays,
+		floorDate: floorDate,
+		formatDate: formatDate,
+		cloneDate: cloneDate,
+		formatDateISO: formatDateISO,
+		formatDateTimeISO: formatDateTimeISO,
+		formatDateLocal: formatDateLocal,
+		parseDate: parseDate,
+		parseDateLocal: parseDateLocal,
+		toDay: toDay,
+		nowTime: nowTime,
+		formatTime: formatTime,
+		formatTimeISO: formatTimeISO,
+		addTime: addTime,
+		subTime: subTime,
+		diffTime: diffTime,
+		floorTime: floorTime,
+		parseTime: parseTime,
+		secondsToMilliseconds: secondsToMilliseconds,
+		secondsToMinutes: secondsToMinutes,
+		secondsToHours: secondsToHours,
+		secondsToDays: secondsToDays,
+		secondsToWeeks: secondsToWeeks,
+		millisecondsToSeconds: millisecondsToSeconds,
+		minutesToSeconds: minutesToSeconds,
+		hoursToSeconds: hoursToSeconds,
+		daysToSeconds: daysToSeconds,
+		weeksToSeconds: weeksToSeconds
+	});
 
 	var Node        = window.Node;
 	var SVGElement  = window.SVGElement;
@@ -4793,13 +5078,173 @@ var Sparky = (function () {
 	if (window.console && window.console.log) {
 	    console.log('dom         – https://github.com/stephband/dom');
 	}
+	window.dom = dom;
+
+	// Lifecycle
+
+	const ready$1                  = dom.ready;
+	const now$1                    = dom.now;
 
 	// HTML
 
 	const escape$1                 = dom.escape;
+	const parse$4                  = dom.parse;
+
+	// Inspect
+
+	const attribute$1              = dom.attribute;
+	const children$1               = dom.children;
+	const closest$1                = dom.closest;
+	const contains$3               = dom.contains;
+	const find$3                   = dom.find;
+	const get$2                    = dom.get;
+	const matches$1                = dom.matches;
+	const next$1                   = dom.next;
+	const previous$1               = dom.previous;
+	const query$1                  = dom.query;
+	const tag$1                    = dom.tag;
+	const type$1                   = dom.type;
+	const isElementNode$1          = dom.isElementNode;
+	const isTextNode$1             = dom.isTextNode;
+	const isCommentNode$1          = dom.isCommentNode;
+	const isFragmentNode$1         = dom.isFragmentNode;
+	const isInternalLink$1         = dom.isInternalLink;
+	const isValid$1                = dom.isValid;
+
+	// Mutate
+
+	const assign$6                 = dom.assign;
+	const create$2                 = dom.create;
+	const clone$1                  = dom.clone;
+	const identify$1               = dom.identify;
+	const append$3                 = dom.append;
+	const before$1                 = dom.before;
+	const after$1                  = dom.after;
+	const replace$1                = dom.replace;
+	const empty$1                  = dom.empty;
+	const remove$4                 = dom.remove;
+
+	// Style
+
+	const box$1                    = dom.box;
+	const bounds$1                 = dom.bounds;
+	const offset$1                 = dom.offset;
+	const style$1                  = dom.style;
+	const classes$1                = dom.classes;
+	const addClass$1               = dom.addClass;
+	const removeClass$1            = dom.removeClass;
+	const flashClass$1             = dom.flashClass;
 
 	const toPx$1                   = dom.toPx;
 	const toRem$1                  = dom.toRem;
+	const toVw$1                   = dom.toVw;
+	const toVh$1                   = dom.toVh;
+
+	// Fragments
+
+	const fragmentFromTemplate$1   = dom.fragmentFromTemplate;
+	const fragmentFromChildren$1   = dom.fragmentFromChildren;
+	const fragmentFromHTML$1       = dom.fragmentFromHTML;
+	const fragmentFromId$1         = dom.fragmentFromId;
+
+	// Events
+
+	const Event$1                  = dom.Event;
+	const events                 = dom.events;
+	const trigger$1                = dom.trigger;
+	const delegate$1               = dom.delegate;
+	const isPrimaryButton$1        = dom.isPrimaryButton;
+	const isTargetEvent$1          = dom.isTargetEvent;
+	const preventDefault$1         = dom.preventDefault;
+	const toKey$1                  = dom.toKey;
+	const trapFocus$1              = dom.trapFocus;
+	const requestEvent$1           = dom.requestEvent;
+
+	// Animation
+
+	const animate$1                = dom.animate;
+	const fullscreen             = dom.fullscreen;
+	const transition$1             = dom.transition;
+	const validate               = dom.validate;
+	const requestFrame           = dom.requestFrame;
+
+	// Scroll
+
+	const animateScroll$1          = dom.animateScroll;
+	const scrollRatio$1            = dom.scrollRatio;
+	const disableScroll$1          = dom.disableScroll;
+	const enableScroll$1           = dom.enableScroll;
+
+	var dom$1 = /*#__PURE__*/Object.freeze({
+		default: dom,
+		ready: ready$1,
+		now: now$1,
+		escape: escape$1,
+		parse: parse$4,
+		attribute: attribute$1,
+		children: children$1,
+		closest: closest$1,
+		contains: contains$3,
+		find: find$3,
+		get: get$2,
+		matches: matches$1,
+		next: next$1,
+		previous: previous$1,
+		query: query$1,
+		tag: tag$1,
+		type: type$1,
+		isElementNode: isElementNode$1,
+		isTextNode: isTextNode$1,
+		isCommentNode: isCommentNode$1,
+		isFragmentNode: isFragmentNode$1,
+		isInternalLink: isInternalLink$1,
+		isValid: isValid$1,
+		assign: assign$6,
+		create: create$2,
+		clone: clone$1,
+		identify: identify$1,
+		append: append$3,
+		before: before$1,
+		after: after$1,
+		replace: replace$1,
+		empty: empty$1,
+		remove: remove$4,
+		box: box$1,
+		bounds: bounds$1,
+		offset: offset$1,
+		style: style$1,
+		classes: classes$1,
+		addClass: addClass$1,
+		removeClass: removeClass$1,
+		flashClass: flashClass$1,
+		toPx: toPx$1,
+		toRem: toRem$1,
+		toVw: toVw$1,
+		toVh: toVh$1,
+		fragmentFromTemplate: fragmentFromTemplate$1,
+		fragmentFromChildren: fragmentFromChildren$1,
+		fragmentFromHTML: fragmentFromHTML$1,
+		fragmentFromId: fragmentFromId$1,
+		Event: Event$1,
+		events: events,
+		trigger: trigger$1,
+		delegate: delegate$1,
+		isPrimaryButton: isPrimaryButton$1,
+		isTargetEvent: isTargetEvent$1,
+		preventDefault: preventDefault$1,
+		toKey: toKey$1,
+		trapFocus: trapFocus$1,
+		requestEvent: requestEvent$1,
+		animate: animate$1,
+		fullscreen: fullscreen,
+		transition: transition$1,
+		validate: validate,
+		requestFrame: requestFrame,
+		animateScroll: animateScroll$1,
+		scrollRatio: scrollRatio$1,
+		disableScroll: disableScroll$1,
+		enableScroll: enableScroll$1
+	});
 
 	var debug$1     = true;
 	var A$5         = Array.prototype;
@@ -6233,11 +6678,6 @@ var Sparky = (function () {
 			scope ;
 	};
 
-	(function(window) {
-		if (!window.console || !window.console.log) { return; }
-		console.log('Sparky      - https://github.com/cruncher/sparky');
-	})(window);
-
 	var DEBUG$6          = window.DEBUG;
 
 	var Observable$2     = window.Observable;
@@ -7117,6 +7557,21 @@ var Sparky = (function () {
 	        });
 	    }
 	});
+
+	if (window.console && window.console.log) {
+	    console.log('Sparky      - https://github.com/cruncher/sparky');
+	}
+
+	const DEBUG$10 = true;
+
+	if (DEBUG$10) {
+	    window.fn = fn;
+	    window.dom = dom$1;
+	}
+
+	if (DEBUG$10) {
+	    window.Sparky = Sparky;
+	}
 
 	return Sparky;
 
