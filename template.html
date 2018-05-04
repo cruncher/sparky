@@ -607,6 +607,14 @@ line { stroke-width: 1; stroke: inherit; }
 
 	<script src="axios/dist/axios.js"></script>
 
+	<!-- Debug -->
+	<script type="module">
+	import * as fn  from '../fn/fn.js';
+	import * as dom from '../dom/dom.js';
+	window.fn  = fn;
+	window.dom = dom;
+	</script>
+
 	<!-- Initialise -->
 
 	<script type="module">
@@ -624,6 +632,8 @@ line { stroke-width: 1; stroke: inherit; }
 	// Prepare the page
 	Sparky(document.body);
 	</script>
+
+	<!-- Tests -->
 
 	<script type="module">
 	// Run tests
