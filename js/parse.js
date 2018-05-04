@@ -70,8 +70,11 @@ export const parseFn = parse(/^([\w-]+)\s*(:)?\s*/, {
 
 /* Parse pipe */
 
+
+import { transformers, transforms } from './transforms.js';
+
 function getFn(name) {
-    return Sparky.transformers[name] ? Sparky.transformers[name].tx : Sparky.transforms[name] ;
+    return transformers[name] ? transformers[name].tx : transforms[name] ;
 }
 
 const parsePipe1 = parse(/^(\|)?\s*/, {

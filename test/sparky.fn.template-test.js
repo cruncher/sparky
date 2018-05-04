@@ -1,3 +1,4 @@
+import Sparky from '../sparky.js';
 
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];

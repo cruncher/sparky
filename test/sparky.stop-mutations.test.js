@@ -1,4 +1,6 @@
 
+import Sparky from '../sparky.js';
+
 Sparky.fn['pass-through'] = function(node, stream) {
 
 };

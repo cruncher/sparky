@@ -1,4 +1,5 @@
 import { Functor as Fn, noop } from '../../fn/fn.js';
+import Sparky from '../sparky.js';
 
 group('[sparky-fn="each"]', function(test, log, fixture) {
 

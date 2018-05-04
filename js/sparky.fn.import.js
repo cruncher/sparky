@@ -1,10 +1,10 @@
 import { Functor as Fn, Stream, get } from '../../fn/fn.js';
+import Sparky from './sparky.js';
 
 (function(window) {
     var DEBUG   = window.DEBUG;
     var axios   = window.axios;
     var jQuery  = window.jQuery;
-    var Sparky  = window.Sparky;
 
     var assign    = Object.assign;
     var fetch     = window.fetch;

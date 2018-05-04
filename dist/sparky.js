@@ -1,4 +1,4 @@
-// Sparky 2.3.2
+// Sparky 2.3.3
 //
 // by @stephband
 // http://stephen.band/sparky
@@ -532,9 +532,33 @@ var Sparky = (function () {
 
 	})(window);
 
-	const DEBUG$1 = true;
+	const DEBUG$1 = false;
 
-	/*
+	function cache(fn) {
+	    var map = new Map();
+
+	    return function cache(object) {
+	        if (DEBUG$1 && arguments.length > 1) {
+	            throw new Error('Fn: cache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
+	        }
+
+	        if (map.has(object)) {
+	            return map.get(object);
+	        }
+
+	        var value = fn(object);
+	        map.set(object, value);
+	        return value;
+	    };
+	}
+
+	const DEBUG$2 = true;
+	const A     = Array.prototype;
+
+	function applyFn(fn, args) {
+	    return typeof fn === 'function' ? fn.apply(null, args) : fn ;
+	}
+
 	function curry(fn, muteable, arity) {
 	    arity = arity || fn.length;
 
@@ -563,19 +587,19 @@ var Sparky = (function () {
 	        applyFn(memo(object), A.slice.call(arguments, 1)) ;
 	    };
 	}
-	*/
 
-	function curry(fn) {
-	    var parity = fn.length;
+	/*
+	function curry(fn, muteable, arity) {
+	    arity = arity || fn.length;
 	    return function curried() {
-	        return arguments.length >= parity ?
+	        return arguments.length >= arity ?
 	            fn.apply(null, arguments) :
 	            curried.bind(null, ...arguments) ;
 	    };
 	}
+	*/
 
-
-	if (DEBUG$1) {
+	if (DEBUG$2) {
 	    const _curry = curry;
 
 	    // Feature test
@@ -617,26 +641,6 @@ var Sparky = (function () {
 
 
 	var curry$1 = curry;
-
-	const DEBUG$2 = false;
-
-	function cache(fn) {
-	    var map = new Map();
-
-	    return function cache(object) {
-	        if (DEBUG$2 && arguments.length > 1) {
-	            throw new Error('Fn: cache() called with ' + arguments.length + ' arguments. Accepts exactly 1.');
-	        }
-
-	        if (map.has(object)) {
-	            return map.get(object);
-	        }
-
-	        var value = fn(object);
-	        map.set(object, value);
-	        return value;
-	    };
-	}
 
 	// choke
 	//
@@ -708,7 +712,7 @@ var Sparky = (function () {
 	    };
 	}
 
-	function compose(fn2, fn1) {
+	function compose$1(fn2, fn1) {
 	    return function compose() {
 	        return fn2(fn1.apply(null, arguments));
 	    };
@@ -728,14 +732,6 @@ var Sparky = (function () {
 	    // !!value is a fast out for non-zero numbers, non-empty strings
 	    // and other objects, the rest checks for 0, '', etc.
 	    return !!value || (value !== undefined && value !== null && !Number.isNaN(value));
-	}
-
-	function last(array) {
-	    if (typeof array.length === 'number') {
-	        return array[array.length - 1];
-	    }
-
-	    // Todo: handle Fns and Streams
 	}
 
 	function latest(source) {
@@ -785,6 +781,8 @@ var Sparky = (function () {
 	    resolved.then(fn);
 	    return true;
 	}
+
+	// Throttle
 
 	function toArray$1(object) {
 	    if (object.toArray) { return object.toArray(); }
@@ -1113,7 +1111,7 @@ var Sparky = (function () {
 	    },
 
 	    map: function(fn) {
-	        return create(this, compose(function map(object) {
+	        return create(this, compose$1(function map(object) {
 	            return object === undefined ? undefined : fn(object) ;
 	        }, this.shift));
 	    },
@@ -2345,7 +2343,7 @@ var Sparky = (function () {
 		unobserve: noop$1
 	};
 
-	function ObserveStream(path, object) {
+	function ObservableStream(path, object) {
 		return new Stream$1(function setup(notify, stop) {
 			var source = new ObserveSource(stop, object, path);
 
@@ -2357,16 +2355,6 @@ var Sparky = (function () {
 			source.unobserve = Observable.observe(object, path, update);
 			return source;
 		});
-	}
-
-	function contains(value, object) {
-	    return object.includes ?
-	        object.includes(value) :
-	    object.contains ?
-	        object.contains(value) :
-	    A.includes ?
-	        A.includes.call(object, value) :
-	        A.indexOf.call(object, value) !== -1 ;
 	}
 
 	function equals(a, b) {
@@ -2401,19 +2389,17 @@ var Sparky = (function () {
 	function get(key, object) {
 	    // Todo? Support WeakMaps and Maps and other map-like objects with a
 	    // get method - but not by detecting the get method
-	    return object[key] === null ?
-	        undefined :
-	        object[key] ;
+	    const value = object[key];
+
+	    // Why are we protecting against null again? To innoculate ourselves
+	    // against DOM nodes?
+	    return value === null ? undefined : value ;
 	}
 
 	var _is = Object.is || function is(a, b) { return a === b; };
 
 	function invoke(name, values, object) {
 	    return object[name].apply(object, values);
-	}
-
-	function nth(n, object) {
-	    return object[n];
 	}
 
 	function distribute(fns, object, data) {
@@ -2457,12 +2443,6 @@ var Sparky = (function () {
 	    return output;
 	});
 
-	function remove$1(array, value) {
-	    if (array.remove) { array.remove(value); }
-	    var i = array.indexOf(value);
-	    if (i !== -1) { array.splice(i, 1); }
-	}
-
 	const N     = Number.prototype;
 	const isNaN = Number.isNaN;
 
@@ -2474,12 +2454,164 @@ var Sparky = (function () {
 	    return N.toFixed.call(value, n);
 	}
 
+	const A$3 = Array.prototype;
+
+	function map(fn, object) {
+	    return object && object.map ? object.map(fn) : A$3.map.call(object, fn) ;
+	}
+
+	function filter(fn, object) {
+	    return object.filter ?
+	        object.filter(fn) :
+	        A$3.filter.call(object, fn) ;
+	}
+
+	function reduce(fn, seed, object) {
+	    return object.reduce ?
+	        object.reduce(fn, seed) :
+	        A$3.reduce.call(object, fn, seed);
+	}
+
+	function contains(value, object) {
+	    return object.includes ?
+	        object.includes(value) :
+	    object.contains ?
+	        object.contains(value) :
+	    A$3.includes ?
+	        A$3.includes.call(object, value) :
+	        A$3.indexOf.call(object, value) !== -1 ;
+	}
+	function find(fn, object) {
+	    return A$3.find.call(object, fn);
+	}
+
+	function insert(fn, array, object) {
+	    var n = -1;
+	    var l = array.length;
+	    var value = fn(object);
+	    while(++n < l && fn(array[n]) <= value);
+	    A$3.splice.call(array, n, 0, object);
+	}
+
+	function slice(n, m, object) {
+	    return object.slice ?
+	        object.slice(n, m) :
+	        A$3.slice.call(object, n, m) ;
+	}
+
+	function last(array) {
+	    if (typeof array.length === 'number') {
+	        return array[array.length - 1];
+	    }
+
+	    // Todo: handle Fns and Streams
+	}
+
+	function remove$1(array, value) {
+	    if (array.remove) { array.remove(value); }
+	    var i = array.indexOf(value);
+	    if (i !== -1) { array.splice(i, 1); }
+	}
+
+	function take(i, object) {
+	    if (object.slice) { return object.slice(0, i); }
+	    if (object.take)  { return object.take(i); }
+
+	    var a = [];
+	    var n = i;
+	    while (n--) { a[n] = object[n]; }
+	    return a;
+	}
+
+	function uniqueReducer(array, value) {
+	    if (array.indexOf(value) === -1) { array.push(value); }
+	    return array;
+	}
+
+	function unique(object) {
+	    return object.unique ?
+	        object.unique() :
+	        reduce(uniqueReducer, [], object) ;
+	}
+
+	const assign$2 = Object.assign;
+
+	function update(fn, target, array) {
+	    return array.reduce(function(target, obj2) {
+	        var obj1 = target.find(compose$1(Fn.is(fn(obj2)), fn));
+	        if (obj1) {
+	            assign$2(obj1, obj2);
+	        }
+	        else {
+	            insert(fn, target, obj2);
+	        }
+	        return target;
+	    }, target);
+	}
+
+	function diff(array, object) {
+	    var values = toArray$1(array);
+
+	    return filter(function(value) {
+	        var i = values.indexOf(value);
+	        if (i === -1) { return true; }
+	        values.splice(i, 1);
+	        return false;
+	    }, object)
+	    .concat(values);
+	}
+
+	function intersect(array, object) {
+	    var values = toArray$1(array);
+
+	    return filter(function(value) {
+	        var i = values.indexOf(value);
+	        if (i === -1) { return false; }
+	        values.splice(i, 1);
+	        return true;
+	    }, object);
+	}
+
+	function unite(array, object) {
+	    var values = toArray(array);
+
+	    return map(function(value) {
+	        var i = values.indexOf(value);
+	        if (i > -1) { values.splice(i, 1); }
+	        return value;
+	    }, object)
+	    .concat(values);
+	}
+
 	function append(string1, string2) {
 	    return '' + string2 + string1;
 	}
 
 	function prepend$1(string1, string2) {
 	    return '' + string1 + string2;
+	}
+
+	function prepad(chars, n, value) {
+	    var string = value + '';
+	    var i = -1;
+	    var pre = '';
+
+	    while (pre.length < n - string.length) {
+	        pre += chars[++i % chars.length];
+	    }
+
+	    string = pre + string;
+	    return string.slice(string.length - n);
+	}
+
+	function postpad(chars, n, value) {
+	    var string = value + '';
+
+	    while (string.length < n) {
+	        string = string + chars;
+	    }
+
+	    return string.slice(0, n);
 	}
 
 	function slugify(string) {
@@ -2504,6 +2636,32 @@ var Sparky = (function () {
 	function normalise(min, max, n) { return (n - min) / (max - min); }
 
 	function denormalise(min, max, n) { return n * (max - min) + min; }
+
+	function toPolar(cartesian) {
+	    var x = cartesian[0];
+	    var y = cartesian[1];
+
+	    return [
+	        // Distance
+	        x === 0 ?
+	            Math.abs(y) :
+	        y === 0 ?
+	            Math.abs(x) :
+	            Math.sqrt(x*x + y*y) ,
+	        // Angle
+	        Math.atan2(x, y)
+	    ];
+	}
+
+	function toCartesian(polar) {
+	    var d = polar[0];
+	    var a = polar[1];
+
+	    return [
+	        Math.sin(a) * d ,
+	        Math.cos(a) * d
+	    ];
+	}
 
 	function createOrdinals(ordinals) {
 		var array = [], n = 0;
@@ -2866,7 +3024,7 @@ var Sparky = (function () {
 		return date;
 	}
 
-	function diff(t, d1, d2) {
+	function diff$1(t, d1, d2) {
 		var y1 = d1.getUTCFullYear();
 		var m1 = d1.getUTCMonth();
 		var y2 = d2.getUTCFullYear();
@@ -2880,7 +3038,7 @@ var Sparky = (function () {
 
 		// Set to last date of previous month
 		d2.setUTCDate(0);
-		return diff(t, d1, d2);
+		return diff$1(t, d1, d2);
 	}
 
 	function _diffDateDays(date1, date2) {
@@ -2890,8 +3048,8 @@ var Sparky = (function () {
 		return d2 > d1 ?
 			// 3rd argument mutates, so make sure we get a clean date if we
 			// have not just made one.
-			diff(0, d1, d2 === date2 || d1 === d2 ? cloneDate(d2) : d2) :
-			diff(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
+			diff$1(0, d1, d2 === date2 || d1 === d2 ? cloneDate(d2) : d2) :
+			diff$1(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
 	}
 
 	function floorDateByGrain(grain, date) {
@@ -3151,23 +3309,40 @@ var Sparky = (function () {
 	const or      = curry$1(function or(a, b) { return a || b; });
 	const xor     = curry$1(function or(a, b) { return (a || b) && (!!a !== !!b); });
 
-	const assign$3      = curry$1(Object.assign, true, 2);
-	const contains$1    = curry$1(contains, true);
+	const assign$4      = curry$1(Object.assign, true, 2);
 	const define      = curry$1(Object.defineProperties, true, 2);
 	const equals$1      = curry$1(equals, true);
 	const get$1         = curry$1(get, true);
 	const is          = curry$1(_is, true);
 	const invoke$1      = curry$1(invoke, true);
-	const nth$1         = curry$1(nth);
 	const parse$2       = curry$1(parse$1);
-	const remove$2      = curry$1(remove$1, true);
-	const rest$1        = curry$1(rest, true);
 	const set$1         = curry$1(set, true);
 	const toFixed$1     = curry$1(toFixed);
 	const getPath$1     = curry$1(getPath, true);
 	const setPath$1     = curry$1(setPath, true);
-	const append$1      = curry$1(append, true);
+
+	const contains$1    = curry$1(contains, true);
+	const filter$1      = curry$1(filter, true);
+	const find$1        = curry$1(find, true);
+	const insert$1      = curry$1(insert, true);
+	const map$1         = curry$1(map, true);
+	const reduce$1      = curry$1(reduce, true);
+	const remove$2      = curry$1(remove$1, true);
+	const rest$1        = curry$1(rest, true);
+	const slice$1       = curry$1(slice, true);
+	const take$1        = curry$1(take, true);
+	const unique$1      = curry$1(unique, true);
+	const update$1      = curry$1(update, true);
+
+	const diff$2        = curry$1(diff, true);
+	const intersect$1   = curry$1(intersect, true);
+	const unite$1       = curry$1(unite, true);
+
+	const append$1      = curry$1(append);
 	const prepend$2     = curry$1(prepend$1);
+	const prepad$1      = curry$1(prepad);
+	const postpad$1     = curry$1(postpad);
+
 	const add$1         = curry$1(add);
 	const multiply$1    = curry$1(multiply);
 	const min$1         = curry$1(min);
@@ -3181,1653 +3356,1764 @@ var Sparky = (function () {
 	const normalise$1   = curry$1(normalise);
 	const denormalise$1 = curry$1(denormalise);
 
+	var Node        = window.Node;
+	var SVGElement  = window.SVGElement;
+	var CustomEvent = window.CustomEvent;
 
-	/*
-	export const sum       = Fn.add;
-	export const flip      = Fn.flip;
-	export const throttle  = Fn.Throttle;
-	export const wait      = Fn.Wait;
-	export const update    = Fn.update;
+	var assign$5      = Object.assign;
+	var define$1      = Object.defineProperties;
 
-	export const limit       = Fn.limit;
-	export const pow         = Fn.pow;
-	export const toCartesian = Fn.toCartesian;
-	export const toPolar     = Fn.toPolar;
-	export const Stream      = window.Stream;
-	*/
-
-	(function(window) {
-		if (!window.console || !window.console.log) { return; }
-		console.log('dom         – https://github.com/stephband/dom');
-	})(window);
-
-	(function(window) {
+	var A$4            = Array.prototype;
+	var svgNamespace = 'http://www.w3.org/2000/svg';
+	var rspaces      = /\s+/;
+	var rpx          = /px$/;
 
 
-		// Import
+	// Features
 
-		var Node        = window.Node;
-		var SVGElement  = window.SVGElement;
-		var CustomEvent = window.CustomEvent;
-		var Stream      = window.Stream;
+	var features = define$1({
+		events: define$1({}, {
+			fullscreenchange: {
+				get: cache(function() {
+					// TODO: untested event names
+					return ('fullscreenElement' in document) ? 'fullscreenchange' :
+					('webkitFullscreenElement' in document) ? 'webkitfullscreenchange' :
+					('mozFullScreenElement' in document) ? 'mozfullscreenchange' :
+					('msFullscreenElement' in document) ? 'MSFullscreenChange' :
+					'fullscreenchange' ;
+				}),
 
-		var assign      = Object.assign;
-		var define$$1      = Object.defineProperties;
+				enumerable: true
+			},
+
+			transitionend: {
+				// Infer transitionend event from CSS transition prefix
+
+				get: cache(function() {
+					var end = {
+						KhtmlTransition: false,
+						OTransition: 'oTransitionEnd',
+						MozTransition: 'transitionend',
+						WebkitTransition: 'webkitTransitionEnd',
+						msTransition: 'MSTransitionEnd',
+						transition: 'transitionend'
+					};
+
+					var prefixed = prefix$1('transition');
+					return prefixed && end[prefixed];
+				}),
+
+				enumerable: true
+			}
+		})
+	}, {
+		inputEventsWhileDisabled: {
+			// FireFox won't dispatch any events on disabled inputs:
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
+
+			get: cache(function() {
+				var input     = document.createElement('input');
+				var testEvent = Event('featuretest');
+				var result    = false;
+
+				appendChild(document.body, input);
+				input.disabled = true;
+				input.addEventListener('featuretest', function(e) { result = true; });
+				input.dispatchEvent(testEvent);
+				removeNode(input);
+
+				return result;
+			}),
+
+			enumerable: true
+		},
+
+		template: {
+			get: cache(function() {
+				// Older browsers don't know about the content property of templates.
+				return 'content' in document.createElement('template');
+			}),
+
+			enumerable: true
+		},
+
+		textareaPlaceholderSet: {
+			// IE sets textarea innerHTML (but not value) to the placeholder
+			// when setting the attribute and cloning and so on. The twats have
+			// marked it "Won't fix":
+			//
+			// https://connect.microsoft.com/IE/feedback/details/781612/placeholder-text-becomes-actual-value-after-deep-clone-on-textarea
+
+			get: cache(function() {
+				var node = document.createElement('textarea');
+				node.setAttribute('placeholder', '---');
+				return node.innerHTML === '';
+			}),
+
+			enumerable: true
+		},
+
+		transition: {
+			get: cache(function testTransition() {
+				var prefixed = prefix$1('transition');
+				return prefixed || false;
+			}),
+
+			enumerable: true
+		},
+
+		fullscreen: {
+			get: cache(function testFullscreen() {
+				var node = document.createElement('div');
+				return !!(node.requestFullscreen ||
+					node.webkitRequestFullscreen ||
+					node.mozRequestFullScreen ||
+					node.msRequestFullscreen);
+			}),
+
+			enumerable: true
+		},
+
+		// Deprecated
+
+		transitionend: {
+			get: function() {
+				console.warn('dom.features.transitionend deprecated in favour of dom.features.events.transitionend.');
+				return features.events.transitionend;
+			},
+
+			enumerable: true
+		}
+	});
 
 
-		// Var
+	// Utilities
 
-		var A            = Array.prototype;
-		var svgNamespace = 'http://www.w3.org/2000/svg';
-		var rspaces      = /\s+/;
-		var rpx          = /px$/;
+	function bindTail(fn) {
+		// Takes arguments 1 and up and appends them to arguments
+		// passed to fn.
+		var args$$1 = A$4.slice.call(arguments, 1);
+		return function() {
+			A$4.push.apply(arguments, args$$1);
+			fn.apply(null, arguments);
+		};
+	}
 
+	function prefixSlash(str) {
+		// Prefixes a slash when there is not an existing one
+		return (/^\//.test(str) ? '' : '/') + str ;
+	}
+
+	function toArray$2(object) {
+		// Speed test for array conversion:
+		// https://jsperf.com/nodelist-to-array/27
+
+		var array = [];
+		var l = array.length = object.length;
+		var i;
+
+		for (i = 0; i < l; i++) {
+			array[i] = object[i];
+		}
+
+		return array;
+	}
+
+
+	// TokenList
+	// TokenList constructor to emulate classList property. The get fn should
+	// take the arguments (node), and return a string of tokens. The set fn
+	// should take the arguments (node, string).
+
+	function TokenList(node, get, set) {
+		this.node = node;
+		this.get = get;
+		this.set = set;
+	}
+
+	TokenList.prototype = {
+		add: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+
+			while (n--) {
+				if (array.indexOf(arguments[n]) === -1) {
+					array.push(arguments[n]);
+				}
+			}
+
+			this.set(this.node, array.join(' '));
+		},
+
+		remove: function() {
+			var n = arguments.length;
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			var i;
+
+			while (n--) {
+				i = array.indexOf(arguments[n]);
+				if (i !== -1) { array.splice(i, 1); }
+			}
+
+			this.set(this.node, array.join(' '));
+		},
+
+		contains: function(string) {
+			var tokens = this.get(this.node);
+			var array = tokens ? tokens.trim().split(rspaces) : [] ;
+			return array.indexOf(string) !== -1;
+		}
+	};
+
+
+	// DOM Nodes
+
+	var testDiv = document.createElement('div');
+
+	var types = {
+		1:  'element',
+		3:  'text',
+		8:  'comment',
+		9:  'document',
+		10: 'doctype',
+		11: 'fragment'
+	};
+
+	var svgs = [
+		'circle',
+		'ellipse',
+		'g',
+		'line',
+		'rect',
+		//'text',
+		'use',
+		'path',
+		'polygon',
+		'polyline',
+		'svg'
+	];
+
+	var constructors = {
+		text: function(text) {
+			return document.createTextNode(text || '');
+		},
+
+		comment: function(text) {
+			return document.createComment(text || '');
+		},
+
+		fragment: function(html) {
+			var fragment = document.createDocumentFragment();
+
+			if (html) {
+				testDiv.innerHTML = html;
+				append$2(fragment, testDiv.childNodes);
+				testDiv.innerHTML = '';
+			}
+
+			return fragment;
+		}
+	};
+
+	svgs.forEach(function(tag) {
+		constructors[tag] = function(attributes) {
+			var node = document.createElementNS(svgNamespace, tag);
+			if (attributes) { setSVGAttributes(node, attributes); }
+			return node;
+		};
+	});
+
+	function assignAttributes(node, attributes) {
+		var names = Object.keys(attributes);
+		var n = names.length;
+
+		while (n--) {
+			if (names[n] in node) {
+				node[names[n]] = attributes[names[n]];
+			}
+			else {
+				node.setAttribute(names[n], attributes[names[n]]);
+			}
+		}
+	}
+
+	function setSVGAttributes(node, attributes) {
+		var names = Object.keys(attributes);
+		var n = names.length;
+
+		while (n--) {
+			node.setAttributeNS(null, names[n], attributes[names[n]]);
+		}
+	}
+
+	function create$1(name) {
+		// create(type)
+		// create(type, text)
+		// create(tag, attributes)
+		// create(tag, text, attributes)
+
+		if (constructors[name]) {
+			return constructors[name](arguments[1]);
+		}
+
+		var node = document.createElement(name);
+		var attributes;
+
+		if (typeof arguments[1] === 'string') {
+			node.innerHTML = arguments[1];
+			attributes = arguments[2];
+		}
+		else {
+			attributes = arguments[1];
+		}
+
+		if (attributes) {
+			assignAttributes(node, attributes);
+		}
+
+		return node;
+	}
+
+	var clone = features.textareaPlaceholderSet ?
+
+		function clone(node) {
+			return node.cloneNode(true);
+		} :
+
+		function cloneWithHTML(node) {
+			// IE sets textarea innerHTML to the placeholder when cloning.
+			// Reset the resulting value.
+
+			var clone     = node.cloneNode(true);
+			var textareas = dom.query('textarea', node);
+			var n         = textareas.length;
+			var clones;
+
+			if (n) {
+				clones = dom.query('textarea', clone);
+
+				while (n--) {
+					clones[n].value = textareas[n].value;
+				}
+			}
+
+			return clone;
+		} ;
+
+	function type(node) {
+		return types[node.nodeType];
+	}
+
+	function isElementNode(node) {
+		return node.nodeType === 1;
+	}
+
+	function isTextNode(node) {
+		return node.nodeType === 3;
+	}
+
+	function isCommentNode(node) {
+		return node.nodeType === 8;
+	}
+
+	function isFragmentNode(node) {
+		return node.nodeType === 11;
+	}
+
+	function isInternalLink(node) {
+		var location = window.location;
+
+			// IE does not give us a .hostname for links to
+			// xxx.xxx.xxx.xxx URLs
+		return node.hostname &&
+			// IE gives us the port on node.host, even where it is not
+			// specified. Use node.hostname
+			location.hostname === node.hostname &&
+			// IE gives us node.pathname without a leading slash, so
+			// add one before comparing
+			location.pathname === prefixSlash(node.pathname);
+	}
+
+	function isValid(node) {
+		return node.validity ? node.validity.valid : true ;
+	}
+
+	function identify(node) {
+		var id$$1 = node.id;
+
+		if (!id$$1) {
+			do { id$$1 = Math.ceil(Math.random() * 100000); }
+			while (document.getElementById(id$$1));
+			node.id = id$$1;
+		}
+
+		return id$$1;
+	}
+
+	function tag(node) {
+		return node.tagName && node.tagName.toLowerCase();
+	}
+
+	function attribute(name, node) {
+		return node.getAttribute && node.getAttribute(name) || undefined ;
+	}
+
+	function setClass(node, classes) {
+		if (node instanceof SVGElement) {
+			node.setAttribute('class', classes);
+		}
+		else {
+			node.className = classes;
+		}
+	}
+
+	function classes(node) {
+		return node.classList || new TokenList(node, dom.attribute('class'), setClass);
+	}
+
+	function addClass(string, node) {
+		classes(node).add(string);
+	}
+
+	function removeClass(string, node) {
+		classes(node).remove(string);
+	}
+
+	function flashClass(string, node) {
+		var list = classes(node);
+		list.add(string);
+		requestAnimationFrame(function() {
+			list.remove(string);
+		});
+	}
+
+	function children(node) {
+		// In IE and Safari, document fragments do not have .children
+		return toArray$2(node.children || node.querySelectorAll('*'));
+	}
+
+
+	// DOM Traversal
+
+	function find$2(selector, node) {
+		return node.querySelector(selector);
+	}
+
+	function query(selector, node) {
+		node = node || document;
+		return toArray$2(node.querySelectorAll(selector));
+	}
+
+	function contains$2(child, node) {
+		return node.contains ?
+			node.contains(child) :
+		child.parentNode ?
+			child.parentNode === node || contains$2(child.parentNode, node) :
+		false ;
+	}
+
+	function matches(selector, node) {
+		return node.matches ? node.matches(selector) :
+			node.matchesSelector ? node.matchesSelector(selector) :
+			node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
+			node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
+			node.msMatchesSelector ? node.msMatchesSelector(selector) :
+			node.oMatchesSelector ? node.oMatchesSelector(selector) :
+			// Dumb fall back to simple tag name matching. Nigh-on useless.
+			tag(node) === selector ;
+	}
+
+	function closest(selector, node) {
+		var root = arguments[2];
+
+		if (!node || node === document || node === root || node.nodeType === 11) { return; }
+
+		// SVG <use> elements store their DOM reference in
+		// .correspondingUseElement.
+		node = node.correspondingUseElement || node ;
+
+		return matches(selector, node) ?
+			 node :
+			 closest(selector, node.parentNode, root) ;
+	}
+
+	function next(node) {
+		return node.nextElementSibling || undefined;
+	}
+
+	function previous(node) {
+		return node.previousElementSibling || undefined;
+	}
+
+
+	// DOM Mutation
+
+	function appendChild(target, node) {
+		target.appendChild(node);
+
+		// Use this fn as a reducer
+		return target;
+	}
+
+	function append$2(target, node) {
+		if (node instanceof Node || node instanceof SVGElement) {
+			appendChild(target, node);
+			return node;
+		}
+
+		if (!node.length) { return; }
+
+		var array = node.reduce ? node : A$4.slice.call(node) ;
+		array.reduce(appendChild, target);
+
+		return node;
+	}
+
+	function empty(node) {
+		while (node.lastChild) { node.removeChild(node.lastChild); }
+	}
+
+	function removeNode(node) {
+		node.parentNode && node.parentNode.removeChild(node);
+	}
+
+	function remove$3(node) {
+		if (node instanceof Node || node instanceof SVGElement) {
+			removeNode(node);
+		}
+		else {
+			A$4.forEach.call(node, removeNode);
+		}
+	}
+
+	function before(target, node) {
+		target.parentNode && target.parentNode.insertBefore(node, target);
+	}
+
+	function after(target, node) {
+		target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
+	}
+
+	function replace(target, node) {
+		before(target, node);
+		remove$3(target);
+		return target;
+	}
+
+
+	// CSS
+
+	var styleParsers = {
+		"transform:translateX": function(node) {
+			var matrix = style('transform', node);
+			if (!matrix || matrix === "none") { return 0; }
+			var values = valuesFromCssFn(matrix);
+			return parseFloat(values[4]);
+		},
+
+		"transform:translateY": function(node) {
+			var matrix = style('transform', node);
+			if (!matrix || matrix === "none") { return 0; }
+			var values = valuesFromCssFn(matrix);
+			return parseFloat(values[5]);
+		},
+
+		"transform:scale": function(node) {
+			var matrix = style('transform', node);
+			if (!matrix || matrix === "none") { return 0; }
+			var values = valuesFromCssFn(matrix);
+			var a = parseFloat(values[0]);
+			var b = parseFloat(values[1]);
+			return Math.sqrt(a * a + b * b);
+		},
+
+		"transform:rotate": function(node) {
+			var matrix = style('transform', node);
+			if (!matrix || matrix === "none") { return 0; }
+			var values = valuesFromCssFn(matrix);
+			var a = parseFloat(values[0]);
+			var b = parseFloat(values[1]);
+			return Math.atan2(b, a);
+		}
+	};
+
+	var prefix$1 = (function(prefixes) {
+		var node = document.createElement('div');
+		var cache$$1 = {};
+
+		function testPrefix(prop) {
+			if (prop in node.style) { return prop; }
+
+			var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
+			var l = prefixes.length;
+			var prefixProp;
+
+			while (l--) {
+				prefixProp = prefixes[l] + upper;
+
+				if (prefixProp in node.style) {
+					return prefixProp;
+				}
+			}
+
+			return false;
+		}
+
+		return function prefix(prop){
+			return cache$$1[prop] || (cache$$1[prop] = testPrefix(prop));
+		};
+	})(['Khtml','O','Moz','Webkit','ms']);
+
+	function valuesFromCssFn(string) {
+		return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
+	}
+
+	function style(name, node) {
+		return window.getComputedStyle ?
+			window
+			.getComputedStyle(node, null)
+			.getPropertyValue(name) :
+			0 ;
+	}
+
+	function windowBox() {
+		return {
+			left:   0,
+			top:    0,
+			right:  window.innerWidth,
+			bottom: window.innerHeight,
+			width:  window.innerWidth,
+			height: window.innerHeight
+		};
+	}
+
+	function box(node) {
+		return node === window ?
+			windowBox() :
+			node.getClientRects()[0] ;
+	}
+
+	function bounds(node) {
+		return node.getBoundingClientRect();
+	}
+
+	//function offset(node) {
+	//	var rect = box(node);
+	//	var scrollX = window.scrollX === undefined ? window.pageXOffset : window.scrollX ;
+	//	var scrollY = window.scrollY === undefined ? window.pageYOffset : window.scrollY ;
+	//	return [rect.left + scrollX, rect.top + scrollY];
+	//}
+
+	function offset(node1, node2) {
+		var box1 = box(node1);
+		var box2 = box(node2);
+		return [box2.left - box1.left, box2.top - box1.top];
+	}
+
+
+	// DOM Events
+
+	var keyCodes = {
+		8:  'backspace',
+		9:  'tab',
+		13: 'enter',
+		16: 'shift',
+		17: 'ctrl',
+		18: 'alt',
+		27: 'escape',
+		32: 'space',
+		33: 'pageup',
+		34: 'pagedown',
+		35: 'pageright',
+		36: 'pageleft',
+		37: 'left',
+		38: 'up',
+		39: 'right',
+		40: 'down',
+		46: 'delete',
+		48: '0',
+		49: '1',
+		50: '2',
+		51: '3',
+		52: '4',
+		53: '5',
+		54: '6',
+		55: '7',
+		56: '8',
+		57: '9',
+		65: 'a',
+		66: 'b',
+		67: 'c',
+		68: 'd',
+		69: 'e',
+		70: 'f',
+		71: 'g',
+		72: 'h',
+		73: 'i',
+		74: 'j',
+		75: 'k',
+		76: 'l',
+		77: 'm',
+		78: 'n',
+		79: 'o',
+		80: 'p',
+		81: 'q',
+		82: 'r',
+		83: 's',
+		84: 't',
+		85: 'u',
+		86: 'v',
+		87: 'w',
+		88: 'x',
+		89: 'y',
+		90: 'z',
+		// Mac Chrome left CMD
+		91: 'cmd',
+		// Mac Chrome right CMD
+		93: 'cmd',
+		186: ';',
+		187: '=',
+		188: ',',
+		189: '-',
+		190: '.',
+		191: '/',
+		219: '[',
+		220: '\\',
+		221: ']',
+		222: '\'',
+		// Mac FF
+		224: 'cmd'
+	};
+
+	var eventOptions = { bubbles: true };
+
+	var eventsSymbol = Symbol('events');
+
+	var untrapFocus = noop$1;
+
+	function Event(type, properties) {
+		var options = assign$5({}, eventOptions, properties);
+		var event   = new CustomEvent(type, options);
+
+		if (properties) {
+			delete properties.detail;
+			assign$5(event, properties);
+		}
+
+		return event;
+	}
+
+	function preventDefault(e) {
+		e.preventDefault();
+	}
+
+	function isTargetEvent(e) {
+		return e.target === e.currentTarget;
+	}
+
+	function isPrimaryButton(e) {
+		// Ignore mousedowns on any button other than the left (or primary)
+		// mouse button, or when a modifier key is pressed.
+		return (e.which === 1 && !e.ctrlKey && !e.altKey && !e.shiftKey);
+	}
+
+	function toKey(e) {
+		return keyCodes[e.keyCode];
+	}
+
+	function on(node, type, fn, data) {
+		var options;
+
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types   = type.split(rspaces);
+		var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
+		var handler = data ? bindTail(fn, data) : fn ;
+		var handlers;
+
+		var n = -1;
+		while (++n < types.length) {
+			type = types[n];
+			handlers = events[type] || (events[type] = []);
+			handlers.push([fn, handler]);
+			node.addEventListener(type, handler, options);
+		}
+
+		return node;
+	}
+
+	function once$2(node, types, fn, data) {
+		on(node, types, function once() {
+			off(node, types, once);
+			fn.apply(null, arguments);
+		}, data);
+	}
+
+	function off(node, type, fn) {
+		var options;
+
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types   = type.split(rspaces);
+		var events  = node[eventsSymbol];
+		var handlers, i;
+
+		if (!events) { return node; }
+
+		var n = -1;
+		while (n++ < types.length) {
+			type = types[n];
+			handlers = events[type];
+			if (!handlers) { continue; }
+			i = handlers.length;
+			while (i--) {
+				if (handlers[i][0] === fn) {
+					node.removeEventListener(type, handlers[i][1]);
+					handlers.splice(i, 1);
+				}
+			}
+		}
+
+		return node;
+	}
+
+	function trigger(node, type, properties) {
+		// Don't cache events. It prevents you from triggering an event of a
+		// given type from inside the handler of another event of that type.
+		var event = Event(type, properties);
+		node.dispatchEvent(event);
+	}
+
+	function end(e, fn) {
+		off(e.currentTarget, features.events.transitionend, end);
+		fn(e.timeStamp);
+	}
+
+	function requestEvent(type, fn, node) {
+		if (type === 'transitionend') {
+			if (!features.transition) {
+				fn(performance.now());
+				return;
+			}
+
+			type = features.events.transitionend;
+		}
+
+		on(node, type, end, fn);
+	}
+
+	function delegate(selector, fn) {
+		// Create an event handler that looks up the ancestor tree
+		// to find selector.
+		return function handler(e) {
+			var node = closest(selector, e.target, e.currentTarget);
+			if (!node) { return; }
+			e.delegateTarget = node;
+			fn(e, node);
+			e.delegateTarget = undefined;
+		};
+	}
+
+	function prefixType(type) {
+		return features.events[type] || type ;
+	}
+
+	function event(type, node) {
+		var options;
+
+		if (typeof type === 'object') {
+			options = type;
+			type    = options.type;
+		}
+
+		var types = type.split(rspaces).map(prefixType);
+
+		return new Stream$1(function setup(notify, stop) {
+			var buffer = [];
+
+			function update(value) {
+				buffer.push(value);
+				notify('push');
+			}
+
+			types.forEach(function(type) {
+				node.addEventListener(type, update, options);
+			});
+
+			return {
+				shift: function shiftEvent() {
+					return buffer.shift();
+				},
+
+				stop: function stopEvent() {
+					types.forEach(function(type) {
+						node.removeEventListener(type, update);
+					});
+
+					stop(buffer.length);
+				}
+			};
+		});
+	}
+
+	function trapFocus(node) {
+		// Trap focus as described by Nikolas Zachas:
+		// http://www.nczonline.net/blog/2013/02/12/making-an-accessible-dialog-box/
+
+		// If there is an existing focus trap, remove it
+		untrapFocus();
+
+		// Cache the currently focused node
+		var focusNode = document.activeElement || document.body;
+
+		function resetFocus() {
+			var focusable = dom.query('[tabindex], a, input, textarea, button', node)[0];
+			if (focusable) { focusable.focus(); }
+		}
+
+		function preventFocus(e) {
+			if (node.contains(e.target)) { return; }
+
+			// If trying to focus outside node, set the focus back
+			// to the first thing inside.
+			resetFocus();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		// Prevent focus in capture phase
+		document.addEventListener("focus", preventFocus, true);
+
+		// Move focus into node
+		requestTick(resetFocus);
+
+		return untrapFocus = function() {
+			untrapFocus = noop$1;
+			document.removeEventListener('focus', preventFocus, true);
+
+			// Set focus back to the thing that was last focused when the
+			// dialog was opened.
+			requestTick(function() {
+				focusNode.focus();
+			});
+		};
+	}
+
+
+	// DOM Fragments and Templates
+
+	var mimetypes = {
+		xml:  'application/xml',
+		html: 'text/html',
+		svg:  'image/svg+xml'
+	};
+
+	function fragmentFromChildren(node) {
+		if (node.domFragmentFromChildren) {
+			return node.domFragmentFromChildren;
+		}
+
+		var fragment = create$1('fragment');
+		node.domFragmentFromChildren = fragment;
+		append$2(fragment, node.childNodes);
+		return fragment;
+	}
+
+	function fragmentFromHTML(html, tag) {
+		var node = document.createElement(tag || 'div');
+		node.innerHTML = html;
+		return fragmentFromChildren(node);
+	}
+
+	function fragmentFromTemplate(node) {
+		// A template tag has a content property that gives us a document
+		// fragment. If that doesn't exist we must make a document fragment.
+		return node.content || fragmentFromChildren(node);
+	}
+
+	function fragmentFromId(id$$1) {
+		var node = document.getElementById(id$$1);
+
+		if (!node) { throw new Error('DOM: element id="' + id$$1 + '" is not in the DOM.') }
+
+		var t = tag(node);
+
+		// In browsers where templates are not inert their content can clash
+		// with content in the DOM - ids, for example. Remove the template as
+		// a precaution.
+		if (t === 'template' && !features.template) {
+			remove$3(node);
+		}
+
+		return t === 'template' ? fragmentFromTemplate(node) :
+			t === 'script' ? fragmentFromHTML(node.innerHTML, attribute('data-parent-tag', node)) :
+			fragmentFromChildren(node) ;
+	}
+
+	function parse$3(type, string) {
+		if (!string) { return; }
+
+		var mimetype = mimetypes[type];
+		var xml;
+
+		// From jQuery source...
+		try {
+			xml = (new window.DOMParser()).parseFromString(string, mimetype);
+		} catch (e) {
+			xml = undefined;
+		}
+
+		if (!xml || xml.getElementsByTagName("parsererror").length) {
+			throw new Error("dom: Invalid XML: " + string);
+		}
+
+		return xml;
+	}
+
+	var escape = (function() {
+		var pre  = document.createElement('pre');
+		var text = document.createTextNode('');
+
+		pre.appendChild(text);
+
+		return function escape(value) {
+			text.textContent = value;
+			return pre.innerHTML;
+		};
+	})();
+
+
+	// Units
+
+	var runit = /(\d*\.?\d+)(r?em|vw|vh)/;
+	//var rpercent = /(\d*\.?\d+)%/;
+
+	var fontSize;
+
+	var units = {
+		em: function(n) {
+			return getFontSize() * n;
+		},
+
+		rem: function(n) {
+			return getFontSize() * n;
+		},
+
+		vw: function(n) {
+			return window.innerWidth * n / 100;
+		},
+
+		vh: function(n) {
+			return window.innerHeight * n / 100;
+		}
+	};
+
+	var toPx = overload(toType, {
+		'number': id,
+
+		'string': function(string) {
+			var data = runit.exec(string);
+
+			if (data) {
+				return units[data[2]](parseFloat(data[1]));
+			}
+
+			throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
+		}
+	});
+
+	function toRem(n) {
+		return (toPx(n) / getFontSize()) + 'rem';
+	}
+
+	function toVw(n) {
+		return (100 * toPx(n) / window.innerWidth) + 'vw';
+	}
+
+	function toVh(n) {
+		return (100 * toPx(n) / window.innerHeight) + 'vh';
+	}
+
+	function getFontSize() {
+		return fontSize ||
+			(fontSize = parseFloat(style("font-size", document.documentElement), 10));
+	}
+
+
+	// Animation and scrolling
+
+	function transition(duration, fn) {
+		var t0 = performance.now();
+
+		function frame(t1) {
+			// Progress from 0-1
+			var progress = (t1 - t0) / (duration * 1000);
+
+			if (progress < 1) {
+				if (progress > 0) {
+					fn(progress);
+				}
+				id$$1 = requestAnimationFrame(frame);
+			}
+			else {
+				fn(1);
+			}
+		}
+
+		var id$$1 = requestAnimationFrame(frame);
+
+		return function cancel() {
+			cancelAnimationFrame(id$$1);
+		};
+	}
+
+	function animate(duration, transform, name, object, value) {
+		return transition(
+			duration,
+			pipe(transform, denormalise$1(object[name], value), set$1(name, object))
+		);
+	}
+
+	function animateScroll(coords) {
+		var duration = 0.6;
+		var ease = pow$1(2);
+
+		// coords may be a single y value or a an [x, y] array
+		var x, y;
+
+		if (typeof coords === "number") {
+			x = false;
+			y = coords;
+		}
+		else {
+			x = coords[0];
+			y = coords[1];
+		}
+
+		var denormaliseX = x !== false && denormalise$1(dom.view.scrollLeft, x);
+		var denormaliseY = denormalise$1(dom.view.scrollTop, y);
+
+		return transition(
+			duration,
+			pipe(ease, function(progress) {
+				x !== false && (dom.view.scrollLeft = denormaliseX(progress));
+				dom.view.scrollTop  = denormaliseY(progress);
+			})
+		);
+	}
+
+	function scrollRatio(node) {
+		return node.scrollTop / (node.scrollHeight - node.clientHeight);
+	}
+
+	function disableScroll(node) {
+		node = node || document.documentElement;
+
+		var scrollLeft = node.scrollLeft;
+		var scrollTop  = node.scrollTop;
+
+		// Remove scrollbars from the documentElement
+		//docElem.css({ overflow: 'hidden' });
+		node.style.overflow = 'hidden';
+
+		// FF has a nasty habit of linking the scroll parameters
+		// of document with the documentElement, causing the page
+		// to jump when overflow is hidden on the documentElement.
+		// Reset the scroll position.
+		if (scrollTop)  { node.scrollTop = scrollTop; }
+		if (scrollLeft) { node.scrollLeft = scrollLeft; }
+
+		// Disable gestures on touch devices
+		//add(document, 'touchmove', preventDefaultOutside, layer);
+	}
+
+	function enableScroll(node) {
+		node = node || document.documentElement;
+
+		var scrollLeft = node.scrollLeft;
+		var scrollTop  = node.scrollTop;
+
+		// Put scrollbars back onto docElem
+		node.style.overflow = '';
+
+		// FF fix. Reset the scroll position.
+		if (scrollTop) { node.scrollTop = scrollTop; }
+		if (scrollLeft) { node.scrollLeft = scrollLeft; }
+
+		// Enable gestures on touch devices
+		//remove(document, 'touchmove', preventDefaultOutside);
+	}
+
+	// dom
+
+	function dom(selector) {
+		return query(selector, document);
+	}
+	var ready = new Promise(function(accept, reject) {
+		function handle() {
+			document.removeEventListener('DOMContentLoaded', handle);
+			window.removeEventListener('load', handle);
+			accept();
+		}
+
+		document.addEventListener('DOMContentLoaded', handle);
+		window.addEventListener('load', handle);
+	});
+
+	assign$5(dom, {
+
+		// DOM lifecycle
+
+		ready:   ready.then.bind(ready),
+
+		now:     function() {
+			// Return DOM time in seconds
+			return window.performance.now() / 1000;
+		},
+
+		// DOM traversal
+
+		get: function get(id$$1) {
+			return document.getElementById(id$$1) || undefined;
+		},
+
+		find:     curry$1(find$2,     true),
+		query:    curry$1(query,    true),
+		closest:  curry$1(closest,  true),
+		contains: curry$1(contains$2, true),
+		matches:  curry$1(matches,  true),
+		children: children,
+		next:     next,
+		previous: previous,
+
+		// DOM mutation
+
+		assign:   curry$1(assignAttributes,  true),
+		create:   create$1,
+		clone:    clone,
+		identify: identify,
+		append:   curry$1(append$2,  true),
+		before:   curry$1(before,  true),
+		after:    curry$1(after,   true),
+		replace:  curry$1(replace, true),
+		empty:    empty,
+		remove:   remove$3,
+
+		validate: function(node) {
+			return node.checkValidity ? node.checkValidity() : true ;
+		},
+
+		fullscreen: function fullscreen(node) {
+			// Find the right method and call it
+			return node.requestFullscreen ? node.requestFullscreen() :
+				node.webkitRequestFullscreen ? node.webkitRequestFullscreen() :
+				node.mozRequestFullScreen ? node.mozRequestFullScreen() :
+				node.msRequestFullscreen ? node.msRequestFullscreen() :
+				undefined ;
+		},
+
+		// EXAMPLE CODE for mutation observers  ------
+
+		//		var observer = new MutationObserver(function(mutationsList) {
+		//		    var mutation;
+		//		    for(mutation of mutationsList) {
+		//		        if (mutation.addedNodes.length) {
+		//		            dom
+		//		            .query('a[href="' + router.path + '"]', mutation.target)
+		//		            .forEach(dom.addClass('current'));
+		//		        }
+		//		    }
+		//		});
+		//
+		//		observer.observe(dom.get('calendar'), { childList: true, subtree: true });
+
+		// DOM inspection
+
+		isElementNode:  isElementNode,
+		isTextNode:     isTextNode,
+		isCommentNode:  isCommentNode,
+		isFragmentNode: isFragmentNode,
+		isInternalLink: isInternalLink,
+		isValid:        isValid,
+
+		type:        type,
+		tag:         tag,
+		attribute:   curry$1(attribute, true),
+		classes:     classes,
+		addClass:    curry$1(addClass,    true),
+		removeClass: curry$1(removeClass, true),
+		flashClass:  curry$1(flashClass,  true),
+
+		box:         box,
+		bounds:      bounds,
+		offset:      curry$1(offset, true),
+
+		prefix:      prefix$1,
+		style: curry$1(function(name, node) {
+			// If name corresponds to a custom property name in styleParsers...
+			if (styleParsers[name]) { return styleParsers[name](node); }
+
+			var value = style(name, node);
+
+			// Pixel values are converted to number type
+			return typeof value === 'string' && rpx.test(value) ?
+				parseFloat(value) :
+				value ;
+		}, true),
+
+		toPx:           toPx,
+		toRem:          toRem,
+		toVw:           toVw,
+		toVh:           toVh,
+
+		// DOM fragments and templates
+
+		fragmentFromTemplate: fragmentFromTemplate,
+		fragmentFromChildren: fragmentFromChildren,
+		fragmentFromHTML:     fragmentFromHTML,
+		fragmentFromId:       fragmentFromId,
+		escape:               escape,
+		parse:                curry$1(parse$3),
+
+		// DOM events
+
+		Event:           Event,
+		delegate:        delegate,
+		isPrimaryButton: isPrimaryButton,
+		isTargetEvent:   isTargetEvent,
+		preventDefault:  preventDefault,
+		toKey:           toKey,
+		trapFocus:       trapFocus,
+		trap:            deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
+
+		trigger: curry$1(function(type, node) {
+			trigger(node, type);
+			return node;
+		}, true),
+
+		events: assign$5(curry$1(event, true), {
+			on:      on,
+			once:    once$2,
+			off:     off,
+			trigger: trigger
+		}),
+
+		on:    deprecate(curry$1(event, true), 'dom.on() is now dom.events()'),
+		event: deprecate(curry$1(event, true), 'Deprecated dom.event() – now dom.events()'),
+
+		// DOM animation adn scrolling
+
+		// transition(duration, fn)
+		//
+		// duration  - duration seconds
+		// fn        - callback that is called with a float representing
+		//             progress in the range 0-1
+
+		transition: curry$1(transition, true),
+		schedule:   deprecate(transition, 'dom: .schedule() is now .transition()'),
+
+		// animate(duration, transform, value, name, object)
+		//
+		// duration  - in seconds
+		// transform - function that maps x (0-1) to y (0-1)
+		// name      - name of property to animate
+		// object    - object to animate
+		// value     - target value
+
+		animate: curry$1(animate, true),
+
+		// animateScroll(n)
+		//
+		// Animate scrollTop of scrollingElement to n (in px)
+
+		animateScroll: animateScroll,
+		scrollTo: deprecate(animateScroll, 'scrollTo(px, node) renamed to animateScroll(px)'),
+
+		// scrollRatio(node)
+		//
+		// Returns scrollTop as ratio of scrollHeight
+
+		scrollRatio: scrollRatio,
+
+		// disableScroll(node)
+		//
+		// Disables scrolling without causing node's content to jump
+
+		disableScroll: disableScroll,
+
+		// enableScroll(node)
+		//
+		// Enables scrolling without causing node's content to jump
+
+		enableScroll: enableScroll,
+
+		// requestEvent(type, fn, node)
+
+		requestEvent: requestEvent,
+
+		requestFrame: requestAnimationFrame.bind(null),
+
+		requestFrameN: curry$1(deprecate(function requestFrameN(n, fn) {
+			(function frame() {
+				return requestAnimationFrame(--n ? frame : fn);
+			}());
+		}, 'requestFrameN() will be removed soon'), true),
 
 		// Features
 
-		var features = define$$1({
-			events: define$$1({}, {
-				fullscreenchange: {
-					get: cache(function() {
-						// TODO: untested event names
-						return ('fullscreenElement' in document) ? 'fullscreenchange' :
-						('webkitFullscreenElement' in document) ? 'webkitfullscreenchange' :
-						('mozFullScreenElement' in document) ? 'mozfullscreenchange' :
-						('msFullscreenElement' in document) ? 'MSFullscreenChange' :
-						'fullscreenchange' ;
-					}),
+		features: features,
 
-					enumerable: true
-				},
+		// Safe visible area
 
-				transitionend: {
-					// Infer transitionend event from CSS transition prefix
-
-					get: cache(function() {
-						var end = {
-							KhtmlTransition: false,
-							OTransition: 'oTransitionEnd',
-							MozTransition: 'transitionend',
-							WebkitTransition: 'webkitTransitionEnd',
-							msTransition: 'MSTransitionEnd',
-							transition: 'transitionend'
-						};
-
-						var prefixed = prefix('transition');
-						return prefixed && end[prefixed];
-					}),
-
-					enumerable: true
-				}
-			})
+		safe: define$1({
+			left: 0
 		}, {
-			inputEventsWhileDisabled: {
-				// FireFox won't dispatch any events on disabled inputs:
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=329509
-
-				get: cache(function() {
-					var input     = document.createElement('input');
-					var testEvent = Event('featuretest');
-					var result    = false;
-
-					appendChild(document.body, input);
-					input.disabled = true;
-					input.addEventListener('featuretest', function(e) { result = true; });
-					input.dispatchEvent(testEvent);
-					removeNode(input);
-
-					return result;
-				}),
-
-				enumerable: true
-			},
-
-			template: {
-				get: cache(function() {
-					// Older browsers don't know about the content property of templates.
-					return 'content' in document.createElement('template');
-				}),
-
-				enumerable: true
-			},
-
-			textareaPlaceholderSet: {
-				// IE sets textarea innerHTML (but not value) to the placeholder
-				// when setting the attribute and cloning and so on. The twats have
-				// marked it "Won't fix":
-				//
-				// https://connect.microsoft.com/IE/feedback/details/781612/placeholder-text-becomes-actual-value-after-deep-clone-on-textarea
-
-				get: cache(function() {
-					var node = document.createElement('textarea');
-					node.setAttribute('placeholder', '---');
-					return node.innerHTML === '';
-				}),
-
-				enumerable: true
-			},
-
-			transition: {
-				get: cache(function testTransition() {
-					var prefixed = prefix('transition');
-					return prefixed || false;
-				}),
-
-				enumerable: true
-			},
-
-			fullscreen: {
-				get: cache(function testFullscreen() {
-					var node = document.createElement('div');
-					return !!(node.requestFullscreen ||
-						node.webkitRequestFullscreen ||
-						node.mozRequestFullScreen ||
-						node.msRequestFullscreen);
-				}),
-
-				enumerable: true
-			},
-
-			// Deprecated
-
-			transitionend: {
-				get: function() {
-					console.warn('dom.features.transitionend deprecated in favour of dom.features.events.transitionend.');
-					return features.events.transitionend;
-				},
-
-				enumerable: true
-			}
-		});
-
-
-		// Utilities
-
-		function bindTail(fn) {
-			// Takes arguments 1 and up and appends them to arguments
-			// passed to fn.
-			var args$$1 = A.slice.call(arguments, 1);
-			return function() {
-				A.push.apply(arguments, args$$1);
-				fn.apply(null, arguments);
-			};
-		}
-
-		function prefixSlash(str) {
-			// Prefixes a slash when there is not an existing one
-			return (/^\//.test(str) ? '' : '/') + str ;
-		}
-
-		function toArray(object) {
-			// Speed test for array conversion:
-			// https://jsperf.com/nodelist-to-array/27
-
-			var array = [];
-			var l = array.length = object.length;
-			var i;
-
-			for (i = 0; i < l; i++) {
-				array[i] = object[i];
-			}
-
-			return array;
-		}
-
-
-		// TokenList
-		// TokenList constructor to emulate classList property. The get fn should
-		// take the arguments (node), and return a string of tokens. The set fn
-		// should take the arguments (node, string).
-
-		function TokenList(node, get, set) {
-			this.node = node;
-			this.get = get;
-			this.set = set;
-		}
-
-		TokenList.prototype = {
-			add: function() {
-				var n = arguments.length;
-				var tokens = this.get(this.node);
-				var array = tokens ? tokens.trim().split(rspaces) : [] ;
-
-				while (n--) {
-					if (array.indexOf(arguments[n]) === -1) {
-						array.push(arguments[n]);
-					}
-				}
-
-				this.set(this.node, array.join(' '));
-			},
-
-			remove: function() {
-				var n = arguments.length;
-				var tokens = this.get(this.node);
-				var array = tokens ? tokens.trim().split(rspaces) : [] ;
-				var i;
-
-				while (n--) {
-					i = array.indexOf(arguments[n]);
-					if (i !== -1) { array.splice(i, 1); }
-				}
-
-				this.set(this.node, array.join(' '));
-			},
-
-			contains: function(string) {
-				var tokens = this.get(this.node);
-				var array = tokens ? tokens.trim().split(rspaces) : [] ;
-				return array.indexOf(string) !== -1;
-			}
-		};
-
-
-		// DOM Nodes
-
-		var testDiv = document.createElement('div');
-
-		var types = {
-			1:  'element',
-			3:  'text',
-			8:  'comment',
-			9:  'document',
-			10: 'doctype',
-			11: 'fragment'
-		};
-
-		var svgs = [
-			'circle',
-			'ellipse',
-			'g',
-			'line',
-			'rect',
-			//'text',
-			'use',
-			'path',
-			'polygon',
-			'polyline',
-			'svg'
-		];
-
-		var constructors = {
-			text: function(text) {
-				return document.createTextNode(text || '');
-			},
-
-			comment: function(text) {
-				return document.createComment(text || '');
-			},
-
-			fragment: function(html) {
-				var fragment = document.createDocumentFragment();
-
-				if (html) {
-					testDiv.innerHTML = html;
-					append(fragment, testDiv.childNodes);
-					testDiv.innerHTML = '';
-				}
-
-				return fragment;
-			}
-		};
-
-		svgs.forEach(function(tag) {
-			constructors[tag] = function(attributes) {
-				var node = document.createElementNS(svgNamespace, tag);
-				if (attributes) { setSVGAttributes(node, attributes); }
-				return node;
-			};
-		});
-
-		function assignAttributes(node, attributes) {
-			var names = Object.keys(attributes);
-			var n = names.length;
-
-			while (n--) {
-				if (names[n] in node) {
-					node[names[n]] = attributes[names[n]];
-				}
-				else {
-					node.setAttribute(names[n], attributes[names[n]]);
-				}
-			}
-		}
-
-		function setSVGAttributes(node, attributes) {
-			var names = Object.keys(attributes);
-			var n = names.length;
-
-			while (n--) {
-				node.setAttributeNS(null, names[n], attributes[names[n]]);
-			}
-		}
-
-		function create(name) {
-			// create(type)
-			// create(type, text)
-			// create(tag, attributes)
-			// create(tag, text, attributes)
-
-			if (constructors[name]) {
-				return constructors[name](arguments[1]);
-			}
-
-			var node = document.createElement(name);
-			var attributes;
-
-			if (typeof arguments[1] === 'string') {
-				node.innerHTML = arguments[1];
-				attributes = arguments[2];
-			}
-			else {
-				attributes = arguments[1];
-			}
-
-			if (attributes) {
-				assignAttributes(node, attributes);
-			}
-
-			return node;
-		}
-
-		var clone = features.textareaPlaceholderSet ?
-
-			function clone(node) {
-				return node.cloneNode(true);
-			} :
-
-			function cloneWithHTML(node) {
-				// IE sets textarea innerHTML to the placeholder when cloning.
-				// Reset the resulting value.
-
-				var clone     = node.cloneNode(true);
-				var textareas = dom.query('textarea', node);
-				var n         = textareas.length;
-				var clones;
-
-				if (n) {
-					clones = dom.query('textarea', clone);
-
-					while (n--) {
-						clones[n].value = textareas[n].value;
-					}
-				}
-
-				return clone;
-			} ;
-
-		function type(node) {
-			return types[node.nodeType];
-		}
-
-		function isElementNode(node) {
-			return node.nodeType === 1;
-		}
-
-		function isTextNode(node) {
-			return node.nodeType === 3;
-		}
-
-		function isCommentNode(node) {
-			return node.nodeType === 8;
-		}
-
-		function isFragmentNode(node) {
-			return node.nodeType === 11;
-		}
-
-		function isInternalLink(node) {
-			var location = window.location;
-
-				// IE does not give us a .hostname for links to
-				// xxx.xxx.xxx.xxx URLs
-			return node.hostname &&
-				// IE gives us the port on node.host, even where it is not
-				// specified. Use node.hostname
-				location.hostname === node.hostname &&
-				// IE gives us node.pathname without a leading slash, so
-				// add one before comparing
-				location.pathname === prefixSlash(node.pathname);
-		}
-
-		function isValid(node) {
-			return node.validity ? node.validity.valid : true ;
-		}
-
-		function identify(node) {
-			var id$$1 = node.id;
-
-			if (!id$$1) {
-				do { id$$1 = Math.ceil(Math.random() * 100000); }
-				while (document.getElementById(id$$1));
-				node.id = id$$1;
-			}
-
-			return id$$1;
-		}
-
-		function tag(node) {
-			return node.tagName && node.tagName.toLowerCase();
-		}
-
-		function attribute(name, node) {
-			return node.getAttribute && node.getAttribute(name) || undefined ;
-		}
-
-		function setClass(node, classes) {
-			if (node instanceof SVGElement) {
-				node.setAttribute('class', classes);
-			}
-			else {
-				node.className = classes;
-			}
-		}
-
-		function classes(node) {
-			return node.classList || new TokenList(node, dom.attribute('class'), setClass);
-		}
-
-		function addClass(string, node) {
-			classes(node).add(string);
-		}
-
-		function removeClass(string, node) {
-			classes(node).remove(string);
-		}
-
-		function flashClass(string, node) {
-			var list = classes(node);
-			list.add(string);
-			requestAnimationFrame(function() {
-				list.remove(string);
-			});
-		}
-
-		function children(node) {
-			// In IE and Safari, document fragments do not have .children
-			return toArray(node.children || node.querySelectorAll('*'));
-		}
-
-
-		// DOM Traversal
-
-		function find(selector, node) {
-			return node.querySelector(selector);
-		}
-
-		function query(selector, node) {
-			node = node || document;
-			return toArray(node.querySelectorAll(selector));
-		}
-
-		function contains(child, node) {
-			return node.contains ?
-				node.contains(child) :
-			child.parentNode ?
-				child.parentNode === node || contains(child.parentNode, node) :
-			false ;
-		}
-
-		function matches(selector, node) {
-			return node.matches ? node.matches(selector) :
-				node.matchesSelector ? node.matchesSelector(selector) :
-				node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
-				node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
-				node.msMatchesSelector ? node.msMatchesSelector(selector) :
-				node.oMatchesSelector ? node.oMatchesSelector(selector) :
-				// Dumb fall back to simple tag name matching. Nigh-on useless.
-				tag(node) === selector ;
-		}
-
-		function closest(selector, node) {
-			var root = arguments[2];
-
-			if (!node || node === document || node === root || node.nodeType === 11) { return; }
-
-			// SVG <use> elements store their DOM reference in
-			// .correspondingUseElement.
-			node = node.correspondingUseElement || node ;
-
-			return matches(selector, node) ?
-				 node :
-				 closest(selector, node.parentNode, root) ;
-		}
-
-		function next(node) {
-			return node.nextElementSibling || undefined;
-		}
-
-		function previous(node) {
-			return node.previousElementSibling || undefined;
-		}
-
-
-		// DOM Mutation
-
-		function appendChild(target, node) {
-			target.appendChild(node);
-
-			// Use this fn as a reducer
-			return target;
-		}
-
-		function append(target, node) {
-			if (node instanceof Node || node instanceof SVGElement) {
-				appendChild(target, node);
-				return node;
-			}
-
-			if (!node.length) { return; }
-
-			var array = node.reduce ? node : A.slice.call(node) ;
-			array.reduce(appendChild, target);
-
-			return node;
-		}
-
-		function empty(node) {
-			while (node.lastChild) { node.removeChild(node.lastChild); }
-		}
-
-		function removeNode(node) {
-			node.parentNode && node.parentNode.removeChild(node);
-		}
-
-		function remove(node) {
-			if (node instanceof Node || node instanceof SVGElement) {
-				removeNode(node);
-			}
-			else {
-				A.forEach.call(node, removeNode);
-			}
-		}
-
-		function before(target, node) {
-			target.parentNode && target.parentNode.insertBefore(node, target);
-		}
-
-		function after(target, node) {
-			target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
-		}
-
-		function replace(target, node) {
-			before(target, node);
-			remove(target);
-			return target;
-		}
-
-
-		// CSS
-
-		var styleParsers = {
-			"transform:translateX": function(node) {
-				var matrix = style('transform', node);
-				if (!matrix || matrix === "none") { return 0; }
-				var values = valuesFromCssFn(matrix);
-				return parseFloat(values[4]);
-			},
-
-			"transform:translateY": function(node) {
-				var matrix = style('transform', node);
-				if (!matrix || matrix === "none") { return 0; }
-				var values = valuesFromCssFn(matrix);
-				return parseFloat(values[5]);
-			},
-
-			"transform:scale": function(node) {
-				var matrix = style('transform', node);
-				if (!matrix || matrix === "none") { return 0; }
-				var values = valuesFromCssFn(matrix);
-				var a = parseFloat(values[0]);
-				var b = parseFloat(values[1]);
-				return Math.sqrt(a * a + b * b);
-			},
-
-			"transform:rotate": function(node) {
-				var matrix = style('transform', node);
-				if (!matrix || matrix === "none") { return 0; }
-				var values = valuesFromCssFn(matrix);
-				var a = parseFloat(values[0]);
-				var b = parseFloat(values[1]);
-				return Math.atan2(b, a);
-			}
-		};
-
-		var prefix = (function(prefixes) {
-			var node = document.createElement('div');
-			var cache$$1 = {};
-
-			function testPrefix(prop) {
-				if (prop in node.style) { return prop; }
-
-				var upper = prop.charAt(0).toUpperCase() + prop.slice(1);
-				var l = prefixes.length;
-				var prefixProp;
-
-				while (l--) {
-					prefixProp = prefixes[l] + upper;
-
-					if (prefixProp in node.style) {
-						return prefixProp;
-					}
-				}
-
-				return false;
-			}
-
-			return function prefix(prop){
-				return cache$$1[prop] || (cache$$1[prop] = testPrefix(prop));
-			};
-		})(['Khtml','O','Moz','Webkit','ms']);
-
-		function valuesFromCssFn(string) {
-			return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
-		}
-
-		function style(name, node) {
-			return window.getComputedStyle ?
-				window
-				.getComputedStyle(node, null)
-				.getPropertyValue(name) :
-				0 ;
-		}
-
-		function windowBox() {
-			return {
-				left:   0,
-				top:    0,
-				right:  window.innerWidth,
-				bottom: window.innerHeight,
-				width:  window.innerWidth,
-				height: window.innerHeight
-			};
-		}
-
-		function box(node) {
-			return node === window ?
-				windowBox() :
-				node.getClientRects()[0] ;
-		}
-
-		function bounds(node) {
-			return node.getBoundingClientRect();
-		}
-
-		//function offset(node) {
-		//	var rect = box(node);
-		//	var scrollX = window.scrollX === undefined ? window.pageXOffset : window.scrollX ;
-		//	var scrollY = window.scrollY === undefined ? window.pageYOffset : window.scrollY ;
-		//	return [rect.left + scrollX, rect.top + scrollY];
-		//}
-
-		function offset(node1, node2) {
-			var box1 = box(node1);
-			var box2 = box(node2);
-			return [box2.left - box1.left, box2.top - box1.top];
-		}
-
-
-		// DOM Events
-
-		var keyCodes = {
-			8:  'backspace',
-			9:  'tab',
-			13: 'enter',
-			16: 'shift',
-			17: 'ctrl',
-			18: 'alt',
-			27: 'escape',
-			32: 'space',
-			33: 'pageup',
-			34: 'pagedown',
-			35: 'pageright',
-			36: 'pageleft',
-			37: 'left',
-			38: 'up',
-			39: 'right',
-			40: 'down',
-			46: 'delete',
-			48: '0',
-			49: '1',
-			50: '2',
-			51: '3',
-			52: '4',
-			53: '5',
-			54: '6',
-			55: '7',
-			56: '8',
-			57: '9',
-			65: 'a',
-			66: 'b',
-			67: 'c',
-			68: 'd',
-			69: 'e',
-			70: 'f',
-			71: 'g',
-			72: 'h',
-			73: 'i',
-			74: 'j',
-			75: 'k',
-			76: 'l',
-			77: 'm',
-			78: 'n',
-			79: 'o',
-			80: 'p',
-			81: 'q',
-			82: 'r',
-			83: 's',
-			84: 't',
-			85: 'u',
-			86: 'v',
-			87: 'w',
-			88: 'x',
-			89: 'y',
-			90: 'z',
-			// Mac Chrome left CMD
-			91: 'cmd',
-			// Mac Chrome right CMD
-			93: 'cmd',
-			186: ';',
-			187: '=',
-			188: ',',
-			189: '-',
-			190: '.',
-			191: '/',
-			219: '[',
-			220: '\\',
-			221: ']',
-			222: '\'',
-			// Mac FF
-			224: 'cmd'
-		};
-
-		var eventOptions = { bubbles: true };
-
-		var eventsSymbol = Symbol('events');
-
-		var untrapFocus = noop$1;
-
-		function Event(type, properties) {
-			var options = assign({}, eventOptions, properties);
-			var event   = new CustomEvent(type, options);
-
-			if (properties) {
-				delete properties.detail;
-				assign(event, properties);
-			}
-
-			return event;
-		}
-
-		function preventDefault(e) {
-			e.preventDefault();
-		}
-
-		function isTargetEvent(e) {
-			return e.target === e.currentTarget;
-		}
-
-		function isPrimaryButton(e) {
-			// Ignore mousedowns on any button other than the left (or primary)
-			// mouse button, or when a modifier key is pressed.
-			return (e.which === 1 && !e.ctrlKey && !e.altKey && !e.shiftKey);
-		}
-
-		function toKey(e) {
-			return keyCodes[e.keyCode];
-		}
-
-		function on(node, type, fn, data) {
-			var options;
-
-			if (typeof type === 'object') {
-				options = type;
-				type    = options.type;
-			}
-
-			var types   = type.split(rspaces);
-			var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-			var handler = data ? bindTail(fn, data) : fn ;
-			var handlers;
-
-			var n = -1;
-			while (++n < types.length) {
-				type = types[n];
-				handlers = events[type] || (events[type] = []);
-				handlers.push([fn, handler]);
-				node.addEventListener(type, handler, options);
-			}
-
-			return node;
-		}
-
-		function once(node, types, fn, data) {
-			on(node, types, function once() {
-				off(node, types, once);
-				fn.apply(null, arguments);
-			}, data);
-		}
-
-		function off(node, type, fn) {
-			var options;
-
-			if (typeof type === 'object') {
-				options = type;
-				type    = options.type;
-			}
-
-			var types   = type.split(rspaces);
-			var events  = node[eventsSymbol];
-			var handlers, i;
-
-			if (!events) { return node; }
-
-			var n = -1;
-			while (n++ < types.length) {
-				type = types[n];
-				handlers = events[type];
-				if (!handlers) { continue; }
-				i = handlers.length;
-				while (i--) {
-					if (handlers[i][0] === fn) {
-						node.removeEventListener(type, handlers[i][1]);
-						handlers.splice(i, 1);
-					}
-				}
-			}
-
-			return node;
-		}
-
-		function trigger(node, type, properties) {
-			// Don't cache events. It prevents you from triggering an event of a
-			// given type from inside the handler of another event of that type.
-			var event = Event(type, properties);
-			node.dispatchEvent(event);
-		}
-
-		function end(e, fn) {
-			off(e.currentTarget, features.events.transitionend, end);
-			fn(e.timeStamp);
-		}
-
-		function requestEvent(type, fn, node) {
-			if (type === 'transitionend') {
-				if (!features.transition) {
-					fn(performance.now());
-					return;
-				}
-
-				type = features.events.transitionend;
-			}
-
-			on(node, type, end, fn);
-		}
-
-		function delegate(selector, fn) {
-			// Create an event handler that looks up the ancestor tree
-			// to find selector.
-			return function handler(e) {
-				var node = closest(selector, e.target, e.currentTarget);
-				if (!node) { return; }
-				e.delegateTarget = node;
-				fn(e, node);
-				e.delegateTarget = undefined;
-			};
-		}
-
-		function prefixType(type) {
-			return features.events[type] || type ;
-		}
-
-		function event(type, node) {
-			var options;
-
-			if (typeof type === 'object') {
-				options = type;
-				type    = options.type;
-			}
-
-			var types = type.split(rspaces).map(prefixType);
-
-			return new Stream(function setup(notify, stop) {
-				var buffer = [];
-
-				function update(value) {
-					buffer.push(value);
-					notify('push');
-				}
-
-				types.forEach(function(type) {
-					node.addEventListener(type, update, options);
-				});
-
-				return {
-					shift: function shiftEvent() {
-						return buffer.shift();
-					},
-
-					stop: function stopEvent() {
-						types.forEach(function(type) {
-							node.removeEventListener(type, update);
-						});
-
-						stop(buffer.length);
-					}
-				};
-			});
-		}
-
-		function trapFocus(node) {
-			// Trap focus as described by Nikolas Zachas:
-			// http://www.nczonline.net/blog/2013/02/12/making-an-accessible-dialog-box/
-
-			// If there is an existing focus trap, remove it
-			untrapFocus();
-
-			// Cache the currently focused node
-			var focusNode = document.activeElement || document.body;
-
-			function resetFocus() {
-				var focusable = dom.query('[tabindex], a, input, textarea, button', node)[0];
-				if (focusable) { focusable.focus(); }
-			}
-
-			function preventFocus(e) {
-				if (node.contains(e.target)) { return; }
-
-				// If trying to focus outside node, set the focus back
-				// to the first thing inside.
-				resetFocus();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-
-			// Prevent focus in capture phase
-			document.addEventListener("focus", preventFocus, true);
-
-			// Move focus into node
-			requestTick(resetFocus);
-
-			return untrapFocus = function() {
-				untrapFocus = noop$1;
-				document.removeEventListener('focus', preventFocus, true);
-
-				// Set focus back to the thing that was last focused when the
-				// dialog was opened.
-				requestTick(function() {
-					focusNode.focus();
-				});
-			};
-		}
-
-
-		// DOM Fragments and Templates
-
-		var mimetypes = {
-			xml:  'application/xml',
-			html: 'text/html',
-			svg:  'image/svg+xml'
-		};
-
-		function fragmentFromChildren(node) {
-			if (node.domFragmentFromChildren) {
-				return node.domFragmentFromChildren;
-			}
-
-			var fragment = create('fragment');
-			node.domFragmentFromChildren = fragment;
-			append(fragment, node.childNodes);
-			return fragment;
-		}
-
-		function fragmentFromHTML(html, tag) {
-			var node = document.createElement(tag || 'div');
-			node.innerHTML = html;
-			return fragmentFromChildren(node);
-		}
-
-		function fragmentFromTemplate(node) {
-			// A template tag has a content property that gives us a document
-			// fragment. If that doesn't exist we must make a document fragment.
-			return node.content || fragmentFromChildren(node);
-		}
-
-		function fragmentFromId(id$$1) {
-			var node = document.getElementById(id$$1);
-
-			if (!node) { throw new Error('DOM: element id="' + id$$1 + '" is not in the DOM.') }
-
-			var t = tag(node);
-
-			// In browsers where templates are not inert their content can clash
-			// with content in the DOM - ids, for example. Remove the template as
-			// a precaution.
-			if (t === 'template' && !features.template) {
-				remove(node);
-			}
-
-			return t === 'template' ? fragmentFromTemplate(node) :
-				t === 'script' ? fragmentFromHTML(node.innerHTML, attribute('data-parent-tag', node)) :
-				fragmentFromChildren(node) ;
-		}
-
-		function parse(type, string) {
-			if (!string) { return; }
-
-			var mimetype = mimetypes[type];
-			var xml;
-
-			// From jQuery source...
-			try {
-				xml = (new window.DOMParser()).parseFromString(string, mimetype);
-			} catch (e) {
-				xml = undefined;
-			}
-
-			if (!xml || xml.getElementsByTagName("parsererror").length) {
-				throw new Error("dom: Invalid XML: " + string);
-			}
-
-			return xml;
-		}
-
-		var escape = (function() {
-			var pre  = document.createElement('pre');
-			var text = document.createTextNode('');
-
-			pre.appendChild(text);
-
-			return function escape(value) {
-				text.textContent = value;
-				return pre.innerHTML;
-			};
-		})();
-
-
-		// Units
-
-		var runit = /(\d*\.?\d+)(r?em|vw|vh)/;
-		//var rpercent = /(\d*\.?\d+)%/;
-
-		var fontSize;
-
-		var units = {
-			em: function(n) {
-				return getFontSize() * n;
-			},
-
-			rem: function(n) {
-				return getFontSize() * n;
-			},
-
-			vw: function(n) {
-				return window.innerWidth * n / 100;
-			},
-
-			vh: function(n) {
-				return window.innerHeight * n / 100;
-			}
-		};
-
-		var toPx = overload(toType, {
-			'number': id,
-
-			'string': function(string) {
-				var data = runit.exec(string);
-
-				if (data) {
-					return units[data[2]](parseFloat(data[1]));
-				}
-
-				throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
-			}
-		});
-
-		function toRem(n) {
-			return (toPx(n) / getFontSize()) + 'rem';
-		}
-
-		function toVw(n) {
-			return (100 * toPx(n) / window.innerWidth) + 'vw';
-		}
-
-		function toVh(n) {
-			return (100 * toPx(n) / window.innerHeight) + 'vh';
-		}
-
-		function getFontSize() {
-			return fontSize ||
-				(fontSize = parseFloat(style("font-size", document.documentElement), 10));
-		}
-
-
-		// Animation and scrolling
-
-		function transition(duration, fn) {
-			var t0 = performance.now();
-
-			function frame(t1) {
-				// Progress from 0-1
-				var progress = (t1 - t0) / (duration * 1000);
-
-				if (progress < 1) {
-					if (progress > 0) {
-						fn(progress);
-					}
-					id$$1 = requestAnimationFrame(frame);
-				}
-				else {
-					fn(1);
-				}
-			}
-
-			var id$$1 = requestAnimationFrame(frame);
-
-			return function cancel() {
-				cancelAnimationFrame(id$$1);
-			};
-		}
-
-		function animate(duration, transform, name, object, value) {
-			return transition(
-				duration,
-				pipe(transform, denormalise$1(object[name], value), set$1(name, object))
-			);
-		}
-
-		function animateScroll(coords) {
-			var duration = 0.6;
-			var ease = pow$1(2);
-
-			// coords may be a single y value or a an [x, y] array
-			var x, y;
-
-			if (typeof coords === "number") {
-				x = false;
-				y = coords;
-			}
-			else {
-				x = coords[0];
-				y = coords[1];
-			}
-
-			var denormaliseX = x !== false && denormalise$1(dom.view.scrollLeft, x);
-			var denormaliseY = denormalise$1(dom.view.scrollTop, y);
-
-			return transition(
-				duration,
-				pipe(ease, function(progress) {
-					x !== false && (dom.view.scrollLeft = denormaliseX(progress));
-					dom.view.scrollTop  = denormaliseY(progress);
-				})
-			);
-		}
-
-		function scrollRatio(node) {
-			return node.scrollTop / (node.scrollHeight - node.clientHeight);
-		}
-
-		function disableScroll(node) {
-			node = node || document.documentElement;
-
-			var scrollLeft = node.scrollLeft;
-			var scrollTop  = node.scrollTop;
-
-			// Remove scrollbars from the documentElement
-			//docElem.css({ overflow: 'hidden' });
-			node.style.overflow = 'hidden';
-
-			// FF has a nasty habit of linking the scroll parameters
-			// of document with the documentElement, causing the page
-			// to jump when overflow is hidden on the documentElement.
-			// Reset the scroll position.
-			if (scrollTop)  { node.scrollTop = scrollTop; }
-			if (scrollLeft) { node.scrollLeft = scrollLeft; }
-
-			// Disable gestures on touch devices
-			//add(document, 'touchmove', preventDefaultOutside, layer);
-		}
-
-		function enableScroll(node) {
-			node = node || document.documentElement;
-
-			var scrollLeft = node.scrollLeft;
-			var scrollTop  = node.scrollTop;
-
-			// Put scrollbars back onto docElem
-			node.style.overflow = '';
-
-			// FF fix. Reset the scroll position.
-			if (scrollTop) { node.scrollTop = scrollTop; }
-			if (scrollLeft) { node.scrollLeft = scrollLeft; }
-
-			// Enable gestures on touch devices
-			//remove(document, 'touchmove', preventDefaultOutside);
-		}
-
-		// dom
-
-		function dom(selector) {
-			return query(selector, document);
-		}
-
-		var ready = new Promise(function(accept, reject) {
-			function handle() {
-				document.removeEventListener('DOMContentLoaded', handle);
-				window.removeEventListener('load', handle);
-				accept();
-			}
-
-			document.addEventListener('DOMContentLoaded', handle);
-			window.addEventListener('load', handle);
-		});
-
-		assign(dom, {
-
-			// DOM lifecycle
-
-			ready:   ready.then.bind(ready),
-
-			now:     function() {
-				// Return DOM time in seconds
-				return window.performance.now() / 1000;
-			},
-
-			// DOM traversal
-
-			get: function get(id$$1) {
-				return document.getElementById(id$$1) || undefined;
-			},
-
-			find:     curry$1(find,     true),
-			query:    curry$1(query,    true),
-			closest:  curry$1(closest,  true),
-			contains: curry$1(contains, true),
-			matches:  curry$1(matches,  true),
-			children: children,
-			next:     next,
-			previous: previous,
-
-			// DOM mutation
-
-			assign:   curry$1(assignAttributes,  true),
-			create:   create,
-			clone:    clone,
-			identify: identify,
-			append:   curry$1(append,  true),
-			before:   curry$1(before,  true),
-			after:    curry$1(after,   true),
-			replace:  curry$1(replace, true),
-			empty:    empty,
-			remove:   remove,
-
-			validate: function(node) {
-				return node.checkValidity ? node.checkValidity() : true ;
-			},
-
-			fullscreen: function fullscreen(node) {
-				// Find the right method and call it
-				return node.requestFullscreen ? node.requestFullscreen() :
-					node.webkitRequestFullscreen ? node.webkitRequestFullscreen() :
-					node.mozRequestFullScreen ? node.mozRequestFullScreen() :
-					node.msRequestFullscreen ? node.msRequestFullscreen() :
-					undefined ;
-			},
-
-			// EXAMPLE CODE for mutation observers  ------
-
-			//		var observer = new MutationObserver(function(mutationsList) {
-			//		    var mutation;
-			//		    for(mutation of mutationsList) {
-			//		        if (mutation.addedNodes.length) {
-			//		            dom
-			//		            .query('a[href="' + router.path + '"]', mutation.target)
-			//		            .forEach(dom.addClass('current'));
-			//		        }
-			//		    }
-			//		});
-			//
-			//		observer.observe(dom.get('calendar'), { childList: true, subtree: true });
-
-			// DOM inspection
-
-			isElementNode:  isElementNode,
-			isTextNode:     isTextNode,
-			isCommentNode:  isCommentNode,
-			isFragmentNode: isFragmentNode,
-			isInternalLink: isInternalLink,
-			isValid:        isValid,
-
-			type:        type,
-			tag:         tag,
-			attribute:   curry$1(attribute, true),
-			classes:     classes,
-			addClass:    curry$1(addClass,    true),
-			removeClass: curry$1(removeClass, true),
-			flashClass:  curry$1(flashClass,  true),
-
-			box:         box,
-			bounds:      bounds,
-			offset:      curry$1(offset, true),
-
-			prefix:      prefix,
-			style: curry$1(function(name, node) {
-				// If name corresponds to a custom property name in styleParsers...
-				if (styleParsers[name]) { return styleParsers[name](node); }
-
-				var value = style(name, node);
-
-				// Pixel values are converted to number type
-				return typeof value === 'string' && rpx.test(value) ?
-					parseFloat(value) :
-					value ;
-			}, true),
-
-			toPx:           toPx,
-			toRem:          toRem,
-			toVw:           toVw,
-			toVh:           toVh,
-
-			// DOM fragments and templates
-
-			fragmentFromTemplate: fragmentFromTemplate,
-			fragmentFromChildren: fragmentFromChildren,
-			fragmentFromHTML:     fragmentFromHTML,
-			fragmentFromId:       fragmentFromId,
-			escape:               escape,
-			parse:                curry$1(parse),
-
-			// DOM events
-
-			Event:           Event,
-			delegate:        delegate,
-			isPrimaryButton: isPrimaryButton,
-			isTargetEvent:   isTargetEvent,
-			preventDefault:  preventDefault,
-			toKey:           toKey,
-			trapFocus:       trapFocus,
-			trap:            deprecate(trapFocus, 'dom.trap() is now dom.trapFocus()'),
-
-			trigger: curry$1(function(type, node) {
-				trigger(node, type);
-				return node;
-			}, true),
-
-			events: assign(curry$1(event, true), {
-				on:      on,
-				once:    once,
-				off:     off,
-				trigger: trigger
-			}),
-
-			on:    deprecate(curry$1(event, true), 'dom.on() is now dom.events()'),
-			event: deprecate(curry$1(event, true), 'Deprecated dom.event() – now dom.events()'),
-
-			// DOM animation adn scrolling
-
-			// transition(duration, fn)
-			//
-			// duration  - duration seconds
-			// fn        - callback that is called with a float representing
-			//             progress in the range 0-1
-
-			transition: curry$1(transition, true),
-			schedule:   deprecate(transition, 'dom: .schedule() is now .transition()'),
-
-			// animate(duration, transform, value, name, object)
-			//
-			// duration  - in seconds
-			// transform - function that maps x (0-1) to y (0-1)
-			// name      - name of property to animate
-			// object    - object to animate
-			// value     - target value
-
-			animate: curry$1(animate, true),
-
-			// animateScroll(n)
-			//
-			// Animate scrollTop of scrollingElement to n (in px)
-
-			animateScroll: animateScroll,
-			scrollTo: deprecate(animateScroll, 'scrollTo(px, node) renamed to animateScroll(px)'),
-
-			// scrollRatio(node)
-			//
-			// Returns scrollTop as ratio of scrollHeight
-
-			scrollRatio: scrollRatio,
-
-			// disableScroll(node)
-			//
-			// Disables scrolling without causing node's content to jump
-
-			disableScroll: disableScroll,
-
-			// enableScroll(node)
-			//
-			// Enables scrolling without causing node's content to jump
-
-			enableScroll: enableScroll,
-
-			// requestEvent(type, fn, node)
-
-			requestEvent: requestEvent,
-
-			requestFrame: requestAnimationFrame.bind(null),
-
-			requestFrameN: curry$1(deprecate(function requestFrameN(n, fn) {
-				(function frame() {
-					return requestAnimationFrame(--n ? frame : fn);
-				}());
-			}, 'requestFrameN() will be removed soon'), true),
-
-			// Features
-
-			features: features,
-
-			// Safe visible area
-
-			safe: define$$1({
-				left: 0
-			}, {
-				right:  { get: function() { return window.innerWidth; }, enumerable: true, configurable: true },
-				top:    { get: function() { return dom.style('padding-top', document.body); }, enumerable: true, configurable: true },
-				bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
-			})
-		});
-
-		define$$1(dom, {
-			// Element shortcuts
-			root: { value: document.documentElement, enumerable: true },
-			head: { value: document.head, enumerable: true },
-			body: { get: function() { return document.body; }, enumerable: true	},
-			view: { get: function() { return document.scrollingElement; }, enumerable: true }
-		});
-
-
-		// Export
-
-		window.dom = dom;
-	})(window);
-
-	var dom = window.dom;
-
-	// Lifecycle
-
-	const ready                  = dom.ready;
-	const now$1                    = dom.now;
+			right:  { get: function() { return window.innerWidth; }, enumerable: true, configurable: true },
+			top:    { get: function() { return dom.style('padding-top', document.body); }, enumerable: true, configurable: true },
+			bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
+		})
+	});
+
+	define$1(dom, {
+		// Element shortcuts
+		root: { value: document.documentElement, enumerable: true },
+		head: { value: document.head, enumerable: true },
+		body: { get: function() { return document.body; }, enumerable: true	},
+		view: { get: function() { return document.scrollingElement; }, enumerable: true }
+	});
+
+	if (window.console && window.console.log) {
+	    console.log('dom         – https://github.com/stephband/dom');
+	}
 
 	// HTML
 
-	const escape                 = dom.escape;
-	const parse$3                  = dom.parse;
+	const escape$1                 = dom.escape;
 
-	// Inspect
+	const toPx$1                   = dom.toPx;
+	const toRem$1                  = dom.toRem;
 
-	const attribute              = dom.attribute;
-	const children               = dom.children;
-	const closest                = dom.closest;
-	const contains$2               = dom.contains;
-	const find                   = dom.find;
-	const get$2                    = dom.get;
-	const matches                = dom.matches;
-	const next                   = dom.next;
-	const previous               = dom.previous;
-	const query                  = dom.query;
-	const tag                    = dom.tag;
-	const type                   = dom.type;
-	const isElementNode          = dom.isElementNode;
-	const isTextNode             = dom.isTextNode;
-	const isCommentNode          = dom.isCommentNode;
-	const isFragmentNode         = dom.isFragmentNode;
-	const isInternalLink         = dom.isInternalLink;
-	const isValid                = dom.isValid;
+	var debug$1     = true;
+	var A$5         = Array.prototype;
 
-	// Mutate
+	function interpolateLinear(xs, ys, x) {
+		var n = -1;
+		while (++n < xs.length && xs[n] < x);
 
-	const assign$4                 = dom.assign;
-	const create$1                 = dom.create;
-	const clone                  = dom.clone;
-	const identify               = dom.identify;
-	const append$2                 = dom.append;
-	const before                 = dom.before;
-	const after                  = dom.after;
-	const replace                = dom.replace;
-	const empty                  = dom.empty;
-	const remove$3                 = dom.remove;
-
-	// Style
-
-	const box                    = dom.box;
-	const bounds                 = dom.bounds;
-	const offset                 = dom.offset;
-	const style                  = dom.style;
-	const classes                = dom.classes;
-	const addClass               = dom.addClass;
-	const removeClass            = dom.removeClass;
-	const flashClass             = dom.flashClass;
-
-	const toPx                   = dom.toPx;
-	const toRem                  = dom.toRem;
-	const toVw                   = dom.toVw;
-	const toVh                   = dom.toVh;
-
-	// Fragments
-
-	const fragmentFromTemplate   = dom.fragmentFromTemplate;
-	const fragmentFromChildren   = dom.fragmentFromChildren;
-	const fragmentFromHTML       = dom.fragmentFromHTML;
-	const fragmentFromId         = dom.fragmentFromId;
-
-	// Events
-
-	const Event                  = dom.Event;
-	const events                 = dom.events;
-	const trigger                = dom.trigger;
-	const delegate               = dom.delegate;
-	const isPrimaryButton        = dom.isPrimaryButton;
-	const isTargetEvent          = dom.isTargetEvent;
-	const preventDefault         = dom.preventDefault;
-	const toKey                  = dom.toKey;
-	const trapFocus              = dom.trapFocus;
-	const requestEvent           = dom.requestEvent;
-
-	// Animation
-
-	const animate                = dom.animate;
-	const fullscreen             = dom.fullscreen;
-	const transition             = dom.transition;
-	const validate               = dom.validate;
-	const requestFrame           = dom.requestFrame;
-
-	// Scroll
-
-	const animateScroll          = dom.animateScroll;
-	const scrollRatio            = dom.scrollRatio;
-	const disableScroll          = dom.disableScroll;
-	const enableScroll           = dom.enableScroll;
-
-	const DEBUG$3  = false;
-
-	const dom$1    = window.dom;
-	const now$2    = dom$1.now;
-
-	// Render queue
-
-	const queue = new Set();
-	const data  = [];
-
-	var point;
-	var frame;
-
-	function run(time) {
-		if (DEBUG$3) {
-			point = {};
-			point.frameTime   = time / 1000;
-			point.runTime     = now$2();
-			point.queuedFns   = queue.size;
-			point.insertedFns = 0;
-			console.groupCollapsed('frame', point.frameTime.toFixed(3));
+		// Shortcut if x is lower than smallest x
+		if (n === 0) {
+			return ys[0];
 		}
 
-		frame = true;
-
-		// Use a .forEach() to support IE11, which doesnt have for..of
-		queue.forEach(invoke$1('call', [null, time]));
-
-		//var fn;
-		//for (fn of queue) {
-		//	fn(time);
-		//}
-
-		queue.clear();
-		frame = undefined;
-
-		if (DEBUG$3) {
-			point.duration = now$2() - point.runTime;
-			data.push(point);
-			//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
-			console.groupEnd();
+		// Shortcut if x is greater than biggest x
+		if (n >= xs.length) {
+			return last(ys);
 		}
+
+		// Shortcurt if x corresponds exactly to an interpolation coordinate
+		if (x === xs[n]) {
+			return ys[n];
+		}
+
+		// Linear interpolate
+		var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
+		return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
 	}
 
-	function cue(fn) {
-		if (queue.has(fn)) {
-			//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
-			return;
-		}
+	const transformers = {
+		add:         {
+			tx: curry$1(function(a, b) { return b.add ? b.add(a) : b + a ; }),
+			ix: curry$1(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+		},
 
-		// Functions cued during frame are run syncronously (to preserve
-		// inner-DOM-first order of execution during setup)
-		if (frame === true) {
-			if (DEBUG$3) { ++point.insertedFns; }
-			fn();
-			return;
-		}
+		'add-date':  { tx: addDate,     ix: curry$1(function(d, n) { return addDate('-' + d, n); }) },
+		'add-time':  { tx: addTime,     ix: subTime },
+		decibels:    { tx: todB,        ix: toLevel },
+		multiply:    { tx: multiply$1,    ix: curry$1(function(d, n) { return n / d; }) },
+		degrees:     { tx: toDeg,       ix: toRad },
+		radians:     { tx: toRad,       ix: toDeg },
+		pow:         { tx: pow$1,         ix: curry$1(function(n, x) { return pow$1(1/n, x); }) },
+		exp:         { tx: exp$1,         ix: log$1 },
+		log:         { tx: log$1,         ix: exp$1 },
+		int:         { tx: toFixed$1(0),  ix: toInt },
+		float:       { tx: toFloat,     ix: toString },
+		boolean:     { tx: Boolean,     ix: toString },
+		normalise:   { tx: normalise$1,   ix: denormalise$1 },
+		denormalise: { tx: denormalise$1, ix: normalise$1 },
+		floatformat: { tx: toFixed$1,     ix: curry$1(function(n, str) { return parseFloat(str); }) },
+		'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
 
-		queue.add(fn);
+		interpolate: {
+			tx: function(point) {
+				var xs = A$5.map.call(arguments, get$1('0'));
+				var ys = A$5.map.call(arguments, get$1('1'));
 
-		if (frame === undefined) {
-			//if (DEBUG) { console.log('(request master frame)'); }
-			frame = requestAnimationFrame(run);
-		}
-	}
+				return function(value) {
+					return interpolateLinear(xs, ys, value);
+				};
+			},
 
-	function uncue(fn) {
-		queue.delete(fn);
+			ix: function(point) {
+				var xs = A$5.map.call(arguments, get$1('0'));
+				var ys = A$5.map.call(arguments, get$1('1'));
 
-		if (frame !== undefined && frame !== true && queue.size === 0) {
-			//if (DEBUG) { console.log('(cancel master frame)'); }
-			cancelAnimationFrame(frame);
-			frame = undefined;
-		}
-	}
+				return function(value) {
+					return interpolateLinear(ys, xs, value);
+				}
+			}
+		},
 
-	window.frame = {
-		cue: cue,
-		uncue: uncue,
-		data: data
+		cartesian: { tx: toCartesian, ix: toPolar },
+		polar:     { tx: toPolar, ix: toCartesian },
+		deg:       { tx: toDeg, ix: toRad },
+		rad:       { tx: toRad, ix: toDeg },
+		decibels:  { tx: todB, ix: toLevel },
+		level:     { tx: toLevel, ix: todB },
+		px:        { tx: toPx$1, ix: toRem$1 },
+		rem:       { tx: toRem$1, ix: toPx$1 }
+	};
+
+	const transforms = {
+
+		contains:     contains$1,
+		equals:       equals$1,
+		escape:       escape$1,
+		exp:          exp$1,
+		formatdate:   formatDate,
+		formattime:   formatTime,
+		formatfloat:  toFixed$1,
+
+		// formatfloat...
+		//curry(function(n, value) {
+		//	return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
+		//		!isDefined(value) ? '' :
+		//		(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
+		//}),
+
+		get:          getPath$1,
+		invoke:       invoke$1,
+		is:           is,
+		last:         last,
+		limit:        limit$1,
+		log:          log$1,
+		max:          max$1,
+		min:          min$1,
+		mod:          mod$1,
+		not:          not,
+		percent:      multiply$1(100),
+
+		// Strings
+		append:       append$1,
+		prepend:      prepend$2,
+		prepad:       prepad$1,
+		postpad:      postpad$1,
+		slugify:      slugify,
+
+		// root(2) - square root
+		// root(3) - cubed root, etc.
+		root:         root$1,
+
+		// slugify('Howdy, Michael')
+		// > 'howdy-michael'
+
+		type:         toType,
+
+		//toStringType: Fn.toStringType,
+
+		// Sparky transforms
+
+		divide: curry$1(function(n, value) {
+			if (typeof value !== 'number') { return; }
+			return value / n;
+		}),
+
+		'find-in': curry$1(function(path, id$$1) {
+			if (!isDefined(id$$1)) { return; }
+			var array = getPath$1(path, window);
+			return array && array.find(compose(is(id$$1), get$1('id')));
+		}),
+
+		floatformat: curry$1(function(n, value) {
+			return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
+				!isDefined(value) ? '' :
+				(debug$1 && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
+		}),
+
+		floor: Math.floor,
+
+		"greater-than": curry$1(function(value2, value1) {
+			return value1 > value2;
+		}),
+
+		invert: function(value) {
+			return typeof value === 'number' ? 1 / value : !value ;
+		},
+
+		join: curry$1(function(string, value) {
+			return A$5.join.call(value, string);
+		}),
+
+		json: JSON.stringify,
+
+		"less-than": curry$1(function(value2, value1) {
+			return value1 < value2 ;
+		}),
+
+		localise: curry$1(function(digits, value) {
+			var locale = document.documentElement.lang;
+			var options = {};
+
+			if (isDefined(digits)) {
+				options.minimumFractionDigits = digits;
+				options.maximumFractionDigits = digits;
+			}
+
+			// Todo: localise value where toLocaleString not supported
+			return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
+		}),
+
+		lowercase: function(value) {
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toLowerCase.apply(value);
+		},
+
+		map: function(method, params) {
+			var fn;
+
+			if (typeof params === undefined) {
+				fn = parse(method);
+
+				return function(array) {
+					return array.map(fn);
+				};
+			}
+
+			fn = ((transformers[method] && transformers[method].tx)
+				|| transforms[method]).apply(null, params);
+
+			return function(array) {
+				return array && array.map(fn);
+			};
+		},
+
+		filter: curry$1(function(method, args$$1, array) {
+			return array && array.map(transforms[method].apply(null,args$$1));
+		}, true),
+
+		match: curry$1(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return regex.exec(string);
+		}),
+
+		matches: curry$1(function(regex, string) {
+			regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+			return !!regex.test(string);
+		}),
+
+		pluralise: curry$1(function(str1, str2, lang, value) {
+			if (typeof value !== 'number') { return; }
+
+			str1 = str1 || '';
+			str2 = str2 || 's';
+
+			// In French, numbers less than 2 are considered singular, where in
+			// English, Italian and elsewhere only 1 is singular.
+			return lang === 'fr' ?
+				(value < 2 && value >= 0) ? str1 : str2 :
+				value === 1 ? str1 : str2 ;
+		}),
+
+		reduce: curry$1(function(name, initialValue, array) {
+			return array && array.reduce(Fn[name], initialValue || 0);
+		}, true),
+
+		replace: curry$1(function(str1, str2, value) {
+			if (typeof value !== 'string') { return; }
+			return value.replace(RegExp(str1, 'g'), str2);
+		}),
+
+		round: curry$1(function round(n, value) {
+			return Math.round(value / n) * n;
+		}),
+
+		slice: curry$1(function(i0, i1, value) {
+			return typeof value === 'string' ?
+				value.slice(i0, i1) :
+				Array.prototype.slice.call(value, i0, i1) ;
+		}, true),
+
+		striptags: (function() {
+			var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
+
+			return function(value) {
+				return value.replace(rtag, '');
+			};
+		})(),
+
+		switch: function(value) {
+			if (typeof value === 'boolean') { value = Number(value); }
+			if (typeof value === 'string') { value = parseInt(value, 10); }
+			if (typeof value !== 'number' || Number.isNaN(value)) { return; }
+			return arguments[value + 1];
+		},
+
+		translate: (function() {
+			var warned = {};
+
+			return function(value) {
+				var translations = translations;
+
+				if (!translations) {
+					if (!warned.missingTranslations) {
+						console.warn('Sparky: Missing lookup object Sparky.translations');
+						warned.missingTranslations = true;
+					}
+					return value;
+				}
+
+				var text = translations[value] ;
+
+				if (!text) {
+					if (!warned[value]) {
+						console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
+						warned[value] = true;
+					}
+
+					return value;
+				}
+
+				return text ;
+			};
+		})(),
+
+		truncatechars: curry$1(function(n, value) {
+			return value.length > n ?
+				value.slice(0, n) + '…' :
+				value ;
+		}),
+
+		uppercase: function(value) {
+			if (typeof value !== 'string') { return; }
+			return String.prototype.toUpperCase.apply(value);
+		},
+
+		//urlencode
+		//urlize
+		//urlizetrunc
+		//wordcount
+		//wordwrap
+
+		yesno: curry$1(function(truthy, falsy, value) {
+			return value ? truthy : falsy ;
+		})
 	};
 
 	/* Parse parameters */
@@ -4894,11 +5180,8 @@ var Sparky = (function () {
 	    }
 	});
 
-
-	/* Parse pipe */
-
 	function getFn(name) {
-	    return Sparky.transformers[name] ? Sparky.transformers[name].tx : Sparky.transforms[name] ;
+	    return transformers[name] ? transformers[name].tx : transforms[name] ;
 	}
 
 	const parsePipe1 = parse$1(/^(\|)?\s*/, {
@@ -4944,1703 +5227,1734 @@ var Sparky = (function () {
 	    close: parse$1(/^\s*\]\}/, nothing$1)
 	});
 
-	(function(window) {
+	const DEBUG$3  = false;
 
-		const DEBUG      = false;
+	const now$2    = dom.now;
 
-		const Stream     = window.Stream;
-		const frame      = window.frame;
-		const Observable$$1 = window.Observable;
+	// Render queue
 
-		const assign     = Object.assign;
+	const queue = new Set();
 
-		const cue        = frame.cue;
-		const uncue      = frame.uncue;
-		const observe    = Observable$$1.observe;
+	var point;
+	var frame;
 
-		// Transform
-
-		var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
-
-		function InverseTransform(transformers, string) {
-			if (!string) { return id; }
-
-			var fns = [];
-			var token, name, fn, args$$1;
-
-			rtransform.lastIndex = 0;
-
-			while (
-				rtransform.lastIndex < string.length
-				&& (token = rtransform.exec(string))
-			) {
-				name = token[1];
-				fn   = transformers[name].ix;
-
-				if (!fn) {
-					throw new Error('mount:  transformers "' + name + '" not found');
-				}
-
-				if (token[2]) {
-					args$$1 = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
-					fns.unshift(fn.apply(null, args$$1));
-				}
-				else {
-					fns.unshift(fn);
-				}
-			}
-
-			return pipe.apply(null, fns);
+	function run(time) {
+		if (DEBUG$3) {
+			point = {};
+			point.frameTime   = time / 1000;
+			point.runTime     = now$2();
+			point.queuedFns   = queue.size;
+			point.insertedFns = 0;
+			console.groupCollapsed('frame', point.frameTime.toFixed(3));
 		}
 
-		// Struct
+		frame = true;
 
-		var structs = [];
+		// Use a .forEach() to support IE11, which doesnt have for..of
+		queue.forEach(invoke$1('call', [null, time]));
 
-		var removeStruct = remove$2(structs);
+		//var fn;
+		//for (fn of queue) {
+		//	fn(time);
+		//}
 
-		function addStruct(struct) {
-			structs.push(struct);
+		queue.clear();
+		frame = undefined;
+
+		if (DEBUG$3) {
+			point.duration = now$2() - point.runTime;
+			//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
+			console.groupEnd();
+		}
+	}
+
+	function cue(fn) {
+		if (queue.has(fn)) {
+			//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
+			return;
 		}
 
-		function Struct(node, token, path, render, pipe$$1) {
-			//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
-
-			addStruct(this);
-			this.node    = node;
-			this.token   = token;
-			this.path    = path;
-			this.render  = render;
-			this.pipe    = pipe$$1;
+		// Functions cued during frame are run syncronously (to preserve
+		// inner-DOM-first order of execution during setup)
+		if (frame === true) {
+			if (DEBUG$3) { ++point.insertedFns; }
+			fn();
+			return;
 		}
 
-		assign(Struct.prototype, {
-			render:  noop$1,
-			transform: id,
+		queue.add(fn);
 
-			stop: function stop() {
-				uncue(this.cuer);
-				removeStruct(this);
-			},
-
-			update: function(time) {
-				var struct = this;
-				var transform = this.transform;
-				var value = struct.input && struct.input.shift();
-
-				if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
-
-				if (value === undefined) {
-					struct.render(struct.originalValue);
-				}
-				else {
-					struct.render(transform(value));
-				}
-			}
-		});
-
-		function ReadableStruct(node, token, path, render, type, read, pipe$$1) {
-			// ReadableStruct extends Struct with listeners and read functions
-			Struct.call(this, node, token, path, render, pipe$$1);
-			this.type = type;
-			this.read = read;
+		if (frame === undefined) {
+			//if (DEBUG) { console.log('(request master frame)'); }
+			frame = requestAnimationFrame(run);
 		}
+	}
 
-	    assign(ReadableStruct.prototype, Struct.prototype, {
-	        listen: function listen(fn) {
-	            if (this._listenFn) {
-	                console.warn('Bad Steve. Attempt to listen without removing last listener. Shouldnt happen.');
-	            }
+	function uncue(fn) {
+		queue.delete(fn);
 
-	            this._listenFn = fn;
-	            this.node.addEventListener(this.type, fn);
-	        },
+		if (frame !== undefined && frame !== true && queue.size === 0) {
+			//if (DEBUG) { console.log('(cancel master frame)'); }
+			cancelAnimationFrame(frame);
+			frame = undefined;
+		}
+	}
 
-			unlisten: function unlisten() {
-				var fn = this._listenFn;
+	const DEBUG$4      = false;
 
-				this.node.removeEventListener(this.type, fn);
-				this._listenType = undefined;
-				this._listenFn   = undefined;
-			}
-		});
+	const Observable$1 = window.Observable;
+	const assign$8     = Object.assign;
+	const observe    = Observable$1.observe;
 
-	    function setup(struct, options) {
-	        // Todo: We need rid of the leading '|' in struct.pipe
-	        struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
-	        struct.originalValue = struct.read ? struct.read() : '' ;
-	        if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
-	    }
 
-		function eachFrame(stream, fn) {
-			var unobserve = noop$1;
+	// Transform
 
-			function update(time) {
-				var scope = stream.shift();
-				// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-				if (scope === undefined) { return; }
+	var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
 
-				function render(time) {
-					fn(scope);
-				}
+	function InverseTransform(transformers$$1, string) {
+		if (!string) { return id; }
 
-				unobserve();
-				unobserve = observe(scope, '', function() {
-					cue(render);
-				});
+		var fns = [];
+		var token, name, fn, args$$1;
+
+		rtransform.lastIndex = 0;
+
+		while (
+			rtransform.lastIndex < string.length
+			&& (token = rtransform.exec(string))
+		) {
+			name = token[1];
+			fn   = transformers$$1[name].ix;
+
+			if (!fn) {
+				throw new Error('mount:  transformers "' + name + '" not found');
 			}
 
-			cue(update);
-
-			if (stream.on) {
-				stream.on('push', function() {
-					cue(update);
-				});
+			if (token[2]) {
+				args$$1 = JSON.parse('[' + token[2].replace(/'/g, '"') + ']');
+				fns.unshift(fn.apply(null, args$$1));
+			}
+			else {
+				fns.unshift(fn);
 			}
 		}
 
-		function bind(struct, scope, options) {
-			if (DEBUG) { console.log('bind:  ', struct.token); }
+		return pipe.apply(null, fns);
+	}
 
-			var input = struct.input = ObserveStream(struct.path, scope).latest();
+	// Struct
 
-			struct.scope = scope;
+	var structs = [];
 
-			var flag = false;
-			var change;
+	var removeStruct = remove$2(structs);
 
-			// If struct is an internal struct (as opposed to a Sparky instance)
-			if (struct.render) {
-				if (struct.listen) {
-					change = listen(struct, scope, options);
+	function addStruct(struct) {
+		structs.push(struct);
+	}
 
-					struct.cuer = function updateReadable() {
-						struct.update();
+	function Struct(node, token, path, render, pipe$$1) {
+		//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
 
-						if (flag) { return; }
-						flag = true;
+		addStruct(this);
+		this.node    = node;
+		this.token   = token;
+		this.path    = path;
+		this.render  = render;
+		this.pipe    = pipe$$1;
+	}
+	assign$8(Struct.prototype, {
+		render:  noop$1,
+		transform: id,
 
-						input.on('push', function() {
-							cue(updateReadable);
-						});
+		stop: function stop() {
+			uncue(this.cuer);
+			removeStruct(this);
+		},
 
-						var value = getPath$1(struct.path, scope);
+		update: function(time) {
+			var struct = this;
+			var transform = this.transform;
+			var value = struct.input && struct.input.shift();
 
-						// Where the initial value of struct.path is not set, set it to
-						// the value of the <input/>.
-						if (value === undefined) {
-							change();
-						}
-					};
+			if (DEBUG$4) { console.log('update:', struct.token, value, struct.originalValue); }
 
-					cue(struct.cuer);
-					struct.listen(change);
-				}
-				else {
-					struct.cuer = function update() {
-						struct.update();
-						if (flag) { return; }
-						flag = true;
-						input.on('push', function() {
-							cue(update);
-						});
-					};
-
-					cue(struct.cuer);
-				}
-
-				return;
+			if (value === undefined) {
+				struct.render(struct.originalValue);
 			}
-
-			if (DEBUG) { console.log('struct is Sparky'); }
-			eachFrame(input, struct.push);
-		}
-
-		function listen(struct, scope, options) {
-			//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
-
-			var set, invert;
-
-			if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
-
-	        set    = setPath$1(struct.path, scope);
-	        invert = InverseTransform(options.transformers, struct.pipe);
-	        return pipe(function() { return struct.read(); }, invert, set);
-	    }
-
-	    function unbind(struct) {
-	        if (DEBUG) { console.log('unbind:', struct.token); }
-	        // Todo: only uncue on teardown
-	        //struct.uncue();
-	        struct.input && struct.input.stop();
-	        struct.unlisten && struct.unlisten();
-	        struct.scope = undefined;
-	    }
-
-	    function teardown(struct) {
-	        if (DEBUG) { console.log('teardown', struct.token); }
-	        unbind(struct);
-	        struct.stop();
-	    }
-
-	    window.Struct = Struct;
-
-	    Struct.Readable           = ReadableStruct;
-	    Struct.setup = setup;
-	    Struct.bind = bind;
-	    Struct.listen = listen;
-	    Struct.unbind = unbind;
-	    Struct.teardown = teardown;
-
-	    Struct.findScope = function findScope(node) {
-			return get$1('scope', structs.find(function(struct) {
-				return struct.node === node;
-			}));
-		};
-	})(window);
-
-	(function(window) {
-
-		const DEBUG      = false;
-
-		const A          = Array.prototype;
-		const dom        = window.dom;
-
-		const assign     = Object.assign;
-	//	const define     = Object.defineProperties;
-		const attribute  = dom.attribute;
-
-		const Struct             = window.Struct;
-		const ReadableStruct     = Struct.Readable;
-		const setup              = Struct.setup;
-	    const bind               = Struct.bind;
-	    const unbind             = Struct.unbind;
-	    const teardown           = Struct.teardown;
-
-
-		// Matches tags plus any directly adjacent text
-		//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
-		//var rclasstags;
-
-		// Matches filter string, capturing (filter name, filter parameter string)
-		//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
-
-		// Matches anything with a space
-		const rspaces = /\s+/;
-
-		// Matches empty or spaces-only string
-		const rempty  = /^\s*$/;
-
-		// Matches anything that contains a non-space character
-		const rtext = /\S/;
-
-		// Matches the arguments list in the result of a fn.toString()
-		const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
-
-		const settings = {
-			attributePrefix: 'sparky-',
-			mount:           noop$1,
-			transforms:      {},
-			transformers:    {},
-			rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
-		};
-
-		function addClasses(classList, text) {
-			var classes = toRenderString(text).trim().split(rspaces);
-			classList.add.apply(classList, classes);
-		}
-
-		function removeClasses(classList, text) {
-			var classes = toRenderString(text).trim().split(rspaces);
-			classList.remove.apply(classList, classes);
-		}
-
-
-
-
-
-		// Mount
-
-		var cased = {
-			viewbox: 'viewBox'
-		};
-
-		var toRenderString = overload(toType, {
-			'boolean': function(value) {
-				return value + '';
-			},
-
-			'function': function(value) {
-				// Print function and parameters
-				return (value.name || 'function')
-					+ (rarguments.exec(value.toString()) || [])[1];
-			},
-
-			'number': function(value) {
-				// Convert NaN to empty string and Infinity to ∞ symbol
-				return Number.isNaN(value) ? '' :
-					Number.isFinite(value) ? value + '' :
-					value < 0 ? '-∞' : '∞';
-			},
-
-			'string': id,
-
-			'symbol': function(value) { return value.toString(); },
-
-			'undefined': function() { return ''; },
-
-			'object': function(value) {
-				return value ? JSON.stringify(value) : '';
-			},
-
-			'default': JSON.stringify
-		});
-
-		function isTruthy(value) {
-			return !!value;
-		}
-
-		function matchToken(string, options) {
-			var rtoken = options.rtoken;
-			rtoken.lastIndex = 0;
-			return rtoken.exec(string);
-		}
-
-		function mountStringToken(node, render, strings, structs, match) {
-			var i = strings.length;
-			strings.push('');
-
-			// new Struct(node, token, path, render)
-			structs.push(new Struct(node, match[0], match[2], function renderText(value) {
-				strings[i] = toRenderString(value);
-				render(strings);
-			}, match[3]));
-		}
-
-		function mountString(node, string, render, options, structs) {
-			var rtoken  = options.rtoken;
-			var i       = rtoken.lastIndex = 0;
-			var match   = rtoken.exec(string);
-
-			if (!match) { return; }
-
-			var strings = [];
-			var renderStrings = function(strings) {
-				render(strings.join(''));
-			};
-
-			while (match) {
-				if (match.index > i) {
-					strings.push(string.slice(i, match.index));
-				}
-
-				mountStringToken(node, renderStrings, strings, structs, match);
-				i = rtoken.lastIndex;
-				match = rtoken.exec(string);
-			}
-
-			if (string.length > i) {
-				strings.push(string.slice(i));
+			else {
+				struct.render(transform(value));
 			}
 		}
+	});
 
-		function mountAttributes(names, node, options, structs) {
-			var name;
+	function ReadableStruct(node, token, path, render, type, read, pipe$$1) {
+		// ReadableStruct extends Struct with listeners and read functions
+		Struct.call(this, node, token, path, render, pipe$$1);
+		this.type = type;
+		this.read = read;
+	}
 
-			while (name = names.shift()) {
-				mountAttribute(name, node, options, structs);
-			}
-		}
-
-		function mountAttribute(name, node, options, structs, prefixed) {
-			var text = prefixed !== false
-			&& node.getAttribute(options.attributePrefix + name)
-			|| node.getAttribute(cased[name] || name) ;
-
-			return text && mountString(node, text, function render(value) {
-				node.setAttribute(cased[name] || name, value);
-			}, options, structs);
-		}
-
-		function renderBoolean(name, node) {
-			return name in node ?
-
-			// Assume attribute is also a boolean property
-			function renderBoolean(values) {
-				node[name] = !!values.find(isTruthy);
-			} :
-
-			// Attribute is not also a boolean property
-			function renderBoolean(values) {
-				if (values.find(isTruthy)) {
-					node.setAttribute(name, name);
-				}
-				else {
-					node.removeAttribute(name);
-				}
-			} ;
-		}
-
-		function mountBooleanToken(node, render, values, structs, match) {
-			var i = values.length;
-			values.push(false);
-
-			structs.push(new Struct(node, match[0], match[2], function(value) {
-				values[i] = value;
-				render(values);
-			}, match[3]));
-		}
-
-		function mountBoolean(name, node, options, structs) {
-			// Look for prefixed attributes before attributes.
-			//
-			// In FF, the disabled attribute is set to the previous value that the
-			// element had when the page is refreshed, so it contains no sparky
-			// tags. The proper way to address this problem is to set
-			// autocomplete="off" on the parent form or on the field.
-
-			var prefixed = node.getAttribute(options.attributePrefix + name);
-			var string   = prefixed || node.getAttribute(name);
-
-			// Fast out
-			if (!string) { return; }
-
-			var rtoken  = options.rtoken;
-			var i       = rtoken.lastIndex = 0;
-			var match   = rtoken.exec(string);
-
-			// Fast out
-			if (!match) { return; }
-
-			var render = renderBoolean(name, node);
-
-			// Where the unprefixed attribute is populated, Return the property to
-			// the default value.
-			if (!prefixed) {
-				render(nothing$1);
+	assign$8(ReadableStruct.prototype, Struct.prototype, {
+		listen: function listen(fn) {
+			if (this._listenFn) {
+				console.warn('Bad Steve. Attempt to listen without removing last listener. Shouldnt happen.');
 			}
 
-			var values = [];
-			var value;
+			this._listenFn = fn;
+			this.node.addEventListener(this.type, fn);
+		},
 
-			while (match) {
-				if (match.index > i) {
-					value = string.slice(i, match.index);
-					if (!rempty.test(value)) {
-						values.push(value);
+		unlisten: function unlisten() {
+			var fn = this._listenFn;
+
+			this.node.removeEventListener(this.type, fn);
+			this._listenType = undefined;
+			this._listenFn   = undefined;
+		}
+	});
+
+	function setup(struct, options) {
+		// Todo: We need rid of the leading '|' in struct.pipe
+		struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
+		struct.originalValue = struct.read ? struct.read() : '' ;
+		if (DEBUG$4) { console.log('setup: ', struct.token, struct.originalValue); }
+	}
+
+	function eachFrame(stream, fn) {
+		var unobserve = noop$1;
+
+		function update(time) {
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
+
+			function render(time) {
+				fn(scope);
+			}
+
+			unobserve();
+			unobserve = observe(scope, '', function() {
+				cue(render);
+			});
+		}
+
+		cue(update);
+
+		if (stream.on) {
+			stream.on('push', function() {
+				cue(update);
+			});
+		}
+	}
+
+	function bind(struct, scope, options) {
+		if (DEBUG$4) { console.log('bind:  ', struct.token); }
+
+		var input = struct.input = ObservableStream(struct.path, scope).latest();
+
+		struct.scope = scope;
+
+		var flag = false;
+		var change;
+
+		// If struct is an internal struct (as opposed to a Sparky instance)
+		if (struct.render) {
+			if (struct.listen) {
+				change = listen(struct, scope, options);
+
+				struct.cuer = function updateReadable() {
+					struct.update();
+
+					if (flag) { return; }
+					flag = true;
+
+					input.on('push', function() {
+						cue(updateReadable);
+					});
+
+					var value = getPath$1(struct.path, scope);
+
+					// Where the initial value of struct.path is not set, set it to
+					// the value of the <input/>.
+					if (value === undefined) {
+						change();
 					}
-				}
+				};
 
-				mountBooleanToken(node, render, values, structs, match);
-				i     = rtoken.lastIndex;
-				match = rtoken.exec(string);
+				cue(struct.cuer);
+				struct.listen(change);
+			}
+			else {
+				struct.cuer = function update() {
+					struct.update();
+					if (flag) { return; }
+					flag = true;
+					input.on('push', function() {
+						cue(update);
+					});
+				};
+
+				cue(struct.cuer);
 			}
 
-			if (string.length > i) {
-				value = string.slice(i);
+			return;
+		}
+
+		if (DEBUG$4) { console.log('struct is Sparky'); }
+		eachFrame(input, struct.push);
+	}
+
+	function listen(struct, scope, options) {
+		//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
+
+		var set, invert;
+
+		if (struct.path === '') { console.warn('mount: Cannot listen to path ""'); }
+
+		set    = setPath$1(struct.path, scope);
+		invert = InverseTransform(transformers, struct.pipe);
+		return pipe(function() { return struct.read(); }, invert, set);
+	}
+
+	function unbind(struct) {
+		if (DEBUG$4) { console.log('unbind:', struct.token); }
+		// Todo: only uncue on teardown
+		//struct.uncue();
+		struct.input && struct.input.stop();
+		struct.unlisten && struct.unlisten();
+		struct.scope = undefined;
+	}
+
+	function teardown(struct) {
+		if (DEBUG$4) { console.log('teardown', struct.token); }
+		unbind(struct);
+		struct.stop();
+	}
+
+	Struct.Readable           = ReadableStruct;
+	Struct.setup = setup;
+	Struct.bind = bind;
+	Struct.listen = listen;
+	Struct.unbind = unbind;
+	Struct.teardown = teardown;
+
+	Struct.findScope = function findScope(node) {
+		return get$1('scope', structs.find(function(struct) {
+			return struct.node === node;
+		}));
+	};
+
+	const DEBUG$5      = false;
+
+	const A$6          = Array.prototype;
+
+	const assign$9     = Object.assign;
+	//	const define     = Object.defineProperties;
+	const attribute$2  = dom.attribute;
+
+	const ReadableStruct$1     = Struct.Readable;
+	const setup$1              = Struct.setup;
+	const bind$1               = Struct.bind;
+	const unbind$1             = Struct.unbind;
+	const teardown$1           = Struct.teardown;
+
+
+	// Matches tags plus any directly adjacent text
+	//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
+	//var rclasstags;
+
+	// Matches filter string, capturing (filter name, filter parameter string)
+	//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
+
+	// Matches anything with a space
+	const rspaces$1 = /\s+/;
+
+	// Matches empty or spaces-only string
+	const rempty  = /^\s*$/;
+
+	// Matches anything that contains a non-space character
+	const rtext = /\S/;
+
+	// Matches the arguments list in the result of a fn.toString()
+	const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
+
+	const settings = {
+		attributePrefix: 'sparky-',
+		mount:           noop$1,
+		transforms:      {},
+		transformers:    {},
+		rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+	};
+
+	function addClasses(classList, text) {
+		var classes = toRenderString(text).trim().split(rspaces$1);
+		classList.add.apply(classList, classes);
+	}
+
+	function removeClasses(classList, text) {
+		var classes = toRenderString(text).trim().split(rspaces$1);
+		classList.remove.apply(classList, classes);
+	}
+
+
+
+
+
+	// Mount
+
+	var cased = {
+		viewbox: 'viewBox'
+	};
+
+	var toRenderString = overload(toType, {
+		'boolean': function(value) {
+			return value + '';
+		},
+
+		'function': function(value) {
+			// Print function and parameters
+			return (value.name || 'function')
+				+ (rarguments.exec(value.toString()) || [])[1];
+		},
+
+		'number': function(value) {
+			// Convert NaN to empty string and Infinity to ∞ symbol
+			return Number.isNaN(value) ? '' :
+				Number.isFinite(value) ? value + '' :
+				value < 0 ? '-∞' : '∞';
+		},
+
+		'string': id,
+
+		'symbol': function(value) { return value.toString(); },
+
+		'undefined': function() { return ''; },
+
+		'object': function(value) {
+			return value ? JSON.stringify(value) : '';
+		},
+
+		'default': JSON.stringify
+	});
+
+	function isTruthy(value) {
+		return !!value;
+	}
+
+	function matchToken(string, options) {
+		var rtoken = options.rtoken;
+		rtoken.lastIndex = 0;
+		return rtoken.exec(string);
+	}
+
+	function mountStringToken(node, render, strings, structs, match) {
+		var i = strings.length;
+		strings.push('');
+
+		// new Struct(node, token, path, render)
+		structs.push(new Struct(node, match[0], match[2], function renderText(value) {
+			strings[i] = toRenderString(value);
+			render(strings);
+		}, match[3]));
+	}
+
+	function mountString(node, string, render, options, structs) {
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
+
+		if (!match) { return; }
+
+		var strings = [];
+		var renderStrings = function(strings) {
+			render(strings.join(''));
+		};
+
+		while (match) {
+			if (match.index > i) {
+				strings.push(string.slice(i, match.index));
+			}
+
+			mountStringToken(node, renderStrings, strings, structs, match);
+			i = rtoken.lastIndex;
+			match = rtoken.exec(string);
+		}
+
+		if (string.length > i) {
+			strings.push(string.slice(i));
+		}
+	}
+
+	function mountAttributes(names, node, options, structs) {
+		var name;
+
+		while (name = names.shift()) {
+			mountAttribute(name, node, options, structs);
+		}
+	}
+
+	function mountAttribute(name, node, options, structs, prefixed) {
+		var text = prefixed !== false
+		&& node.getAttribute(options.attributePrefix + name)
+		|| node.getAttribute(cased[name] || name) ;
+
+		return text && mountString(node, text, function render(value) {
+			node.setAttribute(cased[name] || name, value);
+		}, options, structs);
+	}
+
+	function renderBoolean(name, node) {
+		return name in node ?
+
+		// Assume attribute is also a boolean property
+		function renderBoolean(values) {
+			node[name] = !!values.find(isTruthy);
+		} :
+
+		// Attribute is not also a boolean property
+		function renderBoolean(values) {
+			if (values.find(isTruthy)) {
+				node.setAttribute(name, name);
+			}
+			else {
+				node.removeAttribute(name);
+			}
+		} ;
+	}
+
+	function mountBooleanToken(node, render, values, structs, match) {
+		var i = values.length;
+		values.push(false);
+
+		structs.push(new Struct(node, match[0], match[2], function(value) {
+			values[i] = value;
+			render(values);
+		}, match[3]));
+	}
+
+	function mountBoolean(name, node, options, structs) {
+		// Look for prefixed attributes before attributes.
+		//
+		// In FF, the disabled attribute is set to the previous value that the
+		// element had when the page is refreshed, so it contains no sparky
+		// tags. The proper way to address this problem is to set
+		// autocomplete="off" on the parent form or on the field.
+
+		var prefixed = node.getAttribute(options.attributePrefix + name);
+		var string   = prefixed || node.getAttribute(name);
+
+		// Fast out
+		if (!string) { return; }
+
+		var rtoken  = options.rtoken;
+		var i       = rtoken.lastIndex = 0;
+		var match   = rtoken.exec(string);
+
+		// Fast out
+		if (!match) { return; }
+
+		var render = renderBoolean(name, node);
+
+		// Where the unprefixed attribute is populated, Return the property to
+		// the default value.
+		if (!prefixed) {
+			render(nothing$1);
+		}
+
+		var values = [];
+		var value;
+
+		while (match) {
+			if (match.index > i) {
+				value = string.slice(i, match.index);
 				if (!rempty.test(value)) {
 					values.push(value);
 				}
 			}
+
+			mountBooleanToken(node, render, values, structs, match);
+			i     = rtoken.lastIndex;
+			match = rtoken.exec(string);
 		}
 
-		function mountClass(node, options, structs) {
-			var rtoken = options.rtoken;
-			var attr   = dom.attribute('class', node);
-
-			// If there are no classes, go no further
-			if (!attr) { return; }
-
-			var classes = dom.classes(node);
-
-			// Extract the tags and overwrite the class with remaining text
-			var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-				var prev    = '';
-
-				structs.push(new Struct(node, $0, $2, function render(string) {
-					if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
-					if (string && rtext.test(string)) { addClasses(classes, string); }
-					prev = string;
-				}, $3));
-
-				return '';
-			});
-
-			node.setAttribute('class', text);
-		}
-
-		function mountValueNumber(node, options, structs) {
-			var string = attribute(options.attributePrefix + 'value', node)
-				|| attribute('value', node) ;
-
-			var match = matchToken(string, options);
-
-			if (!match) { return; }
-
-			// ReadableStruct(node, token, path, render, type, read, pipe)
-			structs.push(new ReadableStruct(node, match[0], match[2], writeValueNumber, 'input', readValueNumber, match[3]));
-		}
-
-		function mountValueString(node, options, structs) {
-			var string = attribute(options.attributePrefix + 'value', node)
-				|| attribute('value', node) ;
-			var match = matchToken(string, options);
-			if (!match) { return; }
-
-			// new Struct (node, token, path, render, type, read, pipe)
-			structs.push(new ReadableStruct(node, match[0], match[2], writeValue, 'input', readValue, match[3]));
-		}
-
-		function mountValueCheckbox(node, options, structs) {
-			var string = attribute(options.attributePrefix + 'value', node);
-			var match  = matchToken(string, options);
-			if (!match) { return; }
-
-			// new Struct (node, token, path, render, type, read, pipe)
-			structs.push(new ReadableStruct(node, match[0], match[2], writeValueCheckbox, 'change', readValueCheckbox, match[3]));
-		}
-
-		function mountValueRadio(node, options, structs) {
-			var string = attribute(options.attributePrefix + 'value', node);
-			var match  = matchToken(string, options);
-			if (!match) { return; }
-
-			// new Struct (node, token, path, render, type, read, pipe)
-			structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
-		}
-
-		// Struct value read and write
-
-	    function writeValue(value) {
-	        var node = this.node;
-
-	        // Avoid updating with the same value as it sends the cursor to
-	        // the end of the field (in Chrome, at least).
-	        if (value === node.value) { return; }
-
-	        node.value = typeof value === 'string' ?
-	            value :
-	            '' ;
-	    }
-
-	    function writeValueNumber(value) {
-	        var node = this.node;
-
-	        // Avoid updating with the same value as it sends the cursor to
-	        // the end of the field (in Chrome, at least).
-	        if (value === parseFloat(node.value)) { return; }
-
-	        node.value = typeof value === 'number' && !Number.isNaN(value) ?
-	            value :
-	            '' ;
-	    }
-
-	    function writeValueCheckbox(value) {
-	        var node = this.node;
-
-	        // Where value is defined check against it, otherwise
-	        // value is "on", uselessly. Set checked state directly.
-	        node.checked = isDefined(node.getAttribute('value')) ?
-	            value === node.value :
-	            value === true ;
-	    }
-
-	    function writeValueRadio(value) {
-	        var node = this.node;
-
-	        // Where value="" is defined check against it, otherwise
-	        // value is "on", uselessly: set checked state directly.
-	        node.checked = isDefined(node.getAttribute('value')) ?
-	            value === node.value :
-	            value === true ;
-	    }
-
-	    function readValue() {
-	        var node = this.node;
-	        return node.value;
-	    }
-
-	    function readValueNumber() {
-	        var node = this.node;
-	        return node.value ? parseFloat(node.value) : undefined ;
-	    }
-
-	    function readValueCheckbox() {
-	        var node = this.node;
-
-	        // TODO: Why do we check attribute here?
-	        return isDefined(node.getAttribute('value')) ?
-	            node.checked ? node.value : undefined :
-	            node.checked ;
-	    }
-
-	    function readValueRadio() {
-	        var node = this.node;
-
-	        if (!node.checked) { return; }
-
-	        return isDefined(node.getAttribute('value')) ?
-	            node.value :
-	            node.checked ;
-	    }
-
-
-		const types = {
-			// element
-			1: function mountElement(node, options, structs) {
-				// Get an immutable list of children. We don't want to mount
-				// elements that may be dynamically inserted by other sparky
-				// processes. Remember node.childNodes is dynamic.
-				var children = A.slice.apply(node.childNodes);
-				var n = -1;
-				var child;
-
-				while (child = children[++n]) {
-					options.mount(child, options, structs) ||
-					mountNode(child, options, structs) ;
-				}
-
-				// This costs us, needlessly creating a struct for every element
-				//mountScope(node, options, structs);
-				mountClass(node, options, structs);
-				mountBoolean('hidden', node, options, structs);
-				mountAttributes(['id', 'title', 'style'], node, options, structs);
-				mountTag(node, options, structs);
-			},
-
-			// text
-			3: function mountText(node, options, structs) {
-				mountString(node, node.nodeValue, set$1('nodeValue', node), options, structs);
-			},
-
-			// comment
-			8: noop$1,
-
-			// document
-			9: function mountDocument(node, options, structs) {
-				var children = A.slice.apply(node.childNodes);
-				var n = -1;
-				var child;
-
-				while (child = children[++n]) {
-					options.mount(child, options, structs) ||
-					mountNode(child, options, structs) ;
-				}
-			},
-
-			// doctype
-			10: noop$1,
-
-			// fragment
-			11: function mountFragment(node, options, structs) {
-				var children = A.slice.apply(node.childNodes);
-				var n = -1;
-				var child;
-
-				while (child = children[++n]) {
-					options.mount(child, options, structs) ||
-					mountNode(child, options, structs) ;
-				}
-			}
-		};
-
-		const tags = {
-
-			// HTML
-
-			a: function(node, options, structs) {
-				mountAttribute('href', node, options, structs);
-			},
-
-			button: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-			},
-
-			form: function(node, options, structs) {
-				mountAttribute('method', node, options, structs);
-				mountAttribute('action', node, options, structs);
-			},
-
-			fieldset: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-			},
-
-			img: function(node, options, structs) {
-				mountAttribute('alt', node, options, structs);
-			},
-
-			input: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-				mountBoolean('required', node, options, structs);
-				mountAttribute('name', node, options, structs);
-				mountInput(node, options, structs);
-			},
-
-			label: function(node, options, structs) {
-				mountAttribute('for', node, options, structs);
-			},
-
-			meter: function(node, options, structs) {
-				mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
-			},
-
-			option: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-				mountAttribute('value', node, options, structs);
-			},
-
-			output: function(node, options, structs) {
-				mountAttribute('for', node, options, structs);
-			},
-
-			progress: function(node, options, structs) {
-				mountAttribute(['max', 'value'], node, options, structs);
-			},
-
-			select: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-				mountBoolean('required', node, options, structs);
-				mountAttribute('name', node, options, structs);
-				mountValueString(node, options, structs);
-			},
-
-			textarea: function(node, options, structs) {
-				mountBoolean('disabled', node, options, structs);
-				mountBoolean('required', node, options, structs);
-				mountAttribute('name', node, options, structs);
-				mountValueString(node, options, structs);
-			},
-
-			time: function(node, options, structs)  {
-				mountAttributes(['datetime'], node, options, structs);
-			},
-
-			// SVG
-
-			svg: function(node, options, structs) {
-				mountAttributes(['viewbox'], node, options, structs);
-			},
-
-			g: function(node, options, structs) {
-				mountAttributes(['transform'],  node, options, structs);
-			},
-
-			path: function(node, options, structs) {
-				mountAttributes(['d', 'transform'], node, options, structs);
-			},
-
-			line: function(node, options, structs) {
-				mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node, options, structs);
-			},
-
-			rect: function(node, options, structs) {
-				mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node, options, structs);
-			},
-
-			text: function(node, options, structs) {
-				mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
-			},
-
-			use: function(node, options, structs) {
-				mountAttributes(['href', 'transform'], node, options, structs);
-			},
-
-			default: noop$1
-		};
-
-		const inputs = {
-			button: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-			},
-
-			checkbox: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-				mountBoolean('checked', node, options, structs);
-				// This call only binds the prefixed attribute
-				mountValueCheckbox(node, options, structs);
-			},
-
-			date: function(node, options, structs) {
-				mountAttributes(['min', 'max', 'step'], node, options, structs);
-				mountValueString(node, options, structs);
-			},
-
-			hidden: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-			},
-
-			image: function(node, options, structs) {
-				mountAttribute('src', node, options, structs);
-			},
-
-			number: function(node, options, structs) {
-				mountAttributes(['min', 'max', 'step'], node, options, structs);
-				mountValueNumber(node, options, structs);
-			},
-
-			radio: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-				mountBoolean('checked', node, options, structs);
-				// This call only binds the prefixed attribute
-				mountValueRadio(node, options, structs);
-			},
-
-			range: function(node, options, structs) {
-				mountAttributes(['min', 'max', 'step'], node, options, structs);
-				mountValueNumber(node, options, structs);
-			},
-
-			reset: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-			},
-
-			submit: function(node, options, structs) {
-				// false flag means don't check the prefixed attribute
-				mountAttribute('value', node, options, structs, false);
-			},
-
-			time: function(node, options, structs) {
-				mountAttributes(['min', 'max', 'step'], node, options, structs);
-				mountValueString(node, options, structs);
-			},
-
-			default: function(node, options, structs) {
-				mountValueString(node, options, structs);
-			}
-		};
-
-		const mountNode  = overload(get$1('nodeType'), types);
-		const mountTag   = overload(dom.tag, tags);
-		const mountInput = overload(get$1('type'), inputs);
-
-
-		function setupStructs(structs, options) {
-			structs.forEach(function(struct) {
-				// Set up structs to be pushable. Renderers already have
-				// a push method and should not be throttled.
-				if (struct.render) {
-					setup(struct, options);
-				}
-			});
-		}
-
-		function unbindStructs(structs) {
-			structs.forEach(unbind);
-		}
-
-		function mount(node, options) {
-			if (DEBUG) {
-				console.groupCollapsed('mount: ', node);
-			}
-
-			options = assign({}, settings, options);
-
-			var structs = [];
-			mountNode(node, options, structs);
-
-			if (DEBUG) { console.groupEnd(); }
-
-			var fn = setupStructs;
-			var old;
-
-			// Return a read-only stream
-			return {
-				shift: noop$1,
-
-				stop: function stop() {
-					structs.forEach(teardown);
-				},
-
-				push: function push(scope) {
-					//if (DEBUG) { console.log('mount: push(scope)', scope); }
-					if (old === scope) { return; }
-					old = scope;
-
-					// Setup structs on the first scope push, unbind them on
-					// later pushes
-					fn(structs, options);
-					fn = unbindStructs;
-
-					structs.forEach(function(struct) {
-						bind(struct, scope, options);
-					});
-				}
+		if (string.length > i) {
+			value = string.slice(i);
+			if (!rempty.test(value)) {
+				values.push(value);
 			}
 		}
+	}
 
-		// Export (temporary)
-		mount.types  = types;
-		mount.tags   = tags;
-		mount.inputs = inputs;
-		mount.mountAttribute   = mountAttribute;
-		mount.mountBoolean     = mountBoolean;
-		mount.mountInput       = mountInput;
-		mount.mountValueString = mountValueString;
-		mount.mountValueNumber = mountValueNumber;
+	function mountClass(node, options, structs) {
+		var rtoken = options.rtoken;
+		var attr   = dom.attribute('class', node);
+
+		// If there are no classes, go no further
+		if (!attr) { return; }
+
+		var classes = dom.classes(node);
+
+		// Extract the tags and overwrite the class with remaining text
+		var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
+			var prev    = '';
+
+			structs.push(new Struct(node, $0, $2, function render(string) {
+				if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
+				if (string && rtext.test(string)) { addClasses(classes, string); }
+				prev = string;
+			}, $3));
+
+			return '';
+		});
+
+		node.setAttribute('class', text);
+	}
+
+	function mountValueNumber(node, options, structs) {
+		var string = attribute$2(options.attributePrefix + 'value', node)
+			|| attribute$2('value', node) ;
+
+		var match = matchToken(string, options);
+
+		if (!match) { return; }
+
+		// ReadableStruct(node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct$1(node, match[0], match[2], writeValueNumber, 'input', readValueNumber, match[3]));
+	}
+
+	function mountValueString(node, options, structs) {
+		var string = attribute$2(options.attributePrefix + 'value', node)
+			|| attribute$2('value', node) ;
+		var match = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct$1(node, match[0], match[2], writeValue, 'input', readValue, match[3]));
+	}
+
+	function mountValueCheckbox(node, options, structs) {
+		var string = attribute$2(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct$1(node, match[0], match[2], writeValueCheckbox, 'change', readValueCheckbox, match[3]));
+	}
+
+	function mountValueRadio(node, options, structs) {
+		var string = attribute$2(options.attributePrefix + 'value', node);
+		var match  = matchToken(string, options);
+		if (!match) { return; }
+
+		// new Struct (node, token, path, render, type, read, pipe)
+		structs.push(new ReadableStruct$1(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
+	}
+
+	// Struct value read and write
+
+	function writeValue(value) {
+		var node = this.node;
+
+		// Avoid updating with the same value as it sends the cursor to
+		// the end of the field (in Chrome, at least).
+		if (value === node.value) { return; }
+
+		node.value = typeof value === 'string' ?
+			value :
+			'' ;
+	}
+
+	function writeValueNumber(value) {
+		var node = this.node;
+
+		// Avoid updating with the same value as it sends the cursor to
+		// the end of the field (in Chrome, at least).
+		if (value === parseFloat(node.value)) { return; }
+
+		node.value = typeof value === 'number' && !Number.isNaN(value) ?
+			value :
+			'' ;
+	}
+
+	function writeValueCheckbox(value) {
+		var node = this.node;
+
+		// Where value is defined check against it, otherwise
+		// value is "on", uselessly. Set checked state directly.
+		node.checked = isDefined(node.getAttribute('value')) ?
+			value === node.value :
+			value === true ;
+	}
+
+	function writeValueRadio(value) {
+		var node = this.node;
+
+		// Where value="" is defined check against it, otherwise
+		// value is "on", uselessly: set checked state directly.
+		node.checked = isDefined(node.getAttribute('value')) ?
+			value === node.value :
+			value === true ;
+	}
+
+	function readValue() {
+		var node = this.node;
+		return node.value;
+	}
+
+	function readValueNumber() {
+		var node = this.node;
+		return node.value ? parseFloat(node.value) : undefined ;
+	}
+
+	function readValueCheckbox() {
+		var node = this.node;
+
+		// TODO: Why do we check attribute here?
+		return isDefined(node.getAttribute('value')) ?
+			node.checked ? node.value : undefined :
+			node.checked ;
+	}
+
+	function readValueRadio() {
+		var node = this.node;
+
+		if (!node.checked) { return; }
+
+		return isDefined(node.getAttribute('value')) ?
+			node.value :
+			node.checked ;
+	}
 
 
-		// Expose a way to get scopes from node for event delegation and debugging
+	const types$1 = {
+		// element
+		1: function mountElement(node, options, structs) {
+			// Get an immutable list of children. We don't want to mount
+			// elements that may be dynamically inserted by other sparky
+			// processes. Remember node.childNodes is dynamic.
+			var children = A$6.slice.apply(node.childNodes);
+			var n = -1;
+			var child;
 
-		mount.getScope = function getScope(node) {
-			var scope = Struct.findScope(node);
-			return scope === undefined && node.parentNode ?
-				getScope(node.parentNode) :
-				scope ;
-		};
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
 
-		window.mount = mount;
+			// This costs us, needlessly creating a struct for every element
+			//mountScope(node, options, structs);
+			mountClass(node, options, structs);
+			mountBoolean('hidden', node, options, structs);
+			mountAttributes(['id', 'title', 'style'], node, options, structs);
+			mountTag(node, options, structs);
+		},
 
-	})(window);
+		// text
+		3: function mountText(node, options, structs) {
+			mountString(node, node.nodeValue, set$1('nodeValue', node), options, structs);
+		},
+
+		// comment
+		8: noop$1,
+
+		// document
+		9: function mountDocument(node, options, structs) {
+			var children = A$6.slice.apply(node.childNodes);
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		},
+
+		// doctype
+		10: noop$1,
+
+		// fragment
+		11: function mountFragment(node, options, structs) {
+			var children = A$6.slice.apply(node.childNodes);
+			var n = -1;
+			var child;
+
+			while (child = children[++n]) {
+				options.mount(child, options, structs) ||
+				mountNode(child, options, structs) ;
+			}
+		}
+	};
+
+	const tags = {
+
+		// HTML
+
+		a: function(node, options, structs) {
+			mountAttribute('href', node, options, structs);
+		},
+
+		button: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+		},
+
+		form: function(node, options, structs) {
+			mountAttribute('method', node, options, structs);
+			mountAttribute('action', node, options, structs);
+		},
+
+		fieldset: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+		},
+
+		img: function(node, options, structs) {
+			mountAttribute('alt', node, options, structs);
+		},
+
+		input: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountInput(node, options, structs);
+		},
+
+		label: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		meter: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
+		},
+
+		option: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountAttribute('value', node, options, structs);
+		},
+
+		output: function(node, options, structs) {
+			mountAttribute('for', node, options, structs);
+		},
+
+		progress: function(node, options, structs) {
+			mountAttribute(['max', 'value'], node, options, structs);
+		},
+
+		select: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		textarea: function(node, options, structs) {
+			mountBoolean('disabled', node, options, structs);
+			mountBoolean('required', node, options, structs);
+			mountAttribute('name', node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		time: function(node, options, structs)  {
+			mountAttributes(['datetime'], node, options, structs);
+		},
+
+		// SVG
+
+		svg: function(node, options, structs) {
+			mountAttributes(['viewbox'], node, options, structs);
+		},
+
+		g: function(node, options, structs) {
+			mountAttributes(['transform'],  node, options, structs);
+		},
+
+		path: function(node, options, structs) {
+			mountAttributes(['d', 'transform'], node, options, structs);
+		},
+
+		line: function(node, options, structs) {
+			mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node, options, structs);
+		},
+
+		rect: function(node, options, structs) {
+			mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node, options, structs);
+		},
+
+		text: function(node, options, structs) {
+			mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
+		},
+
+		use: function(node, options, structs) {
+			mountAttributes(['href', 'transform'], node, options, structs);
+		},
+
+		default: noop$1
+	};
+
+	const inputs = {
+		button: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		checkbox: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueCheckbox(node, options, structs);
+		},
+
+		date: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		hidden: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		image: function(node, options, structs) {
+			mountAttribute('src', node, options, structs);
+		},
+
+		number: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		radio: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+			mountBoolean('checked', node, options, structs);
+			// This call only binds the prefixed attribute
+			mountValueRadio(node, options, structs);
+		},
+
+		range: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueNumber(node, options, structs);
+		},
+
+		reset: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		submit: function(node, options, structs) {
+			// false flag means don't check the prefixed attribute
+			mountAttribute('value', node, options, structs, false);
+		},
+
+		time: function(node, options, structs) {
+			mountAttributes(['min', 'max', 'step'], node, options, structs);
+			mountValueString(node, options, structs);
+		},
+
+		default: function(node, options, structs) {
+			mountValueString(node, options, structs);
+		}
+	};
+
+	const mountNode  = overload(get$1('nodeType'), types$1);
+	const mountTag   = overload(dom.tag, tags);
+	const mountInput = overload(get$1('type'), inputs);
+
+
+	function setupStructs(structs, options) {
+		structs.forEach(function(struct) {
+			// Set up structs to be pushable. Renderers already have
+			// a push method and should not be throttled.
+			if (struct.render) {
+				setup$1(struct, options);
+			}
+		});
+	}
+
+	function unbindStructs(structs) {
+		structs.forEach(unbind$1);
+	}
+
+	function mount(node, options) {
+		if (DEBUG$5) {
+			console.groupCollapsed('mount: ', node);
+		}
+
+		options = assign$9({}, settings, options);
+
+		var structs = [];
+		mountNode(node, options, structs);
+
+		if (DEBUG$5) { console.groupEnd(); }
+
+		var fn = setupStructs;
+		var old;
+
+		// Return a read-only stream
+		return {
+			shift: noop$1,
+
+			stop: function stop() {
+				structs.forEach(teardown$1);
+			},
+
+			push: function push(scope) {
+				//if (DEBUG) { console.log('mount: push(scope)', scope); }
+				if (old === scope) { return; }
+				old = scope;
+
+				// Setup structs on the first scope push, unbind them on
+				// later pushes
+				fn(structs, options);
+				fn = unbindStructs;
+
+				structs.forEach(function(struct) {
+					bind$1(struct, scope, options);
+				});
+			}
+		}
+	}
+	// Export (temporary)
+	mount.types  = types$1;
+	mount.tags   = tags;
+	mount.inputs = inputs;
+	mount.mountAttribute   = mountAttribute;
+	mount.mountBoolean     = mountBoolean;
+	mount.mountInput       = mountInput;
+	mount.mountValueString = mountValueString;
+	mount.mountValueNumber = mountValueNumber;
+
+
+	// Expose a way to get scopes from node for event delegation and debugging
+
+	mount.getScope = function getScope(node) {
+		var scope = Struct.findScope(node);
+		return scope === undefined && node.parentNode ?
+			getScope(node.parentNode) :
+			scope ;
+	};
 
 	(function(window) {
 		if (!window.console || !window.console.log) { return; }
 		console.log('Sparky      - https://github.com/cruncher/sparky');
 	})(window);
 
-	(function(window) {
+	var DEBUG$6          = window.DEBUG;
 
-		var DEBUG          = window.DEBUG;
+	var Observable$2     = window.Observable;
 
-		var Observable$$1     = window.Observable;
-		var dom            = window.dom;
-		var mount          = window.mount;
-
-		var assign         = Object.assign;
-		var tag            = dom.tag;
-		var preventDefault = dom.preventDefault;
+	var assign$10         = Object.assign;
+	var tag$2            = dom.tag;
+	var preventDefault$2 = dom.preventDefault;
 
 
-		// Matches:     xxxx: xxx, "xxx", 'xxx'
-		var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[^\s,]+))*))?/;
+	// Matches:     xxxx: xxx, "xxx", 'xxx'
+	var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[^\s,]+))*))?/;
 
-		var settings = {
-			// Child mounting function
-			mount: function mount(node, options, streams) {
-				var fn = dom.attribute(Sparky.attributeFn, node);
-				if (!fn) { return; }
+	var settings$1 = {
+		// Child mounting function
+		mount: function mount$$1(node, options, streams) {
+			var fn = dom.attribute(Sparky.attributeFn, node);
+			if (!fn) { return; }
 
-				var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
-				//if (DEBUG) { console.log('mounted:', node, fn); }
+			var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
+			//if (DEBUG) { console.log('mounted:', node, fn); }
 
-				// This is just some help for logging mounted tags
-				sparky.token = fn;
-				sparky.path  = '';
+			// This is just some help for logging mounted tags
+			sparky.token = fn;
+			sparky.path  = '';
 
-				// Mount must push write streams into streams. A write stream
-				// must have the methods .push() and .stop()
-				streams.push(sparky);
+			// Mount must push write streams into streams. A write stream
+			// must have the methods .push() and .stop()
+			streams.push(sparky);
 
-				// Tell the mounter we've got ths one
-				return true;
+			// Tell the mounter we've got ths one
+			return true;
+		}
+	};
+
+	function createRenderStream(sparky, settings) {
+		var streams = [];
+		var n = -1;
+
+		while (sparky[++n]) {
+			streams.push(mount(sparky[n], settings));
+		}
+
+		// An aggragate stream for all the mounted streams. How many nested
+		// streams do we need in this project?
+		return {
+			stop: function stop() {
+				return streams.forEach(invoke$1('stop', arguments));
+			},
+
+			push: function push() {
+				return streams.forEach(invoke$1('push', arguments));
 			}
 		};
+	}
 
-		function createRenderStream(sparky, settings) {
-			var streams = [];
-			var n = -1;
+	function escapeSelector(selector) {
+		return selector.replace(/\//g, '\\/');
+	}
 
-			while (sparky[++n]) {
-				streams.push(mount(sparky[n], settings));
+	function toObservableOrSelf(object) {
+		return Observable$2(object) || object;
+	}
+
+	function Sparky(selector, data, options) {
+		if (!Sparky.prototype.isPrototypeOf(this)) {
+			return new Sparky(selector, data, options);
+		}
+
+		var node = typeof selector === 'string' ?
+			document.querySelector(escapeSelector(selector)) :
+			selector ;
+
+		if (!node) {
+			throw new Error('Sparky: "' + selector + '" not found.');
+		}
+
+		var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
+		var calling  = true;
+		var sparky   = this;
+		var input;
+		var renderer = nothing$1;
+
+		this[0]      = node;
+		this.length  = 1;
+
+		function interrupt() {
+			calling = false;
+			return { fn: fnstring };
+		}
+
+		function render() {
+			// TEMP: Find a better way to pass these in
+			settings$1.attributePrefix = Sparky.attributePrefix;
+			//settings.transforms      = Sparky.transforms;
+			//settings.transformers    = Sparky.transformers;
+
+			// Launch rendering
+			if (DEBUG$6 && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
+			renderer = createRenderStream(sparky, settings$1);
+			input.each(renderer.push);
+			if (DEBUG$6 && !(options && options.suppressLogs)) { console.groupEnd(); }
+		}
+
+		function start() {
+			// Parse the fns and params to execute
+			var token = fnstring.match(rfn);
+
+			// No more tokens, launch Sparky
+			if (!token) {
+				sparky.continue = noop$1;
+				render();
+				return sparky;
 			}
 
-			// An aggragate stream for all the mounted streams. How many nested
-			// streams do we need in this project?
-			return {
-				stop: function stop() {
-					return streams.forEach(invoke$1('stop', arguments));
-				},
+			//console.group(token[0].trim());
+			var fn = Sparky.fn[token[1]];
 
-				push: function push() {
-					return streams.forEach(invoke$1('push', arguments));
+			// Function not found
+			if (!fn) {
+				throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
+			}
+
+			// Gaurantee that params exists, at least.
+			var params = token[2] ? parseParams([], token[2]) : nothing$1 ;
+			calling    = true;
+			fnstring   = fnstring.slice(token[0].length);
+
+			// Call Sparky fn, gauranteeing the output is a non-duplicate stream
+			// of observables. Todo: we should not need to be so strict about
+			// .dedup() when we create a disticntion between mutation and
+			// path changes in Observables.
+			var output = fn.call(sparky, node, input, params);
+
+			input = output ?
+				output.map(toObservableOrSelf).dedup() :
+				input ;
+			//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
+			//console.groupEnd();
+
+			// If fns have been interrupted calling is false
+			return calling && start();
+		}
+
+		function Source(notify, stop) {
+			this.shift = function() {
+				var object;
+
+				if (data !== undefined) {
+					object = data;
+					data   = undefined;
+					return object;
 				}
+
+				//notify('pull');
+			};
+
+			this.push = function() {
+				data = arguments[arguments.length - 1];
+				notify('push');
+			};
+
+			this.stop = function() {
+				input.stop && input.stop !== sparky.stop && input.stop();
+				renderer.stop && renderer.stop();
+
+				// Schedule stop, if data is waiting to be collected make
+				// sure we get it
+				stop(data ? 1 : 0);
 			};
 		}
 
-		function escapeSelector(selector) {
-			return selector.replace(/\//g, '\\/');
-		}
+		// Initialise this as a stream and set input to a deduped version
+		Stream$1.call(this, Source);
+		input = this.map(toObservableOrSelf).dedup();
 
-		function toObservableOrSelf(object) {
-			return Observable$$1(object) || object;
-		}
+		this.interrupt = interrupt;
+		this.continue  = start;
 
-		function Sparky(selector, data, options) {
-			if (!Sparky.prototype.isPrototypeOf(this)) {
-				return new Sparky(selector, data, options);
-			}
+		start();
+	}
 
-			var node = typeof selector === 'string' ?
-				document.querySelector(escapeSelector(selector)) :
-				selector ;
+	Sparky.prototype = Stream$1.prototype;
 
-			if (!node) {
-				throw new Error('Sparky: "' + selector + '" not found.');
-			}
+	assign$10(Sparky, {
+		attributeFn:     'sparky-fn',
+		attributePrefix: 'sparky-',
 
-			var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
-			var calling  = true;
-			var sparky   = this;
-			var input;
-			var renderer = nothing$1;
+		fn: {
+			global: function(node, stream, params) {
+				var scope = getPath$1(params[0], window);
 
-			this[0]      = node;
-			this.length  = 1;
-
-			function interrupt() {
-				calling = false;
-				return { fn: fnstring };
-			}
-
-			function render() {
-				// TEMP: Find a better way to pass these in
-				settings.attributePrefix = Sparky.attributePrefix;
-				settings.transforms      = Sparky.transforms;
-				settings.transformers    = Sparky.transformers;
-
-				// Launch rendering
-				if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
-				renderer = createRenderStream(sparky, settings);
-				input.each(renderer.push);
-				if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
-			}
-
-			function start() {
-				// Parse the fns and params to execute
-				var token = fnstring.match(rfn);
-
-				// No more tokens, launch Sparky
-				if (!token) {
-					sparky.continue = noop$1;
-					render();
-					return sparky;
+				if (scope === undefined) {
+					console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
+					return Fn$1.of();
 				}
 
-				//console.group(token[0].trim());
-				var fn = Sparky.fn[token[1]];
+				return Fn$1.of(scope);
+			},
 
-				// Function not found
-				if (!fn) {
-					throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
-				}
+			get: function(node, input, params) {
+				// TODO: We should be able to express this with
+				// input.chain( .. Stream.observe(params[0], objet) .. )
+				// but because Fn#join() doesn't know how to handle streams
+				// we cant. Make it handle streams.
 
-				// Gaurantee that params exists, at least.
-				var params = token[2] ? parseParams([], token[2]) : nothing$1 ;
-				calling    = true;
-				fnstring   = fnstring.slice(token[0].length);
+				var output = Stream$1.of();
+				var stop = noop$1;
 
-				// Call Sparky fn, gauranteeing the output is a non-duplicate stream
-				// of observables. Todo: we should not need to be so strict about
-				// .dedup() when we create a disticntion between mutation and
-				// path changes in Observables.
-				var output = fn.call(sparky, node, input, params);
+				input.each(function(object) {
+					stop();
+					stop = ObservableStream(params[0], object)
+					.each(output.push)
+					.stop;
+				});
 
-				input = output ?
-					output.map(toObservableOrSelf).dedup() :
-					input ;
-				//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
-				//console.groupEnd();
+				this.then(function() {
+					stop();
+				});
 
-				// If fns have been interrupted calling is false
-				return calling && start();
-			}
+				return output;
+			},
 
-			function Source(notify, stop) {
-				this.shift = function() {
-					var object;
+			if: function(node, stream, params) {
+				var name = params[0];
+				var mark = Sparky.MarkerNode(node);
+				var visible = false;
 
-					if (data !== undefined) {
-						object = data;
-						data   = undefined;
-						return object;
+				// Put the marker in place and remove the node
+				dom.before(node, mark);
+				dom.remove(node);
+
+				return stream.tap(function(scope) {
+					var visibility = !!scope[name];
+
+					if(visibility === visible) { return; }
+					visible = visibility;
+
+					if (visible) {
+						dom.replace(mark, node);
 					}
-
-					//notify('pull');
-				};
-
-				this.push = function() {
-					data = arguments[arguments.length - 1];
-					notify('push');
-				};
-
-				this.stop = function() {
-					input.stop && input.stop !== sparky.stop && input.stop();
-					renderer.stop && renderer.stop();
-
-					// Schedule stop, if data is waiting to be collected make
-					// sure we get it
-					stop(data ? 1 : 0);
-				};
-			}
-
-			// Initialise this as a stream and set input to a deduped version
-			Stream$1.call(this, Source);
-			input = this.map(toObservableOrSelf).dedup();
-
-			this.interrupt = interrupt;
-			this.continue  = start;
-
-			start();
-		}
-
-		Sparky.prototype = Stream$1.prototype;
-
-		assign(Sparky, {
-			attributeFn:     'sparky-fn',
-			attributePrefix: 'sparky-',
-
-			fn: {
-				global: function(node, stream, params) {
-					var scope = getPath$1(params[0], window);
-
-					if (scope === undefined) {
-						console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
-						return Fn$1.of();
+					else {
+						dom.replace(node, mark);
 					}
+				});
+			},
 
-					return Fn$1.of(scope);
-				},
+			stop: function ignore(node, stream) {
+				this.interrupt();
+			},
 
-				get: function(node, input, params) {
-					// TODO: We should be able to express this with
-					// input.chain( .. Stream.observe(params[0], objet) .. )
-					// but because Fn#join() doesn't know how to handle streams
-					// we cant.
+			'prevent-on': function preventSubmitCtrl(node, stream, params) {
+				node.addEventListener(params[0], preventDefault$2);
 
-					var output = Stream$1.of();
-					var stop = noop$1;
+				this.then(function() {
+					node.removeEventListener(params[0], preventDefault$2);
+				});
+			},
 
-					input.each(function(object) {
-						stop();
-						stop = ObserveStream(params[0], object)
-						.each(output.push)
-						.stop;
-					});
+			debug: function(node, scopes) {
+				var sparky = this;
 
-					this.then(function() {
-						stop();
-					});
-
-					return output;
-				},
-
-				if: function(node, stream, params) {
-					var name = params[0];
-					var mark = Sparky.MarkerNode(node);
-					var visible = false;
-
-					// Put the marker in place and remove the node
-					dom.before(node, mark);
-					dom.remove(node);
-
-					return stream.tap(function(scope) {
-						var visibility = !!scope[name];
-
-						if(visibility === visible) { return; }
-						visible = visibility;
-
-						if (visible) {
-							dom.replace(mark, node);
-						}
-						else {
-							dom.replace(node, mark);
-						}
-					});
-				},
-
-				stop: function ignore(node, stream) {
-					this.interrupt();
-				},
-
-				'prevent-on': function preventSubmitCtrl(node, stream, params) {
-					node.addEventListener(params[0], preventDefault);
-
-					this.then(function() {
-						node.removeEventListener(params[0], preventDefault);
-					});
-				},
-
-				log: function(node, scopes) {
-					var sparky = this;
-
-					function log(scope) {
-						console.group('Sparky: scope', node);
-						console.log('data ', sparky.data);
-						console.log('scope', scope);
-						console.log('fn   ', sparky.fn);
-						console.groupEnd('---');
-					}
-
-					console.group('Sparky: run  ', node);
+				function log(scope) {
+					console.group('Sparky: scope', node);
 					console.log('data ', sparky.data);
+					console.log('scope', scope);
+					console.log('fn   ', sparky.fn);
 					console.groupEnd('---');
+				}
 
-					return scopes.tap(log);
-				},
+				console.group('Sparky: run  ', node);
+				console.log('data ', sparky.data);
+				console.groupEnd('---');
 
-				scope: deprecate(function(node, stream, params) {
-					return Sparky.fn.find.apply(this, arguments);
-				}, 'Deprecated Sparky fn scope:path renamed find:path'),
+				debugger;
 
-				ignore: deprecate(function ignore(node, stream) {
-					console.log(this.interrupt(), node, stream);
-				}, 'Sparky: fn "ignore" renamed "stop".')
+				return scopes.tap(log);
 			},
 
-			transforms: {},
+			scope: deprecate(function(node, stream, params) {
+				return Sparky.fn.find.apply(this, arguments);
+			}, 'Deprecated Sparky fn scope:path renamed find:path'),
 
-			MarkerNode: function MarkerNode(node) {
-				// A text node, or comment node in DEBUG mode, for marking a
-				// position in the DOM tree so it can be swapped out with some
-				// content in the future.
+			ignore: deprecate(function ignore(node, stream) {
+				console.log(this.interrupt(), node, stream);
+			}, 'Sparky: fn "ignore" renamed "stop".')
+		},
 
-				if (!DEBUG) {
-					return dom.create('text', '');
-				}
+		transforms: {},
 
-				var attrFn  = node && node.getAttribute(Sparky.attributeFn);
-				return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
-			},
+		MarkerNode: function MarkerNode(node) {
+			// A text node, or comment node in DEBUG mode, for marking a
+			// position in the DOM tree so it can be swapped out with some
+			// content in the future.
 
-			getScope: mount.getScope
-		});
-
-		Object.defineProperties(Sparky, {
-			rtoken: {
-				get: function() { return settings.rtoken; },
-				set: function(rtoken) { settings.rtoken = rtoken; },
-				enumerable: true,
-				configurable: true
+			if (!DEBUG$6) {
+				return dom.create('text', '');
 			}
-		});
 
-		window.Sparky = Sparky;
+			var attrFn  = node && node.getAttribute(Sparky.attributeFn);
+			return dom.create('comment', tag$2(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
+		},
 
-	})(window);
+		getScope: mount.getScope
+	});
 
-	(function(window) {
+	Object.defineProperties(Sparky, {
+		rtoken: {
+			get: function() { return settings$1.rtoken; },
+			set: function(rtoken) { settings$1.rtoken = rtoken; },
+			enumerable: true,
+			configurable: true
+		}
+	});
 
-		var DEBUG      = false;
+	var DEBUG$7      = false;
 
-		var dom        = window.dom;
-		var Observable = window.Observable;
-		var Sparky     = window.Sparky;
-		var frame      = window.frame;
-		var A          = Array.prototype;
+	var Observable$3 = window.Observable;
+	var A$7          = Array.prototype;
 
-		var isArray    = Array.isArray;
-		var before     = dom.before;
-		var clone      = dom.clone;
-		var remove     = dom.remove;
-		var tag        = dom.tag;
-		var cue        = frame.cue;
-		var uncue      = frame.uncue;
-		var observe    = Observable.observe;
-		var MarkerNode = Sparky.MarkerNode;
+	var isArray    = Array.isArray;
+	var before$2     = dom.before;
+	var clone$2      = dom.clone;
+	var remove$5     = dom.remove;
+	var tag$3        = dom.tag;
+	var observe$1    = Observable$3.observe;
+	var MarkerNode = Sparky.MarkerNode;
 
-		var $object    = Symbol('object');
+	var $object    = Symbol('object');
 
-		function create(node, object, options) {
-			if (DEBUG) { console.groupCollapsed('each: create', node); }
-			var sparky = new Sparky(node, object, options);
-			if (DEBUG) { console.groupEnd(); }
-			sparky[$object] = object;
-			return sparky;
+	function create$3(node, object, options) {
+		if (DEBUG$7) { console.groupCollapsed('each: create', node); }
+		var sparky = new Sparky(node, object, options);
+		if (DEBUG$7) { console.groupEnd(); }
+		sparky[$object] = object;
+		return sparky;
+	}
+
+	function reorderCache(template, options, array, sparkies) {
+		var n    = -1;
+		var sparky, object, i;
+
+		// Reorder sparkies
+		while (++n < array.length) {
+			object = array[n];
+			sparky = sparkies[n];
+
+			if (sparky && object === sparky[$object]) {
+				continue;
+			}
+
+			// i = -1
+			i = n - 1;
+			while (sparkies[++i] && sparkies[i][$object] !== object);
+
+			sparky = i === sparkies.length ?
+				create$3(clone$2(template), object, options) :
+				sparkies.splice(i, 1)[0];
+
+			sparkies.splice(n, 0, sparky);
 		}
 
-		function reorderCache(template, options, array, sparkies) {
-			var n    = -1;
-			var sparky, object, i;
+		// Reordering has pushed all removed sparkies to the end of the
+		// sparkies. Remove them.
+		while (sparkies.length > array.length) {
+			A$7.forEach.call(sparkies.pop().stop(), remove$5);
+		}
+	}
 
-			// Reorder sparkies
-			while (++n < array.length) {
-				object = array[n];
-				sparky = sparkies[n];
+	function reorderNodes(node, array, sparkies) {
+		// Reorder nodes in the DOM
+		var l = sparkies.length;
+		var n = -1;
+		var parent = node.parentNode;
 
-				if (sparky && object === sparky[$object]) {
-					continue;
-				}
+		while (n < l) {
+			// Note that node is null where nextSibling does not exist
+			node = node ? node.nextSibling : null ;
 
-				// i = -1
-				i = n - 1;
-				while (sparkies[++i] && sparkies[i][$object] !== object);
-
-				sparky = i === sparkies.length ?
-					create(clone(template), object, options) :
-					sparkies.splice(i, 1)[0];
-
-				sparkies.splice(n, 0, sparky);
-			}
-
-			// Reordering has pushed all removed sparkies to the end of the
-			// sparkies. Remove them.
-			while (sparkies.length > array.length) {
-				A.forEach.call(sparkies.pop().stop(), remove);
+			while (++n < l && sparkies[n][0] !== node) {
+				// Passing null to insertBefore appends to the end I think
+				parent.insertBefore(sparkies[n][0], node);
 			}
 		}
+	}
 
-		function reorderNodes(node, array, sparkies) {
-			// Reorder nodes in the DOM
-			var l = sparkies.length;
-			var n = -1;
-			var parent = node.parentNode;
+	function eachFrame$1(stream, fn) {
+		var unobserve = noop$1;
 
-			while (n < l) {
-				// Note that node is null where nextSibling does not exist
-				node = node ? node.nextSibling : null ;
+		function update(time) {
+			var scope = stream.shift();
+			// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
+			if (scope === undefined) { return; }
 
-				while (++n < l && sparkies[n][0] !== node) {
-					// Passing null to insertBefore appends to the end I think
-					parent.insertBefore(sparkies[n][0], node);
-				}
-			}
-		}
-
-		function eachFrame(stream, fn) {
-			var unobserve = noop$1;
-
-			function update(time) {
-				var scope = stream.shift();
-				// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-				if (scope === undefined) { return; }
-
-				function render(time) {
-					fn(scope);
-				}
-
-				unobserve();
-
-				var uno = observe(scope, '', function() {
-					cue(render);
-				});
-
-				unobserve = function() {
-					uno();
-					uncue(render);
-				};
+			function render(time) {
+				fn(scope);
 			}
 
-			function push() {
-				cue(update);
-			}
+			unobserve();
 
-			if (stream.on) {
-				stream.on('push', push);
-			}
-			else {
-				push();
-			}
-
-			return function() {
-				stream.off('push', push);
-				unobserve();
-				uncue(update);
-			};
-		}
-
-		function entryToKeyValue(entry) {
-			return {
-				key:   entry[0],
-				value: entry[1]
-			};
-		}
-
-		Sparky.fn.each = function each(node, scopes, params) {
-			var sparkies = [];
-			var template = node.cloneNode(true);
-			var options  = this.interrupt();
-			var marker   = MarkerNode(node);
-			var isSelect = tag(node) === 'option';
-
-			function update(array) {
-				// Selects will lose their value if the selected option is removed
-				// from the DOM, even if there is another <option> of same value
-				// already in place. (Interestingly, value is not lost if the
-				// selected <option> is simply moved). Make an effort to have
-				// selects retain their value.
-				var value = isSelect ? marker.parentNode.value : undefined ;
-
-				if (!isArray(array)) {
-					array = Object.entries(array).map(entryToKeyValue);
-				}
-
-				if (DEBUG) { console.log('render: each ' + JSON.stringify(array)); }
-
-				reorderCache(template, options, array, sparkies);
-				reorderNodes(marker, array, sparkies);
-
-				// A fudgy workaround because observe() callbacks (like this update
-				// function) are not batched to ticks.
-				// TODO: batch observe callbacks to ticks.
-				if (isSelect && value !== undefined) {
-					marker.parentNode.value = value;
-				}
-			}
-
-			// Stop Sparky trying to bind the same scope and ctrls again.
-			template.removeAttribute(Sparky.attributeFn);
-
-			// Put the marker in place and remove the node
-			before(node, marker);
-			remove(node);
-
-			// Get the value of scopes in frames after it has changed
-			var stream = scopes.latest().dedup();
-			var unEachFrame = eachFrame(stream, update);
-
-			this.then(function() {
-				remove(marker);
-				unEachFrame();
-				sparkies.forEach(function(sparky) {
-					sparky.stop();
-				});
+			var uno = observe$1(scope, '', function() {
+				cue(render);
 			});
+
+			unobserve = function() {
+				uno();
+				uncue(render);
+			};
+		}
+
+		function push() {
+			cue(update);
+		}
+
+		if (stream.on) {
+			stream.on('push', push);
+		}
+		else {
+			push();
+		}
+
+		return function() {
+			stream.off('push', push);
+			unobserve();
+			uncue(update);
 		};
-	})(window);
+	}
 
-	(function(window) {
+	function entryToKeyValue(entry) {
+		return {
+			key:   entry[0],
+			value: entry[1]
+		};
+	}
 
-	    var DEBUG   = false;
-	    var axios   = window.axios;
-	    var jQuery  = window.jQuery;
-	    var dom     = window.dom;
-	    var Sparky  = window.Sparky;
-	    var frame   = window.frame;
+	Sparky.fn.each = function each(node, scopes, params) {
+		var sparkies = [];
+		var template = node.cloneNode(true);
+		var options  = this.interrupt();
+		var marker   = MarkerNode(node);
+		var isSelect = tag$3(node) === 'option';
 
-	    var assign  = Object.assign;
-	    var cue     = frame.cue;
-	    var fetch   = window.fetch;
-	    var getData = get$1('data');
-	    var parseHTML = dom.parse('html');
+		function update(array) {
+			// Selects will lose their value if the selected option is removed
+			// from the DOM, even if there is another <option> of same value
+			// already in place. (Interestingly, value is not lost if the
+			// selected <option> is simply moved). Make an effort to have
+			// selects retain their value.
+			var value = isSelect ? marker.parentNode.value : undefined ;
 
-	    var cache$$1   = {
-	        '': {
-	            '': document
-	        }
+			if (!isArray(array)) {
+				array = Object.entries(array).map(entryToKeyValue);
+			}
+
+			if (DEBUG$7) { console.log('render: each ' + JSON.stringify(array)); }
+
+			reorderCache(template, options, array, sparkies);
+			reorderNodes(marker, array, sparkies);
+
+			// A fudgy workaround because observe() callbacks (like this update
+			// function) are not batched to ticks.
+			// TODO: batch observe callbacks to ticks.
+			if (isSelect && value !== undefined) {
+				marker.parentNode.value = value;
+			}
+		}
+
+		// Stop Sparky trying to bind the same scope and ctrls again.
+		template.removeAttribute(Sparky.attributeFn);
+
+		// Put the marker in place and remove the node
+		before$2(node, marker);
+		remove$5(node);
+
+		// Get the value of scopes in frames after it has changed
+		var stream = scopes.latest().dedup();
+		var unEachFrame = eachFrame$1(stream, update);
+
+		this.then(function() {
+			remove$5(marker);
+			unEachFrame();
+			sparkies.forEach(function(sparky) {
+				sparky.stop();
+			});
+		});
+	};
+
+	var DEBUG$8   = false;
+	var axios   = window.axios;
+	var jQuery  = window.jQuery;
+
+	var assign$11  = Object.assign;
+	var fetch   = window.fetch;
+	var getData = get$1('data');
+	var parseHTML = dom.parse('html');
+
+	var cache$1   = {
+	    '': {
+	        '': document
+	    }
+	};
+
+	var request$1 = axios ? function axiosRequest(url, id$$1) {
+	    return axios
+	    .get(url)
+	    .then(getData)
+	    .then(parseHTML);
+	} :
+
+	// TODO test these functions
+
+	jQuery ? function jQueryRequest(url, id$$1) {
+	    return jQuery
+	    .get(url)
+	    .then(getData)
+	    .then(parseHTML);
+	} :
+
+	fetch ? function fetchRequest(url, id$$1) {
+	    return fetch(url)
+	    .then(getData)
+	    .then(parseHTML);
+	} :
+
+	function errorRequest(url, id$$1) {
+	    throw new Error('Sparky: no axios, jQuery or fetch found for request "' + url + '"');
+	} ;
+
+	function insertTemplate(sparky, node, scopes, id$$1, template) {
+	    if (!template) {
+	        throw new Error('Sparky: template ' + id$$1 + ' not found.');
+	    }
+
+	    var run = function first() {
+	        run = noop$1;
+	        var fragment = dom.clone(template);
+	        dom.empty(node);
+	        dom.append(node, fragment);
+	        if (DEBUG$8) { console.log('Sparky fn=template:', node); }
+	        sparky.continue();
 	    };
 
-	    var request = axios ? function axiosRequest(url, id$$1) {
-	        return axios
-	        .get(url)
-	        .then(getData)
-	        .then(parseHTML);
-	    } :
+	    var stream = Stream$1.of();
 
-	    // TODO test these functions
-
-	    jQuery ? function jQueryRequest(url, id$$1) {
-	        return jQuery
-	        .get(url)
-	        .then(getData)
-	        .then(parseHTML);
-	    } :
-
-	    fetch ? function fetchRequest(url, id$$1) {
-	        return fetch(url)
-	        .then(getData)
-	        .then(parseHTML);
-	    } :
-
-	    function errorRequest(url, id$$1) {
-	        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + url + '"');
-	    } ;
-
-	    function insertTemplate(sparky, node, scopes, id$$1, template) {
-	        if (!template) {
-	            throw new Error('Sparky: template ' + id$$1 + ' not found.');
-	        }
-
-	        var run = function first() {
-	            run = noop$1;
-	            var fragment = dom.clone(template);
-	            dom.empty(node);
-	            dom.append(node, fragment);
-	            if (DEBUG) { console.log('Sparky fn=template:', node); }
-	            sparky.continue();
-	        };
-
-	        var stream = Stream$1.of();
-
-	        scopes.each(function(scope) {
-	            cue(function() {
-	                run();
-	                stream.push(scope);
-	            });
+	    scopes.each(function(scope) {
+	        cue(function() {
+	            run();
+	            stream.push(scope);
 	        });
+	    });
 
-	        return stream;
+	    return stream;
+	}
+
+	function templateFromCache(sparky, node, scopes, path, id$$1) {
+	    var doc, elem;
+
+	    var template = cache$1[path][id$$1];
+
+	    if (!template) {
+	        doc  = cache$1[path][''];
+	        elem = doc.getElementById(id$$1);
+
+	        template = cache$1[path][id$$1] = doc === document ?
+	            dom.fragmentFromId(id$$1) :
+	            elem && dom.fragmentFromHTML(elem.innerHTML) ;
 	    }
 
-	    function templateFromCache(sparky, node, scopes, path, id$$1) {
-	        var doc, elem;
+	    return insertTemplate(sparky, node, scopes, id$$1, template);
+	}
 
-	        var template = cache$$1[path][id$$1];
+	function templateFromCache2(sparky, node, scopes, path, id$$1, template) {
+	    var doc, elem;
 
-	        if (!template) {
-	            doc  = cache$$1[path][''];
-	            elem = doc.getElementById(id$$1);
+	    if (!template) {
+	        doc  = cache$1[path][''];
+	        elem = doc.getElementById(id$$1);
 
-	            template = cache$$1[path][id$$1] = doc === document ?
-	                dom.fragmentFromId(id$$1) :
-	                elem && dom.fragmentFromHTML(elem.innerHTML) ;
-	        }
-
-	        return insertTemplate(sparky, node, scopes, id$$1, template);
+	        template = cache$1[path][id$$1] = doc === document ?
+	            dom.fragmentFromId(id$$1) :
+	            elem && dom.fragmentFromHTML(elem.innerHTML) ;
 	    }
 
-	    function templateFromCache2(sparky, node, scopes, path, id$$1, template) {
-	        var doc, elem;
-
-	        if (!template) {
-	            doc  = cache$$1[path][''];
-	            elem = doc.getElementById(id$$1);
-
-	            template = cache$$1[path][id$$1] = doc === document ?
-	                dom.fragmentFromId(id$$1) :
-	                elem && dom.fragmentFromHTML(elem.innerHTML) ;
-	        }
-
-	        if (!template) {
-	            throw new Error('Sparky: template ' + id$$1 + ' not found.');
-	        }
-
-	        //return scopes.tap(function(scope) {
-	            var fragment = dom.clone(template);
-	            dom.empty(node);
-	            dom.append(node, fragment);
-	            sparky.continue();
-	        //});
+	    if (!template) {
+	        throw new Error('Sparky: template ' + id$$1 + ' not found.');
 	    }
 
-	    function templateFromDocument(sparky, node, scopes, path, id$$1) {
-	        var stream = Stream$1.of();
+	    //return scopes.tap(function(scope) {
+	        var fragment = dom.clone(template);
+	        dom.empty(node);
+	        dom.append(node, fragment);
+	        sparky.continue();
+	    //});
+	}
 
-	        request(path)
-	        .then(function(doc) {
-	            if (!doc) { return; }
-	            var tapped = templateFromDocument2(sparky, node, scopes, path, id$$1, doc);
-	            sparky.continue();
-	            tapped.each(stream.push);
-	        })
-	        .catch(function(error) {
-	            console.warn(error);
-	        });
+	function templateFromDocument(sparky, node, scopes, path, id$$1) {
+	    var stream = Stream$1.of();
 
-	        return stream;
+	    request$1(path)
+	    .then(function(doc) {
+	        if (!doc) { return; }
+	        var tapped = templateFromDocument2(sparky, node, scopes, path, id$$1, doc);
+	        sparky.continue();
+	        tapped.each(stream.push);
+	    })
+	    .catch(function(error) {
+	        console.warn(error);
+	    });
+
+	    return stream;
+	}
+
+	function templateFromDocument2(sparky, node, scopes, path, id$$1, doc) {
+	    var template, elem;
+
+	    cache$1[path] = { '': doc };
+
+	    if (id$$1) {
+	        elem = doc.getElementById(id$$1);
+	        template = cache$1[path][id$$1] = elem && dom.fragmentFromHTML(elem.innerHTML);
+	    }
+	    else {
+	        throw new Error('Sparky: template url has no hash id ' + path);
 	    }
 
-	    function templateFromDocument2(sparky, node, scopes, path, id$$1, doc) {
-	        var template, elem;
+	    return insertTemplate(sparky, node, scopes, id$$1, template);
+	}
 
-	        cache$$1[path] = { '': doc };
+	assign$11(Sparky.fn, {
+	    template: function(node, scopes, params) {
+	        var url = params[0];
+	        var parts, path, id$$1;
 
-	        if (id$$1) {
-	            elem = doc.getElementById(id$$1);
-	            template = cache$$1[path][id$$1] = elem && dom.fragmentFromHTML(elem.innerHTML);
+	        // Support legacy ids instead of urls for just now
+	        if (!/#/.test(url)) {
+	            console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
+	            path = '';
+	            id$$1   = url;
 	        }
+	        // Parse urls
 	        else {
-	            throw new Error('Sparky: template url has no hash id ' + path);
+	            parts = url.split('#');
+	            path  = parts[0] || '';
+	            id$$1    = parts[1] || '';
 	        }
 
-	        return insertTemplate(sparky, node, scopes, id$$1, template);
-	    }
+	        if (DEBUG$8 && !id$$1) {
+	            throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
+	        }
 
-	    assign(Sparky.fn, {
-	        template: function(node, scopes, params) {
-	            var url = params[0];
-	            var parts, path, id$$1;
+	        var sparky = this;
+	        sparky.interrupt();
 
-	            // Support legacy ids instead of urls for just now
-	            if (!/#/.test(url)) {
-	                console.warn('Deprecated: Sparky template:url url should be a url or hash ref, actually an id: "' + url + '"');
-	                path = '';
-	                id$$1   = url;
-	            }
-	            // Parse urls
-	            else {
-	                parts = url.split('#');
-	                path  = parts[0] || '';
-	                id$$1    = parts[1] || '';
-	            }
-
-	            if (DEBUG && !id$$1) {
-	                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
-	            }
-
-	            var sparky = this;
-	            sparky.interrupt();
-
-	            // If the resource is cached, return it as an shiftable
-	            return cache$$1[path] ?
-	                templateFromCache(sparky, node, scopes, path, id$$1) :
-	                templateFromDocument(sparky, node, scopes, path, id$$1) ;
-	        },
+	        // If the resource is cached, return it as an shiftable
+	        return cache$1[path] ?
+	            templateFromCache(sparky, node, scopes, path, id$$1) :
+	            templateFromDocument(sparky, node, scopes, path, id$$1) ;
+	    },
 
 
-	        // TODO: Do this, but better
+	    // TODO: Do this, but better
 
-	        'template-from': function(node, scopes, params) {
-	            var string = params[0];
-	            var sparky = this;
-	            var outputScopes = Stream$1.of();
-	            sparky.interrupt();
+	    'template-from': function(node, scopes, params) {
+	        var string = params[0];
+	        var sparky = this;
+	        var outputScopes = Stream$1.of();
+	        sparky.interrupt();
 
-	            if (/\$\{([\w._]+)\}/.test(string)) {
-	                scopes.each(function(scope) {
-	                    var notParsed = false;
-	                    var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
-	                        var value = getPath$1($1, scope);
-	                        if (value === undefined) { notParsed = true; }
-	                        return value;
-	                    });
-
-	                    if (notParsed) {
-	                        console.log('Sparky: template-from not properly assembled from scope', string, scope);
-	                        return;
-	                    }
-
-	                    var parts = url.split('#');
-	                    var path  = parts[0] || '';
-	                    var id$$1    = parts[1] || '';
-
-	                    if (DEBUG && !id$$1) {
-	                        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
-	                    }
-
-	                    // If the resource is cached, return it as an shiftable
-	                    if (cache$$1[path]) {
-	                        templateFromCache2(sparky, node, scopes, path, id$$1, cache$$1[path][id$$1]);
-	                        outputScopes.push(scope);
-	                    }
-	                    else {
-	                        request(path)
-	                        .then(function(doc) {
-	                            if (!doc) { return; }
-	                            templateFromDocument(sparky, node, scopes, path, id$$1, doc);
-	                        })
-	                        .catch(function(error) {
-	                            console.warn(error);
-	                        });
-	                    }
+	        if (/\$\{([\w._]+)\}/.test(string)) {
+	            scopes.each(function(scope) {
+	                var notParsed = false;
+	                var url = string.replace(/\$\{([\w._]+)\}/g, function($0, $1) {
+	                    var value = getPath$1($1, scope);
+	                    if (value === undefined) { notParsed = true; }
+	                    return value;
 	                });
 
-	                return outputScopes;
-	            }
+	                if (notParsed) {
+	                    console.log('Sparky: template-from not properly assembled from scope', string, scope);
+	                    return;
+	                }
 
-	            throw new Error('Sparky: template-from must have ${prop} in the url string');
+	                var parts = url.split('#');
+	                var path  = parts[0] || '';
+	                var id$$1    = parts[1] || '';
+
+	                if (DEBUG$8 && !id$$1) {
+	                    throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + url + '"');
+	                }
+
+	                // If the resource is cached, return it as an shiftable
+	                if (cache$1[path]) {
+	                    templateFromCache2(sparky, node, scopes, path, id$$1, cache$1[path][id$$1]);
+	                    outputScopes.push(scope);
+	                }
+	                else {
+	                    request$1(path)
+	                    .then(function(doc) {
+	                        if (!doc) { return; }
+	                        templateFromDocument(sparky, node, scopes, path, id$$1, doc);
+	                    })
+	                    .catch(function(error) {
+	                        console.warn(error);
+	                    });
+	                }
+	            });
+
+	            return outputScopes;
 	        }
-	    });
-	})(window);
+
+	        throw new Error('Sparky: template-from must have ${prop} in the url string');
+	    }
+	});
 
 	(function(window) {
 	    var DEBUG   = window.DEBUG;
 	    var axios   = window.axios;
 	    var jQuery  = window.jQuery;
-	    var Sparky  = window.Sparky;
 
 	    var assign    = Object.assign;
 	    var fetch     = window.fetch;
@@ -6741,427 +7055,69 @@ var Sparky = (function () {
 	    });
 	})(window);
 
-	(function(window) {
+	var DEBUG$9          = window.DEBUG;
 
-	    var DEBUG          = window.DEBUG;
+	var assign$12         = Object.assign;
+	var attribute$3      = dom.attribute;
+	var events$1         = dom.events;
+	var preventDefault$3 = dom.preventDefault;
 
-	    var dom            = window.dom;
-	    var Sparky         = window.Sparky;
+	function getCookie(name) {
+	    var cookieValue = null;
+	    var cookies, cookie, i;
 
-	    var assign         = Object.assign;
-	    var attribute      = dom.attribute;
-	    var events         = dom.events;
-	    var preventDefault = dom.preventDefault;
-
-	    function getCookie(name) {
-	        var cookieValue = null;
-	        var cookies, cookie, i;
-
-	        if (document.cookie && document.cookie !== '') {
-	            cookies = document.cookie.split(';');
-	            for (i = 0; i < cookies.length; i++) {
-	                cookie = cookies[i] && cookies[i].trim();
-	                // Does this cookie string begin with the name we want?
-	                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-	                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-	                    break;
-	                }
+	    if (document.cookie && document.cookie !== '') {
+	        cookies = document.cookie.split(';');
+	        for (i = 0; i < cookies.length; i++) {
+	            cookie = cookies[i] && cookies[i].trim();
+	            // Does this cookie string begin with the name we want?
+	            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+	                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+	                break;
 	            }
 	        }
-	        return cookieValue;
 	    }
+	    return cookieValue;
+	}
 
-	    assign(Sparky.fn, {
-	        'request-on-submit': function(node, scopes) {
-	            var type = 'submit';
-	            var scope;
+	assign$12(Sparky.fn, {
+	    'request-on-submit': function(node, scopes) {
+	        var type = 'submit';
+	        var scope;
 
-	            events(type, node)
-	            .tap(preventDefault)
-	            .each(function(e) {
-	                var method = attribute('method', node);
-	                var action = attribute('action', node);
+	        events$1(type, node)
+	        .tap(preventDefault$3)
+	        .each(function(e) {
+	            var method = attribute$3('method', node);
+	            var action = attribute$3('action', node);
 
-	                // Todo: Use request fn from resouce
-	                request({
-	                    url:    action,
-	                    method: method,
-	                    data:   scope,
-	                    headers: {
-	                        "X-CSRFToken": getCookie('csrftoken')
-	                    }
-	                })
-	                .then(function(object) {
-	                    //console.log('SUCCESS', method, object);
-	                    assign(scope, object);
-	                })
-	                .catch(function(thing) {
-	                    //console.log('FAIL', thing, thing.response.data);
-	                    dom.events.trigger(node, 'dom-error', {
-	                        detail: thing.response.data
-	                    });
+	            // Todo: Use request fn from resouce
+	            request({
+	                url:    action,
+	                method: method,
+	                data:   scope,
+	                headers: {
+	                    "X-CSRFToken": getCookie('csrftoken')
+	                }
+	            })
+	            .then(function(object) {
+	                //console.log('SUCCESS', method, object);
+	                assign$12(scope, object);
+	            })
+	            .catch(function(thing) {
+	                //console.log('FAIL', thing, thing.response.data);
+	                dom.events.trigger(node, 'dom-error', {
+	                    detail: thing.response.data
 	                });
 	            });
-
-	            return scopes.tap(function(object) {
-	                scope = object;
-	            });
-	        }
-	    });
-	})(window);
-
-	(function(window) {
-
-		var Fn = {};
-
-		var dom       = window.dom;
-		var Sparky    = window.Sparky;
-
-		var A         = Array.prototype;
-		var assign    = Object.assign;
-
-		function spaces(n) {
-			var s = '';
-			while (n--) { s += ' '; }
-			return s;
-		}
-
-		function interpolateLinear(xs, ys, x) {
-			var n = -1;
-			while (++n < xs.length && xs[n] < x);
-
-			// Shortcut if x is lower than smallest x
-			if (n === 0) {
-				return ys[0];
-			}
-
-			// Shortcut if x is greater than biggest x
-			if (n >= xs.length) {
-				return last(ys);
-			}
-
-			// Shortcurt if x corresponds exactly to an interpolation coordinate
-			if (x === xs[n]) {
-				return ys[n];
-			}
-
-			// Linear interpolate
-			var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
-			return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
-		}
-
-		assign(Sparky.transformers = {}, {
-			add:         {
-				tx: curry$1(function(a, b) { return b.add ? b.add(a) : b + a ; }),
-				ix: curry$1(function(a, c) { return c.add ? c.add(-a) : c - a ; })
-			},
-
-			'add-date':  { tx: addDate,     ix: curry$1(function(d, n) { return addDate('-' + d, n); }) },
-			'add-time':  { tx: addTime,     ix: subTime },
-			decibels:    { tx: todB,        ix: toLevel },
-			multiply:    { tx: multiply$1,    ix: curry$1(function(d, n) { return n / d; }) },
-			degrees:     { tx: toDeg,       ix: toRad },
-			radians:     { tx: toRad,       ix: toDeg },
-			pow:         { tx: pow$1,         ix: curry$1(function(n, x) { return pow$1(1/n, x); }) },
-			exp:         { tx: exp$1,         ix: log$1 },
-			log:         { tx: log$1,         ix: exp$1 },
-			int:         { tx: toFixed$1(0),  ix: toInt },
-			float:       { tx: toFloat,     ix: toString },
-			boolean:     { tx: Boolean,     ix: toString },
-			normalise:   { tx: normalise$1,   ix: denormalise$1 },
-			denormalise: { tx: denormalise$1, ix: normalise$1 },
-			floatformat: { tx: toFixed$1,     ix: curry$1(function(n, str) { return parseFloat(str); }) },
-			'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
-
-			interpolate: {
-				tx: function(point) {
-					var xs = A.map.call(arguments, get$1('0'));
-					var ys = A.map.call(arguments, get$1('1'));
-
-					return function(value) {
-						return interpolateLinear(xs, ys, value);
-					};
-				},
-
-				ix: function(point) {
-					var xs = A.map.call(arguments, get$1('0'));
-					var ys = A.map.call(arguments, get$1('1'));
-
-					return function(value) {
-						return interpolateLinear(ys, xs, value);
-					}
-				}
-			}
-		});
-
-		assign(Sparky.transforms, {
-
-			// Transforms from Fn's map functions
-
-			append:       append$1,
-			contains:     contains$1,
-			equals:       equals$1,
-			exp:          exp$1,
-			formatdate:   formatDate,
-			formattime:   formatTime,
-			get:          get$1,
-			getPath:      getPath$1,
-			invoke:       invoke$1,
-			is:           is,
-			limit:        limit$1,
-			log:          log$1,
-			max:          max$1,
-			min:          min$1,
-			mod:          mod$1,
-			not:          not,
-			percent:      multiply$1(100),
-			prepend:      prepend$2,
-			root:         root$1,
-			slugify:      slugify,
-			//sort:         Fn.sort,
-			//take:         Fn.take,
-			//toCartesian:  Fn.toCartesian,
-			decibels:     todB,
-			toDeg:        toDeg,
-			toLevel:      toLevel,
-			//toPolar:      Fn.toPolar,
-			toRad:        toRad,
-			//toStringType: Fn.toStringType,
-
-
-			// Transforms from dom's map functions
-
-			escape:       dom.escape,
-			px:           dom.toPx,
-			rem:          dom.toRem,
-
-
-			// Sparky transforms
-
-			divide: curry$1(function(n, value) {
-				if (typeof value !== 'number') { return; }
-				return value / n;
-			}),
-
-			'find-in': curry$1(function(path, id$$1) {
-				if (!isDefined(id$$1)) { return; }
-				var collection = Fn.getPath(path, Sparky.data);
-				return collection && collection.find(id$$1);
-			}),
-
-			first: get$1(0),
-
-			floatformat: curry$1(function(n, value) {
-				return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-					!isDefined(value) ? '' :
-					(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-			}),
-
-			floor: Math.floor,
-
-			"greater-than": curry$1(function(value2, value1) {
-				return value1 > value2;
-			}),
-
-			invert: function(value) {
-				return typeof value === 'number' ? 1 / value : !value ;
-			},
-
-			join: curry$1(function(string, value) {
-				return A.join.call(value, string);
-			}),
-
-			json: JSON.stringify,
-
-			last: last,
-
-			"less-than": curry$1(function(value2, value1) {
-				return value1 < value2 ;
-			}),
-
-			localise: curry$1(function(digits, value) {
-				var locale = document.documentElement.lang;
-				var options = {};
-
-				if (isDefined(digits)) {
-					options.minimumFractionDigits = digits;
-					options.maximumFractionDigits = digits;
-				}
-
-				// Todo: localise value where toLocaleString not supported
-				return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
-			}),
-
-			lowercase: function(value) {
-				if (typeof value !== 'string') { return; }
-				return String.prototype.toLowerCase.apply(value);
-			},
-
-			map: function(method, params) {
-				var fn;
-
-				if (typeof params === undefined) {
-					fn = parse(method);
-
-					return function(array) {
-						return array.map(fn);
-					};
-				}
-
-				fn = ((Sparky.transformers[method] && Sparky.transformers[method].tx)
-					|| Sparky.transforms[method]).apply(null, params);
-
-				return function(array) {
-					return array && array.map(fn);
-				};
-			},
-
-			filter: curry$1(function(method, args$$1, array) {
-				return array && array.map(Sparky.transforms[method].apply(null,args$$1));
-			}, true),
-
-			match: curry$1(function(regex, string) {
-				regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-				return regex.exec(string);
-			}),
-
-			matches: curry$1(function(regex, string) {
-				regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-				return !!regex.test(string);
-			}),
-
-			pluralise: curry$1(function(str1, str2, lang, value) {
-				if (typeof value !== 'number') { return; }
-
-				str1 = str1 || '';
-				str2 = str2 || 's';
-
-				// In French, numbers less than 2 are considered singular, where in
-				// English, Italian and elsewhere only 1 is singular.
-				return lang === 'fr' ?
-					(value < 2 && value >= 0) ? str1 : str2 :
-					value === 1 ? str1 : str2 ;
-			}),
-
-			// TODO: these should copy postpadding and preppadding from Fn
-
-			postpad: curry$1(function(n, value) {
-				var string = isDefined(value) ? value.toString() : '' ;
-				var l = string.length;
-				var m = parseInt(n, 10);
-
-				return m === l ? value :
-					m > l ? string + spaces(m - l) :
-					string.substring(0, m) ;
-			}),
-
-			prepad: curry$1(function(n, char, value) {
-				var string = isDefined(value) ? value.toString() : '' ;
-				var l = string.length;
-				var array = [];
-
-				// String is longer then padding: let it through unprocessed
-				if (n - l < 1) { return value; }
-
-				array.length = 0;
-				array.length = n - l;
-				array.push(string);
-				return array.join(char || ' ');
-			}),
-
-			//random: function(value) {
-			//	return value[Math.floor(Math.random() * value.length)];
-			//},
-
-			reduce: curry$1(function(name, initialValue, array) {
-				return array && array.reduce(Fn[name], initialValue || 0);
-			}, true),
-
-			replace: curry$1(function(str1, str2, value) {
-				if (typeof value !== 'string') { return; }
-				return value.replace(RegExp(str1, 'g'), str2);
-			}),
-
-			round: curry$1(function round(n, value) {
-				return Math.round(value / n) * n;
-			}),
-
-			slice: curry$1(function(i0, i1, value) {
-				return typeof value === 'string' ?
-					value.slice(i0, i1) :
-					Array.prototype.slice.call(value, i0, i1) ;
-			}, true),
-
-			striptags: (function() {
-				var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
-
-				return function(value) {
-					return value.replace(rtag, '');
-				};
-			})(),
-
-			switch: function(value) {
-				if (typeof value === 'string') { value = parseInt(value, 10); }
-				if (typeof value !== 'number' || Number.isNaN(value)) { return; }
-				return arguments[value + 1];
-			},
-
-			translate: (function() {
-				var warned = {};
-
-				return function(value) {
-					var translations = Sparky.translations;
-
-					if (!translations) {
-						if (!warned.missingTranslations) {
-							console.warn('Sparky: Missing lookup object Sparky.translations');
-							warned.missingTranslations = true;
-						}
-						return value;
-					}
-
-					var text = translations[value] ;
-
-					if (!text) {
-						if (!warned[value]) {
-							console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
-							warned[value] = true;
-						}
-
-						return value;
-					}
-
-					return text ;
-				};
-			})(),
-
-			truncatechars: curry$1(function(n, value) {
-				return value.length > n ?
-					value.slice(0, n) + '…' :
-					value ;
-			}),
-
-			type: toType,
-
-			uppercase: function(value) {
-				if (typeof value !== 'string') { return; }
-				return String.prototype.toUpperCase.apply(value);
-			},
-
-			//urlencode
-			//urlize
-			//urlizetrunc
-			//wordcount
-			//wordwrap
-
-			yesno: curry$1(function(truthy, falsy, value) {
-				return value ? truthy : falsy ;
-			})
-		});
-	})(window);
-
-	var sparky = window.Sparky;
-
-	return sparky;
+	        });
+
+	        return scopes.tap(function(object) {
+	            scope = object;
+	        });
+	    }
+	});
+
+	return Sparky;
 
 }());

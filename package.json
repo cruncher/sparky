@@ -2,12 +2,14 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Live data binding templating library for the DOM.",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
     "twitter": "stephband"
   },
+  "main":   "dist/sparky.js",
+  "module": "sparky.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/cruncher/sparky.git"
@@ -42,10 +44,10 @@
   "scripts": {
     "lint": "eslint js/*.js modules/polyfills*.js plugins/*.js",
     "test": "karma start",
-    "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 2.3.2\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
+    "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 2.3.3\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
     "build-min": "uglifyjs dist/sparky.js --compress --output dist/sparky.min.js",
     "build": "npm run build-iife && npm run build-min",
-    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.3.2.js && cp dist/sparky.min.js dist/sparky-2.3.2.min.js && cp dist/sparky.css dist/sparky-2.3.2.css"
+    "build-version": "npm run build && cp dist/sparky.js dist/sparky-2.3.3.js && cp dist/sparky.min.js dist/sparky-2.3.3.min.js && cp dist/sparky.css dist/sparky-2.3.3.css"
   },
   "dependencies": {
     "npm": "^6.0.0"

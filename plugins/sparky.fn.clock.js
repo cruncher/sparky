@@ -1,19 +1,15 @@
 import { Stream } from '../../fn/fn.js';
+import Sparky from '../sparky.js';
 
-(function(window) {
-	"use strict";
+var Observable = window.Observable;
 
-	var Sparky     = window.Sparky;
-	var Observable = window.Observable;
+Sparky.fn.clock = function(node, scopes, params) {
+	var observable = Observable({
+		time: new Date()
+	});
 
-	Sparky.fn.clock = function(node, scopes, params) {
-		var observable = Observable({
-			time: new Date()
-		});
-
-		return Stream.clock(params && params[0] || 1).map(function() {
-			observable.time = new Date();
-			return observable;
-		});
-	};
-})(window);
+	return Stream.clock(params && params[0] || 1).map(function() {
+		observable.time = new Date();
+		return observable;
+	});
+};

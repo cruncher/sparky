@@ -1,5 +1,6 @@
 
 import { Functor as Fn } from '../../fn/fn.js';
+import Sparky from '../sparky.js';
 
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];

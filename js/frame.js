@@ -1,9 +1,9 @@
 
 import { invoke } from '../../fn/fn.js';
+import dom    from '../../dom/dom.js';
 
 const DEBUG  = false;
 
-const dom    = window.dom;
 const now    = dom.now;
 
 // Render queue
@@ -77,8 +77,4 @@ function uncue(fn) {
 	}
 }
 
-window.frame = {
-	cue: cue,
-	uncue: uncue,
-	data: data
-};
+export { cue, uncue, data };

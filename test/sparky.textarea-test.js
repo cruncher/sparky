@@ -1,3 +1,6 @@
+
+import Sparky from '../sparky.js';
+
 group('textarea', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
 

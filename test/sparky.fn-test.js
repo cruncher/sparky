@@ -1,3 +1,5 @@
+import Sparky from '../sparky.js';
+
 group('[sparky-fn]', function(test, log, fixture) {
 	test('[sparky-fn]', function(equals, done) {
 		var sparky;

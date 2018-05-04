@@ -1,3 +1,5 @@
+import Sparky from '../sparky.js';
+
 group('[sparky-fn="range-handle"]', function(test, log, fixture) {
 	test('[sparky-fn="each"]', function(equals, done) {
 		Sparky('#gogo', {});

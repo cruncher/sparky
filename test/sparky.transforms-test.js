@@ -1,3 +1,6 @@
+
+import { transforms, transformers } from '../js/transforms.js';
+
 group('Sparky.transformers', function(test, log) {
 	var key, filter;
 	var expected = {
@@ -29,30 +32,30 @@ group('Sparky.transformers', function(test, log) {
 		})(
 			key,
 
-			Sparky.transformers[key] ?
-				Sparky.transformers[key].tx :
-				Sparky.transforms[key],
+			transformers[key] ?
+				transformers[key].tx :
+				transforms[key],
 
 			expected[key]
 		);
 	}
 
 	test("Sparky.transformers.add", function(equals, done) {
-		equals(9, Sparky.transformers.add.tx(5.5, 3.5));
+		equals(9, transformers.add.tx(5.5, 3.5));
 		done();
 	});
 
 	test("Sparky.transformers.slugify", function(equals, done) {
-		equals('pardon-me-sir', Sparky.transforms.slugify('Pardon Me sir'));
+		equals('pardon-me-sir', transforms.slugify('Pardon Me sir'));
 		done();
 	});
 
 	test("Sparky.transformers.yesno", function(equals, done) {
-		equals('1', Sparky.transforms.yesno('1', '2', true));
-		equals('1', Sparky.transforms.yesno('1', '2', {}));
-		equals('2', Sparky.transforms.yesno('1', '2', false));
-		equals('2', Sparky.transforms.yesno('1', '2', undefined));
-		equals('2', Sparky.transforms.yesno('1', '2', null));
+		equals('1', transforms.yesno('1', '2', true));
+		equals('1', transforms.yesno('1', '2', {}));
+		equals('2', transforms.yesno('1', '2', false));
+		equals('2', transforms.yesno('1', '2', undefined));
+		equals('2', transforms.yesno('1', '2', null));
 		done();
 	});
 });
