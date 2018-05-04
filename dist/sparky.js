@@ -2601,6 +2601,20 @@ var Sparky = (function () {
 	        A$3.reduce.call(object, fn, seed);
 	}
 
+	function concat(array2, array1) {
+	    // A.concat only works with arrays - it does not flatten array-like
+	    // objects. We need a robust concat that will glue any old thing
+	    // together.
+	    return Array.isArray(array1) ?
+	        // 1 is an array. Convert 2 to an array if necessary
+	        array1.concat(Array.isArray(array2) ? array2 : toArray(array2)) :
+
+	    array1.concat ?
+	        // It has it's own concat method. Lets assume it's robust
+	        array1.concat(array2) :
+	    // 1 is not an array, but 2 is
+	    toArray(array1).concat(Array.isArray(array2) ? array2 : toArray(array2)) ;
+	}
 	function contains(value, object) {
 	    return object.includes ?
 	        object.includes(value) :
@@ -2626,14 +2640,6 @@ var Sparky = (function () {
 	    return object.slice ?
 	        object.slice(n, m) :
 	        A$3.slice.call(object, n, m) ;
-	}
-
-	function last(array) {
-	    if (typeof array.length === 'number') {
-	        return array[array.length - 1];
-	    }
-
-	    // Todo: handle Fns and Streams
 	}
 
 	function remove$1(array, value) {
@@ -2712,6 +2718,22 @@ var Sparky = (function () {
 	    .concat(values);
 	}
 
+	function last(array) {
+	    if (typeof array.length === 'number') {
+	        return array[array.length - 1];
+	    }
+
+	    // Todo: handle Fns and Streams
+	}
+
+	function toPlainText(string) {
+	    return string
+	    // Decompose string to normalized version
+	    .normalize('NFD')
+	    // Remove accents
+	    .replace(/[\u0300-\u036f]/g, '');
+	}
+
 	function append(string1, string2) {
 	    return '' + string2 + string1;
 	}
@@ -2759,6 +2781,9 @@ var Sparky = (function () {
 	}
 	function limit(min, max, n) {
 	    return n > max ? max : n < min ? min : n ;
+	}
+	function wrap(min, max, n) {
+	    return (n < min ? max : min) + (n - min) % (max - min);
 	}
 	function todB(n) { return 20 * Math.log10(n); }function toLevel(n) { return Math.pow(2, n/6); }function toRad(n) { return n / angleFactor; }function toDeg(n) { return n * angleFactor; }
 
@@ -3486,6 +3511,7 @@ var Sparky = (function () {
 	const getPath$1     = curry$1(getPath, true);
 	const setPath$1     = curry$1(setPath, true);
 
+	const concat$1      = curry$1(concat, true);
 	const contains$1    = curry$1(contains, true);
 	const filter$1      = curry$1(filter, true);
 	const find$1        = curry$1(find, true);
@@ -3494,9 +3520,8 @@ var Sparky = (function () {
 	const reduce$1      = curry$1(reduce, true);
 	const remove$2      = curry$1(remove$1, true);
 	const rest$1        = curry$1(rest, true);
-	const slice$1       = curry$1(slice, true);
+	const slice$1       = curry$1(slice, true, 3);
 	const take$1        = curry$1(take, true);
-	const unique$1      = curry$1(unique, true);
 	const update$1      = curry$1(update, true);
 
 	const diff$2        = curry$1(diff, true);
@@ -3518,6 +3543,7 @@ var Sparky = (function () {
 	const log$1         = curry$1(log);
 	const root$1        = curry$1(root);
 	const limit$1       = curry$1(limit);
+	const wrap$1        = curry$1(wrap);
 	const normalise$1   = curry$1(normalise);
 	const denormalise$1 = curry$1(denormalise);
 
@@ -3539,6 +3565,7 @@ var Sparky = (function () {
 		toFixed: toFixed$1,
 		getPath: getPath$1,
 		setPath: setPath$1,
+		concat: concat$1,
 		contains: contains$1,
 		filter: filter$1,
 		find: find$1,
@@ -3549,7 +3576,6 @@ var Sparky = (function () {
 		rest: rest$1,
 		slice: slice$1,
 		take: take$1,
-		unique: unique$1,
 		update: update$1,
 		diff: diff$2,
 		intersect: intersect$1,
@@ -3568,6 +3594,7 @@ var Sparky = (function () {
 		log: log$1,
 		root: root$1,
 		limit: limit$1,
+		wrap: wrap$1,
 		normalise: normalise$1,
 		denormalise: denormalise$1,
 		args: args,
@@ -3600,6 +3627,8 @@ var Sparky = (function () {
 		Timer: Timer,
 		Pool: Pool,
 		last: last,
+		unique: unique,
+		toPlainText: toPlainText,
 		slugify: slugify,
 		todB: todB,
 		toLevel: toLevel,
