@@ -2673,7 +2673,7 @@ var Sparky = (function () {
 
 	function update(fn, target, array) {
 	    return array.reduce(function(target, obj2) {
-	        var obj1 = target.find(compose$1(Fn.is(fn(obj2)), fn));
+	        var obj1 = target.find(compose$1(is(fn(obj2)), fn));
 	        if (obj1) {
 	            assign$2(obj1, obj2);
 	        }
