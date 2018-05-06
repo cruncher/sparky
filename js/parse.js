@@ -7,8 +7,8 @@ import { nothing, pipe } from '../../fn/fn.js'
 
 const parseArrayClose = parse(/^\]\s*/, nothing);
 
-//                                        number                                     "string"                   'string'                    null   true   false    array function(args)   string
-export const parseParams = parse(/^\s*(?:(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([^,\s\]]+))\s*(,)?\s*/, {
+//                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string
+export const parseParams = parse(/^\s*(?:(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, value) { params.push(parseFloat(value)); return params; },
 

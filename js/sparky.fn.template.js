@@ -162,7 +162,6 @@ assign(Sparky.fn, {
                     default: id
                 }))
                 .each(function(fragment) {
-console.log('TEMPLATE', node);
                     dom.empty(node);
                     dom.append(node, fragment);
                 })
