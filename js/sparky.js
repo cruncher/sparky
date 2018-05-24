@@ -196,7 +196,7 @@ assign(Sparky, {
 			var scope = getPath(params[0], window);
 
 			if (scope === undefined) {
-				console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
+				console.warn('Sparky global:path – no object at path "' + params[0] + '"');
 				return Fn.of();
 			}
 
@@ -254,7 +254,7 @@ assign(Sparky, {
 			this.interrupt();
 		},
 
-		'prevent-on': function preventSubmitCtrl(node, stream, params) {
+		prevent: function preventSubmitCtrl(node, stream, params) {
 			node.addEventListener(params[0], preventDefault);
 
 			this.then(function() {

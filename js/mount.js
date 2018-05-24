@@ -296,7 +296,7 @@ function mountValueCheckbox(node, options, structs) {
 	if (!match) { return; }
 
 	// new Struct (node, token, path, render, type, read, pipe)
-	structs.push(new ReadableStruct(node, match[0], match[2], writeValueCheckbox, 'change', readValueCheckbox, match[3]));
+	structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadioCheckbox, 'change', readValueCheckbox, match[3]));
 }
 
 function mountValueRadio(node, options, structs) {
@@ -305,7 +305,7 @@ function mountValueRadio(node, options, structs) {
 	if (!match) { return; }
 
 	// new Struct (node, token, path, render, type, read, pipe)
-	structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadio, 'change', readValueRadio, match[3]));
+	structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadioCheckbox, 'change', readValueRadio, match[3]));
 }
 
 // Struct value read and write
@@ -334,21 +334,11 @@ function writeValueNumber(value) {
 		'' ;
 }
 
-function writeValueCheckbox(value) {
+function writeValueRadioCheckbox(value) {
 	var node = this.node;
 
 	// Where value is defined check against it, otherwise
 	// value is "on", uselessly. Set checked state directly.
-	node.checked = isDefined(node.getAttribute('value')) ?
-		value === node.value :
-		value === true ;
-}
-
-function writeValueRadio(value) {
-	var node = this.node;
-
-	// Where value="" is defined check against it, otherwise
-	// value is "on", uselessly: set checked state directly.
 	node.checked = isDefined(node.getAttribute('value')) ?
 		value === node.value :
 		value === true ;
