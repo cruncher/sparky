@@ -44,6 +44,13 @@ const settings = {
 	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 };
 
+const bindings = {
+	all: {
+		booleans:   ['hidden'],
+		attributes: ['id', 'title', 'style']
+	}
+};
+
 function addClasses(classList, text) {
 	var classes = toRenderString(text).trim().split(rspaces);
 	classList.add.apply(classList, classes);
@@ -392,8 +399,8 @@ const types = {
 		// This costs us, needlessly creating a struct for every element
 		//mountScope(node, options, structs);
 		mountClass(node, options, structs);
-		mountBoolean('hidden', node, options, structs);
-		mountAttributes(['id', 'title', 'style'], node, options, structs);
+		mountBoolean(bindings.all.booleans[0], node, options, structs);
+		mountAttributes(bindings.all.attributes, node, options, structs);
 		mountTag(node, options, structs);
 	},
 
@@ -625,6 +632,8 @@ function setupStructs(structs, options) {
 function unbindStructs(structs) {
 	structs.forEach(unbind);
 }
+
+export { bindings as settings };
 
 export default function mount(node, options) {
 	if (DEBUG) {
