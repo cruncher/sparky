@@ -1,4 +1,5 @@
 import { get, id, isDefined, nothing, noop, overload, set, toType } from '../../fn/fn.js';
+import { tag } from '../../dom/dom.js';
 import dom    from '../../dom/dom.js';
 import Struct from './struct.js';
 
@@ -45,10 +46,34 @@ const settings = {
 };
 
 const bindings = {
-	all: {
-		booleans:   ['hidden'],
-		attributes: ['id', 'title', 'style']
-	}
+	// All
+	default:  { booleans:   ['hidden'], attributes: ['id', 'title', 'style'] },
+
+	// HTML
+	a:        { attributes: ['href'] },
+	button:   { booleans:   ['disabled'] },
+	form:     { attributes: ['method', 'action'] },
+	fieldset: { booleans:   ['disabled'] },
+	img:      { attributes: ['alt']	},
+	input:    { booleans:   ['disabled', 'required'], attributes: ['name'] },
+	label:    { attributes: ['for'] },
+	meta:     { attributes: ['content'] },
+	meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
+	option:   { booleans:   ['disabled'], attributes: ['value'] },
+	output:   { attributes: ['for'] },
+	progress: { attributes: ['max', 'value'] },
+	select:   { booleans:   ['disabled', 'required'], attributes: ['name'], value: 'string' },
+	textarea: { booleans:   ['disabled', 'required'], attributes: ['name'], value: 'string' },
+	time:     { attributes: ['datetime'] },
+
+	// SVG
+	svg:      { attribtues: ['viewbox'] },
+	g:        { attributes: ['transform'] },
+	path:     { attributes: ['d', 'transform'] },
+	line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
+	rect:     { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
+	text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
+	use:      { attributes: ['href', 'transform'] }
 };
 
 function addClasses(classList, text) {
@@ -399,9 +424,9 @@ const types = {
 		// This costs us, needlessly creating a struct for every element
 		//mountScope(node, options, structs);
 		mountClass(node, options, structs);
-		mountBoolean(bindings.all.booleans[0], node, options, structs);
-		mountAttributes(bindings.all.attributes, node, options, structs);
-		mountTag(node, options, structs);
+		mountBoolean(bindings.default.booleans[0], node, options, structs);
+		mountAttributes(bindings.default.attributes, node, options, structs);
+		mountTag(bindings, node, options, structs);
 	},
 
 	// text
@@ -438,114 +463,6 @@ const types = {
 			mountNode(child, options, structs) ;
 		}
 	}
-};
-
-const tags = {
-
-	// HTML
-
-	a: function(node, options, structs) {
-		mountAttribute('href', node, options, structs);
-	},
-
-	button: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-	},
-
-	form: function(node, options, structs) {
-		mountAttribute('method', node, options, structs);
-		mountAttribute('action', node, options, structs);
-	},
-
-	fieldset: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-	},
-
-	img: function(node, options, structs) {
-		mountAttribute('alt', node, options, structs);
-	},
-
-	input: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-		mountBoolean('required', node, options, structs);
-		mountAttribute('name', node, options, structs);
-		mountInput(node, options, structs);
-	},
-
-	label: function(node, options, structs) {
-		mountAttribute('for', node, options, structs);
-	},
-
-	meta: function(node, options, structs) {
-		mountAttribute('content', node, options, structs);
-	},
-
-	meter: function(node, options, structs) {
-		mountAttributes(['min', 'max', 'low', 'high', 'value'], node, options, structs);
-	},
-
-	option: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-		mountAttribute('value', node, options, structs);
-	},
-
-	output: function(node, options, structs) {
-		mountAttribute('for', node, options, structs);
-	},
-
-	progress: function(node, options, structs) {
-		mountAttribute(['max', 'value'], node, options, structs);
-	},
-
-	select: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-		mountBoolean('required', node, options, structs);
-		mountAttribute('name', node, options, structs);
-		mountValueString(node, options, structs);
-	},
-
-	textarea: function(node, options, structs) {
-		mountBoolean('disabled', node, options, structs);
-		mountBoolean('required', node, options, structs);
-		mountAttribute('name', node, options, structs);
-		mountValueString(node, options, structs);
-	},
-
-	time: function(node, options, structs)  {
-		mountAttributes(['datetime'], node, options, structs);
-	},
-
-	// SVG
-
-	svg: function(node, options, structs) {
-		mountAttributes(['viewbox'], node, options, structs);
-	},
-
-	g: function(node, options, structs) {
-		mountAttributes(['transform'],  node, options, structs);
-	},
-
-	path: function(node, options, structs) {
-		mountAttributes(['d', 'transform'], node, options, structs);
-	},
-
-	line: function(node, options, structs) {
-		mountAttributes(['x1', 'x2', 'y1', 'y2', 'transform'], node, options, structs);
-	},
-
-	rect: function(node, options, structs) {
-		mountAttributes(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'], node, options, structs);
-	},
-
-	text: function(node, options, structs) {
-		mountAttributes(['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'], node, options, structs);
-	},
-
-	use: function(node, options, structs) {
-		mountAttributes(['href', 'transform'], node, options, structs);
-	},
-
-	default: noop
 };
 
 const inputs = {
@@ -615,9 +532,25 @@ const inputs = {
 };
 
 const mountNode  = overload(get('nodeType'), types);
-const mountTag   = overload(dom.tag, tags);
 const mountInput = overload(get('type'), inputs);
 
+//const mountTag   = overload(dom.tag, tags);
+function mountTag(settings, node, options, structs) {
+	var name    = tag(node);
+	var setting = settings[name];
+
+	if (setting) {
+		if (setting.booleans) { mountBooleans(setting.booleans, node, options, structs); }
+		if (setting.attributes) { mountAttributes(setting.attributes, node, options, structs); }
+	}
+
+	if (tag === 'input') {
+		mountInput(node, options, structs);
+	}
+	else if (tag === 'textarea' || tag === 'select') {
+		mountValueString(node, options, structs);
+	}
+}
 
 function setupStructs(structs, options) {
 	structs.forEach(function(struct) {
@@ -677,7 +610,6 @@ export default function mount(node, options) {
 
 // Export (temporary)
 mount.types  = types;
-mount.tags   = tags;
 mount.inputs = inputs;
 mount.mountAttribute   = mountAttribute;
 mount.mountBoolean     = mountBoolean;

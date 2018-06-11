@@ -1,5 +1,5 @@
 import { get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
-import { default as dom, before, remove, fragmentFromHTML } from '../../dom/dom.js';
+import { default as dom, before, parse, remove, fragmentFromHTML } from '../../dom/dom.js';
 import { cue } from './frame.js';
 import Sparky from './sparky.js';
 
@@ -10,7 +10,7 @@ var jQuery  = window.jQuery;
 var assign  = Object.assign;
 var fetch   = window.fetch;
 var getData = get('data');
-var parseHTML = dom.parse('html');
+var parseHTML = parse('html');
 
 var cache   = {
     '': {
