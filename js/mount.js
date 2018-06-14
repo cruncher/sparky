@@ -275,6 +275,14 @@ function mountBoolean(name, node, options, structs) {
 	}
 }
 
+function mountBooleans(names, node, options, structs) {
+	var name;
+
+	while (name = names.shift()) {
+		mountBoolean(name, node, options, structs);
+	}
+}
+
 function mountClass(node, options, structs) {
 	var rtoken = options.rtoken;
 	var attr   = dom.attribute('class', node);
@@ -405,6 +413,17 @@ function readValueRadio() {
 		node.checked ;
 }
 
+// Mount
+
+function mountCollection(children, options, structs) {
+	var n = -1;
+	var child;
+
+	while (child = children[++n]) {
+		options.mount(child, options, structs) ||
+		mountNode(child, options, structs) ;
+	}
+}
 
 const types = {
 	// element
@@ -454,14 +473,15 @@ const types = {
 
 	// fragment
 	11: function mountFragment(node, options, structs) {
-		var children = A.slice.apply(node.childNodes);
-		var n = -1;
-		var child;
+		mountCollection(node.childNodes, options, structs);
+	},
 
-		while (child = children[++n]) {
-			options.mount(child, options, structs) ||
-			mountNode(child, options, structs) ;
+	default: function(node, options, structs) {
+		if (typeof node.length !== 'number') {
+			throw new Error('Cannot mount object. It is neither a node nor a collection.', node);
 		}
+
+		mountCollection(node, options, structs);
 	}
 };
 
