@@ -1,21 +1,14 @@
-import { get, id, isDefined, nothing, noop, overload, set, toType } from '../../fn/fn.js';
-import { tag } from '../../dom/dom.js';
-import dom    from '../../dom/dom.js';
+import { choose, get, id, isDefined, nothing, noop, overload, set, toType } from '../../fn/fn.js';
+import { attribute, classes, tag } from '../../dom/dom.js';
 import Struct from './struct.js';
 
 const DEBUG      = false;
 
 const A          = Array.prototype;
-
 const assign     = Object.assign;
-//	const define     = Object.defineProperties;
-const attribute  = dom.attribute;
 
 const ReadableStruct     = Struct.Readable;
-const setup              = Struct.setup;
 const bind               = Struct.bind;
-const unbind             = Struct.unbind;
-const teardown           = Struct.teardown;
 
 
 // Matches tags plus any directly adjacent text
@@ -40,6 +33,7 @@ const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 const settings = {
 	attributePrefix: 'sparky-',
 	mount:           noop,
+	parse:           noop,
 	transforms:      {},
 	transformers:    {},
 	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
@@ -55,7 +49,20 @@ const bindings = {
 	form:     { attributes: ['method', 'action'] },
 	fieldset: { booleans:   ['disabled'] },
 	img:      { attributes: ['alt']	},
-	input:    { booleans:   ['disabled', 'required'], attributes: ['name'] },
+	input:    { booleans:   ['disabled', 'required'], attributes: ['name'], types: {
+		button:   { attributes: ['value'] },
+		checkbox: { booleans: ['checked'], value: 'checkbox' },
+		date:     { attributes: ['min', 'max', 'step'], value: 'string' },
+		hidden:   { attributes: ['value'] },
+		image:    { attributes: ['src'] },
+		number:   { attributes: ['min', 'max', 'step'], value: 'number' },
+		radio:    { booleans: ['checked'], value: 'radio' },
+		range:    { attributes: ['min', 'max', 'step'], value: 'number' },
+		reset:    { attributes: ['value'] },
+		submit:   { attributes: ['value'] },
+		time:     { attributes: ['min', 'max', 'step'], value: 'string' },
+		default:  { value: 'string' }
+	}},
 	label:    { attributes: ['for'] },
 	meta:     { attributes: ['content'] },
 	meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
@@ -67,7 +74,7 @@ const bindings = {
 	time:     { attributes: ['datetime'] },
 
 	// SVG
-	svg:      { attribtues: ['viewbox'] },
+	svg:      { attributes: ['viewbox'] },
 	g:        { attributes: ['transform'] },
 	path:     { attributes: ['d', 'transform'] },
 	line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
@@ -76,27 +83,82 @@ const bindings = {
 	use:      { attributes: ['href', 'transform'] }
 };
 
-function addClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.add.apply(classList, classes);
+
+// Struct value read and write
+
+function writeValue(value) {
+	var node = this.node;
+
+	// Avoid updating with the same value as it sends the cursor to
+	// the end of the field (in Chrome, at least).
+	if (value === node.value) { return; }
+
+	node.value = typeof value === 'string' ?
+		value :
+		'' ;
 }
 
-function removeClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.remove.apply(classList, classes);
+function writeValueNumber(value) {
+	var node = this.node;
+
+	// Avoid updating with the same value as it sends the cursor to
+	// the end of the field (in Chrome, at least).
+	if (value === parseFloat(node.value)) { return; }
+
+	node.value = typeof value === 'number' && !Number.isNaN(value) ?
+		value :
+		'' ;
 }
 
+function writeValueRadioCheckbox(value) {
+	var node = this.node;
 
+	// Where value is defined check against it, otherwise
+	// value is "on", uselessly. Set checked state directly.
+	node.checked = isDefined(node.getAttribute('value')) ?
+		value === node.value :
+		value === true ;
+}
 
+function readValue() {
+	var node = this.node;
+	return node.value;
+}
+
+function readValueNumber() {
+	var node = this.node;
+	return node.value ? parseFloat(node.value) : undefined ;
+}
+
+function readValueCheckbox() {
+	var node = this.node;
+
+	// TODO: Why do we check attribute here?
+	return isDefined(node.getAttribute('value')) ?
+		node.checked ? node.value : undefined :
+		node.checked ;
+}
+
+function readValueRadio() {
+	var node = this.node;
+
+	if (!node.checked) { return; }
+
+	return isDefined(node.getAttribute('value')) ?
+		node.value :
+		node.checked ;
+}
 
 
 // Mount
 
-var cased = {
+const cased = {
 	viewbox: 'viewBox'
 };
 
-var toRenderString = overload(toType, {
+const getType = get('type');
+
+const toRenderString = overload(toType, {
 	'boolean': function(value) {
 		return value + '';
 	},
@@ -126,6 +188,16 @@ var toRenderString = overload(toType, {
 
 	'default': JSON.stringify
 });
+
+function addClasses(classList, text) {
+	var classes = toRenderString(text).trim().split(rspaces);
+	classList.add.apply(classList, classes);
+}
+
+function removeClasses(classList, text) {
+	var classes = toRenderString(text).trim().split(rspaces);
+	classList.remove.apply(classList, classes);
+}
 
 function isTruthy(value) {
 	return !!value;
@@ -175,22 +247,23 @@ function mountString(node, string, render, options, structs) {
 	}
 }
 
+function mountAttribute(name, node, options, structs, prefixed) {
+	name = cased[name] || name;
+	var text = prefixed !== false
+	&& node.getAttribute(options.attributePrefix + name)
+	|| node.getAttribute(name) ;
+
+	return text && mountString(node, text, function render(value) {
+		node.setAttribute(cased[name] || name, value);
+	}, options, structs);
+}
+
 function mountAttributes(names, node, options, structs) {
 	var name;
 
 	while (name = names.shift()) {
 		mountAttribute(name, node, options, structs);
 	}
-}
-
-function mountAttribute(name, node, options, structs, prefixed) {
-	var text = prefixed !== false
-	&& node.getAttribute(options.attributePrefix + name)
-	|| node.getAttribute(cased[name] || name) ;
-
-	return text && mountString(node, text, function render(value) {
-		node.setAttribute(cased[name] || name, value);
-	}, options, structs);
 }
 
 function renderBoolean(name, node) {
@@ -285,20 +358,20 @@ function mountBooleans(names, node, options, structs) {
 
 function mountClass(node, options, structs) {
 	var rtoken = options.rtoken;
-	var attr   = dom.attribute('class', node);
+	var attr   = attribute('class', node);
 
 	// If there are no classes, go no further
 	if (!attr) { return; }
 
-	var classes = dom.classes(node);
+	var cls = classes(node);
 
 	// Extract the tags and overwrite the class with remaining text
 	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
 		var prev    = '';
 
 		structs.push(new Struct(node, $0, $2, function render(string) {
-			if (prev && rtext.test(prev)) { removeClasses(classes, prev); }
-			if (string && rtext.test(string)) { addClasses(classes, string); }
+			if (prev && rtext.test(prev)) { removeClasses(cls, prev); }
+			if (string && rtext.test(string)) { addClasses(cls, string); }
 			prev = string;
 		}, $3));
 
@@ -348,72 +421,33 @@ function mountValueRadio(node, options, structs) {
 	structs.push(new ReadableStruct(node, match[0], match[2], writeValueRadioCheckbox, 'change', readValueRadio, match[3]));
 }
 
-// Struct value read and write
+function mountInput(node, options, structs) {
+	var type    = getType(node);
+	var setting = bindings.input.types[type];
 
-function writeValue(value) {
-	var node = this.node;
+	if (setting) {
+		if (setting.booleans)   { mountBooleans(setting.booleans, node, options, structs); }
+		if (setting.attributes) { mountAttributes(setting.attributes, node, options, structs); }
+		if (setting.value) {
+			if (setting.value === 'radio' || setting.value === 'checkbox') {
+				mountAttribute('value', node, options, structs, false);
+			}
 
-	// Avoid updating with the same value as it sends the cursor to
-	// the end of the field (in Chrome, at least).
-	if (value === node.value) { return; }
-
-	node.value = typeof value === 'string' ?
-		value :
-		'' ;
+			mountValue(settings.value, node, options, structs);
+		}
+	}
 }
 
-function writeValueNumber(value) {
-	var node = this.node;
+function mountTag(settings, node, options, structs) {
+	var name    = tag(node);
+	var setting = settings[name];
 
-	// Avoid updating with the same value as it sends the cursor to
-	// the end of the field (in Chrome, at least).
-	if (value === parseFloat(node.value)) { return; }
-
-	node.value = typeof value === 'number' && !Number.isNaN(value) ?
-		value :
-		'' ;
+	if (!setting) { return; }
+	if (setting.booleans) { mountBooleans(setting.booleans, node, options, structs); }
+	if (setting.attributes) { mountAttributes(setting.attributes, node, options, structs); }
+	if (setting.types) { mountInput(node, options, structs); }
+	if (setting.value) { mountValue(setting.value, node, options, structs); }
 }
-
-function writeValueRadioCheckbox(value) {
-	var node = this.node;
-
-	// Where value is defined check against it, otherwise
-	// value is "on", uselessly. Set checked state directly.
-	node.checked = isDefined(node.getAttribute('value')) ?
-		value === node.value :
-		value === true ;
-}
-
-function readValue() {
-	var node = this.node;
-	return node.value;
-}
-
-function readValueNumber() {
-	var node = this.node;
-	return node.value ? parseFloat(node.value) : undefined ;
-}
-
-function readValueCheckbox() {
-	var node = this.node;
-
-	// TODO: Why do we check attribute here?
-	return isDefined(node.getAttribute('value')) ?
-		node.checked ? node.value : undefined :
-		node.checked ;
-}
-
-function readValueRadio() {
-	var node = this.node;
-
-	if (!node.checked) { return; }
-
-	return isDefined(node.getAttribute('value')) ?
-		node.value :
-		node.checked ;
-}
-
-// Mount
 
 function mountCollection(children, options, structs) {
 	var n = -1;
@@ -425,7 +459,14 @@ function mountCollection(children, options, structs) {
 	}
 }
 
-const types = {
+const mountValue = choose({
+	string:   mountValueString,
+	number:   mountValueNumber,
+	checkbox: mountValueCheckbox,
+	radio:    mountValueRadio
+});
+
+const mountNode  = overload(get('nodeType'), {
 	// element
 	1: function mountElement(node, options, structs) {
 		// Get an immutable list of children. We don't want to mount
@@ -483,107 +524,20 @@ const types = {
 
 		mountCollection(node, options, structs);
 	}
-};
-
-const inputs = {
-	button: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-	},
-
-	checkbox: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-		mountBoolean('checked', node, options, structs);
-		// This call only binds the prefixed attribute
-		mountValueCheckbox(node, options, structs);
-	},
-
-	date: function(node, options, structs) {
-		mountAttributes(['min', 'max', 'step'], node, options, structs);
-		mountValueString(node, options, structs);
-	},
-
-	hidden: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-	},
-
-	image: function(node, options, structs) {
-		mountAttribute('src', node, options, structs);
-	},
-
-	number: function(node, options, structs) {
-		mountAttributes(['min', 'max', 'step'], node, options, structs);
-		mountValueNumber(node, options, structs);
-	},
-
-	radio: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-		mountBoolean('checked', node, options, structs);
-		// This call only binds the prefixed attribute
-		mountValueRadio(node, options, structs);
-	},
-
-	range: function(node, options, structs) {
-		mountAttributes(['min', 'max', 'step'], node, options, structs);
-		mountValueNumber(node, options, structs);
-	},
-
-	reset: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-	},
-
-	submit: function(node, options, structs) {
-		// false flag means don't check the prefixed attribute
-		mountAttribute('value', node, options, structs, false);
-	},
-
-	time: function(node, options, structs) {
-		mountAttributes(['min', 'max', 'step'], node, options, structs);
-		mountValueString(node, options, structs);
-	},
-
-	default: function(node, options, structs) {
-		mountValueString(node, options, structs);
-	}
-};
-
-const mountNode  = overload(get('nodeType'), types);
-const mountInput = overload(get('type'), inputs);
-
-//const mountTag   = overload(dom.tag, tags);
-function mountTag(settings, node, options, structs) {
-	var name    = tag(node);
-	var setting = settings[name];
-
-	if (setting) {
-		if (setting.booleans) { mountBooleans(setting.booleans, node, options, structs); }
-		if (setting.attributes) { mountAttributes(setting.attributes, node, options, structs); }
-	}
-
-	if (tag === 'input') {
-		mountInput(node, options, structs);
-	}
-	else if (tag === 'textarea' || tag === 'select') {
-		mountValueString(node, options, structs);
-	}
-}
+});
 
 function setupStructs(structs, options) {
 	structs.forEach(function(struct) {
 		// Set up structs to be pushable. Renderers already have
 		// a push method and should not be throttled.
-		if (struct.render) {
-			setup(struct, options);
-		}
+		if (struct.setup) { struct.setup(options); }
 	});
 }
 
 function unbindStructs(structs) {
-	structs.forEach(unbind);
+	structs.forEach(function(struct) {
+		struct.unbind();
+	});
 }
 
 export { bindings as settings };
@@ -608,7 +562,9 @@ export default function mount(node, options) {
 		shift: noop,
 
 		stop: function stop() {
-			structs.forEach(teardown);
+			structs.forEach(function(struct) {
+				struct.teardown();
+			});
 		},
 
 		push: function push(scope) {
@@ -627,16 +583,6 @@ export default function mount(node, options) {
 		}
 	}
 };
-
-// Export (temporary)
-mount.types  = types;
-mount.inputs = inputs;
-mount.mountAttribute   = mountAttribute;
-mount.mountBoolean     = mountBoolean;
-mount.mountInput       = mountInput;
-mount.mountValueString = mountValueString;
-mount.mountValueNumber = mountValueNumber;
-
 
 // Expose a way to get scopes from node for event delegation and debugging
 

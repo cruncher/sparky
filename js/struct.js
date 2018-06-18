@@ -2,7 +2,7 @@
 import { get, id, noop, pipe, remove, getPath, setPath, Stream, Observable as ObservableStream } from '../../fn/fn.js'
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
-import { cue, uncue } from './frame.js';
+import { cue, uncue }   from './frame.js';
 
 const DEBUG      = false;
 
@@ -48,16 +48,22 @@ function InverseTransform(transformers, string) {
 
 // Struct
 
-var structs = [];
+const structs = [];
 
-var removeStruct = remove(structs);
+const removeStruct = remove(structs);
 
 function addStruct(struct) {
 	structs.push(struct);
 }
 
-export default function Struct(node, token, path, render, pipe) {
+export default function Struct(node, token, path, render, pipe, options) {
 	//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+
+	// Todo: implement struct overide (for parent scope structs)
+	if (options && options.struct) {
+		const struct = options.struct(node, token, path, render, pipe);
+		if (struct) { return struct; }
+	}
 
 	addStruct(this);
 	this.node    = node;
@@ -65,7 +71,7 @@ export default function Struct(node, token, path, render, pipe) {
 	this.path    = path;
 	this.render  = render;
 	this.pipe    = pipe;
-};
+}
 
 assign(Struct.prototype, {
 	render:  noop,
@@ -74,6 +80,34 @@ assign(Struct.prototype, {
 	stop: function stop() {
 		uncue(this.cuer);
 		removeStruct(this);
+	},
+
+	setup: function(options) {
+		var struct = this;
+
+		// Todo: We need rid of the leading '|' in struct.pipe
+		struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
+		struct.originalValue = struct.read ? struct.read() : '' ;
+		if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
+	},
+
+	teardown: function() {
+		var struct = this;
+
+		if (DEBUG) { console.log('teardown', struct.token); }
+		unbind(struct);
+		struct.stop();
+	},
+
+	unbind: function() {
+		var struct = this;
+
+		if (DEBUG) { console.log('unbind:', struct.token); }
+		// Todo: only uncue on teardown
+		//struct.uncue();
+		struct.input && struct.input.stop();
+		struct.unlisten && struct.unlisten();
+		struct.scope = undefined;
 	},
 
 	update: function(time) {
@@ -117,13 +151,6 @@ assign(ReadableStruct.prototype, Struct.prototype, {
 		this._listenFn   = undefined;
 	}
 });
-
-function setup(struct, options) {
-	// Todo: We need rid of the leading '|' in struct.pipe
-	struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
-	struct.originalValue = struct.read ? struct.read() : '' ;
-	if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
-}
 
 function eachFrame(stream, fn) {
 	var unobserve = noop;
@@ -221,27 +248,9 @@ function listen(struct, scope, options) {
 	return pipe(function() { return struct.read(); }, invert, set);
 }
 
-function unbind(struct) {
-	if (DEBUG) { console.log('unbind:', struct.token); }
-	// Todo: only uncue on teardown
-	//struct.uncue();
-	struct.input && struct.input.stop();
-	struct.unlisten && struct.unlisten();
-	struct.scope = undefined;
-}
-
-function teardown(struct) {
-	if (DEBUG) { console.log('teardown', struct.token); }
-	unbind(struct);
-	struct.stop();
-}
-
-Struct.Readable           = ReadableStruct;
-Struct.setup = setup;
-Struct.bind = bind;
-Struct.listen = listen;
-Struct.unbind = unbind;
-Struct.teardown = teardown;
+Struct.Readable = ReadableStruct;
+Struct.bind     = bind;
+Struct.listen   = listen;
 
 Struct.findScope = function findScope(node) {
 	return get('scope', structs.find(function(struct) {
