@@ -1,5 +1,5 @@
 import { get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
-import { default as dom, before, remove, fragmentFromHTML } from '../../dom/dom.js';
+import { append, before, clone, empty, fragmentFromHTML, fragmentFromId, parse, remove } from '../../dom/dom.js';
 import { cue } from './frame.js';
 import Sparky from './sparky.js';
 
@@ -10,7 +10,7 @@ var jQuery  = window.jQuery;
 var assign  = Object.assign;
 var fetch   = window.fetch;
 var getData = get('data');
-var parseHTML = dom.parse('html');
+var parseHTML = parse('html');
 
 var cache   = {
     '': {
@@ -52,8 +52,8 @@ function insertTemplate(sparky, node, scopes, id, template) {
     var run = function first() {
         run = noop;
         var fragment = dom.clone(template);
-        dom.empty(node);
-        dom.append(node, fragment);
+        empty(node);
+        append(node, fragment);
         if (DEBUG) { console.log('Sparky fn=template:', node); }
         sparky.continue();
     };
@@ -80,8 +80,8 @@ function templateFromCache(sparky, node, scopes, path, id) {
         elem = doc.getElementById(id);
 
         template = cache[path][id] = doc === document ?
-            dom.fragmentFromId(id) :
-            elem && dom.fragmentFromHTML(elem.innerHTML) ;
+            fragmentFromId(id) :
+            elem && fragmentFromHTML(elem.innerHTML) ;
     }
 
     return insertTemplate(sparky, node, scopes, id, template);
@@ -95,8 +95,8 @@ function templateFromCache2(sparky, node, scopes, path, id, template) {
         elem = doc.getElementById(id);
 
         template = cache[path][id] = doc === document ?
-            dom.fragmentFromId(id) :
-            elem && dom.fragmentFromHTML(elem.innerHTML) ;
+            fragmentFromId(id) :
+            elem && fragmentFromHTML(elem.innerHTML) ;
     }
 
     if (!template) {
@@ -104,9 +104,9 @@ function templateFromCache2(sparky, node, scopes, path, id, template) {
     }
 
     //return scopes.tap(function(scope) {
-        var fragment = dom.clone(template);
-        dom.empty(node);
-        dom.append(node, fragment);
+        var fragment = clone(template);
+        empty(node);
+        append(node, fragment);
         sparky.continue();
     //});
 }
@@ -135,7 +135,7 @@ function templateFromDocument2(sparky, node, scopes, path, id, doc) {
 
     if (id) {
         elem = doc.getElementById(id);
-        template = cache[path][id] = elem && dom.fragmentFromHTML(elem.innerHTML);
+        template = cache[path][id] = elem && fragmentFromHTML(elem.innerHTML);
     }
     else {
         throw new Error('Sparky: template url has no hash id ' + path);
@@ -162,8 +162,8 @@ assign(Sparky.fn, {
                     default: id
                 }))
                 .each(function(fragment) {
-                    dom.empty(node);
-                    dom.append(node, fragment);
+                    empty(node);
+                    append(node, fragment);
                 })
                 .stop;
             });

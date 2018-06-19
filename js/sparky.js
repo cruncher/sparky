@@ -1,16 +1,13 @@
 
 import { Functor as Fn, Stream, Observable as ObserveStream, deprecate, getPath, invoke, noop, nothing } from '../../fn/fn.js';
-import dom             from '../../dom/dom.js';
+import { attribute, before, create, preventDefault, remove, replace, tag }             from '../../dom/dom.js';
 import { parseParams } from './parse.js';
 import mount           from './mount.js';
 
 var DEBUG          = window.DEBUG;
 
 var Observable     = window.Observable;
-
 var assign         = Object.assign;
-var tag            = dom.tag;
-var preventDefault = dom.preventDefault;
 
 
 // Matches:     xxxx: xxx, "xxx", 'xxx'
@@ -19,7 +16,7 @@ var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"
 var settings = {
 	// Child mounting function
 	mount: function mount(node, options, streams) {
-		var fn = dom.attribute(Sparky.attributeFn, node);
+		var fn = attribute(Sparky.attributeFn, node);
 		if (!fn) { return; }
 
 		var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
@@ -80,7 +77,7 @@ export default function Sparky(selector, data, options) {
 		throw new Error('Sparky: "' + selector + '" not found.');
 	}
 
-	var fnstring = options && options.fn || dom.attribute(Sparky.attributeFn, node) || '';
+	var fnstring = options && options.fn || attribute(Sparky.attributeFn, node) || '';
 	var calling  = true;
 	var sparky   = this;
 	var input;
@@ -232,8 +229,8 @@ assign(Sparky, {
 			var visible = false;
 
 			// Put the marker in place and remove the node
-			dom.before(node, mark);
-			dom.remove(node);
+			before(node, mark);
+			remove(node);
 
 			return stream.tap(function(scope) {
 				var visibility = !!scope[name];
@@ -242,10 +239,10 @@ assign(Sparky, {
 				visible = visibility;
 
 				if (visible) {
-					dom.replace(mark, node);
+					replace(mark, node);
 				}
 				else {
-					dom.replace(node, mark);
+					replace(node, mark);
 				}
 			});
 		},
@@ -299,11 +296,11 @@ assign(Sparky, {
 		// content in the future.
 
 		if (!DEBUG) {
-			return dom.create('text', '');
+			return create('text', '');
 		}
 
 		var attrFn  = node && node.getAttribute(Sparky.attributeFn);
-		return dom.create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
+		return create('comment', tag(node) + (attrFn ? ' ' + Sparky.attributeFn + '="' + attrFn + '"' : ''));
 	},
 
 	getScope: mount.getScope
