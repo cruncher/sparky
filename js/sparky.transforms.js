@@ -53,7 +53,12 @@
 		},
 
 		'add-date':  { tx: Fn.addDate,     ix: Fn.subDate },
-		'add-time':  { tx: Fn.addTime,     ix: Fn.subTime },
+		'add-time':  {
+			tx: curry(function(duration, time) {
+				return Fn.formatTimeISO(Fn.addTime(duration, time));
+			}),
+			ix: Fn.subTime
+		},
 		decibels:    { tx: Fn.todB,        ix: Fn.toLevel },
 		multiply:    { tx: Fn.multiply,    ix: curry(function(d, n) { return n / d; }) },
 		degrees:     { tx: Fn.toDeg,       ix: Fn.toRad },
