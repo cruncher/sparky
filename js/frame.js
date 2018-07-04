@@ -1,10 +1,8 @@
 
 import { invoke } from '../../fn/fn.js';
-import dom    from '../../dom/dom.js';
+import { now } from '../../dom/dom.js';
 
 const DEBUG  = false;
-
-const now    = dom.now;
 
 // Render queue
 

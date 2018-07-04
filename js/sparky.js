@@ -15,23 +15,35 @@ var rfn       = /\s*([-\w]+)(?:\s*:\s*((?:"[^"]*"|'[^']*'|[^\s,]+)(?:\s*,\s*(?:"
 
 var settings = {
 	// Child mounting function
-	mount: function mount(node, options, streams) {
+	mount: function mount(node, options) {
 		var fn = attribute(Sparky.attributeFn, node);
 		if (!fn) { return; }
 
-		var sparky = new Sparky(node, undefined, { fn: fn, suppressLogs: true });
-		//if (DEBUG) { console.log('mounted:', node, fn); }
+		var sparky = new Sparky(node, undefined, {
+			fn: fn,
+			suppressLogs: true,
+			createStruct: function(node, token, path, render, pipe, type, read) {
+				if (!/^\.\./.test(path)) { return; }
+
+				path = path.slice(2);
+				const struct = options.createStruct(node, token, path, render, pipe, type, read);
+
+				return {
+					teardown: function() {
+						struct.teardown();
+						console.log('PARENT STRUCT TEARDOWN', struct);
+					}
+				};
+			}
+		});
 
 		// This is just some help for logging mounted tags
 		sparky.token = fn;
 		sparky.path  = '';
 
-		// Mount must push write streams into streams. A write stream
+		// Return a writeable stream. A write stream
 		// must have the methods .push() and .stop()
-		streams.push(sparky);
-
-		// Tell the mounter we've got ths one
-		return true;
+		return sparky;
 	}
 };
 
@@ -96,6 +108,7 @@ export default function Sparky(selector, data, options) {
 		settings.attributePrefix = Sparky.attributePrefix;
 		//settings.transforms      = Sparky.transforms;
 		//settings.transformers    = Sparky.transformers;
+		options && (settings.createStruct = options.createStruct);
 
 		// Launch rendering
 		if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
@@ -193,7 +206,7 @@ assign(Sparky, {
 			var scope = getPath(params[0], window);
 
 			if (scope === undefined) {
-				console.warn('Sparky.fn.global:path – no object at path ' + params[0]);
+				console.warn('Sparky global:path – no object at path "' + params[0] + '"');
 				return Fn.of();
 			}
 
@@ -251,7 +264,7 @@ assign(Sparky, {
 			this.interrupt();
 		},
 
-		'prevent-on': function preventSubmitCtrl(node, stream, params) {
+		prevent: function preventSubmitCtrl(node, stream, params) {
 			node.addEventListener(params[0], preventDefault);
 
 			this.then(function() {

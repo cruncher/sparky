@@ -3,7 +3,7 @@
 // <div sparky-fn="calendar:'2018-01-01',14">
 
 import { Functor as Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing } from '../../fn/fn.js';
-import dom from '../../dom/dom.js';
+import { closest } from '../../dom/dom.js';
 import Sparky from '../sparky.js';
 
 var Observable = window.Observable;
@@ -120,7 +120,7 @@ Sparky.fn['calendar-move-on-click'] = function(node, scopes, params) {
     dom
     .events('click', node)
     .map(get('target'))
-    .map(dom.closest('button, a'))
+    .map(closest('button, a'))
     .each(function(value) {
         var min = params[1] === 'now' ?
             nowDate() :

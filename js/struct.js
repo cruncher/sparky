@@ -1,14 +1,11 @@
 
-import { get, id, noop, pipe, remove, getPath, setPath, Stream, Observable as ObservableStream } from '../../fn/fn.js'
+import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream } from '../../fn/fn.js'
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
-import { cue, uncue } from './frame.js';
+import { cue, uncue }   from './frame.js';
 
 const DEBUG      = false;
-
-const Observable = window.Observable;
 const assign     = Object.assign;
-const observe    = Observable.observe;
 
 
 // Transform
@@ -48,16 +45,22 @@ function InverseTransform(transformers, string) {
 
 // Struct
 
-var structs = [];
+const structs = [];
 
-var removeStruct = remove(structs);
+const removeStruct = remove(structs);
 
 function addStruct(struct) {
 	structs.push(struct);
 }
 
-export default function Struct(node, token, path, render, pipe) {
+export default function Struct(node, token, path, render, pipe, options) {
 	//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
+
+	// Todo: implement struct overide (for parent scope structs)
+	if (options && options.struct) {
+		const struct = options.struct(node, token, path, render, pipe);
+		if (struct) { return struct; }
+	}
 
 	addStruct(this);
 	this.node    = node;
@@ -65,41 +68,101 @@ export default function Struct(node, token, path, render, pipe) {
 	this.path    = path;
 	this.render  = render;
 	this.pipe    = pipe;
-};
+}
 
 assign(Struct.prototype, {
 	render:  noop,
 	transform: id,
 
 	stop: function stop() {
+		//console.log('STRUCT STOP', this.token);
+
+		this.unbind();
+		//this.stop();
+
 		uncue(this.cuer);
 		removeStruct(this);
 	},
 
-	update: function(time) {
-		var struct = this;
-		var transform = this.transform;
-		var value = struct.input && struct.input.shift();
+	start: function(options) {
+		//console.log('STRUCT START', this.token);
 
-		if (DEBUG) { console.log('update:', struct.token, value, struct.originalValue); }
+		// Todo: We need rid of the leading '|' in struct.pipe
+		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
+		this.originalValue = this.read ? this.read() : '' ;
+
+		this.status = 'active';
+
+		if (DEBUG) { console.log('setup: ', this.token, this.originalValue); }
+	},
+
+	bind: function(scope, options) {
+		const struct = this;
+
+		struct.input = ObservableStream(struct.path, scope).latest();
+
+		// Just for debugging
+		struct.scope = scope;
+
+		let flag = false;
+
+		this.cuer = function update() {
+			struct.update();
+			if (flag) { return; }
+			flag = true;
+			struct.input.on('push', function() {
+				cue(update);
+			});
+		};
+
+		cue(this.cuer);
+	},
+
+	unbind: function() {
+		//console.log('STRUCT UNBIND', this.token);
+
+		if (DEBUG) { console.log('unbind:', this.token); }
+		// Todo: only uncue on teardown
+		//this.uncue();
+		this.input && this.input.stop();
+		this.unlisten && this.unlisten();
+		this.scope = undefined;
+	},
+
+	update: function(time) {
+		//console.log('STRUCT UPDATE', this.token);
+
+		var transform = this.transform;
+		var value = this.input && this.input.shift();
+
+		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 
 		if (value === undefined) {
-			struct.render(struct.originalValue);
+			this.render(this.originalValue);
 		}
 		else {
-			struct.render(transform(value));
+			this.render(transform(value));
+		}
+	},
+
+	reset: function(options) {
+		if (this.status === 'active') {
+			this.unbind();
+		}
+		else {
+			this.start(options);
 		}
 	}
 });
 
-function ReadableStruct(node, token, path, render, type, read, pipe) {
+export function ReadableStruct(node, token, path, render, pipe, type, read) {
 	// ReadableStruct extends Struct with listeners and read functions
 	Struct.call(this, node, token, path, render, pipe);
 	this.type = type;
 	this.read = read;
 }
 
-assign(ReadableStruct.prototype, Struct.prototype, {
+ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 	listen: function listen(fn) {
 		if (this._listenFn) {
 			console.warn('Bad Steve. Attempt to listen without removing last listener. Shouldnt happen.');
@@ -115,99 +178,42 @@ assign(ReadableStruct.prototype, Struct.prototype, {
 		this.node.removeEventListener(this.type, fn);
 		this._listenType = undefined;
 		this._listenFn   = undefined;
+	},
+
+	bind: function(scope, options) {
+		const struct = this;
+
+		struct.input = ObservableStream(struct.path, scope).latest();
+
+		// Just for debugging
+		struct.scope = scope;
+
+		const change = listen(struct, scope, options);
+		let flag = false;
+
+		this.cuer = function updateReadable() {
+			struct.update();
+
+			if (flag) { return; }
+			flag = true;
+
+			struct.input.on('push', function() {
+				cue(updateReadable);
+			});
+
+			var value = getPath(struct.path, scope);
+
+			// Where the initial value of struct.path is not set, set it to
+			// the value of the <input/>.
+			if (value === undefined) {
+				change();
+			}
+		};
+
+		cue(struct.cuer);
+		struct.listen(change);
 	}
 });
-
-function setup(struct, options) {
-	// Todo: We need rid of the leading '|' in struct.pipe
-	struct.transform = struct.pipe ? parsePipe(struct.pipe.slice(1)) : id ;
-	struct.originalValue = struct.read ? struct.read() : '' ;
-	if (DEBUG) { console.log('setup: ', struct.token, struct.originalValue); }
-}
-
-function eachFrame(stream, fn) {
-	var unobserve = noop;
-
-	function update(time) {
-		var scope = stream.shift();
-		// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-		if (scope === undefined) { return; }
-
-		function render(time) {
-			fn(scope);
-		}
-
-		unobserve();
-		unobserve = observe(scope, '', function() {
-			cue(render);
-		});
-	}
-
-	cue(update);
-
-	if (stream.on) {
-		stream.on('push', function() {
-			cue(update);
-		});
-	}
-}
-
-function bind(struct, scope, options) {
-	if (DEBUG) { console.log('bind:  ', struct.token); }
-
-	var input = struct.input = ObservableStream(struct.path, scope).latest();
-
-	struct.scope = scope;
-
-	var flag = false;
-	var change;
-
-	// If struct is an internal struct (as opposed to a Sparky instance)
-	if (struct.render) {
-		if (struct.listen) {
-			change = listen(struct, scope, options);
-
-			struct.cuer = function updateReadable() {
-				struct.update();
-
-				if (flag) { return; }
-				flag = true;
-
-				input.on('push', function() {
-					cue(updateReadable);
-				});
-
-				var value = getPath(struct.path, scope);
-
-				// Where the initial value of struct.path is not set, set it to
-				// the value of the <input/>.
-				if (value === undefined) {
-					change();
-				}
-			};
-
-			cue(struct.cuer);
-			struct.listen(change);
-		}
-		else {
-			struct.cuer = function update() {
-				struct.update();
-				if (flag) { return; }
-				flag = true;
-				input.on('push', function() {
-					cue(update);
-				});
-			};
-
-			cue(struct.cuer);
-		}
-
-		return;
-	}
-
-	if (DEBUG) { console.log('struct is Sparky'); }
-	eachFrame(input, struct.push);
-}
 
 function listen(struct, scope, options) {
 	//console.log('listen:', postpad(' ', 28, struct.token) + ' scope:', scope);
@@ -220,28 +226,6 @@ function listen(struct, scope, options) {
 	invert = InverseTransform(transformers, struct.pipe);
 	return pipe(function() { return struct.read(); }, invert, set);
 }
-
-function unbind(struct) {
-	if (DEBUG) { console.log('unbind:', struct.token); }
-	// Todo: only uncue on teardown
-	//struct.uncue();
-	struct.input && struct.input.stop();
-	struct.unlisten && struct.unlisten();
-	struct.scope = undefined;
-}
-
-function teardown(struct) {
-	if (DEBUG) { console.log('teardown', struct.token); }
-	unbind(struct);
-	struct.stop();
-}
-
-Struct.Readable           = ReadableStruct;
-Struct.setup = setup;
-Struct.bind = bind;
-Struct.listen = listen;
-Struct.unbind = unbind;
-Struct.teardown = teardown;
 
 Struct.findScope = function findScope(node) {
 	return get('scope', structs.find(function(struct) {

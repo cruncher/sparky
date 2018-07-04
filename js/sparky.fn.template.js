@@ -51,7 +51,7 @@ function insertTemplate(sparky, node, scopes, id, template) {
 
     var run = function first() {
         run = noop;
-        var fragment = dom.clone(template);
+        var fragment = clone(template);
         empty(node);
         append(node, fragment);
         if (DEBUG) { console.log('Sparky fn=template:', node); }

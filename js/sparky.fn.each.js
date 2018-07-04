@@ -1,5 +1,5 @@
 import { noop } from '../../fn/fn.js';
-import dom    from '../../dom/dom.js';
+import { before, clone, remove, tag } from '../../dom/dom.js';
 import Sparky from './sparky.js';
 import { cue, uncue } from './frame.js';
 
@@ -9,10 +9,6 @@ var Observable = window.Observable;
 var A          = Array.prototype;
 
 var isArray    = Array.isArray;
-var before     = dom.before;
-var clone      = dom.clone;
-var remove     = dom.remove;
-var tag        = dom.tag;
 var observe    = Observable.observe;
 var MarkerNode = Sparky.MarkerNode;
 

@@ -17,11 +17,11 @@
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 	<link rel="stylesheet" href="http://stephen.band/bolt/dist/bolt.min.css" />
-	<link rel="stylesheet" href="../fn/css/grid.css" />
+	<!--link rel="stylesheet" href="../fn/css/grid.css" /-->
 	<link rel="stylesheet" href="../fn/css/docs.css" />
-	<link rel="stylesheet" href="../fn/css/syntax-atom.css" />
-	<link rel="stylesheet" href="../fn/css/cruncher.prism.css" />
-	<link rel="stylesheet" href="../fn/css/test.css" />
+	<!--link rel="stylesheet" href="../fn/css/syntax-atom.css" /-->
+	<link rel="stylesheet" href="../fn/css/prism.cruncher.css" />
+	<link rel="stylesheet" href="../fn/css/tests.css" />
 	<link rel="stylesheet" href="../dom/css/dom.css" />
 	<link rel="stylesheet" href="css/docs.css" />
 	<link rel="stylesheet" href="css/test.css" />
@@ -629,10 +629,10 @@ line { stroke-width: 1; stroke: inherit; }
 	// Preprocess
 	import '../prism/prism.js';
 	import './libs/prism/prism.sparky.js';
-	import '../dom/scripts/highlight.js';
+	//import '../dom/scripts/highlight.js';
 
 	// Prepare the page
-	Sparky(document.body);
+	//Sparky(document.body);
 	</script>
 
 	<!-- Tests -->
@@ -641,14 +641,15 @@ line { stroke-width: 1; stroke: inherit; }
 	// Run tests
 	import '../fn/test/test.js';
 	import './test/sparky.test.js';
+	import './test/sparky.parent-scope-test.js';
 	import './test/sparky.stop-scopes.test.js';
 	import './test/sparky.stop-mutations.test.js';
-	import './test/sparky.input-test.js';
+//import './test/sparky.input-test.js';
 	import './test/sparky.textarea-test.js';
-	import './test/sparky.select-test.js';
+//import './test/sparky.select-test.js';
 	import './test/sparky.fn-test.js';
 	import './test/sparky.fn.each-test.js';
-	import './test/sparky.fn.template-test.js';
+//import './test/sparky.fn.template-test.js';
 	import './test/sparky.fn.load-test.js';
 	import './test/sparky.transforms-test.js';
 	import './plugins/sparky.fn.clock.js';

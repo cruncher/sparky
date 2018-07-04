@@ -1,12 +1,9 @@
-import dom    from '../../dom/dom.js';
+import { attribute, events, preventDefault } from '../../dom/dom.js';
 import Sparky from './sparky.js';
 
 var DEBUG          = window.DEBUG;
 
 var assign         = Object.assign;
-var attribute      = dom.attribute;
-var events         = dom.events;
-var preventDefault = dom.preventDefault;
 
 function getCookie(name) {
     var cookieValue = null;
@@ -52,7 +49,7 @@ assign(Sparky.fn, {
             })
             .catch(function(thing) {
                 //console.log('FAIL', thing, thing.response.data);
-                dom.events.trigger(node, 'dom-error', {
+                events.trigger(node, 'dom-error', {
                     detail: thing.response.data
                 });
             });

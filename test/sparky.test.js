@@ -83,10 +83,10 @@ group('Child sparky', function(test, log, fixture) {
 }, function() {/*
 
 <div sparky-fn="ctrl">
-	<p sparky-fn="ctrl-1">{[property]}</p>
-	<p sparky-fn="ctrl-2">{[property]}</p>
-	<p sparky-fn="get:'sub-1'">{[property]}</p>
-	<p sparky-fn="get:'sub-2'">{[property]}</p>
+	<p sparky-fn="ctrl-1">{[ property]}</p>
+	<p sparky-fn="ctrl-2">{[property ]}</p>
+	<p sparky-fn="get:'sub-1'">{[  property]}</p>
+	<p sparky-fn="get:'sub-2'">{[property  ]}</p>
 </div>
 
 */});

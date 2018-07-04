@@ -8,7 +8,7 @@
     "name": "Stephen Band",
     "twitter": "stephband"
   },
-  "main":   "dist/sparky.js",
+  "main": "dist/sparky.js",
   "module": "sparky.js",
   "repository": {
     "type": "git",
