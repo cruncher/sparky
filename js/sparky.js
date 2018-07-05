@@ -29,9 +29,8 @@ var settings = {
 				const struct = options.createStruct(node, token, path, render, pipe, type, read);
 
 				return {
-					teardown: function() {
-						struct.teardown();
-						console.log('PARENT STRUCT TEARDOWN', struct);
+					stop: function() {
+						struct.stop();
 					}
 				};
 			}
@@ -100,7 +99,10 @@ export default function Sparky(selector, data, options) {
 
 	function interrupt() {
 		calling = false;
-		return { fn: fnstring };
+		return { fn: fnstring, createStruct: function(node, token, path, render, pipe, type, read) {
+			var struct = options.createStruct && options.createStruct.apply(null, arguments);
+			return struct;
+		} };
 	}
 
 	function render() {

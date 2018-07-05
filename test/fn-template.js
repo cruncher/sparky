@@ -162,23 +162,3 @@ group('[sparky-fn="template:hash"] nested templates', function(test, log, fixtur
 
 	<template id="test-template-2">Template 2 content: {[message]}.</template>
 */});
-
-group('[sparky-fn="template:url"]', function(test, log, fixture) {
-	var node   = fixture.children[0];
-	var sparky = Sparky(node);
-
-	test('[sparky-fn="template:url"]', function(equals, done) {
-		equals('Default content.', node.innerHTML);
-
-		sparky.push({});
-
-		setTimeout(function() {
-			equals('Hello', node.innerHTML);
-			done();
-		}, 2000);
-	}, 2);
-}, function() {/*
-
-	<p class="{[property]}" sparky-fn="template:'example.html#example-template'">Default content.</p>
-
-*/});

@@ -48,20 +48,24 @@ const bindings = {
 	form:     { attributes: ['method', 'action'] },
 	fieldset: { booleans:   ['disabled'] },
 	img:      { attributes: ['alt']	},
-	input:    { booleans:   ['disabled', 'required'], attributes: ['name'], types: {
-		button:   { attributes: ['value'] },
-		checkbox: { booleans: ['checked'], value: 'checkbox' },
-		date:     { attributes: ['min', 'max', 'step'], value: 'string' },
-		hidden:   { attributes: ['value'] },
-		image:    { attributes: ['src'] },
-		number:   { attributes: ['min', 'max', 'step'], value: 'number' },
-		radio:    { booleans: ['checked'], value: 'radio' },
-		range:    { attributes: ['min', 'max', 'step'], value: 'number' },
-		reset:    { attributes: ['value'] },
-		submit:   { attributes: ['value'] },
-		time:     { attributes: ['min', 'max', 'step'], value: 'string' },
-		default:  { value: 'string' }
-	}},
+	input:    {
+		booleans:   ['disabled', 'required'],
+		attributes: ['name'],
+		types: {
+			button:   { attributes: ['value'] },
+			checkbox: { booleans:   ['checked'], value: 'checkbox' },
+			date:     { attributes: ['min', 'max', 'step'], value: 'string' },
+			hidden:   { attributes: ['value'] },
+			image:    { attributes: ['src'] },
+			number:   { attributes: ['min', 'max', 'step'], value: 'number' },
+			radio:    { booleans:   ['checked'], value: 'radio' },
+			range:    { attributes: ['min', 'max', 'step'], value: 'number' },
+			reset:    { attributes: ['value'] },
+			submit:   { attributes: ['value'] },
+			time:     { attributes: ['min', 'max', 'step'], value: 'string' },
+			default:  { value: 'string' }
+		}
+	},
 	label:    { attributes: ['for'] },
 	meta:     { attributes: ['content'] },
 	meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
@@ -259,8 +263,9 @@ function mountAttribute(name, node, options, prefixed) {
 
 function mountAttributes(names, node, options) {
 	var name;
+	var n = -1;
 
-	while (name = names.shift()) {
+	while (name = names[++n]) {
 		mountAttribute(name, node, options);
 	}
 }
@@ -349,8 +354,9 @@ function mountBoolean(name, node, options) {
 
 function mountBooleans(names, node, options) {
 	var name;
+	var n = -1;
 
-	while (name = names.shift()) {
+	while (name = names[++n]) {
 		mountBoolean(name, node, options);
 	}
 }
@@ -420,9 +426,9 @@ function mountValueRadio(node, options) {
 	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueRadio);
 }
 
-function mountInput(node, options) {
+function mountInput(types, node, options) {
 	var type    = getType(node);
-	var setting = bindings.input.types[type];
+	var setting = types[type] || types.default;
 
 	if (setting) {
 		if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
@@ -432,7 +438,7 @@ function mountInput(node, options) {
 				mountAttribute('value', node, options, false);
 			}
 
-			mountValue(settings.value, node, options);
+			mountValue(setting.value, node, options);
 		}
 	}
 }
@@ -444,7 +450,7 @@ function mountTag(settings, node, options) {
 	if (!setting) { return; }
 	if (setting.booleans) { mountBooleans(setting.booleans, node, options); }
 	if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
-	if (setting.types) { mountInput(node, options); }
+	if (setting.types) { mountInput(setting.types, node, options); }
 	if (setting.value) { mountValue(setting.value, node, options); }
 }
 
@@ -561,23 +567,25 @@ export default function mount(node, overrides) {
 	var options = assign({}, settings, overrides);
 	var structs = [];
 
-	options.createStruct = overrides.createStruct ?
-		function(node, token, path, render, pipe, type, read) {
-			const struct =
-				overrides.createStruct(node, token, path, render, pipe, type, read) ||
+	options.createStruct = function createStruct(node, token, path, render, pipe, type, read) {
+		const struct = (
+			overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
+		) || (
 			type ?
 				new ReadableStruct(node, token, path, render, pipe, type, read) :
-				new Struct(node, token, path, render, pipe) ;
+				new Struct(node, token, path, render, pipe)
+		);
 
-			structs.push(struct);
-		} :
-		function(node, token, path, render, pipe, type, read) {
-			const struct = type ?
-				new ReadableStruct(node, token, path, render, pipe, type, read) :
-				new Struct(node, token, path, render, pipe) ;
+		structs.push(struct);
 
-			structs.push(struct);
-		} ;
+		// If structs have already been started, start this one too
+		if (old) {
+			struct.reset && struct.reset(options);
+			struct.bind(old, options);
+		}
+
+		return struct;
+	};
 
 	mountNode(node, options, structs);
 

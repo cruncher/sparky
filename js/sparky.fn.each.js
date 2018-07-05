@@ -15,7 +15,7 @@ var MarkerNode = Sparky.MarkerNode;
 var $object    = Symbol('object');
 
 function create(node, object, options) {
-	if (DEBUG) { console.groupCollapsed('each: create', node); }
+	if (DEBUG) { console.groupCollapsed('each: create', node, object); }
 	var sparky = new Sparky(node, object, options);
 	if (DEBUG) { console.groupEnd(); }
 	sparky[$object] = object;

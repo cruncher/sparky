@@ -147,7 +147,7 @@ function templateFromDocument2(sparky, node, scopes, path, id, doc) {
 assign(Sparky.fn, {
     template: function(node, scopes, params) {
         var name = params[0];
-        var parts, path, hash;
+        var parts, path, hash, stop;
 
         // If name is not a URL assume it's a path and get html from scope
         if (!/#/.test(name)) {

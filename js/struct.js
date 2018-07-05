@@ -78,25 +78,27 @@ assign(Struct.prototype, {
 		//console.log('STRUCT STOP', this.token);
 
 		this.unbind();
-		//this.stop();
-
 		uncue(this.cuer);
 		removeStruct(this);
+
+		this.stop   = noop;
+		this.status = 'done';
 	},
 
-	start: function(options) {
+	start: function() {
 		//console.log('STRUCT START', this.token);
 
 		// Todo: We need rid of the leading '|' in struct.pipe
 		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
 		this.originalValue = this.read ? this.read() : '' ;
 
+		this.start  = noop;
 		this.status = 'active';
 
-		if (DEBUG) { console.log('setup: ', this.token, this.originalValue); }
+		if (DEBUG) { console.log('start: ', this.token, this.originalValue); }
 	},
 
-	bind: function(scope, options) {
+	bind: function(scope) {
 		const struct = this;
 
 		struct.input = ObservableStream(struct.path, scope).latest();
@@ -150,7 +152,7 @@ assign(Struct.prototype, {
 			this.unbind();
 		}
 		else {
-			this.start(options);
+			this.start();
 		}
 	}
 });

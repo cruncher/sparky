@@ -4,36 +4,34 @@ import Sparky from '../sparky.js';
 
 group('Parent sparky', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
-	var obj1 = {
-		'sub': obj1,
-		'property': 'prop2'
+	var obj = {
+		property: 'prop1',
+		sub: { property: 'prop2' }
 	};
 
-	var obj2 = { property: 'prop1' };
-
 	Sparky.fn['ctrl'] = function(node, scopes) {
-		return Fn.of(obj1);
+		return Fn.of(obj);
 	};
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
-		var div = fixture.querySelector('[sparky-fn="ctrl"]');
-		var p1  = fixture.querySelector('[sparky-fn="get:\'sub\'"]');
+		var div    = fixture.querySelector('[sparky-fn="ctrl"]');
+		var p      = fixture.querySelector('[sparky-fn="get:\'sub\'"]');
 		var sparky = Sparky(div);
 
 		frame(function() {
-			equals('prop2',  p1.innerHTML);
+			equals('prop1',  p.innerHTML);
 
-			Observable(obj1).property = 'newprop2';
+			Observable(obj).property = 'newprop1';
 
 			frame(function() {
-				equals('newprop2', p1.innerHTML);
+				equals('newprop1', p.innerHTML);
 
 				sparky.stop();
 
-				Observable(obj1).property = 'stopprop1';
+				Observable(obj).property = 'stopprop1';
 
 				frame(function() {
-					equals('newprop2', p1.innerHTML);
+					equals('newprop1', p.innerHTML);
 					done();
 				});
 			});
