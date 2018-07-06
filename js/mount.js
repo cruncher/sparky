@@ -564,12 +564,12 @@ export { bindings as settings };
 export default function mount(node, overrides) {
 	if (DEBUG) { console.groupCollapsed('mount: ', node); }
 
-	var options = assign({}, settings, overrides);
 	var structs = [];
+	var options = assign({}, settings, overrides);
 
 	options.createStruct = function createStruct(node, token, path, render, pipe, type, read) {
 		const struct = (
-			overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
+			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
 		) || (
 			type ?
 				new ReadableStruct(node, token, path, render, pipe, type, read) :

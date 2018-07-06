@@ -135,7 +135,9 @@ export default function Sparky(selector, data, options) {
 
 		// Function not found
 		if (!fn) {
-			throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
+			console.warn('Sparky fn "' + token[1] + '" not found. Element not mounted.');
+			return;
+			//throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 		}
 
 		// Gaurantee that params exists, at least.
@@ -205,14 +207,19 @@ assign(Sparky, {
 
 	fn: {
 		global: function(node, stream, params) {
-			var scope = getPath(params[0], window);
+			// TODO: We should be able to express this with
+			// input.chain( .. Stream.observe(params[0], objet) .. )
+			// but because Fn#join() doesn't know how to handle streams
+			// we cant. Make it handle streams.
+console.log(params[0])
+			var output = Stream.of();
+			var stop = ObserveStream(params[0], window)
+			.each(output.push)
+			.stop;
 
-			if (scope === undefined) {
-				console.warn('Sparky global:path – no object at path "' + params[0] + '"');
-				return Fn.of();
-			}
+			this.then(stop);
 
-			return Fn.of(scope);
+			return output;
 		},
 
 		get: function(node, input, params) {
