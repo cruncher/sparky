@@ -211,7 +211,6 @@ assign(Sparky, {
 			// input.chain( .. Stream.observe(params[0], objet) .. )
 			// but because Fn#join() doesn't know how to handle streams
 			// we cant. Make it handle streams.
-console.log(params[0])
 			var output = Stream.of();
 			var stop = ObserveStream(params[0], window)
 			.each(output.push)
