@@ -98,11 +98,16 @@ export default function Sparky(selector, data, options) {
 	this.length  = 1;
 
 	function interrupt() {
+		sparky.interrupt = noop;
+		sparky.continue = start;
 		calling = false;
-		return { fn: fnstring, createStruct: function(node, token, path, render, pipe, type, read) {
-			var struct = options.createStruct && options.createStruct.apply(null, arguments);
-			return struct;
-		} };
+
+		return {
+			fn: fnstring,
+			createStruct: function(node, token, path, render, pipe, type, read) {
+				return options.createStruct && options.createStruct.apply(null, arguments);
+			}
+		};
 	}
 
 	function render() {
@@ -120,24 +125,21 @@ export default function Sparky(selector, data, options) {
 	}
 
 	function start() {
-		// Parse the fns and params to execute
-		var token = fnstring.match(rfn);
+		sparky.interrupt = interrupt;
+		sparky.continue  = noop;
 
-		// No more tokens, launch Sparky
+		// Parse the fns and params to execute. If no more tokens,
+		// launch Sparky
+		var token = fnstring.match(rfn);
 		if (!token) {
-			sparky.continue = noop;
 			render();
 			return sparky;
 		}
 
-		//console.group(token[0].trim());
 		var fn = Sparky.fn[token[1]];
-
-		// Function not found
 		if (!fn) {
 			console.warn('Sparky fn "' + token[1] + '" not found. Element not mounted.');
 			return;
-			//throw new Error('Sparky: fn "' + token[1] + '" not found in Sparky.fn');
 		}
 
 		// Gaurantee that params exists, at least.
@@ -147,15 +149,12 @@ export default function Sparky(selector, data, options) {
 
 		// Call Sparky fn, gauranteeing the output is a non-duplicate stream
 		// of observables. Todo: we should not need to be so strict about
-		// .dedup() when we create a disticntion between mutation and
+		// .dedup() when we create a distinction between mutation and
 		// path changes in Observables.
 		var output = fn.call(sparky, node, input, params);
-
 		input = output ?
 			output.map(toObservableOrSelf).dedup() :
 			input ;
-		//if (!calling) { console.log(token[0].trim() + ' interrupted!'); }
-		//console.groupEnd();
 
 		// If fns have been interrupted calling is false
 		return calling && start();
@@ -192,10 +191,6 @@ export default function Sparky(selector, data, options) {
 	// Initialise this as a stream and set input to a deduped version
 	Stream.call(this, Source);
 	input = this.map(toObservableOrSelf).dedup();
-
-	this.interrupt = interrupt;
-	this.continue  = start;
-
 	start();
 }
 
