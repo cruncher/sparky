@@ -8,9 +8,9 @@ import { nothing, pipe } from '../../fn/fn.js'
 const parseArrayClose = parse(/^\]\s*/, nothing);
 
 //                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string
-export const parseParams = parse(/^\s*(?:(-?(?:\d+|\d+\.\d+|\.\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+export const parseParams = parse(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
-    1: function(params, value) { params.push(parseFloat(value)); return params; },
+    1: function(params, value, data) { params.push(parseFloat(value)); return params; },
 
     // "string"
     2: function(params, value) { params.push(value); return params; },
@@ -69,7 +69,8 @@ export const parseFn = parse(/^([\w-]+)\s*(:)?\s*/, {
     },
 
     2: function(fn, value, data) {
-        return fn.apply(null, parseParams([], data));
+        const params = parseParams([], data);
+        return fn.apply(null, params);
     }
 });
 

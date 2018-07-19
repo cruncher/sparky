@@ -92,7 +92,7 @@ export const transformers = {
 	multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
-	pow:         { tx: pow,         ix: curry(function(n, x) { return pow(1/n, x); }) },
+	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
 	exp:         { tx: exp,         ix: log },
 	log:         { tx: log,         ix: exp },
 	int:         { tx: toFixed(0),  ix: toInt },
