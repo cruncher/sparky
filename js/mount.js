@@ -499,14 +499,14 @@ const mountNode  = overload(get('nodeType'), {
 
 	// document
 	9: function mountDocument(node, options, structs) {
-		mountCollection(A.slice.apply(node.childNodes), options);
+		mountCollection(A.slice.apply(node.childNodes), options, structs);
 	},
 
 	// doctype
 	10: noop,
 
 	// fragment
-	11: function mountFragment(node, options) {
+	11: function mountFragment(node, options, structs) {
 		mountCollection(A.slice.apply(node.childNodes), options, structs);
 	},
 
