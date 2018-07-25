@@ -8,35 +8,35 @@ const DEBUG  = false;
 
 const queue = new Set();
 const data  = [];
+const maxFrameDuration = 0.015;
 
-var point;
+var point = {};
 var frame;
 
 function run(time) {
 	if (DEBUG) {
-		point = {};
+		point.tStart      = 0;
+		point.tStop       = 0;
 		point.frameTime   = time / 1000;
-		point.runTime     = now();
 		point.queuedFns   = queue.size;
 		point.insertedFns = 0;
 		console.groupCollapsed('frame', point.frameTime.toFixed(3));
 	}
 
 	frame = true;
-
-	// Use a .forEach() to support IE11, which doesnt have for..of
+	point.tStart = now();
 	queue.forEach(invoke('call', [null, time]));
+	point.tStop = now();
 
-	//var fn;
-	//for (fn of queue) {
-	//	fn(time);
-	//}
+	if (point.tStop - point.tStart > maxFrameDuration) {
+		console.warn('Sparky: frame took' + (point.tStop - point.tStart).toFixed(3) + 's to render.');
+	}
 
 	queue.clear();
 	frame = undefined;
 
 	if (DEBUG) {
-		point.duration = now() - point.runTime;
+		point.duration = now() - point.tStart;
 		data.push(point);
 		//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
 		console.groupEnd();
