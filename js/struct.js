@@ -91,7 +91,6 @@ assign(Struct.prototype, {
 		// Todo: We need rid of the leading '|' in struct.pipe
 		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
 		this.originalValue = this.read ? this.read() : '' ;
-
 		this.start  = noop;
 		this.status = 'active';
 

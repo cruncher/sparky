@@ -181,11 +181,16 @@ const toRenderString = overload(toType, {
 
 	'string': id,
 
-	'symbol': function(value) { return value.toString(); },
+	'symbol': function(value) {
+		return value.toString();
+	},
 
-	'undefined': function() { return ''; },
+	'undefined': function() {
+		return '';
+	},
 
 	'object': function(value) {
+		// Don't render null
 		return value ? JSON.stringify(value) : '';
 	},
 
@@ -212,18 +217,41 @@ function matchToken(string, options) {
 	return rtoken.exec(string);
 }
 
-function mountStringToken(node, render, strings, options, match) {
+function writeProperty(name, node, value) {
+	node[name] = value;
+}
+
+function writeAttribute(name, node, value) {
+	node.setAttribute(cased[name] || name, value);
+}
+
+function writeBooleanAttr(name, node, value) {
+	if (value) {
+		node.setAttribute(name, name);
+	}
+	else {
+		node.removeAttribute(name);
+	}
+}
+
+function renderString(value) {
+	this._values[this._i] = toRenderString(value);
+	this._write(this._name, this.node, this._values.join(''));
+}
+
+function mountStringToken(name, node, write, strings, options, match) {
 	var i = strings.length;
 	strings.push('');
 
 	// new Struct(node, token, path, render)
-	options.createStruct(node, match[0], match[2], function renderText(value) {
-		strings[i] = toRenderString(value);
-		render(strings);
-	}, match[3]);
+	const struct = options.createStruct(node, match[0], match[2], renderString, match[3]);
+	struct._i      = i;
+	struct._values = strings;
+	struct._name   = name;
+	struct._write  = write;
 }
 
-function mountString(node, string, render, options) {
+function mountString(name, node, string, render, options) {
 	var rtoken  = options.rtoken;
 	var i       = rtoken.lastIndex = 0;
 	var match   = rtoken.exec(string);
@@ -231,16 +259,13 @@ function mountString(node, string, render, options) {
 	if (!match) { return; }
 
 	var strings = [];
-	var renderStrings = function(strings) {
-		render(strings.join(''));
-	};
 
 	while (match) {
 		if (match.index > i) {
 			strings.push(string.slice(i, match.index));
 		}
 
-		mountStringToken(node, renderStrings, strings, options, match);
+		mountStringToken(name, node, render, strings, options, match);
 		i = rtoken.lastIndex;
 		match = rtoken.exec(string);
 	}
@@ -256,9 +281,7 @@ function mountAttribute(name, node, options, prefixed) {
 	&& node.getAttribute(options.attributePrefix + name)
 	|| node.getAttribute(name) ;
 
-	return text && mountString(node, text, function render(value) {
-		node.setAttribute(cased[name] || name, value);
-	}, options);
+	return text && mountString(name, node, text, writeAttribute, options);
 }
 
 function mountAttributes(names, node, options) {
@@ -270,33 +293,20 @@ function mountAttributes(names, node, options) {
 	}
 }
 
-function renderBoolean(name, node) {
-	return name in node ?
-
-	// Assume attribute is also a boolean property
-	function renderBoolean(values) {
-		node[name] = !!values.find(isTruthy);
-	} :
-
-	// Attribute is not also a boolean property
-	function renderBoolean(values) {
-		if (values.find(isTruthy)) {
-			node.setAttribute(name, name);
-		}
-		else {
-			node.removeAttribute(name);
-		}
-	} ;
+function renderBoolean(value) {
+	this._values[this._i] = value;
+	this._write(this._name, this.node, !!this._values.find(isTruthy));
 }
 
-function mountBooleanToken(node, render, values, options, match) {
+function mountBooleanToken(name, node, write, values, options, match) {
 	var i = values.length;
 	values.push(false);
 
-	options.createStruct(node, match[0], match[2], function renderBoolean(value) {
-		values[i] = value;
-		render(values);
-	}, match[3]);
+	var struct = options.createStruct(node, match[0], match[2], renderBoolean, match[3]);
+	struct._i      = i;
+	struct._values = values;
+	struct._name   = name;
+	struct._write  = write;
 }
 
 function mountBoolean(name, node, options) {
@@ -320,12 +330,14 @@ function mountBoolean(name, node, options) {
 	// Fast out
 	if (!match) { return; }
 
-	var render = renderBoolean(name, node);
+	var write = name in node ?
+		writeProperty :
+		writeBooleanAttr ;
 
 	// Where the unprefixed attribute is populated, Return the property to
 	// the default value.
 	if (!prefixed) {
-		render(nothing);
+		write(name, node, nothing);
 	}
 
 	var values = [];
@@ -339,7 +351,7 @@ function mountBoolean(name, node, options) {
 			}
 		}
 
-		mountBooleanToken(node, render, values, options, match);
+		mountBooleanToken(name, node, write, values, options, match);
 		i     = rtoken.lastIndex;
 		match = rtoken.exec(string);
 	}
@@ -361,6 +373,18 @@ function mountBooleans(names, node, options) {
 	}
 }
 
+function renderClass(string) {
+	if (this._previous && rtext.test(this._previous)) {
+		removeClasses(this._classes, this._previous);
+	}
+
+	if (string && rtext.test(string)) {
+		addClasses(this._classes, string);
+	}
+
+	this._previous = string;
+}
+
 function mountClass(node, options) {
 	var rtoken = options.rtoken;
 	var attr   = attribute('class', node);
@@ -370,19 +394,15 @@ function mountClass(node, options) {
 
 	var cls = classes(node);
 
-	// Extract the tags and overwrite the class with remaining text
+	// Extract the tags
 	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-		var prev    = '';
-
-		options.createStruct(node, $0, $2, function renderClass(string) {
-			if (prev && rtext.test(prev)) { removeClasses(cls, prev); }
-			if (string && rtext.test(string)) { addClasses(cls, string); }
-			prev = string;
-		}, $3);
-
+		const struct = options.createStruct(node, $0, $2, renderClass, $3);
+		struct._previous = '';
+		struct._classes = cls;
 		return '';
 	});
 
+	// Overwrite the class with remaining text
 	node.setAttribute('class', text);
 }
 
@@ -491,7 +511,7 @@ const mountNode  = overload(get('nodeType'), {
 
 	// text
 	3: function mountText(node, options) {
-		mountString(node, node.nodeValue, set('nodeValue', node), options);
+		mountString('nodeValue', node, node.nodeValue, writeProperty, options);
 	},
 
 	// comment
@@ -519,6 +539,7 @@ const mountNode  = overload(get('nodeType'), {
 		mountCollection(node, options);
 	}
 });
+
 
 /* Bind Sparky streams */
 

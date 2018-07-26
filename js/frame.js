@@ -2,7 +2,7 @@
 import { get, invoke } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
-const DEBUG  = window.DEBUG || false;
+const DEBUG  = false;//window.DEBUG || false;
 
 // Render queue
 
@@ -41,6 +41,7 @@ function run(time) {
 
 	frame = true;
 
+	// Empty the data object
 	let key;
 	for (key in point.data) {
 		delete point.data[key];
