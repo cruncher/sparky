@@ -29,14 +29,14 @@ function run(time) {
 	point.tStop = now();
 
 	if (point.tStop - point.tStart > maxFrameDuration) {
-		console.warn('Sparky: frame took' + (point.tStop - point.tStart).toFixed(3) + 's to render.');
+		console.warn('Sparky: animation frame took ' + (point.tStop - point.tStart).toFixed(3) + 's to render ' + queue.size + ' DOM mutations.');
 	}
 
 	queue.clear();
 	frame = undefined;
 
 	if (DEBUG) {
-		point.duration = now() - point.tStart;
+		point.duration = point.tStop - point.tStart;
 		data.push(point);
 		//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
 		console.groupEnd();
