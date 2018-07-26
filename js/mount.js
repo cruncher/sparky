@@ -14,9 +14,6 @@ const observe    = window.Observable.observe;
 //var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
 //var rclasstags;
 
-// Matches filter string, capturing (filter name, filter parameter string)
-//var rfilter = /\s*([a-zA-Z0-9_\-]+)\s*(?::(.+))?/;
-
 // Matches anything with a space
 const rspaces = /\s+/;
 
@@ -531,7 +528,7 @@ const mountNode  = overload(get('nodeType'), {
 	},
 
 	// array or array-like
-	default: function(node, options) {
+	default: function mountArray(node, options) {
 		if (typeof node.length !== 'number') {
 			throw new Error('Cannot mount object. It is neither a node nor a collection.', node);
 		}

@@ -2,16 +2,16 @@
 import { get, invoke } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
-const DEBUG  = false;//window.DEBUG || false;
+const DEBUG  = window.DEBUG || false;
 
 // Render queue
-
-const queue = new Set();
 const maxFrameDuration = 0.015;
 
-var point = { data: {} };
+const queue = new Set();
 
-var frame;
+const point = { data: {} };
+
+let frame;
 
 function totup(point, string) {
 	if (point.data[string]) {
