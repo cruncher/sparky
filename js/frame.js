@@ -29,7 +29,7 @@ function run(time) {
 	point.tStop = now();
 
 	if (point.tStop - point.tStart > maxFrameDuration) {
-		console.warn('Sparky: animation frame took ' + (point.tStop - point.tStart).toFixed(3) + 's to render ' + queue.size + ' DOM mutations.');
+		console.warn('Sparky: Frame rate warning - ' + queue.size + ' DOM mutations took '+ (point.tStop - point.tStart).toFixed(3) + 's.');
 	}
 
 	queue.clear();
