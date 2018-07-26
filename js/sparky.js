@@ -4,7 +4,7 @@ import { attribute, before, create, preventDefault, remove, replace, tag }      
 import { parseParams } from './parse.js';
 import mount           from './mount.js';
 
-var DEBUG          = window.DEBUG;
+var DEBUG          = !!window.DEBUG;
 
 var Observable     = window.Observable;
 var assign         = Object.assign;
@@ -118,10 +118,10 @@ export default function Sparky(selector, data, options) {
 		options && (settings.createStruct = options.createStruct);
 
 		// Launch rendering
-		if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
+		//if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 		renderer = createRenderStream(sparky, settings);
 		input.each(renderer.push);
-		if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
+		//if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 	}
 
 	function start() {

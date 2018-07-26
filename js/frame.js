@@ -2,7 +2,7 @@
 import { get, invoke } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
-const DEBUG  = true;
+const DEBUG  = window.DEBUG || false;
 
 // Render queue
 
@@ -21,7 +21,7 @@ function totup(point, string) {
 		point.data[string] = 1;
 	}
 
-	// Crude, rubbish way of detecting mutation fns
+	// Crude, rubbish way of totting up mutation fns
 	if (!/children/.test(string)) {
 		++point.mutations;
 	}
@@ -31,7 +31,7 @@ function totup(point, string) {
 
 function run(time) {
 	if (DEBUG) {
-		console.group('Sparky: frame ' + (time / 1000).toFixed(3));
+		console.groupCollapsed('Sparky: frame ' + (time / 1000).toFixed(3));
 		point.tStart      = 0;
 		point.tStop       = 0;
 		point.frameTime   = time / 1000;
@@ -55,6 +55,11 @@ function run(time) {
 	if (DEBUG || (point.duration > maxFrameDuration)) {
 		Array.from(queue).map(get('type')).reduce(totup, point);
 		console.table(point.data);
+
+		if (DEBUG) {
+			console.groupEnd();
+		}
+
 		if (point.duration > maxFrameDuration) {
 			console.warn('Sparky: ' + point.mutations + ' DOM mutations took '+ point.duration.toFixed(3) + 's');
 		}
@@ -62,10 +67,6 @@ function run(time) {
 
 	queue.clear();
 	frame = undefined;
-
-	if (DEBUG) {
-		console.groupEnd();
-	}
 }
 
 function cue(fn) {
