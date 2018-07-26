@@ -54,20 +54,13 @@ function addStruct(struct) {
 }
 
 export default function Struct(node, token, path, render, pipe, options) {
-	//console.log('token: ', postpad(' ', 28, token) + ' node: ', node);
-
-	// Todo: implement struct overide (for parent scope structs)
-	if (options && options.struct) {
-		const struct = options.struct(node, token, path, render, pipe);
-		if (struct) { return struct; }
-	}
-
-	addStruct(this);
 	this.node    = node;
 	this.token   = token;
 	this.path    = path;
 	this.render  = render;
 	this.pipe    = pipe;
+
+	addStruct(this);
 }
 
 assign(Struct.prototype, {
@@ -163,7 +156,7 @@ assign(Struct.prototype, {
 });
 
 export function ReadableStruct(node, token, path, render, pipe, type, read) {
-	// ReadableStruct extends Struct with listeners and read functions
+	// ReadableStruct extends Struct
 	Struct.call(this, node, token, path, render, pipe);
 	this.type = type;
 	this.read = read;
