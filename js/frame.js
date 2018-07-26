@@ -1,44 +1,69 @@
 
-import { invoke } from '../../fn/fn.js';
+import { get, invoke } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
-const DEBUG  = false;
+const DEBUG  = true;
 
 // Render queue
 
 const queue = new Set();
-const data  = [];
 const maxFrameDuration = 0.015;
 
-var point = {};
+var point = { data: {} };
+
 var frame;
+
+function totup(point, string) {
+	if (point.data[string]) {
+		++point.data[string];
+	}
+	else {
+		point.data[string] = 1;
+	}
+
+	// Crude, rubbish way of detecting mutation fns
+	if (!/children/.test(string)) {
+		++point.mutations;
+	}
+
+	return point;
+}
 
 function run(time) {
 	if (DEBUG) {
+		console.group('Sparky: frame ' + (time / 1000).toFixed(3));
 		point.tStart      = 0;
 		point.tStop       = 0;
 		point.frameTime   = time / 1000;
 		point.queuedFns   = queue.size;
 		point.insertedFns = 0;
-		console.groupCollapsed('frame', point.frameTime.toFixed(3));
 	}
 
 	frame = true;
+
+	let key;
+	for (key in point.data) {
+		delete point.data[key];
+	}
+
+	point.mutations = 0;
 	point.tStart = now();
 	queue.forEach(invoke('call', [null, time]));
 	point.tStop = now();
+	point.duration = point.tStop - point.tStart;
 
-	if (point.tStop - point.tStart > maxFrameDuration) {
-		console.warn('Sparky: Frame rate warning - ' + queue.size + ' DOM mutations took '+ (point.tStop - point.tStart).toFixed(3) + 's.');
+	if (DEBUG || (point.duration > maxFrameDuration)) {
+		Array.from(queue).map(get('type')).reduce(totup, point);
+		console.table(point.data);
+		if (point.duration > maxFrameDuration) {
+			console.warn('Sparky: ' + point.mutations + ' DOM mutations took '+ point.duration.toFixed(3) + 's');
+		}
 	}
 
 	queue.clear();
 	frame = undefined;
 
 	if (DEBUG) {
-		point.duration = point.tStop - point.tStart;
-		data.push(point);
-		//console.log('Render duration ' + (point.duration).toFixed(3) + 's');
 		console.groupEnd();
 	}
 }
@@ -54,6 +79,7 @@ function cue(fn) {
 	if (frame === true) {
 		if (DEBUG) { ++point.insertedFns; }
 		fn();
+		totup(point, '• ' + fn.type);
 		return;
 	}
 
@@ -75,4 +101,4 @@ function uncue(fn) {
 	}
 }
 
-export { cue, uncue, data };
+export { cue, uncue };

@@ -1,5 +1,5 @@
 
-import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream } from '../../fn/fn.js'
+import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream, postpad } from '../../fn/fn.js'
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './frame.js';
@@ -117,6 +117,12 @@ assign(Struct.prototype, {
 			});
 		};
 
+		// Pass some information to the frame cuer for debugging
+		// Todo: I think ultimately it would be better to pass entire
+		// structs to the cuer, instead of trying to recreate unique functions
+		// to use as identities...
+		this.cuer.type = postpad('\xa0', 18, this.render.name + ':') + this.token;
+
 		cue(this.cuer);
 	},
 
@@ -211,6 +217,12 @@ ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 				change();
 			}
 		};
+
+		// Pass some information to the frame cuer for debugging
+		// Todo: I think ultimately it would be better to pass entire
+		// structs to the cuer, instead of trying to recreate unique functions
+		// to use as identities...
+		this.cuer.type = postpad('\xa0', 18, this.render.name + ':') + this.token;
 
 		cue(struct.cuer);
 		struct.listen(change);

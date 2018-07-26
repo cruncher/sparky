@@ -1,5 +1,5 @@
 
-import { choose, get, id, isDefined, nothing, noop, overload, set, toType, Observable as ObservableStream } from '../../fn/fn.js';
+import { choose, get, id, isDefined, nothing, noop, overload, postpad, set, toType, Observable as ObservableStream } from '../../fn/fn.js';
 import { attribute, classes, tag } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
 import { cue, uncue } from './frame.js';
@@ -293,7 +293,7 @@ function mountBooleanToken(node, render, values, options, match) {
 	var i = values.length;
 	values.push(false);
 
-	options.createStruct(node, match[0], match[2], function(value) {
+	options.createStruct(node, match[0], match[2], function renderBoolean(value) {
 		values[i] = value;
 		render(values);
 	}, match[3]);
@@ -374,7 +374,7 @@ function mountClass(node, options) {
 	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
 		var prev    = '';
 
-		options.createStruct(node, $0, $2, function render(string) {
+		options.createStruct(node, $0, $2, function renderClass(string) {
 			if (prev && rtext.test(prev)) { removeClasses(cls, prev); }
 			if (string && rtext.test(string)) { addClasses(cls, string); }
 			prev = string;
@@ -534,11 +534,23 @@ function eachFrame(input, fn) {
 			fn(scope);
 		}
 
+		// Pass some information to the frame cuer for debugging
+		// Todo: I think ultimately it would be better to pass entire
+		// structs to the cuer, instead of trying to recreate unique functions
+		// to use as identities...
+		render.type = postpad('\xa0', 16, 'children:');
+
 		unobserve();
 		unobserve = observe(scope, '', function() {
 			cue(render);
 		});
 	}
+
+	// Pass some information to the frame cuer for debugging
+	// Todo: I think ultimately it would be better to pass entire
+	// structs to the cuer, instead of trying to recreate unique functions
+	// to use as identities...
+	update.type = postpad('\xa0', 16, 'children:');
 
 	cue(update);
 
