@@ -232,8 +232,8 @@ function writeBooleanAttr(name, node, value) {
 }
 
 function renderString(value) {
-	this._values[this._i] = toRenderString(value);
-	this._write(this._name, this.node, this._values.join(''));
+	this.data.values[this.data.i] = toRenderString(value);
+	this.data.write(this.data.name, this.node, this.data.values.join(''));
 }
 
 function mountStringToken(name, node, write, strings, options, match) {
@@ -241,11 +241,12 @@ function mountStringToken(name, node, write, strings, options, match) {
 	strings.push('');
 
 	// new Struct(node, token, path, render)
-	const struct = options.createStruct(node, match[0], match[2], renderString, match[3]);
-	struct._i      = i;
-	struct._values = strings;
-	struct._name   = name;
-	struct._write  = write;
+	const struct = options.createStruct(node, match[0], match[2], renderString, match[3], {
+		i:      i,
+		values: strings,
+		name:   name,
+		write:  write
+	});
 }
 
 function mountString(name, node, string, render, options) {
@@ -291,19 +292,20 @@ function mountAttributes(names, node, options) {
 }
 
 function renderBoolean(value) {
-	this._values[this._i] = value;
-	this._write(this._name, this.node, !!this._values.find(isTruthy));
+	this.data.values[this.data.i] = value;
+	this.data.write(this.data.name, this.node, !!this.data.values.find(isTruthy));
 }
 
 function mountBooleanToken(name, node, write, values, options, match) {
 	var i = values.length;
 	values.push(false);
 
-	var struct = options.createStruct(node, match[0], match[2], renderBoolean, match[3]);
-	struct._i      = i;
-	struct._values = values;
-	struct._name   = name;
-	struct._write  = write;
+	var struct = options.createStruct(node, match[0], match[2], renderBoolean, match[3], {
+		i:      i,
+		values: values,
+		name:   name,
+		write:  write
+	});
 }
 
 function mountBoolean(name, node, options) {
@@ -371,15 +373,15 @@ function mountBooleans(names, node, options) {
 }
 
 function renderClass(string) {
-	if (this._previous && rtext.test(this._previous)) {
-		removeClasses(this._classes, this._previous);
+	if (this.data.previous && rtext.test(this.data.previous)) {
+		removeClasses(this.data.classes, this.data.previous);
 	}
 
 	if (string && rtext.test(string)) {
-		addClasses(this._classes, string);
+		addClasses(this.data.classes, string);
 	}
 
-	this._previous = string;
+	this.data.previous = string;
 }
 
 function mountClass(node, options) {
@@ -393,9 +395,10 @@ function mountClass(node, options) {
 
 	// Extract the tags
 	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-		const struct = options.createStruct(node, $0, $2, renderClass, $3);
-		struct._previous = '';
-		struct._classes = cls;
+		const struct = options.createStruct(node, $0, $2, renderClass, $3, {
+			previous: '',
+			classes:  cls
+		});
 		return '';
 	});
 
@@ -412,7 +415,7 @@ function mountValueNumber(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueNumber, match[3], 'input', readValueNumber);
+	options.createStruct(node, match[0], match[2], writeValueNumber, match[3], undefined, 'input', readValueNumber);
 }
 
 function mountValueString(node, options) {
@@ -422,7 +425,7 @@ function mountValueString(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValue, match[3], 'input', readValue);
+	options.createStruct(node, match[0], match[2], writeValue, match[3], undefined, 'input', readValue);
 }
 
 function mountValueCheckbox(node, options) {
@@ -431,7 +434,7 @@ function mountValueCheckbox(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueCheckbox);
+	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], undefined, 'change', readValueCheckbox);
 }
 
 function mountValueRadio(node, options) {
@@ -440,7 +443,7 @@ function mountValueRadio(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueRadio);
+	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], undefined, 'change', readValueRadio);
 }
 
 function mountInput(types, node, options) {
@@ -597,13 +600,13 @@ export default function mount(node, overrides) {
 	var structs = [];
 	var options = assign({}, settings, overrides);
 
-	options.createStruct = function createStruct(node, token, path, render, pipe, type, read) {
+	options.createStruct = function createStruct(node, token, path, render, pipe, data, type, read) {
 		const struct = (
-			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
+			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, data, type, read)
 		) || (
 			type ?
-				new ReadableStruct(node, token, path, render, pipe, type, read) :
-				new Struct(node, token, path, render, pipe)
+				new ReadableStruct(node, token, path, render, pipe, data, type, read) :
+				new Struct(node, token, path, render, pipe, data)
 		);
 
 		structs.push(struct);

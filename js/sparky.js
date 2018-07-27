@@ -22,11 +22,11 @@ var settings = {
 		var sparky = new Sparky(node, undefined, {
 			fn: fn,
 			suppressLogs: true,
-			createStruct: function(node, token, path, render, pipe, type, read) {
+			createStruct: function(node, token, path, render, pipe, data, type, read) {
 				if (!/^\.\./.test(path)) { return; }
 
 				path = path.slice(2);
-				const struct = options.createStruct(node, token, path, render, pipe, type, read);
+				const struct = options.createStruct(node, token, path, render, pipe, data, type, read);
 
 				return {
 					stop: function() {

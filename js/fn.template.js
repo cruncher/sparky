@@ -61,7 +61,6 @@ function insertTemplate(sparky, node, scopes, id, template) {
 
     scopes.each(function(scope) {
         cue(function() {
-console.log('RUN', id, template)
             run();
             stream.push(scope);
         });

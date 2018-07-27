@@ -53,12 +53,13 @@ function addStruct(struct) {
 	structs.push(struct);
 }
 
-export default function Struct(node, token, path, render, pipe, options) {
+export default function Struct(node, token, path, render, pipe, data) {
 	this.node    = node;
 	this.token   = token;
 	this.path    = path;
 	this.render  = render;
 	this.pipe    = pipe;
+	this.data    = data;
 
 	addStruct(this);
 }
@@ -155,9 +156,9 @@ assign(Struct.prototype, {
 	}
 });
 
-export function ReadableStruct(node, token, path, render, pipe, type, read) {
+export function ReadableStruct(node, token, path, render, pipe, data, type, read) {
 	// ReadableStruct extends Struct
-	Struct.call(this, node, token, path, render, pipe);
+	Struct.call(this, node, token, path, render, pipe, data);
 	this.type = type;
 	this.read = read;
 }
