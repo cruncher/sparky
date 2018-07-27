@@ -1,6 +1,6 @@
 
-import { events, isTargetEvent } from '/static/dom/dom.js';
-import Sparky from '/static/sparky/sparky.js';
+import { events, isTargetEvent } from '../../dom/dom.js';
+import Sparky from './sparky.js';
 
 Sparky.fn['start-on'] = function(node, scopes, params) {
     const sparky = this;
