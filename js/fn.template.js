@@ -1,9 +1,9 @@
-import { get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
+import { cache as cacheRequest, get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
 import { append, before, clone, empty, fragmentFromHTML, fragmentFromId, parse, remove } from '../../dom/dom.js';
 import { cue } from './frame.js';
 import Sparky from './sparky.js';
 
-var DEBUG   = false;
+var DEBUG   = true;
 var axios   = window.axios;
 var jQuery  = window.jQuery;
 
@@ -51,7 +51,6 @@ function insertTemplate(sparky, node, scopes, id, template) {
     var run = function first() {
         run = noop;
         var fragment = clone(template);
-        empty(node);
         append(node, fragment);
         if (DEBUG) { console.log('Sparky fn=template:', node); }
         sparky.continue();
@@ -74,12 +73,11 @@ function templateFromCache(sparky, node, scopes, path, id) {
     var template = cache[path][id];
 
     if (!template) {
-        doc  = cache[path][''];
+        doc = cache[path][''];
 
         if (id === '') {
             elem = doc.body;
             template = elem && fragmentFromHTML(elem.innerHTML) ;
-
         }
         else {
             elem = doc.getElementById(id);
@@ -89,6 +87,7 @@ function templateFromCache(sparky, node, scopes, path, id) {
         }
     }
 
+    empty(node);
     return insertTemplate(sparky, node, scopes, id, template);
 }
 
@@ -153,48 +152,6 @@ function templateFromDocument2(sparky, node, scopes, path, id, doc) {
 }
 
 assign(Sparky.fn, {
-    template: function(node, scopes, params) {
-        var name = params[0];
-        var parts, path, hash, stop;
-
-        // If name is not a URL assume it's a path and get html from scope
-        if (!/^\.?[#\/]/.test(name)) {
-            stop = noop;
-
-            return scopes.map(function(scope) {
-                stop();
-
-                stop = ObservableStream(name, scope)
-                .map(overload(toType, {
-                    string:  fragmentFromHTML,
-                    default: id
-                }))
-                .each(function(fragment) {
-                    empty(node);
-                    append(node, fragment);
-                })
-                .stop;
-            });
-        }
-
-        // Parse urls
-        parts = name.split('#');
-        path  = parts[0] || '';
-        hash  = parts[1] || '';
-
-        if (DEBUG && !hash) {
-            throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" requires a url with a hash ref. "' + name + '"');
-        }
-
-        var sparky = this;
-        sparky.interrupt();
-
-        // If the resource is cached, return it as an shiftable
-        return cache[path] ?
-            templateFromCache(sparky, node, scopes, path, hash) :
-            templateFromDocument(sparky, node, scopes, path, hash) ;
-    },
-
     replace: function(node, scopes, params) {
         var name = params[0];
         var parts, path, hash, stop;
@@ -288,5 +245,108 @@ assign(Sparky.fn, {
         }
 
         throw new Error('Sparky: template-from must have ${prop} in the url string');
+    }
+});
+
+
+
+
+
+
+// --------------------------------------------
+
+const documentRequest = Promise.resolve(document);
+const fetchDocument = cacheRequest(function fetchDocument(path) {
+    return path ?
+        request(path)
+        .then(function(doc) {
+            if (!doc) {
+                console.warn('Template not found.');
+                return;
+            }
+
+            return doc;
+        })
+        .catch(function(error) {
+            console.warn(error);
+        }) :
+        documentRequest ;
+});
+
+function urlToFragment(name) {
+    // Parse urls
+    const parts = name.split('#');
+    const path  = parts[0] || '';
+    const id    = parts[1] || '';
+
+    return fetchDocument(path)
+    .then(function(doc) {
+        let elem;
+
+        if (id) {
+            elem = doc.getElementById(id);
+
+            if (DEBUG && !elem) {
+                throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" id "' + id + '" not found in document "' + path + '"');
+            }
+
+            return elem && elem.content ?
+                clone(elem.content) :
+                fragmentFromHTML(elem.innerHTML);
+        }
+        else {
+            return fragmentFromHTML(doc.body.innerHTML);
+        }
+    });
+}
+
+assign(Sparky.fn, {
+    template: function(node, scopes, params) {
+        var sparky = this;
+        var stop;
+
+        // If name is not a URL assume it's a path and get html from scope
+        if (!/^\.?[#\/]/.test(params[0])) {
+            stop = noop;
+
+            return scopes.map(function(scope) {
+                stop();
+
+                stop = ObservableStream(params[0], scope)
+                .map(overload(toType, {
+                    string:  fragmentFromHTML,
+                    default: id
+                }))
+                .each(function(fragment) {
+                    empty(node);
+                    append(node, fragment);
+                })
+                .stop;
+            });
+        }
+
+        const output = Stream.of();
+        sparky.interrupt();
+
+        // Params is a list of URLs
+        Promise
+        .all(params.map(urlToFragment))
+        .then(function(templates) {
+            let run = function first() {
+                run = noop;
+                empty(node);
+                templates.forEach(append(node));
+                sparky.continue();
+            };
+
+            scopes.each(function(scope) {
+                cue(function() {
+                    run();
+                    output.push(scope);
+                });
+            });
+        });
+
+        return output;
     }
 });
