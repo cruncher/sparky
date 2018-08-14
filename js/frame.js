@@ -31,7 +31,7 @@ function totup(point, string) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky: %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f;', 'color: #6894ab;');
+		console.groupCollapsed('%cSparky: %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 		point.tStart      = 0;
 		point.tStop       = 0;
 		point.frameTime   = time / 1000;
@@ -62,7 +62,7 @@ function run(time) {
 		}
 
 		if (point.duration > maxFrameDuration) {
-			console.warn('Sparky: ' + point.mutations + ' DOM mutations took '+ point.duration.toFixed(3) + 's');
+			console.log('%cSparky: %c' + point.mutations + ' DOM mutations took ' + point.duration.toFixed(3) + 's', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 400;');
 		}
 	}
 
