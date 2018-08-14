@@ -16,7 +16,7 @@
 // #282a2b
 
 if (window.console && window.console.log) {
-    console.log('Sparky      - https://github.com/cruncher/sparky');
+    console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
 export { default } from './js/sparky.js';
