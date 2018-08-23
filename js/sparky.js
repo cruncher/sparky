@@ -1,6 +1,6 @@
 
-import { Functor as Fn, Stream, Observable as ObserveStream, deprecate, getPath, invoke, noop, nothing } from '../../fn/fn.js';
-import { attribute, before, create, preventDefault, remove, replace, tag }             from '../../dom/dom.js';
+import { Functor as Fn, Stream, Observable as ObserveStream, deprecate, getPath, invoke, noop, nothing, set } from '../../fn/fn.js';
+import { append, attribute, before, create, fragmentFromHTML, preventDefault, remove, replace, tag }             from '../../dom/dom.js';
 import { parseParams } from './parse.js';
 import mount           from './mount.js';
 
@@ -201,6 +201,23 @@ assign(Sparky, {
 	attributePrefix: 'sparky-',
 
 	fn: {
+		append: function(node, input, params) {
+			return input.tap(function(data) {
+				params
+				.map(function(name) { return data[name]; })
+				.map(fragmentFromHTML)
+				.forEach(append(node));
+			});
+		},
+
+		html: function(node, input, params) {
+			return input.tap(function(data) {
+				params
+				.map(function(name) { return data[name]; })
+				.forEach(set('innerHTML', node));
+			});
+		},
+
 		global: function(node, stream, params) {
 			// TODO: We should be able to express this with
 			// input.chain( .. Stream.observe(params[0], objet) .. )

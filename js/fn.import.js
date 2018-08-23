@@ -1,5 +1,9 @@
-import { Functor as Fn, Stream, get } from '../../fn/fn.js';
+import { Functor as Fn, Stream, get, invoke, nothing } from '../../fn/fn.js';
 import Sparky from './sparky.js';
+
+const fetchOptions = {
+    method: 'GET'
+};
 
 (function(window) {
     var DEBUG   = window.DEBUG;
@@ -12,31 +16,13 @@ import Sparky from './sparky.js';
 
     var cache     = {};
 
-    var request = axios ? function axiosRequest(path) {
-        return axios
-        .get(path)
-        .then(getData);
-    } :
-
-    // TODO test these functions
-
-    jQuery ? function jQueryRequest(path) {
-        return jQuery
-        .get(path)
-        .then(getData);
-    } :
-
-    fetch ? function fetchRequest(path) {
-        return fetch(path)
-        .then(getData);
-    } :
-
-    function errorRequest(path) {
-        throw new Error('Sparky: no axios, jQuery or fetch found for request "' + path + '"');
-    } ;
+    function fetchJSON(url) {
+        return fetch(url, fetchOptions)
+        .then(invoke('json', nothing));
+    }
 
     function importScope(url, scopes) {
-        request(url)
+        fetchJSON(url)
         .then(function(data) {
             if (!data) { return; }
             cache[url] = data;
@@ -58,7 +44,7 @@ import Sparky from './sparky.js';
 
             var scopes = Stream.of();
 
-            request(path)
+            fetchJSON(url)
             .then(scopes.push)
             .catch(function (error) {
                 console.warn(error);
