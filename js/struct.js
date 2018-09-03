@@ -82,11 +82,25 @@ assign(Struct.prototype, {
 	start: function() {
 		//console.log('STRUCT START', this.token);
 
+		var struct = this;
+
 		// Todo: We need rid of the leading '|' in struct.pipe
 		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
 		this.originalValue = this.read ? this.read() : '' ;
 		this.start  = noop;
 		this.status = 'active';
+
+		// If this is a value we want to pause updates while the input is being
+		// used.
+		//if (this.data.name === 'value') {
+		//	this.node.addEventListener('mousedown', function(e) {
+		//		struct.status = 'paused';
+		//	});
+		//
+		//	this.node.addEventListener('mouseup', function(e) {
+		//		struct.status = 'active';
+		//	});
+		//}
 
 		if (DEBUG) { console.log('start: ', this.token, this.originalValue); }
 	},
@@ -106,6 +120,13 @@ assign(Struct.prototype, {
 			if (flag) { return; }
 			flag = true;
 			struct.input.on('push', function() {
+				// If this is a value we want to pause updates while the input
+				// is being used. Check whether it's focused.
+				if (struct.data.name === "value" && struct.node === document.activeElement) {
+					return;
+				}
+
+				//if (struct.status === 'paused') { return; }
 				cue(update);
 			});
 		};

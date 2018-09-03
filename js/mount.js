@@ -599,6 +599,7 @@ export default function mount(node, overrides) {
 
 	var structs = [];
 	var options = assign({}, settings, overrides);
+	var old;
 
 	options.createStruct = function createStruct(node, token, path, render, pipe, data, type, read) {
 		const struct = (
@@ -626,8 +627,6 @@ export default function mount(node, overrides) {
 		console.groupEnd();
 		console.table(structs, ['token']);
 	}
-
-	var old;
 
 	// Return a read-only stream
 	return {
