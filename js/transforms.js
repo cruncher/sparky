@@ -2,6 +2,7 @@
 // Sparky.filter
 
 import {
+	add,
 	append,
 	curry,
 	contains,
@@ -55,6 +56,10 @@ import {
 var debug     = true;
 var A         = Array.prototype;
 var assign    = Object.assign;
+
+const reducers = {
+	sum: add
+};
 
 function interpolateLinear(xs, ys, x) {
 	var n = -1;
@@ -242,7 +247,6 @@ export const transforms = {
 
 		if (typeof params === undefined) {
 			fn = parse(method);
-
 			return function(array) {
 				return array.map(fn);
 			};
@@ -284,7 +288,7 @@ export const transforms = {
 	}),
 
 	reduce: curry(function(name, initialValue, array) {
-		return array && array.reduce(Fn[name], initialValue || 0);
+		return array && array.reduce(reducers[name], initialValue || 0);
 	}, true),
 
 	replace: curry(function(str1, str2, value) {
