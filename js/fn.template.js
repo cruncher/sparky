@@ -1,3 +1,20 @@
+/*
+template: url, ...
+
+*/
+
+/*
+append-template: url, ...
+
+*/
+
+/*
+prepend-template: url, ...
+
+*/
+
+
+
 import { cache as cacheRequest, get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
 import { append, before, clone, empty, fragmentFromHTML, fragmentFromId, parse, remove } from '../../dom/dom.js';
 import { cue } from './frame.js';
@@ -300,53 +317,77 @@ function urlToFragment(name) {
     });
 }
 
-assign(Sparky.fn, {
-    template: function(node, scopes, params) {
-        var sparky = this;
-        var stop;
+/*
+var stop;
 
-        // If name is not a URL assume it's a path and get html from scope
-        if (!/^\.?[#\/]/.test(params[0])) {
-            stop = noop;
+// If name is not a URL assume it's a path and get html from scope
+if (!/^\.?[#\/]/.test(params[0])) {
+    stop = noop;
 
-            return scopes.map(function(scope) {
-                stop();
+    return scopes.map(function(scope) {
+        stop();
 
-                stop = ObservableStream(params[0], scope)
-                .map(overload(toType, {
-                    string:  fragmentFromHTML,
-                    default: id
-                }))
-                .each(function(fragment) {
-                    empty(node);
-                    append(node, fragment);
-                })
-                .stop;
-            });
-        }
+        stop = ObservableStream(params[0], scope)
+        .map(overload(toType, {
+            string:  fragmentFromHTML,
+            default: id
+        }))
+        .each(function(fragment) {
+            empty(node);
+            append(node, fragment);
+        })
+        .stop;
+    });
+}
+*/
 
-        const output = Stream.of();
-        sparky.interrupt();
 
-        // Params is a list of URLs
-        Promise
-        .all(params.map(urlToFragment))
-        .then(function(templates) {
-            let run = function first() {
-                run = noop;
-                empty(node);
-                templates.forEach(append(node));
-                sparky.continue();
-            };
+function template(node, scopes, params, setup) {
+    const sparky = this;
+    const output = Stream.of();
+    sparky.interrupt();
 
-            scopes.each(function(scope) {
-                cue(function() {
-                    run();
-                    output.push(scope);
-                });
+    // Params is a list of URLs
+    Promise
+    .all(params.map(urlToFragment))
+    .then(function(templates) {
+        let run = function first() {
+            run = noop;
+            setup(node, templates);
+            sparky.continue();
+        };
+
+        scopes.each(function(scope) {
+            cue(function() {
+                run();
+                output.push(scope);
             });
         });
+    });
 
-        return output;
+    return output;
+}
+
+assign(Sparky.fn, {
+    'template': function(node, scopes, params) {
+        return template.call(this, node, scopes, params, function setup(node, templates) {
+            // Empty node then append templates
+            empty(node);
+            templates.forEach(append(node));
+        });
+    },
+
+    'append-template': function(node, scopes, params) {
+        return template.call(this, node, scopes, params, function setup(node, templates) {
+            // Append templates
+            templates.forEach(append(node));
+        });
+    },
+
+    'prepend-template': function(node, scopes, params) {
+        return template.call(this, node, scopes, params, function setup(node, templates) {
+            // Prepend templates
+            templates.forEach(prepend(node));
+        });
     }
 });
