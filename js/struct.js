@@ -1,5 +1,6 @@
 
 import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream, postpad } from '../../fn/fn.js'
+import { isTextNode }   from '../../dom/dom.js';
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './frame.js';
@@ -159,11 +160,17 @@ assign(Struct.prototype, {
 
 		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 
-		if (value === undefined) {
-			this.render(this.originalValue);
+		try {
+			if (value === undefined) {
+				this.render(this.originalValue);
+			}
+			else {
+				this.render(transform(value));
+			}
 		}
-		else {
-			this.render(transform(value));
+		catch(e) {
+			console.log('%cSparky%c Error rendering ' + this.token + ' in', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 300;', isTextNode(this.node) ? this.node.parentNode : this.node);
+			console.error(e);
 		}
 	},
 
