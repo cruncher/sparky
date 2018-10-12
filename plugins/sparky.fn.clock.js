@@ -1,10 +1,8 @@
-import { Stream } from '../../fn/fn.js';
+import { Stream, Mutable } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
-var Observable = window.Observable;
-
 Sparky.fn.clock = function(node, scopes, params) {
-	var observable = Observable({
+	var observable = Mutable({
 		time: new Date()
 	});
 

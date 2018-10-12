@@ -1,14 +1,13 @@
 
-import { choose, get, id, isDefined, nothing, noop, overload, postpad, set, toType, Observable as ObservableStream } from '../../fn/fn.js';
+import { choose, get, id, isDefined, nothing, noop, overload, postpad, toType, Observable as ObservableStream, observe } from '../../fn/fn.js';
 import { attribute, classes, tag } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
-import { cue, uncue } from './frame.js';
+import { cue } from './frame.js';
 
 const DEBUG      = false;
 
 const A          = Array.prototype;
 const assign     = Object.assign;
-const observe    = window.Observable.observe;
 
 // Matches tags plus any directly adjacent text
 //var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;

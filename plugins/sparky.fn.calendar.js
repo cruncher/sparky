@@ -2,12 +2,9 @@
 //
 // <div sparky-fn="calendar:'2018-01-01',14">
 
-import { Functor as Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing } from '../../fn/fn.js';
+import { Functor as Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing, Mutable } from '../../fn/fn.js';
 import { closest } from '../../dom/dom.js';
 import Sparky from '../sparky.js';
-
-var Observable = window.Observable;
-var observe    = Observable.observe;
 
 var addDate1   = addDate('0000-00-01');
 
@@ -39,7 +36,7 @@ Sparky.fn.calendar = function(node, scopes, params) {
         '0000-00-42';
 
     var floor    = params[2] && params[2].split('|');
-    var calendar = Observable({ dates: [] });
+    var calendar = Mutable({ dates: [] });
 
     // View
 

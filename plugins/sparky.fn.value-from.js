@@ -1,8 +1,6 @@
-import { get, set, normalise } from '../../fn/fn.js';
+import { get, set, normalise, Mutable } from '../../fn/fn.js';
 import dom from '../../dom/dom.js';
 import Sparky from '../sparky.js';
-
-var Observable = window.Observable;
 
 function getValue(target) {
     return parseFloat(target.value);
@@ -16,7 +14,7 @@ function normaliseValue(target) {
 }
 
 function valueFrom(getValue, sparky, node, stream, target, name) {
-    var scope = Observable({});
+    var scope = Mutable({});
 
     var event = dom
     .events('change input', target)

@@ -1,15 +1,13 @@
-import { noop } from '../../fn/fn.js';
+import { noop, observe } from '../../fn/fn.js';
 import { before, clone, remove, tag } from '../../dom/dom.js';
-import Sparky from './sparky.js';
 import { cue, uncue } from './frame.js';
+import Sparky from './sparky.js';
 
 var DEBUG      = false;
 
-var Observable = window.Observable;
 var A          = Array.prototype;
 
 var isArray    = Array.isArray;
-var observe    = Observable.observe;
 var MarkerNode = Sparky.MarkerNode;
 
 var $object    = Symbol('object');
