@@ -14,8 +14,6 @@ group('Sparky.transformers', function(test, log) {
 		]
 	};
 
-	console.log('Test filters...');
-
 	for (key in expected) {
 		(function(key, filter, tests) {
 			test("Sparky.transformers." + key + "()", function(equals, done) {

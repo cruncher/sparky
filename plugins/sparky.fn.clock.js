@@ -6,7 +6,7 @@ Sparky.fn.clock = function(node, scopes, params) {
 		time: new Date()
 	});
 
-	return Stream.clock(params && params[0] || 1).map(function() {
+	return Stream.fromDuration(params && params[0] || 1).map(function() {
 		observable.time = new Date();
 		return observable;
 	});

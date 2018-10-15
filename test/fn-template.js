@@ -119,10 +119,12 @@ group('[sparky-fn="template:hash"] nested templates', function(test, log, fixtur
 		sparky.push(data);
 
 		requestAnimationFrame(function() {
-			equals(2, node.children.length);
-			var span = node.querySelector('span');
-			equals('Template 2 content: Should appear.', span.innerHTML);
-			done();
+			requestAnimationFrame(function() {
+				equals(2, node.children.length);
+				var span = node.querySelector('span');
+				equals('Template 2 content: Should appear.', span.innerHTML);
+				done();
+			});
 		});
 	}, 3);
 
