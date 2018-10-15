@@ -1,6 +1,6 @@
 
 import { choose, get, id, isDefined, nothing, noop, overload, postpad, toType, Observable as ObservableStream, observe } from '../../fn/fn.js';
-import { attribute, classes, tag } from '../../dom/dom.js';
+import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
 import { cue } from './frame.js';
 
@@ -95,6 +95,9 @@ function writeValue(value) {
 	node.value = typeof value === 'string' ?
 		value :
 		'' ;
+
+	// Trigger validation
+	trigger('dom-update', node);
 }
 
 function writeValueNumber(value) {
@@ -107,6 +110,9 @@ function writeValueNumber(value) {
 	node.value = typeof value === 'number' && !Number.isNaN(value) ?
 		value :
 		'' ;
+
+	// Trigger validation
+	trigger('dom-update', node);
 }
 
 function writeValueRadioCheckbox(value) {
@@ -117,6 +123,9 @@ function writeValueRadioCheckbox(value) {
 	node.checked = isDefined(node.getAttribute('value')) ?
 		value === node.value :
 		value === true ;
+
+	// Trigger validation
+	trigger('dom-update', node);
 }
 
 function readValue() {
@@ -240,7 +249,7 @@ function mountStringToken(name, node, write, strings, options, match) {
 	strings.push('');
 
 	// new Struct(node, token, path, render)
-	const struct = options.createStruct(node, match[0], match[2], renderString, match[3], {
+	options.createStruct(node, match[0], match[2], renderString, match[3], {
 		i:      i,
 		values: strings,
 		name:   name,
@@ -299,7 +308,7 @@ function mountBooleanToken(name, node, write, values, options, match) {
 	var i = values.length;
 	values.push(false);
 
-	var struct = options.createStruct(node, match[0], match[2], renderBoolean, match[3], {
+	options.createStruct(node, match[0], match[2], renderBoolean, match[3], {
 		i:      i,
 		values: values,
 		name:   name,
@@ -394,7 +403,7 @@ function mountClass(node, options) {
 
 	// Extract the tags
 	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-		const struct = options.createStruct(node, $0, $2, renderClass, $3, {
+		options.createStruct(node, $0, $2, renderClass, $3, {
 			previous: '',
 			classes:  cls
 		});
