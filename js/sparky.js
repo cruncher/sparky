@@ -239,7 +239,7 @@ assign(Sparky, {
 			// we cant. Make it handle streams.
 
 			var output = Stream.of();
-			var stop = noop;
+			var stop   = noop;
 
 			input.each(function(object) {
 				stop();
