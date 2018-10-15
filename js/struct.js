@@ -3,7 +3,7 @@ import { get, id, noop, pipe, remove, getPath, setPath, Observable as Observable
 import { isTextNode }   from '../../dom/dom.js';
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
-import { cue, uncue }   from './frame.js';
+import { cue, uncue }   from './timer.js';
 
 const DEBUG      = false;
 const assign     = Object.assign;
@@ -66,14 +66,14 @@ export default function Struct(node, token, path, render, pipe, data) {
 }
 
 assign(Struct.prototype, {
-	render:  noop,
+	render:    noop,
 	transform: id,
 
 	stop: function stop() {
 		//console.log('STRUCT STOP', this.token);
 
 		this.unbind();
-		uncue(this.cuer);
+		uncue(this);
 		removeStruct(this);
 
 		this.stop   = noop;
@@ -114,12 +114,9 @@ assign(Struct.prototype, {
 		// Just for debugging
 		struct.scope = scope;
 
-		let flag = false;
+		this.fire = function fire() {
+			this.update();
 
-		this.cuer = function update() {
-			struct.update();
-			if (flag) { return; }
-			flag = true;
 			struct.input.on('push', function() {
 				// If this is a value we want to pause updates while the input
 				// is being used. Check whether it's focused.
@@ -128,17 +125,13 @@ assign(Struct.prototype, {
 				}
 
 				//if (struct.status === 'paused') { return; }
-				cue(update);
+				cue(struct);
 			});
+
+			delete this.fire;
 		};
 
-		// Pass some information to the frame cuer for debugging
-		// Todo: I think ultimately it would be better to pass entire
-		// structs to the cuer, instead of trying to recreate unique functions
-		// to use as identities...
-		this.cuer.type = postpad('\xa0', 18, this.render.name + ':') + this.token;
-
-		cue(this.cuer);
+		cue(struct);
 	},
 
 	unbind: function() {
@@ -152,7 +145,11 @@ assign(Struct.prototype, {
 		this.scope = undefined;
 	},
 
-	update: function(time) {
+	fire: function fire() {
+		this.update();
+	},
+
+	update: function() {
 		//console.log('STRUCT UPDATE', this.token);
 
 		var transform = this.transform;
@@ -160,18 +157,18 @@ assign(Struct.prototype, {
 
 		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 
-		try {
-			if (value === undefined) {
-				this.render(this.originalValue);
-			}
-			else {
-				this.render(transform(value));
-			}
+		//try {
+		if (value === undefined) {
+			this.render(this.originalValue);
 		}
-		catch(e) {
-			console.log('%cSparky%c Error rendering ' + this.token + ' in', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 300;', isTextNode(this.node) ? this.node.parentNode : this.node);
-			console.error(e);
+		else {
+			this.render(transform(value));
 		}
+		//}
+		//catch(e) {
+		//	console.log('%cSparky%c Error rendering ' + this.token + ' in', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 300;', isTextNode(this.node) ? this.node.parentNode : this.node);
+		//	console.error(e);
+		//}
 	},
 
 	reset: function(options) {
@@ -218,16 +215,12 @@ ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 		struct.scope = scope;
 
 		const change = listen(struct, scope, options);
-		let flag = false;
 
-		this.cuer = function updateReadable() {
-			struct.update();
-
-			if (flag) { return; }
-			flag = true;
+		this.fire = function fireReadable() {
+			this.update();
 
 			struct.input.on('push', function() {
-				cue(updateReadable);
+				cue(struct);
 			});
 
 			var value = getPath(struct.path, scope);
@@ -237,15 +230,11 @@ ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 			if (value === undefined) {
 				change();
 			}
+
+			delete this.fire;
 		};
 
-		// Pass some information to the frame cuer for debugging
-		// Todo: I think ultimately it would be better to pass entire
-		// structs to the cuer, instead of trying to recreate unique functions
-		// to use as identities...
-		this.cuer.type = postpad('\xa0', 18, this.render.name + ':') + this.token;
-
-		cue(struct.cuer);
+		cue(struct);
 		struct.listen(change);
 	}
 });

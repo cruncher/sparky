@@ -2,7 +2,7 @@
 import { choose, get, id, isDefined, nothing, noop, overload, postpad, toType, Observable as ObservableStream, observe } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
-import { cue } from './frame.js';
+import { cue } from './timer.js';
 
 const DEBUG      = false;
 
@@ -551,53 +551,43 @@ const mountNode  = overload(get('nodeType'), {
 
 /* Bind Sparky streams */
 
-function eachFrame(input, fn) {
-	var unobserve = noop;
+function eachFrame(sparky) {
+	const input = sparky.input;
 
-	function update(time) {
+	let unobserve = noop;
+
+	sparky.name = 'Sparky';
+
+	sparky.fire = function update(time) {
 		var scope = input.shift();
 		// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 		if (scope === undefined) { return; }
 
 		function render(time) {
-			fn(scope);
+			sparky.push(scope);
 		}
-
-		// Pass some information to the frame cuer for debugging
-		// Todo: I think ultimately it would be better to pass entire
-		// structs to the cuer, instead of trying to recreate unique functions
-		// to use as identities...
-		render.type = postpad('\xa0', 16, 'children:');
 
 		unobserve();
 		unobserve = observe('.', function() {
-			cue(render);
+			cue({ name: 'Sparky push', fire: render });
 		}, scope);
 	}
 
-	// Pass some information to the frame cuer for debugging
-	// Todo: I think ultimately it would be better to pass entire
-	// structs to the cuer, instead of trying to recreate unique functions
-	// to use as identities...
-	update.type = postpad('\xa0', 16, 'children:');
-
-	cue(update);
+	cue(sparky);
 
 	input.on('push', function() {
-		cue(update);
+		cue(sparky);
 	});
 }
 
 function bind(struct, scope, options) {
-	if (DEBUG) { console.log('bind:  ', struct.token); }
-
-	var input = struct.input = ObservableStream(struct.path, scope).latest();
+	struct.input = ObservableStream(struct.path, scope).latest();
 
 	// Just for debugging
 	struct.scope = scope;
 
 	// if struct is a Sparky
-	eachFrame(input, struct.push);
+	eachFrame(struct);
 }
 
 export { bindings as settings };

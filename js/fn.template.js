@@ -17,7 +17,7 @@ prepend-template: url, ...
 
 import { cache as cacheRequest, get, getPath, id, noop, overload, Stream, toType, Observable as ObservableStream } from '../../fn/fn.js';
 import { append, before, clone, empty, fragmentFromHTML, fragmentFromId, parse, remove } from '../../dom/dom.js';
-import { cue } from './frame.js';
+import { cue } from './timer.js';
 import Sparky from './sparky.js';
 
 var DEBUG   = true;
@@ -75,11 +75,15 @@ function insertTemplate(sparky, node, scopes, id, template) {
 
     var stream = Stream.of();
 
+    stream.name = 'template';
+    stream.fire = function() {
+        run();
+        stream.push(stream.scope);
+    };
+
     scopes.each(function(scope) {
-        cue(function() {
-            run();
-            stream.push(scope);
-        });
+        stream.scope = scope;
+        cue(stream);
     });
 
     return stream;
@@ -357,11 +361,15 @@ function template(node, scopes, params, setup) {
             sparky.continue();
         };
 
+        output.name = 'template';
+        output.fire = function() {
+            run();
+            output.push(output.scope);
+        };
+
         scopes.each(function(scope) {
-            cue(function() {
-                run();
-                output.push(scope);
-            });
+            output.scope = scope;
+            cue(output);
         });
     });
 

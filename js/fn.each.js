@@ -1,6 +1,6 @@
 import { noop, observe } from '../../fn/fn.js';
 import { before, clone, remove, tag } from '../../dom/dom.js';
-import { cue, uncue } from './frame.js';
+import { cue, uncue } from './timer.js';
 import Sparky from './sparky.js';
 
 var DEBUG      = false;
@@ -71,7 +71,8 @@ function reorderNodes(node, array, sparkies) {
 function eachFrame(stream, fn) {
 	var unobserve = noop;
 
-	function update(time) {
+	stream.name = 'each scope';
+	stream.fire = function update(time) {
 		var scope = stream.shift();
 		// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
 		if (scope === undefined) { return; }
@@ -82,18 +83,23 @@ function eachFrame(stream, fn) {
 
 		unobserve();
 
+		var renderer = {
+			name: 'each mutation',
+			fire: render
+		};
+
 		var uno = observe('.', function() {
-			cue(render);
+			cue(renderer);
 		}, scope);
 
 		unobserve = function() {
 			uno();
-			uncue(render);
-		};
-	}
+			uncue(renderer);
+		}
+	};
 
 	function push() {
-		cue(update);
+		cue(stream);
 	}
 
 	if (stream.on) {
@@ -104,9 +110,11 @@ function eachFrame(stream, fn) {
 	}
 
 	return function() {
-		stream.off('push', push);
+		if (stream.on) {
+			stream.off('push', push);
+		}
 		unobserve();
-		uncue(update);
+		uncue(stream);
 	};
 }
 
