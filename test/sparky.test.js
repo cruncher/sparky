@@ -1,5 +1,5 @@
 
-import { Functor as Fn } from '../../fn/fn.js';
+import { Functor as Fn, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 //Sparky.fn['ctrl'] = function(node, scopes) {
@@ -60,7 +60,7 @@ group('Child sparky', function(test, log, fixture) {
 			equals('prop1',  p3.innerHTML);
 			equals('prop2',  p4.innerHTML);
 
-			Observable(obj1).property = 'newprop1';
+			Observer(obj1).property = 'newprop1';
 
 			frame(function() {
 				equals('newprop1', p3.innerHTML);
@@ -68,8 +68,8 @@ group('Child sparky', function(test, log, fixture) {
 
 				sparky.stop();
 
-				Observable(obj1).property = 'stopprop1';
-				Observable(obj2).property = 'stopprop2';
+				Observer(obj1).property = 'stopprop1';
+				Observer(obj2).property = 'stopprop2';
 
 				frame(function() {
 					equals('newprop1', p3.innerHTML);
@@ -94,7 +94,7 @@ group('Child sparky', function(test, log, fixture) {
 //group('[class]', function(test, log, fixture) {
 //	test("[class]", function(equals, done) {
 //		var node = fixture.querySelector('div');
-//		var model = Observable({ property: 'peas' });
+//		var model = Observer({ property: 'peas' });
 //
 //		Sparky(node, model);
 //		equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));

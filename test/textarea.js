@@ -1,4 +1,4 @@
-
+import { Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('textarea', function(test, log, fixture) {
@@ -21,7 +21,7 @@ group('textarea', function(test, log, fixture) {
 			node.dispatchEvent(inputEvent);
 			equals('baa', model.property);
 
-			Observable(model).property = false;
+			Observer(model).property = false;
 
 			requestAnimationFrame(function() {
 				equals('', node.value);

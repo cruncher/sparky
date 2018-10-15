@@ -1,4 +1,4 @@
-
+import { test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 Sparky.fn['pass-through'] = function(node, stream) {

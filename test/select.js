@@ -1,11 +1,11 @@
 
-import { Functor as Fn } from '../../fn/fn.js';
+import { Functor as Fn, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];
 
-	var array = Observable([
+	var array = Observer([
 		{ key: '0', value: 0 },
 		{ key: '1', value: 1 },
 		{ key: '2', value: 2 }
@@ -56,7 +56,7 @@ group('select > option|each', function(test, log, fixture) {
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];
 
-	var scope = Observable({
+	var scope = Observer({
 		value: '1',
 		options: [
 			{ key: '0', value: 0 },

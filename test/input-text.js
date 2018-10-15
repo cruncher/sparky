@@ -1,5 +1,5 @@
 
-import { noop } from '../../fn/fn.js';
+import { noop, Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('input[type="text"]', function(test, log, fixture) {
@@ -22,7 +22,7 @@ group('input[type="text"]', function(test, log, fixture) {
 			node.dispatchEvent(inputEvent);
 			equals('boo', model.property);
 
-			Observable(model).property = false;
+			Observer(model).property = false;
 
 			requestAnimationFrame(function() {
 				equals('', node.value);

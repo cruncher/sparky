@@ -1,5 +1,5 @@
 
-import { Functor as Fn } from '../../fn/fn.js';
+import { Functor as Fn, Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('tokens ..parent.path', function(test, log, fixture) {
@@ -25,14 +25,14 @@ group('tokens ..parent.path', function(test, log, fixture) {
 		frame(function() {
 			equals(obj1.property,  p.innerHTML);
 
-			Observable(obj1).property = 'newprop1';
+			Observer(obj1).property = 'newprop1';
 
 			frame(function() {
 				equals(obj1.property,  p.innerHTML);
 
 				sparky.stop();
 
-				Observable(obj1).property = 'stopprop1';
+				Observer(obj1).property = 'stopprop1';
 
 				frame(function() {
 					equals('newprop1', p.innerHTML);

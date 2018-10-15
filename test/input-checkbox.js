@@ -1,3 +1,4 @@
+import { Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('input[type="checkbox"]', function(test, log, fixture) {
@@ -22,7 +23,7 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 			node1.dispatchEvent(changeEvent);
 			equals(true, model1.property, 'model.property should be true');
 
-			Observable(model1).property = false;
+			Observer(model1).property = false;
 
 			requestAnimationFrame(function() {
 				equals(false, node1.checked, 'Checkbox 1 should not be checked');
@@ -41,7 +42,7 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 			equals(true, model2.property, 'model2.property should be true');
 			equals(true, node2.checked,   'Checkbox 2 should be checked');
 
-			Observable(model2).property = 'eg';
+			Observer(model2).property = 'eg';
 
 			requestAnimationFrame(function() {
 				equals(false, node2.checked, 'Checkbox 2 should not be checked');
@@ -68,7 +69,7 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 			node.dispatchEvent(changeEvent);
 			equals('good', model.property);
 
-			Observable(model).property = false;
+			Observer(model).property = false;
 
 			requestAnimationFrame(function() {
 				equals(false, node.checked);

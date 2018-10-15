@@ -1,10 +1,11 @@
-import { Mutable } from '../../fn/fn.js';
+
+import { Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
-	var data   = Mutable({
+	var data   = Observer({
 		property: 'Hello'
 	});
 
@@ -41,7 +42,7 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
-	var data   = Mutable({
+	var data   = Observer({
 		property: 'Hello'
 	});
 
@@ -81,7 +82,7 @@ group('svg > [sparky-fn="template:hash"]', function(test, log, fixture) {
 	var sparky = Sparky(svg);
 
 	test('svg > [sparky-fn="template:hash"]', function(equals, done) {
-		sparky.push(Mutable({}));
+		sparky.push(Observer({}));
 
 		requestAnimationFrame(function() {
 			equals(true, !fixture.querySelector('svg > g > circle'), 'The <g> should not contain a <circle>.');
@@ -107,7 +108,7 @@ group('[sparky-fn="template:hash"] nested templates', function(test, log, fixtur
 	test('[sparky-fn="template:hash"] nested templates', function(equals, done) {
 		var node   = fixture.children[0];
 		var sparky = Sparky(node);
-		var data   = Mutable({
+		var data   = Observer({
 			property: 'should-appear',
 			scope: {
 				message:  'Should appear'
@@ -128,7 +129,7 @@ group('[sparky-fn="template:hash"] nested templates', function(test, log, fixtur
 	test('[sparky-fn="template:hash"] nested templates, async sub-data', function(equals, done) {
 		var node   = fixture.children[1];
 		var sparky = Sparky(node);
-		var data   = Mutable({
+		var data   = Observer({
 			property: 'should-appear'
 		});
 

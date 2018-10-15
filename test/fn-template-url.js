@@ -1,3 +1,4 @@
+import { test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('[sparky-fn="template:url"]', function(test, log, fixture) {

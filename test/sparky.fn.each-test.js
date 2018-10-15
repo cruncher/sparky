@@ -1,4 +1,4 @@
-import { Functor as Fn, noop } from '../../fn/fn.js';
+import { Functor as Fn, noop, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('[sparky-fn="each"]', function(test, log, fixture) {
@@ -7,7 +7,7 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 		var ul     = fixture.querySelector('ul');
 		var sparky = Sparky(ul);
 		var nothing = [];
-		var array   = Observable([
+		var array   = Observer([
 			{ property: 1 },
 			{ property: 2 }
 		]);

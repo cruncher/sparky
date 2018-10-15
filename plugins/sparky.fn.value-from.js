@@ -1,4 +1,4 @@
-import { get, set, normalise, Mutable } from '../../fn/fn.js';
+import { get, set, normalise, Observer } from '../../fn/fn.js';
 import dom from '../../dom/dom.js';
 import Sparky from '../sparky.js';
 
@@ -14,7 +14,7 @@ function normaliseValue(target) {
 }
 
 function valueFrom(getValue, sparky, node, stream, target, name) {
-    var scope = Mutable({});
+    var scope = Observer({});
 
     var event = dom
     .events('change input', target)

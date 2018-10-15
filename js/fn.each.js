@@ -82,9 +82,9 @@ function eachFrame(stream, fn) {
 
 		unobserve();
 
-		var uno = observe(scope, '', function() {
+		var uno = observe('.', function() {
 			cue(render);
-		});
+		}, scope);
 
 		unobserve = function() {
 			uno();

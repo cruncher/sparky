@@ -2,7 +2,7 @@
 //
 // <div sparky-fn="calendar:'2018-01-01',14">
 
-import { Functor as Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing, Mutable } from '../../fn/fn.js';
+import { Functor as Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing, Observer } from '../../fn/fn.js';
 import { closest } from '../../dom/dom.js';
 import Sparky from '../sparky.js';
 
@@ -36,7 +36,7 @@ Sparky.fn.calendar = function(node, scopes, params) {
         '0000-00-42';
 
     var floor    = params[2] && params[2].split('|');
-    var calendar = Mutable({ dates: [] });
+    var calendar = Observer({ dates: [] });
 
     // View
 
@@ -79,7 +79,7 @@ Sparky.fn.calendar = function(node, scopes, params) {
         updateMonth();
     }
 
-    observe(calendar, 'date', updateStartStop);
+    observe('date', updateStartStop, calendar);
 
     // Check date every 5 minutes
     var clock = Stream
@@ -89,9 +89,9 @@ Sparky.fn.calendar = function(node, scopes, params) {
 
     // Get date from named property of parent scope
     scopes.each(function(parent) {
-        observe(parent, name, function(date) {
+        observe(name, function(date) {
             calendar.date = formatDateISO(date);
-        });
+        }, parent);
     });
 
     this.then(clock.stop);

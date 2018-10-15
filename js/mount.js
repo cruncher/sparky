@@ -561,9 +561,9 @@ function eachFrame(input, fn) {
 		render.type = postpad('\xa0', 16, 'children:');
 
 		unobserve();
-		unobserve = observe(scope, '', function() {
+		unobserve = observe('.', function() {
 			cue(render);
-		});
+		}, scope);
 	}
 
 	// Pass some information to the frame cuer for debugging

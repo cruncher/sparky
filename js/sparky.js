@@ -1,5 +1,5 @@
 
-import { Stream, Observable as ObserveStream, Mutable, deprecate, invoke, noop, nothing, set } from '../../fn/fn.js';
+import { Stream, Observable as ObserveStream, Observer, deprecate, invoke, noop, nothing, set } from '../../fn/fn.js';
 import { append, attribute, before, create, fragmentFromHTML, preventDefault, remove, replace, tag }             from '../../dom/dom.js';
 import { parseParams } from './parse.js';
 import mount           from './mount.js';
@@ -71,7 +71,7 @@ function escapeSelector(selector) {
 }
 
 function toObservableOrSelf(object) {
-	return Mutable(object) || object;
+	return Observer(object) || object;
 }
 
 export default function Sparky(selector, data, options) {

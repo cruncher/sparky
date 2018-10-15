@@ -1,3 +1,4 @@
+import { Observer, test as group } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('input[type="range"]', function(test, log, fixture) {
@@ -67,7 +68,7 @@ group('input[type="range"]', function(test, log, fixture) {
 
 			equals(8, model.property);
 
-			Observable(model).property = 12;
+			Observer(model).property = 12;
 
 			requestAnimationFrame(function() {
 				equals('14', node.value);
