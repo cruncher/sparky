@@ -65,6 +65,25 @@ export default function Struct(node, token, path, render, pipe, data) {
 	addStruct(this);
 }
 
+function fireStruct() {
+	const struct = this;
+
+	Struct.prototype.fire.apply(this);
+
+	this.input.on('push', function() {
+		// If this is a value we want to pause updates while the input
+		// is being used. Check whether it's focused.
+		if (struct.data.name === "value" && struct.node === document.activeElement) {
+			return;
+		}
+
+		//if (struct.status === 'paused') { return; }
+		cue(struct);
+	});
+
+	delete this.fire;
+}
+
 assign(Struct.prototype, {
 	render:    noop,
 	transform: id,
@@ -81,10 +100,6 @@ assign(Struct.prototype, {
 	},
 
 	start: function() {
-		//console.log('STRUCT START', this.token);
-
-		var struct = this;
-
 		// Todo: We need rid of the leading '|' in struct.pipe
 		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
 		this.originalValue = this.read ? this.read() : '' ;
@@ -107,31 +122,10 @@ assign(Struct.prototype, {
 	},
 
 	bind: function(scope) {
-		const struct = this;
-
-		struct.input = ObservableStream(struct.path, scope).latest();
-
-		// Just for debugging
-		struct.scope = scope;
-
-		this.fire = function fire() {
-			this.update();
-
-			struct.input.on('push', function() {
-				// If this is a value we want to pause updates while the input
-				// is being used. Check whether it's focused.
-				if (struct.data.name === "value" && struct.node === document.activeElement) {
-					return;
-				}
-
-				//if (struct.status === 'paused') { return; }
-				cue(struct);
-			});
-
-			delete this.fire;
-		};
-
-		cue(struct);
+		this.input = ObservableStream(this.path, scope).latest();
+		this.scope = scope;
+		this.fire  = fireStruct;
+		cue(this);
 	},
 
 	unbind: function() {
@@ -145,11 +139,7 @@ assign(Struct.prototype, {
 		this.scope = undefined;
 	},
 
-	fire: function fire() {
-		this.update();
-	},
-
-	update: function() {
+	fire: function() {
 		//console.log('STRUCT UPDATE', this.token);
 
 		var transform = this.transform;
@@ -188,6 +178,26 @@ export function ReadableStruct(node, token, path, render, pipe, data, type, read
 	this.read = read;
 }
 
+function fireReadable() {
+	const struct = this;
+
+	ReadableStruct.prototype.fire.apply(this);
+
+	this.input.on('push', function() {
+		cue(struct);
+	});
+
+	var value = getPath(this.path, this.scope);
+
+	// Where the initial value of struct.path is not set, set it to
+	// the value of the <input/>.
+	if (value === undefined) {
+		this.change();
+	}
+
+	delete this.fire;
+}
+
 ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 	listen: function listen(fn) {
 		if (this._listenFn) {
@@ -207,35 +217,12 @@ ReadableStruct.prototype = assign(Object.create(Struct.prototype), {
 	},
 
 	bind: function(scope, options) {
-		const struct = this;
-
-		struct.input = ObservableStream(struct.path, scope).latest();
-
-		// Just for debugging
-		struct.scope = scope;
-
-		const change = listen(struct, scope, options);
-
-		this.fire = function fireReadable() {
-			this.update();
-
-			struct.input.on('push', function() {
-				cue(struct);
-			});
-
-			var value = getPath(struct.path, scope);
-
-			// Where the initial value of struct.path is not set, set it to
-			// the value of the <input/>.
-			if (value === undefined) {
-				change();
-			}
-
-			delete this.fire;
-		};
-
-		cue(struct);
-		struct.listen(change);
+		this.input  = ObservableStream(this.path, scope).latest();
+		this.scope  = scope;
+		this.change = listen(this, scope, options);
+		this.fire   = fireReadable;
+		cue(this);
+		this.listen(this.change);
 	}
 });
 
