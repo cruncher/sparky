@@ -624,7 +624,7 @@ line { stroke-width: 1; stroke: inherit; }
 	console.group('%c---------- Frame ' + ++c + ' ----------', 'color: #6783f3;');
 	requestAnimationFrame(function count() {
 		console.groupEnd();
-		if (c > 6) { return; }
+		if (c > 9) { return; }
 		console.group('%c---------- Frame ' + ++c + ' ----------', 'color: #6783f3;');
 		requestAnimationFrame(count);
 	});

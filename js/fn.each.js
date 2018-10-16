@@ -165,7 +165,7 @@ Sparky.fn.each = function each(node, scopes, params) {
 	remove(node);
 
 	// Get the value of scopes in frames after it has changed
-	var stream = scopes.latest().dedup();
+	var stream      = scopes.latest().dedup();
 	var unEachFrame = eachFrame(stream, update);
 
 	this.then(function() {

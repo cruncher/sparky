@@ -42,7 +42,7 @@ function collate(data, renderer) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky: %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.groupCollapsed('%cSparky%c frame ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	addons.length = 0;
@@ -79,7 +79,7 @@ function run(time) {
 		}
 
 		if ((tStop - tStart) > maxFrameDuration) {
-			console.log('%cSparky: %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 400;');
+			console.log('%cSparky%c ' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 400;');
 		}
 	}
 
