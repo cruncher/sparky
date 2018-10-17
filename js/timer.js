@@ -14,6 +14,7 @@ const addons = [];
 const getCount = get('count');
 
 let frame;
+const errors = [];
 
 function sum(a, b) {
 	return a + b;
@@ -42,25 +43,38 @@ function collate(data, renderer) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky: %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	addons.length = 0;
+	errors.length = 0;
 	frame = true;
 
 	const tStart = now();
 
-	try {
-		queue.forEach(invoke('fire', nothing));
+	let renderer;
+
+	if (DEBUG) {
+		for (renderer of queue) {
+			try {
+					renderer.fire();
+			}
+			catch(e) {
+				console.log('%cError rendering ' + renderer.token + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
+				console.error(e);
+				errors.push(renderer.token);
+			}
+		}
 	}
-	catch(e) {
-		console.log('%cSparky%c Error rendering', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 300;');
-		console.error(e);
+	else {
+		for (renderer of queue) {
+			renderer.fire();
+		}
 	}
 
 	const tStop = now();
 
-	if (DEBUG || ((tStop - tStart) > maxFrameDuration)) {
+	if (DEBUG || errors.length || ((tStop - tStart) > maxFrameDuration)) {
 		// Pass some information to the frame cuer for debugging
 		// Todo: I think ultimately it would be better to pass entire
 		// structs to the cuer, instead of trying to recreate unique functions
@@ -78,8 +92,12 @@ function run(time) {
 			console.groupEnd();
 		}
 
+		if (errors.length) {
+			console.log('       %c' + errors.length + ' Errors rendering ' + errors.join(' '), 'color: #d34515; font-weight: 400;');
+		}
+
 		if ((tStop - tStart) > maxFrameDuration) {
-			console.log('%cSparky: %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #a3b31f; font-weight: 600;', 'color: #d34515; font-weight: 400;');
+			console.log('       %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 400;');
 		}
 	}
 
