@@ -313,11 +313,7 @@ assign(Sparky, {
 
 		scope: deprecate(function(node, stream, params) {
 			return Sparky.fn.find.apply(this, arguments);
-		}, 'Deprecated Sparky fn scope:path renamed find:path'),
-
-		ignore: deprecate(function ignore(node, stream) {
-			console.log(this.interrupt(), node, stream);
-		}, 'Sparky: fn "ignore" renamed "stop".')
+		}, 'Deprecated Sparky fn scope:path renamed find:path')
 	},
 
 	transforms: {},
