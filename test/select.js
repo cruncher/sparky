@@ -1,5 +1,5 @@
 
-import { Functor as Fn, test as group, Observer } from '../../fn/fn.js';
+import { Fn, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('select > option|each', function(test, log, fixture) {
