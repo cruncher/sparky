@@ -277,6 +277,7 @@ assign(Sparky.fn, {
 // --------------------------------------------
 
 const documentRequest = Promise.resolve(document);
+
 const fetchDocument = cacheRequest(function fetchDocument(path) {
     return path ?
         request(path)
@@ -300,6 +301,10 @@ function urlToFragment(name) {
     const path  = parts[0] || '';
     const id    = parts[1] || '';
 
+    if (DEBUG) {
+		console.log('%cSparky %cfetching template ', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', name);
+	}
+
     return fetchDocument(path)
     .then(function(doc) {
         let elem;
@@ -320,31 +325,6 @@ function urlToFragment(name) {
         }
     });
 }
-
-/*
-var stop;
-
-// If name is not a URL assume it's a path and get html from scope
-if (!/^\.?[#\/]/.test(params[0])) {
-    stop = noop;
-
-    return scopes.map(function(scope) {
-        stop();
-
-        stop = ObservableStream(params[0], scope)
-        .map(overload(toType, {
-            string:  fragmentFromHTML,
-            default: id
-        }))
-        .each(function(fragment) {
-            empty(node);
-            append(node, fragment);
-        })
-        .stop;
-    });
-}
-*/
-
 
 function template(node, scopes, params, setup) {
     const sparky = this;
@@ -371,6 +351,9 @@ function template(node, scopes, params, setup) {
             output.scope = scope;
             cue(output);
         });
+    })
+    .catch(function(error) {
+        console.log('TEMPLATE FAIL', error);
     });
 
     return output;
