@@ -295,17 +295,10 @@ assign(Sparky, {
 			var sparky = this;
 
 			function log(scope) {
-				console.group('Sparky: scope', node);
-				console.log('data ', sparky.data);
-				console.log('scope', scope);
-				console.log('fn   ', sparky.fn);
-				console.groupEnd('---');
+				console.log('Sparky scope', scope, node);
 			}
 
-			console.group('Sparky: run  ', node);
-			console.log('data ', sparky.data);
-			console.groupEnd('---');
-
+			console.log('Sparky fn', node);
 			debugger;
 
 			return scopes.tap(log);
