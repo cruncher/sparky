@@ -1,4 +1,4 @@
-import { Functor as Fn, Stream, get, invoke, nothing } from '../../fn/fn.js';
+import { Fn, Stream, get, invoke, nothing } from '../../fn/fn.js';
 import Sparky from './sparky.js';
 
 const fetchOptions = {

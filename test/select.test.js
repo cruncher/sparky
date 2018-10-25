@@ -1,5 +1,5 @@
 
-import { Functor as Fn, test as group, Observer } from '../../fn/fn.js';
+import { Fn, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
 group('select > option|each', function(test, log, fixture) {
@@ -87,4 +87,33 @@ group('select > option|each', function(test, log, fixture) {
 		<option value="Infinity">Infinity</option>
 	</select>
 
+*/});
+
+
+group('select > option|each', function(test, log, fixture) {
+	Sparky(fixture);
+
+	test("Array scope", function(equals, done) {
+		requestAnimationFrame(function functionName() {
+			var select = fixture.querySelector('select');
+			equals(true, !!select);
+
+			equals(4,   select.children.length);
+			equals('1', select.value);
+			equals('1', scope.value);
+			equals('Infinity', select.children[select.children.length - 1].getAttribute('value'), 'Order of child <option>s is wrong.');
+			done();
+		});
+	}, 4);
+}, function() {/*
+	<form fn="template:#address-editor"></form>
+
+	<template id="address-editor">
+	TEMPL
+	    <label class="country-select-button select-button button">
+	        <select value="{[country]}" name="country">
+	            <option fn="import:countries.json each" value="{[key]}">{[value]}</option>
+	        </select>
+	    </label>
+	</template>
 */});
