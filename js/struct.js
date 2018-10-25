@@ -93,6 +93,7 @@ assign(Struct.prototype, {
 
 		this.unbind();
 		uncue(this);
+		this.unobserveMutations && this.unobserveMutations();
 		removeStruct(this);
 
 		this.stop   = noop;
@@ -143,16 +144,19 @@ assign(Struct.prototype, {
 		//console.log('STRUCT UPDATE', this.token);
 
 		var transform = this.transform;
-		var value = this.input && this.input.shift();
+
+		// Does this give us null for non-values? Surely it doesnt spit out undefined.
+		var value     = this.input && this.input.shift();
 
 		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 
 		//try {
 		if (value === undefined) {
-			this.render(this.originalValue);
+			this.render(this.renderedValue || this.originalValue);
 		}
 		else {
-			this.render(transform(value));
+			this.renderedValue = transform(value);
+			this.render(this.renderedValue);
 		}
 		//}
 		//catch(e) {
@@ -171,11 +175,27 @@ assign(Struct.prototype, {
 	}
 });
 
+function observeMutations(node, fn) {
+	var observer = new MutationObserver(fn);
+	observer.observe(node, { childList: true });
+	return function unobserveMutations() {
+		observer.disconnect();
+	};
+}
+
 export function ReadableStruct(node, token, path, render, pipe, data, type, read) {
 	// ReadableStruct extends Struct
 	Struct.call(this, node, token, path, render, pipe, data);
 	this.type = type;
 	this.read = read;
+
+	var struct = this;
+
+	if (node.tagName.toLowerCase() === 'select') {
+		this.unobserveMutations = observeMutations(node, function() {
+			cue(struct);
+		});
+	}
 }
 
 function fireReadable() {
