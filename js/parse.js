@@ -1,22 +1,21 @@
 
-import parse from '../../fn/modules/parse.js'
-import { nothing, pipe } from '../../fn/fn.js'
+import { capture, nothing, pipe } from '../../fn/fn.js'
 
 
 /* Parse parameters */
 
-const parseArrayClose = parse(/^\]\s*/, nothing);
+const parseArrayClose = capture(/^\]\s*/, nothing);
 
 //                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string
-export const parseParams = parse(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
-    1: function(params, value, data) { params.push(parseFloat(value)); return params; },
+    1: function(params, tokens) { params.push(parseFloat(tokens[1])); return params; },
 
     // "string"
-    2: function(params, value) { params.push(value); return params; },
+    2: function(params, tokens) { params.push(tokens[2]); return params; },
 
     // 'string'
-    3: function(params, value) { params.push(value); return params; },
+    3: function(params, tokens) { params.push(tokens[3]); return params; },
 
     // null
     4: function(params) { params.push(null); return params; },
@@ -28,15 +27,15 @@ export const parseParams = parse(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^
     6: function(params) { params.push(false); return params; },
 
     // array
-    7: function(params, value, data) {
-        if (data.input[1] === ']') {
+    7: function(params, tokens) {
+        if (tokens.input[1] === ']') {
             params.push([]);
         }
         else {
-            params.push(parseParams([], data));
+            params.push(parseParams([], tokens));
         }
 
-        parseArrayClose(null, data);
+        parseArrayClose(null, tokens);
         return params;
     },
 
@@ -50,26 +49,26 @@ export const parseParams = parse(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^
     //},
 
     // string
-    10: function(params, value) { params.push(value); return params; },
+    10: function(params, tokens) { params.push(tokens[10]); return params; },
 
     // Comma terminator - more params to come
-    11: function(params, value, data) {
-        return parseParams(params, data);
+    11: function(params, tokens) {
+        return parseParams(params, tokens);
     }
 });
 
 
 /* Parse function */
 
-export const parseFn = parse(/^([\w-]+)\s*(:)?\s*/, {
-    1: function(getFn, name) {
-        var fn = getFn(name);
-        if (!fn) { throw new Error('fn ' + name + '() not found.'); }
+export const parseFn = capture(/^([\w-]+)\s*(:)?\s*/, {
+    1: function(getFn, tokens) {
+        var fn = getFn(tokens[1]);
+        if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
         return fn;
     },
 
-    2: function(fn, value, data) {
-        const params = parseParams([], data);
+    2: function(fn, tokens) {
+        const params = parseParams([], tokens);
         return fn.apply(null, params);
     }
 });
@@ -84,10 +83,10 @@ function getFn(name) {
     return transformers[name] ? transformers[name].tx : transforms[name] ;
 }
 
-const parsePipe1 = parse(/^(\|)?\s*/, {
-    1: function(array, value, data) {
-        array.push(parseFn(getFn, data));
-        parsePipe1(array, data);
+const parsePipe1 = capture(/^(\|)?\s*/, {
+    1: function(array, tokens) {
+        array.push(parseFn(getFn, tokens[1]));
+        parsePipe1(array, tokens[1]);
         return array;
     }
 });
@@ -113,16 +112,16 @@ export function parsePipe(string) {
 
 /* Parse tag */
 
-export const parseTag = parse(/\{\[\s*([^|\s]*)\s*(\|)?\s*/, {
-    1: function(object, path) {
-        object.path = path;
+export const parseTag = capture(/\{\[\s*([^|\s]*)\s*(\|)?\s*/, {
+    1: function(object, tokens) {
+        object.path = tokens[1];
         return object;
     },
 
-    2: function(object, symbol, data) {
-        object.fn = parsePipe(data);
+    2: function(object, tokens) {
+        object.fn = parsePipe(tokens);
         return object;
     },
 
-    close: parse(/^\s*\]\}/, nothing)
+    close: capture(/^\s*\]\}/, nothing)
 });
