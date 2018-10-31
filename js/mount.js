@@ -569,7 +569,7 @@ function eachFrame(sparky) {
 
 		unobserve();
 		unobserve = observe('.', function() {
-			cue({ name: 'Sparky push', fire: render });
+			cue({ name: 'Sparky', fire: render });
 		}, scope);
 	}
 

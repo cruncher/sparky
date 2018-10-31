@@ -9,7 +9,7 @@ const DEBUG      = false;
 const assign     = Object.assign;
 
 
-// Transform
+// Transforms
 
 var rtransform = /\|\s*([\w-]+)\s*(?::([^|]+))?/g;
 
@@ -44,26 +44,15 @@ function InverseTransform(transformers, string) {
 	return pipe.apply(null, fns);
 }
 
-// Struct
 
-const structs = [];
+// Struct pool
 
+const structs      = [];
 const removeStruct = remove(structs);
+const addStruct    = (struct) => structs.push(struct);
 
-function addStruct(struct) {
-	structs.push(struct);
-}
 
-export default function Struct(node, token, path, render, pipe, data) {
-	this.node    = node;
-	this.token   = token;
-	this.path    = path;
-	this.render  = render;
-	this.pipe    = pipe;
-	this.data    = data;
-
-	addStruct(this);
-}
+// Struct
 
 function fireStruct() {
 	const struct = this;
@@ -82,6 +71,17 @@ function fireStruct() {
 	});
 
 	delete this.fire;
+}
+
+export default function Struct(node, token, path, render, pipe, data) {
+	this.node    = node;
+	this.token   = token;
+	this.path    = path;
+	this.render  = render;
+	this.pipe    = pipe;
+	this.data    = data;
+
+	addStruct(this);
 }
 
 assign(Struct.prototype, {
@@ -146,13 +146,16 @@ assign(Struct.prototype, {
 		var transform = this.transform;
 
 		// Does this give us null for non-values? Surely it doesnt spit out undefined.
-		var value     = this.input && this.input.shift();
+		var value = this.input && this.input.shift();
 
 		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 
 		//try {
 		if (value === undefined) {
 			this.render(this.renderedValue || this.originalValue);
+		}
+		else if (value === null) {
+			this.render(value);
 		}
 		else {
 			this.renderedValue = transform(value);
@@ -176,6 +179,8 @@ assign(Struct.prototype, {
 });
 
 function observeMutations(node, fn) {
+	// Todo: This is only here to observe mutations to the content of select
+	// nodes. Is there a better, internal, way to do it?
 	var observer = new MutationObserver(fn);
 	observer.observe(node, { childList: true });
 	return function unobserveMutations() {
