@@ -21,9 +21,13 @@
 	<!--link rel="stylesheet" href="../fn/css/syntax-atom.css" /-->
 	<link rel="stylesheet" href="../fn/css/prism.cruncher.css" />
 	<link rel="stylesheet" href="../dom/css/dom.css" />
-	<link rel="stylesheet" href="../css/docs.css" />
+	<!--link rel="stylesheet" href="../css/docs.css" /-->
 	<link rel="stylesheet" href="css/json-editor.css" />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
+
+	<script>
+	window.DEBUG = true;
+	</script>
 
 <style>
 .array-name-editor {
@@ -57,12 +61,18 @@ small {
     </header>
 
 	<div class="grid-block block">
-		<pre sparky-fn="import:package.json type-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">Waiting for data.</pre>
+		<pre sparky-fn="import:package.json json-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">Waiting for data.</pre>
 	</div>
 
 	<!-- Templates -->
 
-<template id="types-editor"><button sparky-fn="string-on-click" class="type-button {[type|is:'string'|yesno:'on','']}" type="button">str</button><button sparky-fn="number-on-click" class="type-button {[type|is:'number'|yesno:'on','']}" type="button">num</button><button sparky-fn="boolean-on-click" class="type-button {[type|is:'boolean'|yesno:'on','']}" type="button">bool</button><button sparky-fn="object-on-click" class="type-button {[type|is:'object'|yesno:'on','']}" type="button">obj</button><button sparky-fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button></template>
+<template id="types-editor">
+	<button sparky-fn="string-on-click" class="type-button {[type|is:'string'|yesno:'on','']}" type="button">str</button>
+	<button sparky-fn="number-on-click" class="type-button {[type|is:'number'|yesno:'on','']}" type="button">num</button>
+	<button sparky-fn="boolean-on-click" class="type-button {[type|is:'boolean'|yesno:'on','']}" type="button">bool</button>
+	<button sparky-fn="object-on-click" class="type-button {[type|is:'object'|yesno:'on','']}" type="button">obj</button>
+	<button sparky-fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button>
+</template>
 
 <template id="string-editor"><input class="string-input" type="text" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
 
@@ -121,14 +131,12 @@ small {
 	<!-- Initialise app -->
 
 	<script type="module">
-	import '../fn/js/observable.js';
-	import { by, compose, get, id, invoke, is, nothing, map, overload, pipe, set, sort, Stream, ObserveStream } from '../fn/fn.js';
+	import { by, compose, get, id, invoke, is, nothing, map, overload, pipe, set, sort, Stream, ObserveStream, observe, Observer } from '../fn/fn.js';
 	import { append, clone, empty, events, fragmentFromId, identify, trigger } from '../dom/dom.js';
 	import Sparky from './sparky.js';
 
 	var assign   = Object.assign;
 	var entries  = Object.entries;
-	var observe  = Observable.observe;
 	var settings = {
 		indent: '  '
 	};
@@ -369,7 +377,7 @@ small {
 			object: object
 		};
 
-		var proxy = Observable(scope);
+		var proxy = Observer(scope);
 		var unobservers = [];
 		var oldname;
 
@@ -432,11 +440,11 @@ small {
 
 
 	Sparky.fn['entry-editor'] = function(node, stream) {
-		var sparkies, type;
+		var child, type;
 		var sparky = this;
 
 		var stop = function stop() {
-			sparkies && sparkies.forEach(invoke('stop', nothing));
+			child && child.stop();
 		};
 
 		this.interrupt();
@@ -460,33 +468,28 @@ small {
 			}
 
 			var fragment = clone(fragmentFromId(type + '-editor'));
-			var children = Array.prototype.slice.apply(fragment.childNodes);
-			var sparkies;
 
 			stop();
 
-			sparkies = children.map(function(node) {
-				return new Sparky(node, entry);
-			});
+			child = new Sparky(fragment, entry);
 
 			empty(node);
-			append(node, children);
+			append(node, fragment);
 		}
 
 		var unobserve;
 
 		return stream.each(function(entry) {
 			unobserve && unobserve();
-			unobserve = observe('type', entry, function() {
+			unobserve = observe('type', function() {
 				update(entry);
-			});
-			update(entry);
+			}, entry);
 		});
 	};
 
-	Sparky.fn['type-editor'] = function(node, stream) {
+	Sparky.fn['json-editor'] = function(node, stream) {
 		var id = identify(node);
-console.log('TYPE EDITOR', id);
+
 		return Sparky.fn['entry-editor'].call(this, node, stream.map(function(object) {
 			console.log('TYPE EDITOR UPDATE', object);
 
@@ -522,7 +525,7 @@ console.log('TYPE EDITOR', id);
 	}*/
 
 	// Electrify the document!
-	Sparky(document);
+	Sparky('#header', {});
 
 	</script>
 </body>

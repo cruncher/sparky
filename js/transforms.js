@@ -106,7 +106,8 @@ export const transformers = {
 	normalise:   { tx: normalise,   ix: denormalise },
 	denormalise: { tx: denormalise, ix: normalise },
 	floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
-	'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
+	'float-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: parseFloat },
+	'int-string':   { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
 
 	interpolate: {
 		tx: function(point) {

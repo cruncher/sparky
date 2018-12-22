@@ -279,6 +279,10 @@ assign(Sparky, {
 			});
 		},
 
+		entries: function(node, scopes) {
+	        return scopes.map(Object.entries);
+	    },
+
 		stop: function ignore(node, stream) {
 			this.interrupt();
 		},

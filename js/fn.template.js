@@ -277,17 +277,47 @@ assign(Sparky.fn, {
 // --------------------------------------------
 
 const documentRequest = Promise.resolve(document);
-
+let scriptCount = 0;
 const fetchDocument = cacheRequest(function fetchDocument(path) {
+    if (DEBUG && path) {
+		console.log('%cSparky %cimporting component ', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
+	}
+
     return path ?
-        request(path)
+        fetch(path)
+        .then(response => response.text())
+        .then(parse('html'))
         .then(function(doc) {
             if (!doc) {
                 console.warn('Template not found.');
                 return;
             }
 
-            return doc;
+            // Is there a way to do this without importing them into the current document?
+            // Is that even wise?
+            // Is that just unecessary complexity?
+            doc.querySelectorAll('style, template').forEach(function(node) {
+                if (!node.title) { node.title = path; }
+                document.head.appendChild(document.adoptNode(node));
+            });
+
+            // Wait for scripts to execute
+            return Promise.all(Array.from(doc.querySelectorAll('script')).map(function(node) {
+                return new Promise(function(resolve, reject) {
+                    window['script' + (++scriptCount)] = resolve;
+
+                    // This method doesnt seem to run the script
+                    // document.head.appendChild(document.adoptNode(node));
+                    // Try this instead...
+                    const script = document.createElement('script');
+                    script.type = 'module';
+                    script.title = node.title || path;
+
+                    // Detect script has parsed and executed
+                    script.textContent = node.textContent + ';window.script' + scriptCount + '();';
+                    document.head.appendChild(script);
+                });
+            }));
         })
         .catch(function(error) {
             console.warn(error);
@@ -301,16 +331,14 @@ function urlToFragment(name) {
     const path  = parts[0] || '';
     const id    = parts[1] || '';
 
-    if (DEBUG) {
-		console.log('%cSparky %cfetching template ', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', name);
-	}
-
     return fetchDocument(path)
     .then(function(doc) {
         let elem;
 
         if (id) {
-            elem = doc.getElementById(id);
+            //elem = doc.getElementById(id);
+            // Imported templates are now in the document
+            elem = document.getElementById(id);
 
             if (DEBUG && !elem) {
                 throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="template:url" id "' + id + '" not found in document "' + path + '"');
@@ -321,7 +349,7 @@ function urlToFragment(name) {
                 fragmentFromHTML(elem.innerHTML);
         }
         else {
-            return fragmentFromHTML(doc.body.innerHTML);
+//            return fragmentFromHTML(doc.body.innerHTML);
         }
     });
 }
