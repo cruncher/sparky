@@ -4,7 +4,7 @@ import { append, attribute, before, create, fragmentFromHTML, preventDefault, re
 import { parseParams } from './parse.js';
 import mount           from './mount.js';
 
-var DEBUG          = !!window.DEBUG;
+var DEBUG          = true;//!!window.DEBUG;
 
 var assign         = Object.assign;
 
@@ -83,18 +83,23 @@ export default function Sparky(selector, data, options) {
 		document.querySelector(escapeSelector(selector)) :
 		selector ;
 
+	if (DEBUG) { console.group('new Sparky', selector); }
+
 	if (!node) {
 		throw new Error('Sparky: "' + selector + '" not found.');
 	}
 
 	var fnstring = options && options.fn || attribute(Sparky.attributeFn, node) || '';
+
+	console.log('fn="' + fnstring + '"')
+
 	var calling  = true;
 	var sparky   = this;
 	var input;
 	var renderer = nothing;
 
-	this[0]      = node;
-	this.length  = 1;
+	//this[0]      = node;
+	//this.length  = 1;
 
 	function interrupt() {
 		sparky.interrupt = noop;
@@ -119,6 +124,7 @@ export default function Sparky(selector, data, options) {
 		// Launch rendering
 		//if (DEBUG && !(options && options.suppressLogs)) { console.groupCollapsed('Sparky:', selector); }
 		renderer = createRenderStream(sparky, settings);
+console.log(renderer)
 		input.each(renderer.push);
 		//if (DEBUG && !(options && options.suppressLogs)) { console.groupEnd(); }
 	}
@@ -131,6 +137,7 @@ export default function Sparky(selector, data, options) {
 		// launch Sparky
 		var token = fnstring.match(rfn);
 		if (!token) {
+console.log('RENDER')
 			render();
 			return sparky;
 		}
@@ -150,7 +157,7 @@ export default function Sparky(selector, data, options) {
 		// of observables. Todo: we should not need to be so strict about
 		// .dedup() when we create a distinction between mutation and
 		// path changes in Observables.
-		var output = fn.call(sparky, node, input, params);
+		var output = fn.call(sparky, node.content, input, params);
 		input = output ?
 			output.map(toObservableOrSelf).dedup() :
 			input ;
@@ -191,6 +198,8 @@ export default function Sparky(selector, data, options) {
 	Stream.call(this, Source);
 	input = this.map(toObservableOrSelf).dedup();
 	start();
+
+	if (DEBUG) { console.groupEnd() }
 }
 
 Sparky.prototype = Stream.prototype;

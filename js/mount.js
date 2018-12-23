@@ -4,7 +4,7 @@ import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
 import { cue } from './timer.js';
 
-const DEBUG      = false;
+const DEBUG      = true;//false;
 
 const A          = Array.prototype;
 const assign     = Object.assign;
@@ -507,10 +507,11 @@ const mountValue = choose({
 const mountNode  = overload(get('nodeType'), {
 	// element
 	1: function mountElement(node, options, structs) {
+console.log('mountElement', node)
 		// Get an immutable list of children. We don't want to mount
-		// elements that may be dynamically inserted by other sparky
+		// elements that may be dynamically inserted later by other sparky
 		// processes. Remember node.childNodes is dynamic.
-		mountCollection(A.slice.apply(node.childNodes), options, structs);
+		mountCollection(Array.from(node.childNodes), options, structs);
 		mountClass(node, options);
 		mountBooleans(bindings.default.booleans, node, options);
 		mountAttributes(bindings.default.attributes, node, options);

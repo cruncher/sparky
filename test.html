@@ -1,0 +1,59 @@
+
+<head>
+    <style>
+        body {
+            font-family: Helvetica;
+        }
+    </style>
+
+    <template id="template-2">
+        Template 2
+        <p>Template 2 {[]}</p>
+    </template>
+</head>
+
+<body>
+    <template is="sparky" fn="data">
+        Template 0
+        <p>Template 0 {[]}</p>
+        <template>
+            Template 1
+            <p>Template 1 {[]}</p>
+        </template>
+        <template src="#template-2"></template>
+    </template>
+
+    <script type="module">
+        import { Observer, observe, Fn, noop, set } from '../../../fn/fn.js';
+        import Sparky from './sparky.js';
+
+        window.Observer   = Observer;
+        window.observe    = observe;
+        window.Sparky     = Sparky;
+
+        Sparky.attributeFn = "fn";
+
+        Sparky.fn.data = function() {
+            return Fn.of({
+                id: 1
+            });
+        }
+
+        // Launch sparky on sparky templates.
+        // Ultimately this will be a web component, I guess
+        document
+        .querySelectorAll('[is="sparky"]')
+        .forEach(function(node) {
+            // Is it a <template>?
+            if (node.content) {
+                console.log('Init template', node.content);
+                Sparky(node);
+                node.before(node.content);
+            }
+            else {
+                console.log('Init other', node.content);
+                Sparky(node);
+            }
+        });
+    </script>
+</body>
