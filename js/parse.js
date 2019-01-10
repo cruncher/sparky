@@ -60,7 +60,7 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 
 /* Parse function */
 
-export const parseFn = capture(/^([\w-]+)\s*(:)?\s*/, {
+export const parseFn = capture(/^\s*([\w-]+)\s*(:)?/, {
     1: function(getFn, tokens) {
         var fn = getFn(tokens[1]);
         if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }

@@ -258,7 +258,7 @@ function mountStringToken(name, node, write, strings, options, match) {
 }
 
 function mountString(name, node, string, render, options) {
-	var rtoken  = options.rtoken;
+	var rtoken  = options.rtoken || settings.rtoken;
 	var i       = rtoken.lastIndex = 0;
 	var match   = rtoken.exec(string);
 
@@ -281,11 +281,11 @@ function mountString(name, node, string, render, options) {
 	}
 }
 
-function mountAttribute(name, node, options, prefixed) {
+export function mountAttribute(name, node, options, prefixed) {
 	name = cased[name] || name;
 	var text = prefixed !== false
-	&& node.getAttribute(options.attributePrefix + name)
-	|| node.getAttribute(name) ;
+		&& node.getAttribute(options.attributePrefix + name)
+		|| node.getAttribute(name) ;
 
 	return text && mountString(name, node, text, writeAttribute, options);
 }
@@ -316,7 +316,7 @@ function mountBooleanToken(name, node, write, values, options, match) {
 	});
 }
 
-function mountBoolean(name, node, options) {
+export function mountBoolean(name, node, options) {
 	// Look for prefixed attributes before attributes.
 	//
 	// In FF, the disabled attribute is set to the previous value that the
@@ -392,7 +392,7 @@ function renderClass(string) {
 	this.data.previous = string;
 }
 
-function mountClass(node, options) {
+export function mountClass(node, options) {
 	var rtoken = options.rtoken;
 	var attr   = attribute('class', node);
 
@@ -487,13 +487,13 @@ function mountCollection(children, options, structs) {
 	var child, struct;
 
 	while (child = children[++n]) {
-		struct = options.mount(child, options);
-		if (struct) {
-			structs.push(struct);
-		}
-		else {
+		//struct = options.mount(child, options);
+		//if (struct) {
+		//	structs.push(struct);
+		//}
+		//else {
 			mountNode(child, options, structs) ;
-		}
+		//}
 	}
 }
 
@@ -507,7 +507,12 @@ const mountValue = choose({
 const mountNode  = overload(get('nodeType'), {
 	// element
 	1: function mountElement(node, options, structs) {
-console.log('mountElement', node)
+		const struct = options.mount(node, options);
+		if (struct) {
+			structs.push(struct);
+			return;
+		}
+
 		// Get an immutable list of children. We don't want to mount
 		// elements that may be dynamically inserted later by other sparky
 		// processes. Remember node.childNodes is dynamic.
@@ -629,8 +634,6 @@ export default function mount(node, overrides) {
 
 	// Return a read-only stream
 	return {
-		shift: noop,
-
 		stop: function stop() {
 			structs.forEach(function(struct) {
 				struct.stop();

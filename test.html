@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <template is="sparky" fn="data">
+    <template is="sparky" fn="data test:1">
         Template 0
         <p>Template 0 {[]}</p>
         <template>
@@ -23,9 +23,14 @@
         <template src="#template-2"></template>
     </template>
 
+    <p class="test-p">Frame 0</p>
+
     <script type="module">
-        import { Observer, observe, Fn, noop, set } from '../../../fn/fn.js';
+        import { capture, Observer, observe, Fn, noop, set, Stream } from '../../../fn/fn.js';
+        import { parseParams as captureParams } from './js/parse.js';
+        import mount  from './js/mount.js';
         import Sparky from './sparky.js';
+        import { mountAttribute } from './js/mount.js';
 
         window.Observer   = Observer;
         window.observe    = observe;
@@ -34,10 +39,318 @@
         Sparky.attributeFn = "fn";
 
         Sparky.fn.data = function() {
-            return Fn.of({
-                id: 1
+            return
+        }
+
+        Sparky.fn.test = function(node, stream, params) {
+            console.log('NODE', node, 'PARAMS', params);
+        }
+
+
+
+        const attributeConfig = {
+            attributes: true,
+            childList: false,
+            characterData: false
+        };
+
+        function toObserverOrSelf(object) {
+        	return Observer(object) || object;
+        }
+
+        function interrupt(control) {
+    		control.interrupt = noop;
+    		control.continue  = start;
+
+    		return {
+    			fn: fnstring,
+    			createStruct: function(node, token, path, render, pipe, type, read) {
+    				return options.createStruct && options.createStruct.apply(null, arguments);
+    			}
+    		};
+    	}
+
+        const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
+            1: function(output, tokens) {
+                output.name = tokens[1];
+                return output;
+            },
+
+            2: function(output, tokens) {
+                output.params = captureParams([], tokens);
+                return output;
+            },
+
+            close: function(output, tokens) {
+                // Capture exposes consumed index as .consumed
+                output.remainingString = tokens.input.slice(tokens[0].length + (tokens.consumed || 0));
+                return output;
+            }
+        });
+
+        function firstRenderTemplate(template, content) {
+            // Insert content into dom (Todo: put this only after first render)
+            template.before(content);
+            template.remove();
+        }
+
+        function start(control, input, fnstring, node, render) {
+            control.interrupt = interrupt;
+            control.continue  = noop;
+
+            // Parse the fns and params to execute. If no more tokens,
+            // launch Sparky
+            if (!fnstring || fnstring.match(/^\s*$/)) {
+                render(node, input);
+                return;
+            }
+
+            const result = captureFn({}, fnstring);
+            const fn = Sparky.fn[result.name];
+            if (!fn) { throw new Error('fn ' + result.name + '() not found.'); }
+
+            const output = fn.call(control, node, input, result.params);
+            input = output ?
+                output.dedup().map(toObserverOrSelf) :
+                input ;
+
+            // If fns have been interrupted interrupt is noop
+            return control.interrupt !== noop && start(control, input, result.remainingString, node, render);
+    	}
+
+        function run(string, node, input) {
+            console.group('RUN', node);
+            while(string && (result = captureFn({}, string))) {
+                const fn = Sparky.fn[result.name];
+                if (!fn) { throw new Error('fn ' + result.name + '() not found.'); }
+
+                input = fn.call(control, node, input, result.params) || input;
+                string = result.remainingString;
+            }
+            console.log(input)
+            console.groupEnd();
+            return input;
+        }
+
+        function fetchNodeFromSrc(src) {
+            console.log('fetch node!')
+        }
+
+        function getNodeFromSrc(src) {
+            return src[0] === '#' ?
+                Promise.resolve(document.querySelector(src)) :
+                fetchNodeFromSrc(src) ;
+        }
+
+        function Sparkify(selector, options) {
+            if (!Sparkify.prototype.isPrototypeOf(this)) {
+        		return new Sparkify(selector, options);
+        	}
+
+            const template = typeof selector === 'string' ?
+                document.querySelector(selector) :
+                selector ;
+
+            let input = Stream.of();
+            this.push = input.push;
+            this.stop = input.stop;
+
+            const src = template.getAttribute('src');
+            const fns = template.getAttribute('fn');
+
+            let content, firstRender;
+
+            // If it's a template, template.content will be a fragment
+            if (template.content) {
+                // Todo: look out for prefix, decide on final attr name
+                if (src) {
+                    console.log('Sparkify template with src=', src);
+
+                    // Que functions from target template
+                    input = run(fns, template, input);
+
+                    console.log('Target template fn pipe ready.')
+
+                    // Find source template from path in src attribute
+                    function renderSrc(src) {
+                        const source = document.getElementById(src) || document.querySelector(src);
+console.log('renderSrc', src, source);
+                        const renderSource = (source) => {
+console.log('renderSource', src, source);
+                            const fns = source.getAttribute('fn');
+
+                            // Clone content
+                            content = source.content.cloneNode(true);
+                            const input   = run(fns, content, input2);
+
+                            //function renderSourceTemplate(input) {
+console.log('renderSourceTemplate', content);
+                                const settings = {
+                                    mount: function(node, options) {
+                                        const fns = node.getAttribute('fn');
+                                        const src = node.tagName.toLowerCase() === 'template';
+
+                                        if (!fns && !src) { return; }
+
+                                        var sparky = Sparkify(node, {
+                                            fn: fns,
+                                            suppressLogs: true,
+                                            createStruct: function(node, token, path, render, pipe, data, type, read) {
+                                                if (!/^\.\./.test(path)) { return; }
+
+                                                path = path.slice(2);
+                                                const struct = options.createStruct(node, token, path, render, pipe, data, type, read);
+
+                                                return {
+                                                    stop: function() {
+                                                        struct.stop();
+                                                    }
+                                                };
+                                            }
+                                        });
+
+                                        // This is just some help for logging mounted tags
+                                        sparky.token = fns;
+                                        sparky.path  = '';
+
+                                        // Return a writeable stream. A write stream
+                                        // must have the methods .push() and .stop()
+                                        // A sparky is a write stream.
+                                        return sparky;
+                                    }
+                                };
+
+                                // TEMP: Find a better way to pass these in
+                                //settings.attributePrefix = Sparky.attributePrefix;
+                                //settings.transforms      = Sparky.transforms;
+                                //settings.transformers    = Sparky.transformers;
+                                //options && (settings.createStruct = options.createStruct);
+
+                                // Launch rendering
+                                const renderer = mount(content, settings);
+                                let count = 0;
+                                input2.each(function(scope) {
+                                    renderer.push(scope);
+                                    if (!count++) {
+                                        firstRenderTemplate(template, content);
+                                    }
+                                });
+                            //});
+                        }
+
+                        if (source) {
+                            renderSource(source);
+                        }
+                        else {
+                            getNodeFromSrc(src).then(renderSource);
+                        }
+                    }
+
+                    // Mount the template src attribute with an overidden render fn
+                    const structs = [];
+
+                    mountAttribute('src', template, {
+                        createStruct: function(node, token, path, renderSrc, pipe, data) {
+                            const struct = new Struct(node, token, path, render, pipe, data);
+                            structs.push(struct);
+                            return struct;
+                        }
+                    });
+
+                    let input2;
+
+                    if (!structs.length) {
+                        input2 = input;
+                        renderSrc(template.getAttribute('src'));
+                        return;
+                    }
+
+                    input2 = Stream.of();
+
+                    input.each(function(scope) {
+console.log('SCOPE', scope, structs)
+                        structs.forEach(function push(struct) {
+                            struct.push(scope);
+                        });
+
+                        input2.push(scope);
+                    });
+
+                    return;
+                }
+                else {
+                    console.log('Sparkify template without src');
+                    content = template.content;
+                }
+
+                firstRender = firstRenderTemplate;
+            }
+            else {
+                console.log('Sparkify element');
+                content = template;
+                firstRender = noop;
+            }
+
+            // Insert content before template and remove template
+            start({ label: 'control' }, input, fns, content, function render(node, input) {
+                const settings = {
+                    mount: function(node, options) {
+                        const fns = node.getAttribute('fn');
+                        const src = node.tagName.toLowerCase() === 'template';
+
+                		if (!fns && !src) { return; }
+
+                		var sparky = Sparkify(node, {
+                			fn: fns,
+                			suppressLogs: true,
+                			createStruct: function(node, token, path, render, pipe, data, type, read) {
+                				if (!/^\.\./.test(path)) { return; }
+
+                				path = path.slice(2);
+                				const struct = options.createStruct(node, token, path, render, pipe, data, type, read);
+
+                				return {
+                					stop: function() {
+                						struct.stop();
+                					}
+                				};
+                			}
+                		});
+
+                		// This is just some help for logging mounted tags
+                		sparky.token = fns;
+                		sparky.path  = '';
+
+                		// Return a writeable stream. A write stream
+                		// must have the methods .push() and .stop()
+                        // A sparky is a write stream.
+                		return sparky;
+                    }
+                };
+
+        		// TEMP: Find a better way to pass these in
+        		//settings.attributePrefix = Sparky.attributePrefix;
+        		//settings.transforms      = Sparky.transforms;
+        		//settings.transformers    = Sparky.transformers;
+        		//options && (settings.createStruct = options.createStruct);
+
+        		// Launch rendering
+        		const renderer = mount(content, settings);
+        		input.each(renderer.push);
+                firstRender(template, content);
             });
         }
+
+        Object.assign(Sparkify.prototype, {
+            push: function() {
+
+            },
+
+            stop: function() {
+
+            }
+        });
+
 
         // Launch sparky on sparky templates.
         // Ultimately this will be a web component, I guess
@@ -46,14 +359,40 @@
         .forEach(function(node) {
             // Is it a <template>?
             if (node.content) {
-                console.log('Init template', node.content);
-                Sparky(node);
-                node.before(node.content);
-            }
-            else {
-                console.log('Init other', node.content);
-                Sparky(node);
+                window.s = Sparkify(node);
+
+                setTimeout(function() {
+                    s.push({ id: 1 });
+
+                    setTimeout(function() {
+                        s.push({ id: 2 });
+                    }, 1000);
+                }, 1000);
             }
         });
+
+
+        const p = document.querySelector('.test-p')
+
+        setTimeout(function() {
+            requestAnimationFrame(function() {
+                p.innerHTML = 'Frame 1';
+                p.style.backgroundColor = 'black';
+                Promise.resolve(8).then(function() {
+                    Promise.resolve(8).then(function() {
+                        Promise.resolve(8).then(function() {
+                            Promise.resolve(8).then(function() {
+                                p.innerHTML = 'Frame 1 promise';
+                                p.style.backgroundColor = 'white';
+                            });
+                        });
+                    });
+                });
+
+                requestAnimationFrame(function() {
+                    p.innerHTML = 'Frame 2';
+                });
+            });
+        }, 2000);
     </script>
 </body>
