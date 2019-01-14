@@ -19,11 +19,20 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
-export { default } from './js/sparky.js';
-import './js/fn.each.js';
-import './js/fn.template.js';
-import './js/fn.import.js';
-import './js/fn.request.js';
-import './js/fn.start-on.js';
+import Sparky from './modules/sparky.js';
+import { cue } from './modules/timer.js';
+export default Sparky;
+export { default as functions } from './modules/fn.js';
+export { transforms, transformers } from './modules/transforms.js';
 
-export { transforms, transformers } from './js/transforms.js';
+// Launch sparky on sparky templates.
+// Ultimately this will be a web component, I guess
+cue({
+    fire: function() {
+        window.document
+        .querySelectorAll('[is="sparky"]')
+        .forEach((node) => {
+            new Sparky(node);
+        });
+    }
+});

@@ -4,7 +4,7 @@ import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import { default as Struct, ReadableStruct } from './struct.js';
 import { cue } from './timer.js';
 
-const DEBUG      = true;//false;
+const DEBUG      = false;
 
 const A          = Array.prototype;
 const assign     = Object.assign;
@@ -513,9 +513,10 @@ const mountNode  = overload(get('nodeType'), {
 			return;
 		}
 
-		// Get an immutable list of children. We don't want to mount
-		// elements that may be dynamically inserted later by other sparky
-		// processes. Remember node.childNodes is dynamic.
+		// Get an immutable list of children. Remember node.childNodes is
+		// dynamic, and we don't want to mount elements that may be dynamically
+		// inserted later by other sparky processes, so turn childNodes into
+		// an array.
 		mountCollection(Array.from(node.childNodes), options, structs);
 		mountClass(node, options);
 		mountBooleans(bindings.default.booleans, node, options);
@@ -570,7 +571,7 @@ function eachFrame(sparky) {
 		if (scope === undefined) { return; }
 
 		function render(time) {
-			sparky.push(scope);
+			sparky.render(scope);
 		}
 
 		unobserve();
