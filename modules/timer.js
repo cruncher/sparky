@@ -30,7 +30,7 @@ function collate(data, renderer) {
 	}
 	else {
 		data[key] = {
-			name:  renderer.render ?
+			name: renderer.render ?
 				(renderer.render.name || 'anonymous') :
 				renderer.name,
 			token: renderer.render && renderer.token,

@@ -1,4 +1,5 @@
 import { Observer, Stream, capture, observe } from '../../fn/fn.js';
+import Struct from './struct.js';
 import importTemplate from './import-template.js';
 import { parseParams as captureParams } from './parse.js';
 import mount, { mountAttribute } from './mount.js';
@@ -41,11 +42,11 @@ function firstRenderTemplate(target, content) {
     // Wait for target to be put in the DOM
     // Todo: only really needed to support fn each with templates...
     // Can we make each better?
-    Promise.resolve()
-    .then(function() {
+    //Promise.resolve()
+    //.then(function() {
         target.before(content);
         target.remove();
-    });
+    //});
 }
 
 function firstRenderElement(target, content) {
@@ -57,11 +58,22 @@ function run(context, node, input, attr, config) {
     let result;
 
     while(input && attr && (result = captureFn({}, attr))) {
+        // Find the Sparky function by name
         const fn = config.functions[result.name];
-        if (!fn) { throw new Error('Sparky fn ' + result.name + '() not found.'); }
+        if (!fn) { throw new Error('Sparky fn "' + result.name + '" not found.'); }
+
         attr = result.remainingString;
         config.fn = attr;
-        input = fn.call(context, node, input, result.params, config) || input;
+
+        // Return values from Sparky functions mean -
+        // stream    - use the new input stream
+        // undefined - use the same input streeam
+        // false     - stop processing this node
+        const output = fn.call(context, node, input, result.params, config);
+        input = output === undefined ? input : output ;
+
+        // Keep the config object sane. This is a precaution aginst
+        // this config object ending up being used elsewhere
         config.fn = '';
     }
 
@@ -148,8 +160,10 @@ function setupTarget(target, input, fn, config) {
         const input2 = Stream.of();
 
         input.each((scope) => {
-            structs.forEach(function push(struct) {
-                struct.push(scope);
+            structs.reduce(function push(scope, struct) {
+console.log(struct);
+                struct.render(scope);
+                return scope;
             });
 
             input2.push(scope);
@@ -172,23 +186,22 @@ function setupSrc(target, src, input, onFirstRender, config) {
     if (source) {
         return setupSource(target, source, input, onFirstRender, config);
     }
-    else {
-        let stopped;
-        let renderer;
 
-        importTemplate(src)
-        .then((source) => {
-            if (stopped) { return; }
-            renderer = setupSource(target, source, input, onFirstRender, config);
-        });
+    let stopped;
+    let renderer;
 
-        return {
-            stop: function() {
-                stopped = true;
-                renderer && renderer.stop();
-            }
-        };
-    }
+    importTemplate(src)
+    .then((source) => {
+        if (stopped) { return; }
+        renderer = setupSource(target, source, input, onFirstRender, config);
+    });
+
+    return {
+        stop: function() {
+            stopped = true;
+            renderer && renderer.stop();
+        }
+    };
 }
 
 function setupSource(target, source, input, onFirstRender, config) {
@@ -207,7 +220,9 @@ function setupSource(target, source, input, onFirstRender, config) {
         }
         renderer.push(scope);
         if (!count) {
-console.log('RENDER', target, document.body.contains(target), source.innerHTML, content, onFirstRender, scope);
+            if (DEBUG) {
+                console.log('%cSparky %crender', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', target, document.body.contains(target));
+            }
             onFirstRender(target, content);
         }
         ++count;
@@ -274,7 +289,7 @@ export default function Sparky(selector, options) {
     const src   = target.getAttribute(config.attributeTemplate) ;
 
     if (DEBUG) {
-        console.log('%cSparky %csetup', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', target);
+        console.log('%cSparky', 'color: #a3b31f; font-weight: 600;', target);
     }
 
     const renderer = src ? setupTarget(target, input, fn, config) :

@@ -10,8 +10,12 @@
         }
     </style>
 
+    <template id="template-0">
+        <p>Template 0 {[]} - {[.]}</p>
+    </template>
+
     <template id="template-1">
-        <p>Template 1 {[]}</p>
+        <p>Template 1 {[]} - {[.]}</p>
     </template>
 
     <template id="template-2">
@@ -25,20 +29,31 @@
 
 <body>
     <template is="sparky" fn="data">
-        <p>Paragraph 0 {[]}</p>
-        <p>Paragraph 1 {[.]}</p>
+        <!--p>Paragraph 0 {[]} - {[.]}</p>
         <render template="#template-1"></render>
         <render fn="get:0" template="#template-2"></render>
         <render template="#template-3"></render>
         <render template="test-template.html#test-template-1"></render>
         <render fn="get:0" template="test-template.html#test-template-2"></render>
         <render template="test-template.html#test-template-3"></render>
-        <p fn="test each test">Paragraph 2 {[]}</p>
-        <!--render fn="each" template="#template-1"></render-->
+        <table>
+            <tbody>
+                <tr>
+                    <td fn="each">Table cell 1 {[.]}</td>
+                </tr>
+                <tr fn="each">
+                    <td>Table cell 2 {[.]}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p fn="test each test">Paragraph 1 {[]}</p>
+        <render fn="each" template="#template-1"></render-->
+        <render fn="each" template="#{[ id|is:0|yesno:'template-0','template-1' ]}"></render>
     </template>
 
     <script type="module">
-        import { Observer, Stream } from '../fn/fn.js';
+        import { Observer, Stream, Fn } from '../fn/fn.js';
         import Sparky, { functions } from './sparky.js';
 
         functions.data = function(node, params) {
@@ -55,6 +70,7 @@
                         scopes.push(data);
 
                         setTimeout(function() {
+                            Observer(data)[0].value = 'surprise';
                             Observer(data).push({ id: 5 });
                         }, 1000);
                     }, 1000);
@@ -67,5 +83,6 @@
         functions.test = function(node, stream, params) {
             //console.log('node:', node, 'params:', params);
         };
+
     </script>
 </body>

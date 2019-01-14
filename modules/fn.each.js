@@ -1,10 +1,10 @@
 /*
-	
+
 */
 
 
-import { Fn, noop, observe } from '../../fn/fn.js';
-import { before, tag, isFragmentNode } from '../../dom/dom.js';
+import { Fn, last, noop, observe } from '../../fn/fn.js';
+import { create, before, tag, isFragmentNode } from '../../dom/dom.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
@@ -17,22 +17,23 @@ const isArray = Array.isArray;
 
 const $scope = Symbol('scope');
 
-var i = 0;
-
-function create(master, options) {
+function createEntry(master, index, config) {
 	const node = master.cloneNode(true);
+	const fragment = document.createDocumentFragment();
+	fragment.appendChild(node);
 
 	if (DEBUG) {
-		node.removeAttribute('master');
-		node.setAttribute('count', i++);
+		node.setAttribute('data-index', index);
 	}
 
-	const sparky = new Sparky(node, options);
-	sparky.nodes = { 0: node, length: 1 };
+	// We treat the sparky object as a store for carrying internal data
+	// like fragment and nodes, because we can
+	const sparky = new Sparky(node, config);
+	sparky.fragment = fragment;
 	return sparky;
 }
 
-function reorderCache(master, array, sparkies, config) {
+function reorderCache(master, array, sparkies, index, config) {
 	// Reorder sparkies
 	let n = -1;
 	while (++n < array.length) {
@@ -50,7 +51,7 @@ function reorderCache(master, array, sparkies, config) {
 
 		// Create a new one or splice the existing one out
 		sparky = i === sparkies.length ?
-			create(master, object, config) :
+			createEntry(master, index++, config) :
 			sparkies.splice(i, 1)[0];
 
 		// Splice it into place
@@ -60,8 +61,17 @@ function reorderCache(master, array, sparkies, config) {
 	// Reordering has pushed unused sparkies to the end of
 	// sparkies collection. Go ahead and remove them.
 	while (sparkies.length > array.length) {
-		A.forEach.call(sparkies.pop().stop().nodes, (node) => node.remove());
+		const sparky = sparkies.pop().stop();
+
+		// If sparky nodes are not yet in the DOM, sparky does not have a
+		// .nodes property and we may ignore it
+		if (sparky.nodes) {
+			A.forEach.call(sparky.nodes, (node) => node.remove());
+		}
 	}
+
+	// Keep index up to date
+	return index;
 }
 
 function reorderNodes(node, array, sparkies) {
@@ -71,18 +81,35 @@ function reorderNodes(node, array, sparkies) {
 	var parent = node.parentNode;
 
 	while (n < l) {
-		// Note that node is null where nextSibling does not exist
+		// Note that node is null where nextSibling does not exist.
+		// Passing null to insertBefore appends to the end
 		node = node ? node.nextSibling : null ;
 
-		while (++n < l && sparkies[n].nodes[0] !== node) {
+		while (++n < l && (!sparkies[n].nodes || sparkies[n].nodes[0] !== node)) {
 			if (!sparkies[n][$scope]) {
 				sparkies[n].render(array[n]);
 				sparkies[n][$scope] = array[n];
 			}
 
-			// Passing null to insertBefore appends to the end I think
-			parent.insertBefore(sparkies[n].nodes[0], node);
+			if (sparkies[n].fragment) {
+				// Cache nodes in the fragment
+				sparkies[n].nodes = Array.from(sparkies[n].fragment.childNodes);
+
+				// Stick fragment in the DOM
+				parent.insertBefore(sparkies[n].fragment, node);
+				sparkies[n].fragment = undefined;
+			}
+			else {
+				// Reorder exising nodes
+				let i = -1;
+				while (sparkies[n].nodes[++i]) {
+					parent.insertBefore(sparkies[n].nodes[i], node);
+				}
+			}
 		}
+
+		if (!sparkies[n]) { break; }
+		node = last(sparkies[n].nodes);
 	}
 }
 
@@ -97,7 +124,7 @@ function eachFrame(stream, fn) {
 		unobserve();
 
 		const renderer = {
-			name: 'each mutation',
+			name: 'eachMutate',
 			fire: function render(time) {
 				fn(scope);
 			}
@@ -142,6 +169,9 @@ export default function each(node, scopes, params, config) {
 	const marker   = Marker(node);
 	const isOption = tag(node) === 'option';
 
+	// An internal index for each created node. Used only for debugging.
+	let index = 0;
+
 	function update(array) {
 		// Selects will lose their value if the selected option is removed
 		// from the DOM, even if there is another <option> of same value
@@ -154,7 +184,7 @@ export default function each(node, scopes, params, config) {
 			array = Object.entries(array).map(entryToKeyValue);
 		}
 
-		reorderCache(node, array, sparkies, config);
+		index = reorderCache(node, array, sparkies, index, config);
 		reorderNodes(marker, array, sparkies);
 
 		// A fudgy workaround because observe() callbacks (like this update
@@ -175,7 +205,7 @@ export default function each(node, scopes, params, config) {
 	if (config.fn) { node.setAttribute(config.attributeFn, config.fn); }
 	else { node.removeAttribute(config.attributeFn); }
 
-	if (DEBUG) { node.setAttribute('master', ''); }
+	if (DEBUG) { node.setAttribute('data-index', 'master'); }
 
 	node.remove();
 
