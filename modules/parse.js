@@ -124,9 +124,11 @@ assign(Tag.prototype, {
             '' ;
     },
 
-    toBoolean: function toBoolean() {
+    valueOf: function valueOf() {
         // Don't pipe undefined
-        return !!(this.value && this.pipe(this.value));
+        return this.value === undefined ?
+            undefined :
+            this.pipe(this.value) ;
     }
 });
 

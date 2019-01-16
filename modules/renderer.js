@@ -22,7 +22,7 @@ Object.assign(Renderer.prototype, {
             // Passing in null as an initial value to observe() forces the
             // callback to called immediately.
             token.unobserve && token.unobserve();
-			token.unobserve = observe(token.path, (value) => {
+			token.unobserve = observe(token.path, (value = null) => {
 				token.value = value;
 				if (this.cued) { return; }
 				this.cued = true;

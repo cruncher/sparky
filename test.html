@@ -67,7 +67,8 @@
             </tbody>
         </table-->
 
-        <p fn="test each test">Paragraph 1 {[]} - <span hidden="{[value|yesno:false,true]}">value: {[value]}</span></p>
+        <p fn="test each">{[POO]}</p>
+        <p fn="test each">Paragraph 1 {[.]}<span hidden="{[value|not]}"> - value: {[value]}</span></p>
 
         <!--render fn="each" template="#template-1"></render>
         <render fn="each" template="#template-{[id]}"></render-->
@@ -173,6 +174,10 @@
                         setTimeout(function() {
                             Observer(data)[0].value = 'surprise';
                             Observer(data).push({ id: 5 });
+
+                            setTimeout(function() {
+                                Observer(data)[0].value = 'coooeeee';
+                            }, 2000);
                         }, 1000);
                     }, 1000);
                 }, 1000);

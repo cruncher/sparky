@@ -6,7 +6,7 @@ const assign = Object.assign;
 const empty  = Object.freeze({});
 
 function isTruthy(token) {
-	return token.toBoolean();
+	return !!token.valueOf();
 }
 
 export default function BooleanRenderer(source, fn, data) {
