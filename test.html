@@ -19,7 +19,7 @@
     </template>
 
     <template id="template-2">
-        <p>Template 2 {[]}</p>
+        <p>Template 2 {[]} {[value]}<span hidden="{[value]}">Has value!</span></p>
     </template>
 
     <template id="template-3" fn="get:1">
@@ -49,8 +49,7 @@
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
 
     <template is="sparky" fn="data">
-        {[n|add:1]}
-        <p>Paragraph 0 {[]} - {[.]}</p>
+        <!--p>Paragraph 0 {[]} - {[.]}</p>
         <render template="#template-1"></render>
         <render fn="get:0" template="#template-2"></render>
         <render template="#template-3"></render>
@@ -66,10 +65,12 @@
                     <td>Table cell 2 {[.]}</td>
                 </tr>
             </tbody>
-        </table>
-        <p fn="test each test">Paragraph 1 {[]}</p>
-        <render fn="each" template="#template-1"></render>
-        <render fn="each" template="#template-{[id]}"></render>
+        </table-->
+
+        <p fn="test each test">Paragraph 1 {[]} - <span hidden="{[value|yesno:false,true]}">value: {[value]}</span></p>
+
+        <!--render fn="each" template="#template-1"></render>
+        <render fn="each" template="#template-{[id]}"></render-->
     </template>
 
     <script type="module">

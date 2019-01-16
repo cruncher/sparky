@@ -65,7 +65,7 @@ function logRenders(tStart, tStop, errors) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.group('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	addons.length = 0;

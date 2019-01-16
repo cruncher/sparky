@@ -3,6 +3,8 @@ import { choose, get, isDefined, nothing, noop, overload, Observable as Observab
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import toRenderString from './render.js';
 import Struct, { ReadableStruct } from './struct.js';
+import BooleanRenderer from './renderer.boolean.js';
+import StringRenderer from './renderer.string.js';
 import { cue } from './timer.js';
 import bindings from './bindings.js';
 
@@ -33,6 +35,10 @@ const settings = {
 	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 };
 
+const push = (value, pushable) => {
+	pushable.push(value);
+	return value;
+};
 
 // Struct value read and write
 
@@ -155,55 +161,26 @@ function writeBooleanAttr(name, node, value) {
 	}
 }
 
-function renderString(value) {
-	this.data.values[this.data.i] = toRenderString(value);
-	this.data.write(this.data.name, this.node, this.data.values.join(''));
-}
+function mountString(source, render, options) {
+	if (!source) { return; }
 
-function mountStringToken(name, node, write, strings, options, match) {
-	var i = strings.length;
-	strings.push('');
+	const renderer = new StringRenderer(source, render);
 
-	// new Struct(node, token, path, render)
-	options.createStruct(node, match[0], match[2], renderString, match[3], {
-		i:      i,
-		values: strings,
-		name:   name,
-		write:  write
-	});
-}
+	// We are reduced to checking for push as constructor cant return
+	// undefined. Todo: turn StringRenderer into a factory function rather
+	// than a constructor so it can return undefined.
+	if (!renderer.push) { return; }
 
-function mountString(name, node, string, render, options) {
-	var rtoken  = options.rtoken || settings.rtoken;
-	var i       = rtoken.lastIndex = 0;
-	var match   = rtoken.exec(string);
-
-	if (!match) { return; }
-
-	var strings = [];
-
-	while (match) {
-		if (match.index > i) {
-			strings.push(string.slice(i, match.index));
-		}
-
-		mountStringToken(name, node, render, strings, options, match);
-		i = rtoken.lastIndex;
-		match = rtoken.exec(string);
-	}
-
-	if (string.length > i) {
-		strings.push(string.slice(i));
-	}
+	options.renderers.push(renderer);
 }
 
 function mountAttribute(name, node, options, prefixed) {
 	name = cased[name] || name;
-	var text = prefixed !== false
+	var source = prefixed !== false
 		&& node.getAttribute(options.attributePrefix + name)
 		|| node.getAttribute(name) ;
 
-	return text && mountString(name, node, text, writeAttribute, options);
+	return mountString(source, (string) => node.setAttribute(cased[name] || name, string), options);
 }
 
 function mountAttributes(names, node, options) {
@@ -215,76 +192,53 @@ function mountAttributes(names, node, options) {
 	}
 }
 
-function renderBoolean(value) {
-	this.data.values[this.data.i] = value;
-	this.data.write(this.data.name, this.node, !!this.data.values.find(isTruthy));
-}
-
-function mountBooleanToken(name, node, write, values, options, match) {
-	var i = values.length;
-	values.push(false);
-
-	options.createStruct(node, match[0], match[2], renderBoolean, match[3], {
-		i:      i,
-		values: values,
-		name:   name,
-		write:  write
-	});
-}
-
-export function mountBoolean(name, node, options) {
+function mountBoolean(name, node, options) {
 	// Look for prefixed attributes before attributes.
 	//
 	// In FF, the disabled attribute is set to the previous value that the
 	// element had when the page is refreshed, so it contains no sparky
 	// tags. The proper way to address this problem is to set
 	// autocomplete="off" on the parent form or on the field.
+	const prefixed = node.getAttribute(options.attributePrefix + name);
+	const source   = prefixed || node.getAttribute(name);
+	if (!source) { return; }
 
-	var prefixed = node.getAttribute(options.attributePrefix + name);
-	var string   = prefixed || node.getAttribute(name);
+	const render = name in node ?
+		(bool) => {
+console.log('Render boolean prop', node, name, bool);
+			node[name] = bool ;
+		} :
+		(bool) => {
+console.log('Render boolean attr', node, name, bool);
+			bool ?
+				node.setAttribute(name, '') :
+				node.removeAttribute(name) ;
+		} ;
 
-	// Fast out
-	if (!string) { return; }
+	const renderer = new BooleanRenderer(source, render);
 
-	var rtoken  = options.rtoken;
-	var i       = rtoken.lastIndex = 0;
-	var match   = rtoken.exec(string);
-
-	// Fast out
-	if (!match) { return; }
-
-	var write = name in node ?
-		writeProperty :
-		writeBooleanAttr ;
+	// We are reduced to checking for push as constructor cant return
+	// undefined. Todo: turn BooleanRenderer into a factory function rather
+	// than a constructor so it can return undefined.
+	if (!renderer.push) { return; }
 
 	// Where the unprefixed attribute is populated, Return the property to
-	// the default value.
-	if (!prefixed) {
-		write(name, node, nothing);
-	}
+	// the default value... Todo: is this still necessary? It will sit
+	// unrendered for a while, but it's not in the DOM, so what harm done?
+	//if (!prefixed) {
+	//	render(false);
+	//}
 
-	var values = [];
-	var value;
+	options.renderers.push(renderer);
 
-	while (match) {
-		if (match.index > i) {
-			value = string.slice(i, match.index);
+	/* Not sure what for ?
+		if (string.length > i) {
+			value = string.slice(i);
 			if (!rempty.test(value)) {
 				values.push(value);
 			}
 		}
-
-		mountBooleanToken(name, node, write, values, options, match);
-		i     = rtoken.lastIndex;
-		match = rtoken.exec(string);
-	}
-
-	if (string.length > i) {
-		value = string.slice(i);
-		if (!rempty.test(value)) {
-			values.push(value);
-		}
-	}
+	*/
 }
 
 function mountBooleans(names, node, options) {
@@ -442,7 +396,7 @@ const mountNode  = overload(get('nodeType'), {
 
 	// text
 	3: function mountText(node, options) {
-		mountString('nodeValue', node, node.nodeValue, writeProperty, options);
+		mountString(node.nodeValue, (string) => node.nodeValue = string, options);
 	},
 
 	// comment
@@ -462,12 +416,12 @@ const mountNode  = overload(get('nodeType'), {
 	},
 
 	// array or array-like
-	default: function mountArray(node, options) {
-		if (typeof node.length !== 'number') {
-			throw new Error('Cannot mount object. It is neither a node nor a collection.', node);
+	default: function mountArray(collection, options) {
+		if (typeof collection.length !== 'number') {
+			throw new Error('Cannot mount object. It is neither a node nor a collection.', collection);
 		}
 
-		mountCollection(node, options);
+		mountCollection(collection, options);
 	}
 });
 
@@ -542,6 +496,10 @@ export default function mount(node, overrides) {
 		return struct;
 	};
 
+	// Renderers is the new hotness. We should be able to replace structs
+	// entirely with renderers.
+	const renderers = options.renderers = [];
+
 	mountNode(node, options, structs);
 
 	if (DEBUG) {
@@ -555,9 +513,11 @@ export default function mount(node, overrides) {
 			structs.forEach(function(struct) {
 				struct.stop();
 			});
+
+			renderers.forEach((renderer) => renderer.stop());
 		},
 
-		push: function push(scope) {
+		push: function(scope) {
 			//if (DEBUG) { console.log('mount: push(scope)', scope); }
 			if (old === scope) { return; }
 			old = scope;
@@ -576,6 +536,8 @@ export default function mount(node, overrides) {
 					bind(struct, scope, options);
 				}
 			});
+
+			renderers.reduce(push, scope);
 		}
 	}
 }
