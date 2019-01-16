@@ -1,6 +1,5 @@
 
-import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream, postpad } from '../../fn/fn.js'
-import { isTextNode }   from '../../dom/dom.js';
+import { get, id, noop, pipe, remove, getPath, setPath, Observable as ObservableStream } from '../../fn/fn.js'
 import { parsePipe }    from './parse.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './timer.js';
@@ -62,6 +61,13 @@ export default function Struct(node, token, path, render, pipe, data) {
 	this.pipe    = pipe;
 	this.data    = data;
 
+	// From .start() - we moved it here to simplify things
+	// Todo: We need rid of the leading '|' in struct.pipe
+	this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
+	this.originalValue = this.read ? this.read() : '' ;
+	this.start  = noop;
+	this.status = 'active';
+
 	addStruct(this);
 }
 
@@ -101,25 +107,7 @@ assign(Struct.prototype, {
 	},
 
 	start: function() {
-		// Todo: We need rid of the leading '|' in struct.pipe
-		this.transform = this.pipe ? parsePipe(this.pipe.slice(1)) : id ;
-		this.originalValue = this.read ? this.read() : '' ;
-		this.start  = noop;
-		this.status = 'active';
-
-		// If this is a value we want to pause updates while the input is being
-		// used.
-		//if (this.data.name === 'value') {
-		//	this.node.addEventListener('mousedown', function(e) {
-		//		struct.status = 'paused';
-		//	});
-		//
-		//	this.node.addEventListener('mouseup', function(e) {
-		//		struct.status = 'active';
-		//	});
-		//}
-
-		if (DEBUG) { console.log('start: ', this.token, this.originalValue); }
+		console.warn('Struct.start is deprecated');
 	},
 
 	bind: function(scope) {
@@ -141,12 +129,12 @@ assign(Struct.prototype, {
 	},
 
 	fire: function() {
-		//console.log('STRUCT UPDATE', this.token);
-
 		var transform = this.transform;
 
 		// Does this give us null for non-values? Surely it doesnt spit out undefined.
 		var value     = this.input && this.input.shift();
+
+
 
 		if (DEBUG) { console.log('update:', this.token, value, this.originalValue); }
 

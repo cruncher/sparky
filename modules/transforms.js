@@ -6,6 +6,7 @@ import {
 	append,
 	curry,
 	contains,
+	compose,
 	equals,
 	formatDate,
 	formatTime,
@@ -50,12 +51,12 @@ import {
 import {
 	escape,
 	toPx,
-	toRem
+	toRem,
+	parse
 } from '../../dom/dom.js';
 
 var debug     = true;
 var A         = Array.prototype;
-var assign    = Object.assign;
 
 const reducers = {
 	sum: add
@@ -133,7 +134,6 @@ export const transformers = {
 	polar:     { tx: toPolar, ix: toCartesian },
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
-	decibels:  { tx: todB, ix: toLevel },
 	level:     { tx: toLevel, ix: todB },
 	px:        { tx: toPx, ix: toRem },
 	rem:       { tx: toRem, ix: toPx }

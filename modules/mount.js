@@ -1,8 +1,10 @@
 
-import { choose, get, id, isDefined, nothing, noop, overload, postpad, toType, Observable as ObservableStream, observe } from '../../fn/fn.js';
+import { choose, get, isDefined, nothing, noop, overload, Observable as ObservableStream, observe } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
-import { default as Struct, ReadableStruct } from './struct.js';
+import toRenderString from './render.js';
+import Struct, { ReadableStruct } from './struct.js';
 import { cue } from './timer.js';
+import bindings from './bindings.js';
 
 const DEBUG      = false;
 
@@ -22,9 +24,6 @@ const rempty  = /^\s*$/;
 // Matches anything that contains a non-space character
 const rtext = /\S/;
 
-// Matches the arguments list in the result of a fn.toString()
-const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
-
 const settings = {
 	attributePrefix: 'sparky-',
 	mount:           noop,
@@ -32,54 +31,6 @@ const settings = {
 	transforms:      {},
 	transformers:    {},
 	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
-};
-
-const bindings = {
-	// All
-	default:  { booleans:   ['hidden'], attributes: ['id', 'title', 'style'] },
-
-	// HTML
-	a:        { attributes: ['href'] },
-	button:   { booleans:   ['disabled'] },
-	form:     { attributes: ['method', 'action'] },
-	fieldset: { booleans:   ['disabled'] },
-	img:      { attributes: ['alt']	},
-	input:    {
-		booleans:   ['disabled', 'required'],
-		attributes: ['name'],
-		types: {
-			button:   { attributes: ['value'] },
-			checkbox: { attributes: [], booleans: ['checked'], value: 'checkbox' },
-			date:     { attributes: ['min', 'max', 'step'], value: 'string' },
-			hidden:   { attributes: ['value'] },
-			image:    { attributes: ['src'] },
-			number:   { attributes: ['min', 'max', 'step'], value: 'number' },
-			radio:    { attributes: [], booleans: ['checked'], value: 'radio' },
-			range:    { attributes: ['min', 'max', 'step'], value: 'number' },
-			reset:    { attributes: ['value'] },
-			submit:   { attributes: ['value'] },
-			time:     { attributes: ['min', 'max', 'step'], value: 'string' },
-			default:  { value: 'string' }
-		}
-	},
-	label:    { attributes: ['for'] },
-	meta:     { attributes: ['content'] },
-	meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
-	option:   { attributes: ['value'], booleans: ['disabled'] },
-	output:   { attributes: ['for'] },
-	progress: { attributes: ['max', 'value'] },
-	select:   { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
-	textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
-	time:     { attributes: ['datetime'] },
-
-	// SVG
-	svg:      { attributes: ['viewbox'] },
-	g:        { attributes: ['transform'] },
-	path:     { attributes: ['d', 'transform'] },
-	line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
-	rect:     { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-	text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
-	use:      { attributes: ['href', 'transform'] }
 };
 
 
@@ -166,41 +117,6 @@ const cased = {
 
 const getType = get('type');
 
-const toRenderString = overload(toType, {
-	'boolean': function(value) {
-		return value + '';
-	},
-
-	'function': function(value) {
-		// Print function and parameters
-		return (value.name || 'function')
-			+ (rarguments.exec(value.toString()) || [])[1];
-	},
-
-	'number': function(value) {
-		// Convert NaN to empty string and Infinity to ∞ symbol
-		return Number.isNaN(value) ? '' :
-			Number.isFinite(value) ? value + '' :
-			value < 0 ? '-∞' : '∞';
-	},
-
-	'string': id,
-
-	'symbol': function(value) {
-		return value.toString();
-	},
-
-	'undefined': function() {
-		return '';
-	},
-
-	'object': function(value) {
-		// Don't render null
-		return value ? JSON.stringify(value) : '';
-	},
-
-	'default': JSON.stringify
-});
 
 function addClasses(classList, text) {
 	var classes = toRenderString(text).trim().split(rspaces);
@@ -281,7 +197,7 @@ function mountString(name, node, string, render, options) {
 	}
 }
 
-export function mountAttribute(name, node, options, prefixed) {
+function mountAttribute(name, node, options, prefixed) {
 	name = cased[name] || name;
 	var text = prefixed !== false
 		&& node.getAttribute(options.attributePrefix + name)
@@ -294,7 +210,7 @@ function mountAttributes(names, node, options) {
 	var name;
 	var n = -1;
 
-	while (name = names[++n]) {
+	while ((name = names[++n])) {
 		mountAttribute(name, node, options);
 	}
 }
@@ -375,7 +291,7 @@ function mountBooleans(names, node, options) {
 	var name;
 	var n = -1;
 
-	while (name = names[++n]) {
+	while ((name = names[++n])) {
 		mountBoolean(name, node, options);
 	}
 }
@@ -483,10 +399,10 @@ function mountTag(settings, node, options) {
 }
 
 function mountCollection(children, options, structs) {
-	var n = -1;
-	var child, struct;
+	let n = -1;
+	let child;
 
-	while (child = children[++n]) {
+	while ((child = children[++n])) {
 		//struct = options.mount(child, options);
 		//if (struct) {
 		//	structs.push(struct);

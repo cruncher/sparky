@@ -8,7 +8,7 @@ const documentRequest = Promise.resolve(window.document);
 const fetchDocument = cache(function fetchDocument(path) {
     return path ?
         fetch(path)
-        .then(response => response.text())
+        .then((response) => response.text())
         .then(parse('html'))
         .then(function(doc) {
             if (!doc) {
@@ -31,7 +31,7 @@ const fetchDocument = cache(function fetchDocument(path) {
             );
 
             return DEBUG ? promise.then((object) => {
-                console.log('%cSparky %cimported', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
+                console.log('%cSparky %cimport', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
                 return object;
             }) :
             promise ;
@@ -73,7 +73,7 @@ export default function importTemplate(src) {
     return fetchDocument(path)
     .then((doc) => {
         // Imported templates are now in the current document
-        let elem = document.getElementById(id);
+        const elem = document.getElementById(id);
 
         if (DEBUG && !elem) {
             throw new Error('Sparky: template "' + id + '" not found in "' + path + '"');

@@ -1,11 +1,11 @@
-import { Observer, Stream, capture, observe } from '../../fn/fn.js';
-import Struct from './struct.js';
+import { Observer, Stream, capture } from '../../fn/fn.js';
+import StringRenderer from './renderer.string.js';
 import importTemplate from './import-template.js';
 import { parseParams as captureParams } from './parse.js';
-import mount, { mountAttribute } from './mount.js';
+import mount from './mount.js';
 import fns from './fn.js';
 
-const DEBUG = true;
+const DEBUG = false;//true;
 
 const assign = Object.assign;
 
@@ -129,55 +129,31 @@ function mountContent(content, config) {
     return mount(content, settings);
 }
 
-function setupTarget(target, input, fn, config) {
-    const structs = [];
+function setupTarget(target, src, input, fn, config) {
     const firstRender = target.content || target.tagName.toLowerCase() === 'render' ?
         firstRenderTemplate :
         firstRenderElement ;
 
     input = run(null, target, input, fn, config);
+
+    // If input is false we are not to render this sparky
     if (!input) { return; }
 
-    let renderer;
-
-    // Mount the target src attribute with an overidden render fn
-    mountAttribute(config.attributeTemplate, target, {
-        createStruct: function(node, token, path, render, pipe, data) {
-            const struct = new Struct(node, token, path, (src) => {
-                renderer = setupSrc(target, src, input, firstRender, config);
-            }, pipe, data);
-            structs.push(struct);
-            return struct;
-        }
+    const srcRenderer = new StringRenderer(src, (string) => {
+        setupSrc(target, string, input, firstRender, config)
     });
 
-    // If src attribute is not dependent on scope, render the
-    // target right away
-    if (!structs.length) {
-        return setupSrc(target, target.getAttribute(config.attributeTemplate), input, firstRender, config);
+    // Constructors (StringRenderer) cannot return undefined or null, but
+    // returns an empty object if no tags were found. Check fopr .push().
+    if (!srcRenderer || !srcRenderer.push) {
+        return setupSrc(target, src, input, firstRender, config);
     }
-    else {
-        const input2 = Stream.of();
 
-        input.each((scope) => {
-            structs.reduce(function push(scope, struct) {
-console.log(struct);
-                struct.render(scope);
-                return scope;
-            });
+    input.each((scope) => {
+        srcRenderer.push(scope);
+    });
 
-            input2.push(scope);
-        });
-
-        input = input2;
-
-        return {
-            stop: function() {
-                renderer && renderer.stop();
-                return this;
-            }
-        };
-    }
+    return srcRenderer;
 }
 
 function setupSrc(target, src, input, onFirstRender, config) {
@@ -194,6 +170,9 @@ function setupSrc(target, src, input, onFirstRender, config) {
     .then((source) => {
         if (stopped) { return; }
         renderer = setupSource(target, source, input, onFirstRender, config);
+    })
+    .catch(function(error) {
+        console.log('%cSparky %ctemplate "'+ src +'" not found. Ignoring.', 'color: #915133; font-weight: 600;', 'color: #d34515; font-weight: 400;');
     });
 
     return {
@@ -292,7 +271,7 @@ export default function Sparky(selector, options) {
         console.log('%cSparky', 'color: #a3b31f; font-weight: 600;', target);
     }
 
-    const renderer = src ? setupTarget(target, input, fn, config) :
+    const renderer = src ? setupTarget(target, src, input, fn, config) :
         target.content ? setupTemplate(target, input, fn, config) :
         setupElement(target, input, fn, config) ;
 

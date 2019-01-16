@@ -42,7 +42,9 @@
   },
   "license": "private",
   "scripts": {
-    "lint": "eslint js/*.js modules/polyfills*.js plugins/*.js",
+    "lint-modules": "eslint modules/*.js",
+    "lint-plugins": "eslint plugins/*.js",
+    "lint": "npm run lint-modules && npm run lint-plugins",
     "test": "karma start",
     "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 3.0.0\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
     "build-min": "uglifyjs dist/sparky.js --compress --output dist/sparky.min.js",

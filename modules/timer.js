@@ -1,5 +1,5 @@
 
-import { get, invoke, nothing } from '../../fn/fn.js';
+import { get } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
 const DEBUG  = window.DEBUG || false;
@@ -21,19 +21,17 @@ function sum(a, b) {
 }
 
 function collate(data, renderer) {
-	var key = renderer.render ?
+	var key = renderer.label || (renderer.render ?
 		(renderer.render.name || 'anonymous') + (renderer.token || '') :
-		renderer.name ;
+		renderer.name
+	);
 
 	if (data[key]) {
 		data[key].count++;
 	}
 	else {
 		data[key] = {
-			name: renderer.render ?
-				(renderer.render.name || 'anonymous') :
-				renderer.name,
-			token: renderer.render && renderer.token,
+			label: key,
 			count: 1
 		};
 	}
@@ -41,9 +39,33 @@ function collate(data, renderer) {
 	return data;
 }
 
+function logRenders(tStart, tStop, errors) {
+	// Pass some information to the frame cuer for debugging
+	const data = Object.values(Array.from(queue).concat(addons).reduce(collate, {}));
+	const mutations = data
+	.filter((entry) => !!entry.token)
+	.map(getCount)
+	.reduce(sum, 0);
+
+	console.table(data);
+
+	if (DEBUG) {
+		console.log(queue.size + ' cued, ' + addons.length + ' immediate calls, ' + mutations + ' DOM renders, took ' + (tStop - tStart).toFixed(3) + 's');
+		console.groupEnd();
+	}
+
+	if (errors.length) {
+		console.log('       %c' + errors.length + ' Errors rendering ' + errors.join(' '), 'color: #d34515; font-weight: 400;');
+	}
+
+	if ((tStop - tStart) > maxFrameDuration) {
+		console.log('       %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 400;');
+	}
+}
+
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.group('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	addons.length = 0;
@@ -57,7 +79,7 @@ function run(time) {
 	if (DEBUG) {
 		for (renderer of queue) {
 			try {
-					renderer.fire();
+					(renderer.fire ? renderer.fire() : renderer.render());
 			}
 			catch(e) {
 				console.log('%cError rendering ' + renderer.token + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
@@ -68,37 +90,14 @@ function run(time) {
 	}
 	else {
 		for (renderer of queue) {
-			renderer.fire();
+			(renderer.fire ? renderer.fire() : renderer.render());
 		}
 	}
 
 	const tStop = now();
 
 	if (DEBUG || errors.length || ((tStop - tStart) > maxFrameDuration)) {
-		// Pass some information to the frame cuer for debugging
-		// Todo: I think ultimately it would be better to pass entire
-		// structs to the cuer, instead of trying to recreate unique functions
-		// to use as identities...
-		const data = Object.values(Array.from(queue).concat(addons).reduce(collate, {}));
-		const mutations = data
-		.filter((entry) => !!entry.token)
-		.map(getCount)
-		.reduce(sum, 0);
-
-		console.table(data);
-
-		if (DEBUG) {
-			console.log(queue.size + ' cued, ' + addons.length + ' immediate calls, ' + mutations + ' DOM renders, took ' + (tStop - tStart).toFixed(3) + 's');
-			console.groupEnd();
-		}
-
-		if (errors.length) {
-			console.log('       %c' + errors.length + ' Errors rendering ' + errors.join(' '), 'color: #d34515; font-weight: 400;');
-		}
-
-		if ((tStop - tStart) > maxFrameDuration) {
-			console.log('       %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 400;');
-		}
+		logRenders(tStart, tStop, errors);
 	}
 
 	queue.clear();
@@ -114,7 +113,7 @@ export function cue(renderer) {
 	// Functions cued during frame are run syncronously (to preserve
 	// inner-DOM-first order of execution during setup)
 	if (frame === true) {
-		renderer.fire();
+		(renderer.fire ? renderer.fire() : renderer.render());
 		addons.push(renderer);
 		return;
 	}

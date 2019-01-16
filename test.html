@@ -23,13 +23,34 @@
     </template>
 
     <template id="template-3" fn="get:1">
-        <p>Template 3 {[]}</p>
+        <p>Template 3 {[.]}</p>
+    </template>
+
+    <template id="template-4">
+        <p>Template 4 {[.]} {[id|add:9]}</p>
+    </template>
+
+    <template id="template-5">
+        <p>Template 5 {[.]}</p>
     </template>
 </head>
 
 <body>
+     <div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #d0e84a;">#d0e84a</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #b9d819;">#b9d819</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #a3b31f;">#a3b31f</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #858720;">#858720</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #d34515;">#d34515</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #915133;">#915133</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #723f24;">#723f24</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #6894ab;">#6894ab</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #4a6a7a;">#4a6a7a</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #25343c;">#25343c</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
+
     <template is="sparky" fn="data">
-        <!--p>Paragraph 0 {[]} - {[.]}</p>
+        {[n|add:1]}
+        <p>Paragraph 0 {[]} - {[.]}</p>
         <render template="#template-1"></render>
         <render fn="get:0" template="#template-2"></render>
         <render template="#template-3"></render>
@@ -46,13 +67,92 @@
                 </tr>
             </tbody>
         </table>
-
         <p fn="test each test">Paragraph 1 {[]}</p>
-        <render fn="each" template="#template-1"></render-->
-        <render fn="each" template="#{[ id|is:0|yesno:'template-0','template-1' ]}"></render>
+        <render fn="each" template="#template-1"></render>
+        <render fn="each" template="#template-{[id]}"></render>
     </template>
 
     <script type="module">
+/*
+        import { Observer } from '../fn/fn.js';
+        import { parseText } from './modules/parse.js';
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property ]}')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | type ]}')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | add:2 ]}')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | add:2 | type ]}')
+        );
+
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property ]}').join('')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | type ]}').join('')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | add:2 ]} trailing text').join('')
+        );
+
+        console.log(
+            'PARSE',
+            parseText([], 'Parseable text {[ property | add:2 | type ]} trailing text').join('')
+        );
+
+
+
+        import { StringRenderer } from './modules/renderer.js';
+
+        const results = [
+            'Leading text, number 12, prepad "" to "", trailing text.',
+            'Leading text, number 14, prepad "" to "", trailing text.',
+            'Leading text, number 16, prepad "text" to "--text", trailing text.'
+        ];
+
+        const stringRenderer = new StringRenderer('Leading text, {[number|type]} {[ number | add:2 ]}, prepad "{[ string ]}" to "{[ string | prepad:"-",6 ]}", trailing text.', (string) => {
+            console.log(results.shift() === string);
+        });
+
+        console.log(stringRenderer);
+
+
+        const scope = {
+            number: 10
+        };
+
+        stringRenderer.push(scope);
+
+        setTimeout(function() {
+            Observer(scope).number = 12;
+
+            setTimeout(function() {
+                Observer(scope).number = 14;
+                Observer(scope).string = 'text';
+            }, 500);
+        }, 500);
+
+        //Observer(scope).property = 12;
+*/
+
         import { Observer, Stream, Fn } from '../fn/fn.js';
         import Sparky, { functions } from './sparky.js';
 

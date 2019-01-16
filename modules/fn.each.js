@@ -3,8 +3,8 @@
 */
 
 
-import { Fn, last, noop, observe } from '../../fn/fn.js';
-import { create, before, tag, isFragmentNode } from '../../dom/dom.js';
+import { last, noop, observe } from '../../fn/fn.js';
+import { before, tag, isFragmentNode } from '../../dom/dom.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';

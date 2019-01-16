@@ -1,30 +1,46 @@
 
-import { capture, nothing, pipe } from '../../fn/fn.js'
-
-
-/* Parse parameters */
+import { capture, exec, noop, nothing, pipe } from '../../fn/fn.js'
+import toRenderString from './render.js';
 
 const parseArrayClose = capture(/^\]\s*/, nothing);
 
-//                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string
+//                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string      comma
 export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
-    1: function(params, tokens) { params.push(parseFloat(tokens[1])); return params; },
+    1: function(params, tokens) {
+        params.push(parseFloat(tokens[1]));
+        return params;
+    },
 
     // "string"
-    2: function(params, tokens) { params.push(tokens[2]); return params; },
+    2: function(params, tokens) {
+        params.push(tokens[2]);
+        return params;
+    },
 
     // 'string'
-    3: function(params, tokens) { params.push(tokens[3]); return params; },
+    3: function(params, tokens) {
+        params.push(tokens[3]);
+        return params;
+    },
 
     // null
-    4: function(params) { params.push(null); return params; },
+    4: function(params) {
+        params.push(null);
+        return params;
+    },
 
     // true
-    5: function(params) { params.push(true); return params; },
+    5: function(params) {
+        params.push(true);
+        return params;
+    },
 
     // false
-    6: function(params) { params.push(false); return params; },
+    6: function(params) {
+        params.push(false);
+        return params;
+    },
 
     // array
     7: function(params, tokens) {
@@ -49,7 +65,10 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     //},
 
     // string
-    10: function(params, tokens) { params.push(tokens[10]); return params; },
+    10: function(params, tokens) {
+        params.push(tokens[10]);
+        return params;
+    },
 
     // Comma terminator - more params to come
     11: function(params, tokens) {
@@ -60,68 +79,84 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 
 /* Parse function */
 
-export const parseFn = capture(/^\s*([\w-]+)\s*(:)?/, {
-    1: function(getFn, tokens) {
-        var fn = getFn(tokens[1]);
-        if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
-        return fn;
-    },
-
-    2: function(fn, tokens) {
-        const params = parseParams([], tokens);
-        return fn.apply(null, params);
-    }
-});
-
-
-/* Parse pipe */
-
-
 import { transformers, transforms } from './transforms.js';
 
-function getFn(name) {
-    return transformers[name] ? transformers[name].tx : transforms[name] ;
+function getTransform(name) {
+    return transformers[name] ?
+        transformers[name].tx :
+        transforms[name] ;
 }
 
-const parsePipe1 = capture(/^(\|)?\s*/, {
-    1: function(array, tokens) {
-        array.push(parseFn(getFn, tokens[1]));
-        parsePipe1(array, tokens[1]);
-        return array;
+export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
+    // Function name '...'
+    1: function(fns, tokens) {
+        const fn = getTransform(tokens[1]);
+        if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
+        fns.push(fn);
+        return fns;
+    },
+
+    // Params ':'
+    2: function(fns, tokens) {
+        const params = parseParams([], tokens);
+        fns[fns.length - 1] = fns[fns.length - 1].apply(null, params);
+        return fns;
+    },
+
+    close: capture(/^\s*(\|)?\s*/, {
+        // More pipe '|'
+        1: function(fns, tokens) {
+            return parsePipe(fns, tokens);
+        }
+    })
+})
+
+function toString() {
+    // Don't pipe undefined
+    return this.value !== undefined ?
+        this.pipe(this.value) :
+        '' ;
+}
+
+export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
+    // Object path 'xxxx.xxx.xx-xxx'
+    1: (data, tokens) => {
+        data.path = tokens[1];
+        data.pipe = toRenderString;
+        return data;
+    },
+
+    // Pipe '|'
+    2: function(data, tokens) {
+        const fns = parsePipe([], tokens);
+        fns.push(toRenderString);
+        data.pipe = pipe.apply(null, fns);
+        return data;
+    },
+
+    // Tag close ']}'
+    close: function(data, tokens) {
+        exec(/^\s*\]\}/, noop, tokens);
+        return data;
     }
 });
 
-export function parsePipe(string) {
-    var data = typeof string === 'string' ? {
-        0: '',
-        input: string,
-        index: 0
-    } : string ;
+export const parseText = capture(/^(.*?)(?:(\{\[)|$)/, {
+    // String of text '...'
+    1: (data, tokens) => {
+        // If it exists, push in the leading text
+        if (tokens[1]) {
+            data.push(tokens[1]);
+        }
 
-    var array = [];
-
-    array.push(parseFn(getFn, data));
-    parsePipe1(array, data);
-
-    // No need to pipe if there is but one function
-    return array.length > 1 ?
-        pipe.apply(null, array) :
-        array[0] ;
-}
-
-
-/* Parse tag */
-
-export const parseTag = capture(/\{\[\s*([^|\s]*)\s*(\|)?\s*/, {
-    1: function(object, tokens) {
-        object.path = tokens[1];
-        return object;
+        return data;
     },
 
-    2: function(object, tokens) {
-        object.fn = parsePipe(tokens);
-        return object;
-    },
-
-    close: capture(/^\s*\]\}/, nothing)
+    // Tag opener '{['
+    2: function(data, tokens) {
+        const tag = parseTag({ toString: toString }, tokens);
+        tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.consumed);
+        data.push(tag);
+        return parseText(data, tokens);
+    }
 });
