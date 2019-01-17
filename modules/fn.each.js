@@ -87,7 +87,7 @@ function reorderNodes(node, array, sparkies) {
 
 		while (++n < l && (!sparkies[n].nodes || sparkies[n].nodes[0] !== node)) {
 			if (!sparkies[n][$scope]) {
-				sparkies[n].render(array[n]);
+				sparkies[n].push(array[n]);
 				sparkies[n][$scope] = array[n];
 			}
 
@@ -116,8 +116,8 @@ function reorderNodes(node, array, sparkies) {
 function eachFrame(stream, fn) {
 	var unobserve = noop;
 
-	stream.name = 'each';
-	stream.fire = function update(time) {
+	stream.label = 'each';
+	stream.render = function update(time) {
 		var scope = stream.shift();
 		if (!scope) { return; }
 

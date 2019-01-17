@@ -9,7 +9,7 @@ import StringRenderer  from './renderer.string.js';
 import { cue } from './timer.js';
 import bindings from './bindings.js';
 
-const DEBUG      = false;
+const DEBUG      = false;//true;
 
 const A          = Array.prototype;
 const assign     = Object.assign;
@@ -350,9 +350,9 @@ const mountValue = choose({
 const mountNode  = overload(get('nodeType'), {
 	// element
 	1: function mountElement(node, options, structs) {
-		const struct = options.mount(node, options);
-		if (struct) {
-			structs.push(struct);
+		const sparky = options.mount(node, options);
+		if (sparky) {
+			options.renderers.push(sparky);
 			return;
 		}
 
@@ -398,48 +398,6 @@ const mountNode  = overload(get('nodeType'), {
 	}
 });
 
-
-/* Bind Sparky streams */
-
-function eachFrame(sparky) {
-	const input = sparky.input;
-
-	let unobserve = noop;
-
-	sparky.name = 'Sparky';
-
-	sparky.fire = function update(time) {
-		var scope = input.shift();
-		// Todo: shouldnt need this line - observe(undefined) shouldnt call fn
-		if (scope === undefined) { return; }
-
-		function render(time) {
-			sparky.render(scope);
-		}
-
-		unobserve();
-		unobserve = observe('.', function() {
-			cue({ name: 'Sparky push', fire: render });
-		}, scope);
-	}
-
-	cue(sparky);
-
-	input.on('push', function() {
-		cue(sparky);
-	});
-}
-
-function bind(struct, scope, options) {
-	struct.input = ObservableStream(struct.path, scope).latest();
-
-	// Just for debugging
-	struct.scope = scope;
-
-	// if struct is a Sparky
-	eachFrame(struct);
-}
-
 export { bindings as settings };
 
 export default function mount(node, overrides) {
@@ -480,7 +438,7 @@ export default function mount(node, overrides) {
 		console.table(structs, ['token']);
 	}
 
-	// Return a read-only stream
+	// Return a read-only stream-like
 	return {
 		stop: function stop() {
 			structs.forEach(function(struct) {
@@ -498,21 +456,16 @@ export default function mount(node, overrides) {
 			// Setup structs on the first scope push, unbind them on
 			// later pushes with reset()
 			structs.forEach(function(struct) {
-				struct.reset && struct.reset(options);
+				struct.reset(options);
 			});
 
 			structs.forEach(function(struct) {
-				if (struct.bind) {
-					struct.bind(scope, options);
-				}
-				else {
-					bind(struct, scope, options);
-				}
+				struct.bind(scope, options);
 			});
 
 			renderers.reduce(push, scope);
 		}
-	}
+	};
 }
 
 // Expose a way to get scopes from node for event delegation and debugging

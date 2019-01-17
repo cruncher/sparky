@@ -8,19 +8,30 @@
         body {
             font-family: Helvetica;
         }
+
+        .stylee {
+            background-color: yellow;
+        }
+
+        h2 {
+
+        }
     </style>
 
     <template id="template-0">
-        <p>Template 0 {[]} - {[.]}</p>
+        <p> 0 {[]} - {[.]}</p>
     </template>
 
     <template id="template-1">
-        <p>Template 1.1 <span>{[]}</span> - <span>{[.]}</span></p>
-        <p>Template 1.2 <span>{[]}</span> - <span>{[.]}</span></p>
+        <h2>template-1</h2>
+        <p>p <span>{[]}</span> - <span>{[.]}</span></p>
+        <p>p <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
     <template id="template-2">
-        <p>Template 2 {[]} {[value]}<span hidden="{[value]}">Has value!</span></p>
+        <h2>template-2</h2>
+        <p fn="test">p[fn] <span>{[]}</span> - <span>{[.]}</span></p>
+        <p fn="test">p[fn] <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
     <template id="template-3" fn="get:1">
@@ -33,6 +44,10 @@
 
     <template id="template-5">
         <p>Template 5 {[.]}</p>
+    </template>
+
+    <template id="template-6">
+        <p>{[ NOPROP ]}</p>
     </template>
 </head>
 
@@ -49,133 +64,84 @@
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #25343c;">#25343c</div
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
 
+
+
     <template is="sparky" fn="data">
-        <p>Template 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
-        <p class="leading-class {[0.value]} trailing-class">Template 0.2 <span>{[]}</span> - <span class="leading-class {[0.id]} trailing-class">{[.]}</span></p>
+        <h2>template[fn]</h2>
+        <p>p 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p>p 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>template[fn]</h2>
+        <p fn="test">p[fn] 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p fn="test">p[fn] 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
     <template is="sparky" fn="data" include="#template-1">
-        <p>Waiting for data...</p>
+        <p>template[fn][include] Waiting for data...</p>
+    </template>
+
+    <template is="sparky" fn="data" include="#template-2">
+        <p>template[fn][include] Waiting for data...</p>
     </template>
 
     <template is="sparky" fn="data">
-        <!--p include="#template-1">
-            Hello
-        </p-->
-        <!--template fn="get:0" include="#template-2"></template>
-        <template include="#template-3"></template>
-        <template include="#template-3">
-            <p>Default, static content</p>
-        </template>
-        <template include="test-template.html#test-template-1"></template>
-        <template fn="get:0" include="test-template.html#test-template-2"></template>
-        <template include="test-template.html#test-template-3"></template>
+        <div include="#template-1">div[include="#template-1"] Waiting for data...</div>
+        <div include="#template-2">div[include="#template-1"] Waiting for data...</div>
+    </template>
+
+    <template is="sparky" fn="data">
+        <template include="#template-1">template[include="#template-1"] Waiting for data...</template>
+        <template include="#template-2">template[include="#template-1"] Waiting for data...</template>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>table td[fn=each], tr[fn=each]</h2>
         <table>
             <tbody>
                 <tr>
-                    <td fn="each">Table cell 1 {[.]}</td>
+                    <td fn="each">Table cell 1 <span class="leading-class {[value]} trailing-class">{[.]}</span><span hidden="{[value|not]}"> - value: {[value]}</span></td>
                 </tr>
                 <tr fn="each">
-                    <td>Table cell 2 {[.]}</td>
+                    <td>Table cell 2 <span class="leading-class {[value]} trailing-class">{[.]}</span><span hidden="{[value|not]}"> - value: {[value]}</span></td>
                 </tr>
             </tbody>
         </table>
+    </template>
 
+    <template is="sparky" fn="data">
+        <h2>External templates</h2>
+        <template include="test-template.html#test-template-1"></template>
+        <template fn="get:0" include="test-template.html#test-template-2"></template>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>Unrendered (should show nothing)</h2>
+        <p>{[POO]}</p>
+        <p fn="test">{[POO]}</p>
         <p fn="test each">{[POO]}</p>
-        <p fn="test each">Paragraph 1 {[.]}<span hidden="{[value|not]}"> - value: {[value]}</span></p-->
-
-        <!--render fn="each" include="#template-1"></template>
-        <template fn="each" include="#template-{[id]}"></render-->
+        <p fn="test each" include="#template-6"></p>
     </template>
 
     <script type="module">
-/*
-        import { Observer } from '../fn/fn.js';
-        import { parseText } from './modules/parse.js';
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property ]}')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | type ]}')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | add:2 ]}')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | add:2 | type ]}')
-        );
-
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property ]}').join('')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | type ]}').join('')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | add:2 ]} trailing text').join('')
-        );
-
-        console.log(
-            'PARSE',
-            parseText([], 'Parseable text {[ property | add:2 | type ]} trailing text').join('')
-        );
-
-
-
-        import { StringRenderer } from './modules/renderer.js';
-
-        const results = [
-            'Leading text, number 12, prepad "" to "", trailing text.',
-            'Leading text, number 14, prepad "" to "", trailing text.',
-            'Leading text, number 16, prepad "text" to "--text", trailing text.'
-        ];
-
-        const stringRenderer = new StringRenderer('Leading text, {[number|type]} {[ number | add:2 ]}, prepad "{[ string ]}" to "{[ string | prepad:"-",6 ]}", trailing text.', (string) => {
-            console.log(results.shift() === string);
-        });
-
-        console.log(stringRenderer);
-
-
-        const scope = {
-            number: 10
-        };
-
-        stringRenderer.push(scope);
-
-        setTimeout(function() {
-            Observer(scope).number = 12;
-
-            setTimeout(function() {
-                Observer(scope).number = 14;
-                Observer(scope).string = 'text';
-            }, 500);
-        }, 500);
-
-        //Observer(scope).property = 12;
-*/
-
         import { Observer, Stream, Fn } from '../fn/fn.js';
         import Sparky, { functions } from './sparky.js';
 
         const data1 = [{ id: 1 }, { id: 2 }];
         const data2 = [{ id: 3 }, { id: 4 }];
 
-        functions.data = function(node, params) {
+        // Mangle data
+        setTimeout(function() {
+            Observer(data2)[0].value = 'surprise';
+            Observer(data2).push({ id: 5 });
+
+            setTimeout(function() {
+                Observer(data2)[0].value = 'stylee';
+            }, 2000);
+        }, 4000);
+
+        functions.data = function(node) {
             const scopes = Stream.of();
 
             scopes.label = 'data';
@@ -189,15 +155,6 @@
 
                     setTimeout(function() {
                         scopes.push(data2);
-
-                        setTimeout(function() {
-                            Observer(data2)[0].value = 'surprise';
-                            Observer(data2).push({ id: 5 });
-
-                            setTimeout(function() {
-                                Observer(data2)[0].value = 'coooeeee';
-                            }, 2000);
-                        }, 1000);
                     }, 1000);
                 }, 1000);
             }, 1000);

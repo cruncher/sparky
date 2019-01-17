@@ -55,7 +55,7 @@ function logRenders(tStart, tStop, errors) {
 	//console.table(data);
 
 	if (DEBUG) {
-		console.log(queue.size + ' cued, ' + addons.length + ' immediate calls, ' + mutations + ' DOM renders, took ' + (tStop - tStart).toFixed(3) + 's');
+		console.log('%c' + queue.size + ' cued call' + (queue.size === 1 ? '' : 's') + '. ' + addons.length + ' immediate call'+ (addons.length === 1 ? '' : 's') + '. ' + mutations + ' DOM renders %c' + (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
 		console.groupEnd();
 	}
 
