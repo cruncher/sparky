@@ -11,7 +11,6 @@ function isTruthy(token) {
 
 export default function BooleanRenderer(source, fn, data) {
     this.label  = 'Boolean renderer';
-	this.source = source;
 	this.fn     = fn;
 	this.tokens = parseBoolean([], source);
 

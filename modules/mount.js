@@ -4,7 +4,8 @@ import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import toRenderString from './render.js';
 import Struct, { ReadableStruct } from './struct.js';
 import BooleanRenderer from './renderer.boolean.js';
-import StringRenderer from './renderer.string.js';
+import ClassRenderer   from './renderer.class.js';
+import StringRenderer  from './renderer.string.js';
 import { cue } from './timer.js';
 import bindings from './bindings.js';
 
@@ -134,10 +135,6 @@ function removeClasses(classList, text) {
 	classList.remove.apply(classList, classes);
 }
 
-function isTruthy(value) {
-	return !!value;
-}
-
 function matchToken(string, options) {
 	var rtoken = options.rtoken;
 	rtoken.lastIndex = 0;
@@ -205,11 +202,9 @@ function mountBoolean(name, node, options) {
 
 	const render = name in node ?
 		(bool) => {
-console.log('Render boolean prop', node, name, bool);
 			node[name] = bool ;
 		} :
 		(bool) => {
-console.log('Render boolean attr', node, name, bool);
 			bool ?
 				node.setAttribute(name, '') :
 				node.removeAttribute(name) ;
@@ -221,13 +216,6 @@ console.log('Render boolean attr', node, name, bool);
 	// undefined. Todo: turn BooleanRenderer into a factory function rather
 	// than a constructor so it can return undefined.
 	if (!renderer.push) { return; }
-
-	// Where the unprefixed attribute is populated, Return the property to
-	// the default value... Todo: is this still necessary? It will sit
-	// unrendered for a while, but it's not in the DOM, so what harm done?
-	//if (!prefixed) {
-	//	render(false);
-	//}
 
 	options.renderers.push(renderer);
 
@@ -250,38 +238,23 @@ function mountBooleans(names, node, options) {
 	}
 }
 
-function renderClass(string) {
-	if (this.data.previous && rtext.test(this.data.previous)) {
-		removeClasses(this.data.classes, this.data.previous);
-	}
+function mountClass(node, options) {
+	// Are there classes?
+	const source = attribute('class', node);
+	if (!source) { return; }
 
-	if (string && rtext.test(string)) {
-		addClasses(this.data.classes, string);
-	}
-
-	this.data.previous = string;
-}
-
-export function mountClass(node, options) {
-	var rtoken = options.rtoken;
-	var attr   = attribute('class', node);
-
-	// If there are no classes, go no further
-	if (!attr) { return; }
-
-	var cls = classes(node);
-
-	// Extract the tags
-	var text = attr.replace(rtoken, function($0, $1, $2, $3, $4) {
-		options.createStruct(node, $0, $2, renderClass, $3, {
-			previous: '',
-			classes:  cls
-		});
-		return '';
+	const list = classes(node);
+	const renderer = new ClassRenderer(node, source, (string, current) => {
+		current && rtext.test(current) && removeClasses(list, current);
+		string && rtext.test(string) && addClasses(list, string);
 	});
 
-	// Overwrite the class with remaining text
-	node.setAttribute('class', text);
+	// We are reduced to checking for push as constructor cant return
+	// undefined. Todo: turn BooleanRenderer into a factory function rather
+	// than a constructor so it can return undefined.
+	if (!renderer || !renderer.push) { return; }
+
+	options.renderers.push(renderer);
 }
 
 function mountValueNumber(node, options) {

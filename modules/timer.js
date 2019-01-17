@@ -21,19 +21,26 @@ function sum(a, b) {
 }
 
 function collate(data, renderer) {
-	var key = renderer.label || (renderer.render ?
-		(renderer.render.name || 'anonymous') + (renderer.token || '') :
-		renderer.name
-	);
+	var key = renderer.label;
 
 	if (data[key]) {
-		data[key].count++;
+		data[key]++;
 	}
 	else {
-		data[key] = {
-			label: key,
-			count: 1
-		};
+		data[key] = 1;
+	}
+
+	return data;
+}
+
+function mutations(data, renderer) {
+	var key = renderer.label;
+
+	if (data[key]) {
+		data[key]++;
+	}
+	else {
+		data[key] = 1;
 	}
 
 	return data;
@@ -41,13 +48,11 @@ function collate(data, renderer) {
 
 function logRenders(tStart, tStop, errors) {
 	// Pass some information to the frame cuer for debugging
-	const data = Object.values(Array.from(queue).concat(addons).reduce(collate, {}));
-	const mutations = data
-	.filter((entry) => !!entry.token)
-	.map(getCount)
-	.reduce(sum, 0);
+	const renderers = Array.from(queue).concat(addons);
+	const data      = renderers.reduce(collate, {});
+	const mutations = renderers.filter((renderer) => renderer.tokens).length;
 
-	console.table(data);
+	//console.table(data);
 
 	if (DEBUG) {
 		console.log(queue.size + ' cued, ' + addons.length + ' immediate calls, ' + mutations + ' DOM renders, took ' + (tStop - tStart).toFixed(3) + 's');

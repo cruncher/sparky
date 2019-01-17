@@ -11,12 +11,12 @@ export default function MarkerNode(node, config) {
         return create('text', '');
     }
 
-    var attrFn       = node && node.getAttribute(config ? config.attributeFn : 'fn');
-    var attrTemplate = node && node.getAttribute(config ? config.attributeTemplate : 'template');
+    var attrFn      = node && node.getAttribute(config ? config.attributeFn : 'fn');
+    var attrInclude = node && node.getAttribute(config ? config.attributeInclude : 'template');
 
     return create('comment',
         tag(node) +
         (attrFn ? ' ' + (config ? config.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
-        (attrTemplate ? ' ' + (config ? config.attributeTemplate : 'template') + '="' + attrTemplate + '"' : '')
+        (attrInclude ? ' ' + (config ? config.attributeInclude : 'template') + '="' + attrInclude + '"' : '')
     );
 }

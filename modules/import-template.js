@@ -31,7 +31,7 @@ const fetchDocument = cache(function fetchDocument(path) {
             );
 
             return DEBUG ? promise.then((object) => {
-                console.log('%cSparky %cimport', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
+                console.log('%cSparky %cinclude', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
                 return object;
             }) :
             promise ;
@@ -46,7 +46,7 @@ let scriptCount = 0;
 
 function toScriptPromise(node) {
     return new Promise(function(resolve, reject) {
-        window['scriptImport' + (++scriptCount)] = resolve;
+        window['sparkyScriptImport' + (++scriptCount)] = resolve;
 
         // This method doesnt seem to run the script
         // document.head.appendChild(document.adoptNode(node));
@@ -56,7 +56,7 @@ function toScriptPromise(node) {
         script.title = node.title || node.baseURL;
 
         // Detect script has parsed and executed
-        script.textContent = node.textContent + ';window.scriptImport' + scriptCount + '();';
+        script.textContent = node.textContent + ';window.sparkyScriptImport' + scriptCount + '();';
         document.head.appendChild(script);
     });
 }

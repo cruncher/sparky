@@ -119,9 +119,11 @@ assign(Tag.prototype, {
 
     toString: function toString() {
         // Don't pipe undefined
-        return this.value !== undefined ?
-            toRenderString(this.pipe(this.value)) :
-            '' ;
+        return toRenderString(
+            this.value === undefined ?
+                undefined :
+                this.pipe(this.value)
+        );
     },
 
     valueOf: function valueOf() {

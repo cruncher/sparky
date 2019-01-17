@@ -15,7 +15,8 @@
     </template>
 
     <template id="template-1">
-        <p>Template 1 {[]} - {[.]}</p>
+        <p>Template 1.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p>Template 1.2 <span>{[]}</span> - <span>{[.]}</span></p>
     </template>
 
     <template id="template-2">
@@ -49,13 +50,26 @@
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
 
     <template is="sparky" fn="data">
-        <!--p>Paragraph 0 {[]} - {[.]}</p>
-        <render template="#template-1"></render>
-        <render fn="get:0" template="#template-2"></render>
-        <render template="#template-3"></render>
-        <render template="test-template.html#test-template-1"></render>
-        <render fn="get:0" template="test-template.html#test-template-2"></render>
-        <render template="test-template.html#test-template-3"></render>
+        <p>Template 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p class="leading-class {[0.value]} trailing-class">Template 0.2 <span>{[]}</span> - <span class="leading-class {[0.id]} trailing-class">{[.]}</span></p>
+    </template>
+
+    <template is="sparky" fn="data" include="#template-1">
+        <p>Waiting for data...</p>
+    </template>
+
+    <template is="sparky" fn="data">
+        <!--p include="#template-1">
+            Hello
+        </p-->
+        <!--template fn="get:0" include="#template-2"></template>
+        <template include="#template-3"></template>
+        <template include="#template-3">
+            <p>Default, static content</p>
+        </template>
+        <template include="test-template.html#test-template-1"></template>
+        <template fn="get:0" include="test-template.html#test-template-2"></template>
+        <template include="test-template.html#test-template-3"></template>
         <table>
             <tbody>
                 <tr>
@@ -65,13 +79,13 @@
                     <td>Table cell 2 {[.]}</td>
                 </tr>
             </tbody>
-        </table-->
+        </table>
 
         <p fn="test each">{[POO]}</p>
-        <p fn="test each">Paragraph 1 {[.]}<span hidden="{[value|not]}"> - value: {[value]}</span></p>
+        <p fn="test each">Paragraph 1 {[.]}<span hidden="{[value|not]}"> - value: {[value]}</span></p-->
 
-        <!--render fn="each" template="#template-1"></render>
-        <render fn="each" template="#template-{[id]}"></render-->
+        <!--render fn="each" include="#template-1"></template>
+        <template fn="each" include="#template-{[id]}"></render-->
     </template>
 
     <script type="module">
@@ -158,25 +172,30 @@
         import { Observer, Stream, Fn } from '../fn/fn.js';
         import Sparky, { functions } from './sparky.js';
 
+        const data1 = [{ id: 1 }, { id: 2 }];
+        const data2 = [{ id: 3 }, { id: 4 }];
+
         functions.data = function(node, params) {
             const scopes = Stream.of();
 
+            scopes.label = 'data';
+
             setTimeout(function() {
-                scopes.push(null);
+                //console.log('PUSH null')
+                //scopes.push(null);
 
                 setTimeout(function() {
-                    scopes.push([{ id: 1 }, { id: 2 }]);
+                    scopes.push(data1);
 
                     setTimeout(function() {
-                        const data = [{ id: 3 }, { id: 4 }];
-                        scopes.push(data);
+                        scopes.push(data2);
 
                         setTimeout(function() {
-                            Observer(data)[0].value = 'surprise';
-                            Observer(data).push({ id: 5 });
+                            Observer(data2)[0].value = 'surprise';
+                            Observer(data2).push({ id: 5 });
 
                             setTimeout(function() {
-                                Observer(data)[0].value = 'coooeeee';
+                                Observer(data2)[0].value = 'coooeeee';
                             }, 2000);
                         }, 1000);
                     }, 1000);

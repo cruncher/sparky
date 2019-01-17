@@ -7,7 +7,6 @@ const empty  = Object.freeze({});
 
 export default function StringRenderer(source, fn) {
     this.label  = 'String renderer';
-    this.source = source;
     this.fn     = fn;
     this.tokens = parseText([], source);
 
