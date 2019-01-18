@@ -20,10 +20,13 @@ if (window.console && window.console.log) {
 }
 
 import Sparky from './modules/sparky.js';
-import { cue } from './modules/timer.js';
 export default Sparky;
+
 export { default as functions } from './modules/fn.js';
 export { transforms, transformers } from './modules/transforms.js';
+export { events } from '../dom/dom.js';
+export { notify } from '../fn/fn.js';
+import { cue }    from './modules/timer.js';
 
 // Launch sparky on sparky templates.
 // Ultimately this will be a web component, I guess

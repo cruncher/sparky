@@ -1,11 +1,10 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
-import StringRenderer from './renderer.string.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import mount from './mount.js';
 import fns from './fn.js';
 
-const DEBUG = true;
+const DEBUG = false;//true;
 
 const assign = Object.assign;
 
@@ -34,9 +33,9 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
 });
 
 function logSparky(attrFn, attrInclude, target) {
-    console.log('%cSparky %c'
-        + (attrFn ? 'fn="' + attrFn + '" ' : '')
-        + (attrInclude ? 'include="' + attrInclude + '"' : ''),
+    console.log('%cSparky%c'
+        + (attrFn ? ' fn="' + attrFn + '"' : '')
+        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
         'color: #6894ab; font-weight: 400;',
         target
@@ -67,7 +66,9 @@ function run(context, node, input, attrFn, config) {
         // undefined - use the same input streeam
         // false     - stop processing this node
         const output = fn.call(context, node, input, result.params, config);
-        input = output === undefined ? input : output ;
+        input = output === undefined ? input :
+            output === input ? input :
+            output && output.map(toObserverOrSelf) ;
 
         // Keep the config object sane, a precaution aginst
         // this config object ending up being used elsewhere
@@ -174,7 +175,8 @@ function setupTarget(src, input, render, config) {
 }
 
 function setupSrc(src, input, firstRender, config) {
-    const source = document.querySelector(src);
+    // Strip off leading # before running the test
+    const source = document.getElementById(src.replace(/^#/, ''));
 
     if (source) {
         return setupInclude(source, input, firstRender, config);
@@ -189,7 +191,7 @@ function setupSrc(src, input, firstRender, config) {
         renderer = setupInclude(source, input, firstRender, config);
     })
     .catch(function(error) {
-        console.log('%cSparky %ctemplate "'+ src +'" not found. Ignoring.', 'color: #915133; font-weight: 600;', 'color: #d34515; font-weight: 400;');
+        console.log('%c'+ error.message, 'color: #d34515; font-weight: 400;');
     });
 
     let value;

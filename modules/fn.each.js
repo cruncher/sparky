@@ -124,7 +124,7 @@ function eachFrame(stream, fn) {
 		unobserve();
 
 		const renderer = {
-			name: 'eachMutate',
+			name: 'each mutation',
 			fire: function render(time) {
 				fn(scope);
 			}
@@ -137,6 +137,7 @@ function eachFrame(stream, fn) {
 		cue(stream);
 	}
 
+	// Support streams and functors
 	if (stream.on) {
 		stream.on('push', push);
 	}
