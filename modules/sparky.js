@@ -1,7 +1,7 @@
-import { Observer, Stream, capture, nothing } from '../../fn/fn.js';
+import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
 import StringRenderer from './renderer.string.js';
 import importTemplate from './import-template.js';
-import { parseParams } from './parse.js';
+import { parseParams, parseText } from './parse.js';
 import mount from './mount.js';
 import fns from './fn.js';
 
@@ -33,6 +33,15 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
     }
 });
 
+function logSparky(attrFn, attrInclude, target) {
+    console.log('%cSparky %c'
+        + (attrFn ? 'fn="' + attrFn + '" ' : '')
+        + (attrInclude ? 'include="' + attrInclude + '"' : ''),
+        'color: #858720; font-weight: 600;',
+        'color: #6894ab; font-weight: 400;',
+        target
+    );
+}
 
 function toObserverOrSelf(object) {
     return Observer(object) || object;
@@ -41,11 +50,6 @@ function toObserverOrSelf(object) {
 function replace(target, content) {
     target.before(content);
     target.remove();
-}
-
-function firstRenderElement(target, content) {
-    target.innerHTML = '';
-    target.appendChild(content);
 }
 
 function run(context, node, input, attrFn, config) {
@@ -72,8 +76,6 @@ function run(context, node, input, attrFn, config) {
 
     return input;
 }
-
-var i = 0;
 
 function mountContent(content, config) {
     const settings = {
@@ -106,7 +108,7 @@ function mountContent(content, config) {
             }, config));
 
             // This is just some help for logging mounted tags
-            sparky.label = 'Sparky-' + (i++) + ' (mounted)';
+            sparky.label = 'Sparky (child)';
 
             // Return a writeable stream. A write stream
             // must have the methods .push() and .stop()
@@ -123,27 +125,59 @@ function mountContent(content, config) {
     return mount(content, settings);
 }
 
-function setupTarget(target, src, input, firstRender, attrFn, config) {
-    const renderer = new StringRenderer(src, (string) => {
-        console.log('Dynamic include', src);
-        setupSrc(target, string, input, firstRender, config)
-    });
+function setupTarget(src, input, render, config) {
+    const tokens = parseText([], src);
 
-    // Constructors (StringRenderer) cannot return undefined or null, but
-    // returns an empty object if no tags were found. Check for .push().
-    if (renderer && renderer.push) {
-        input = input.tap((scope) => renderer.push(scope));
-        return renderer;
+    // If there are no dynamic tokens to render, return the include
+    if (tokens.length === 0 || (tokens.length === 1 && typeof tokens[0] === 'string')) {
+        return setupSrc(src, input, render, config);
     }
 
-    return setupSrc(target, src, input, firstRender, config);
+    let output  = nothing;
+    let stop    = noop;
+    let prevSrc;
+
+    function update(renderedSrc, scope) {
+        output.stop();
+        output = Stream.of(scope);
+        stop();
+        stop = setupSrc(renderedSrc, output, render, config);
+    }
+
+    input.each(function(scope) {
+        let n = tokens.length;
+
+        while (n--) {
+            const token = tokens[n];
+
+            // Ignore plain strings
+            if (typeof token === 'string') { continue; }
+
+            // Passing in NaN as an initial value to observe() forces the
+            // callback to be called immediately. It's a bit tricksy, but this
+            // works because even NaN !== NaN.
+            token.unobserve && token.unobserve();
+            token.unobserve = observe(token.path, (value) => {
+                token.value = value || null;
+                const src = tokens.join('');
+                if (src === prevSrc) { return; }
+                prevSrc = src;
+                update(src, scope);
+            }, scope, NaN);
+        }
+    });
+
+    return () => {
+        output.stop();
+        stop();
+    };
 }
 
-function setupSrc(target, src, input, firstRender, config) {
+function setupSrc(src, input, firstRender, config) {
     const source = document.querySelector(src);
 
     if (source) {
-        return setupInclude(target, source, input, firstRender, config);
+        return setupInclude(source, input, firstRender, config);
     }
 
     let stopped;
@@ -152,7 +186,7 @@ function setupSrc(target, src, input, firstRender, config) {
     importTemplate(src)
     .then((source) => {
         if (stopped) { return; }
-        renderer = setupInclude(target, source, input, firstRender, config);
+        renderer = setupInclude(source, input, firstRender, config);
     })
     .catch(function(error) {
         console.log('%cSparky %ctemplate "'+ src +'" not found. Ignoring.', 'color: #915133; font-weight: 600;', 'color: #d34515; font-weight: 400;');
@@ -166,15 +200,16 @@ function setupSrc(target, src, input, firstRender, config) {
     }
 }
 
-function setupInclude(target, include, input, firstRender, config) {
+function setupInclude(include, input, firstRender, config) {
     const attrFn  = include.getAttribute(config.attributeFn);
     const content = include.content.cloneNode(true);
 
     if (attrFn) {
         input = run(null, content, input, attrFn, config);
+
         if (!input) {
-            console.log('Stopped processing include - fn returned false', include);
-            return;
+            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;', include.id);
+            return noop;
         }
     }
 
@@ -184,7 +219,7 @@ function setupInclude(target, include, input, firstRender, config) {
         const first = !renderer;
         if (first) { renderer = mountContent(content, config); }
         renderer.push(scope);
-        if (first) { firstRender(target, content); }
+        if (first) { firstRender(content); }
     });
 
     if (DEBUG) {
@@ -196,7 +231,20 @@ function setupInclude(target, include, input, firstRender, config) {
     };
 }
 
-function setupTemplate(target, input, attrFn, config) {
+function setupElement(target, input, config) {
+    let renderer;
+
+    input.each((scope) => {
+        renderer = renderer || mountContent(target, config);
+        renderer.push(scope);
+    });
+
+    return function stop() {
+        renderer && renderer.stop();
+    };
+}
+
+function setupTemplate(target, input, config) {
     let renderer;
 
     input.each((scope) => {
@@ -211,16 +259,24 @@ function setupTemplate(target, input, attrFn, config) {
     };
 }
 
-function setupTemplateInclude(target, src, input, attrFn, config) {
+function setupElementInclude(target, src, input, config) {
+    return setupTarget(src, input, (content) => {
+        target.innerHTML = '';
+        target.appendChild(content);
+    }, config);
+}
+
+function setupTemplateInclude(target, src, input, config) {
     const children = assign({}, target.content.childNodes);
 
     // We assume content to be static, perhaps naively, as the include
     // template is going to overwrite it.
     if (children[0]) {
         replace(target, target.content);
+        target = children[0];
     }
 
-    return setupTarget(children[0] || target, src, input, (target, content) => {
+    return setupTarget(src, input, (content) => {
         // Remove children from 1 up,
         // uncache from 0 up
         let n = -1;
@@ -237,27 +293,11 @@ function setupTemplateInclude(target, src, input, attrFn, config) {
         // which we avoided doing above to keep it as a position marker in
         // the DOM for this...
         replace(target, content);
-    }, attrFn, config);
-}
 
-function setupElement(target, input, attrFn, config) {
-    let renderer;
-
-    input.each((scope) => {
-        renderer = renderer || mountContent(target, config);
-        renderer.push(scope);
-    });
-
-    return function stop() {
-        renderer && renderer.stop();
-    };
-}
-
-function setupElementInclude(target, src, input, attrFn, config) {
-    return setupTarget(target, src, input, (target, content) => {
-        target.innerHTML = '';
-        target.appendChild(content);
-    }, attrFn, config);
+        // Update target
+        if (!children[0]) { throw new Error('No target, use marker'); }
+        target = children[0];
+    }, config);
 }
 
 export default function Sparky(selector, options) {
@@ -273,12 +313,12 @@ export default function Sparky(selector, options) {
 
     // Todo: replace with a tailored source stream rather than this
     // generic pushable stream - should not be able to push
-    const input  = Stream.of();
+    const input  = Stream.of().map(toObserverOrSelf);
     const attrFn = config.fn || target.getAttribute(config.attributeFn) || '';
     const output = run(null, target, input, attrFn, config);
 
     this.push = (scope) => {
-        input.push(toObserverOrSelf(scope));
+        input.push(scope);
         return this;
     };
 
@@ -293,25 +333,18 @@ export default function Sparky(selector, options) {
 
     const attrInclude = config.include || target.getAttribute(config.attributeInclude) || '';
 
-    // We have consumed fn and include now, we may blank them, I think
+    // We have consumed fn and include now, we may blank them before
+    // passing them on to the mounter
     config.fn      = '';
     config.include = '';
 
-    if (DEBUG) {
-        console.log('%cSparky %c'
-            + (attrFn ? 'fn "' + attrFn + '" ' : '')
-            + (attrInclude ? 'include "' + attrInclude + '"' : ''),
-            'color: #858720; font-weight: 600;',
-            'color: #6894ab; font-weight: 400;',
-            target
-        );
-    }
+    if (DEBUG) { logSparky(attrFn, attrInclude, target); }
 
     const stop = target.content ?
         attrInclude ?
-            setupTemplateInclude(target, attrInclude, output, attrFn, config) :
-            setupTemplate(target, output, attrFn, config) :
+            setupTemplateInclude(target, attrInclude, output, config) :
+            setupTemplate(target, output, config) :
         attrInclude ?
-            setupElementInclude(target, attrInclude, output, attrFn, config) :
-            setupElement(target, output, attrFn, config) ;
+            setupElementInclude(target, attrInclude, output, config) :
+            setupElement(target, output, config) ;
 }

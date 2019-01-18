@@ -1,6 +1,8 @@
 
 <template id="test-template-1">
-    <p>Template 4 {[]} - {[.]}</p>
+    <h2>external-template-1</h2>
+    <p>p <span>{[]}</span> - <span>{[.]}</span></p>
+    <p>p <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
 </template>
 
 <template id="test-template-2">
