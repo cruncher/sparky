@@ -11,29 +11,10 @@ const queue = new Set();
 
 const addons = [];
 
-const getCount = get('count');
-
 let frame;
 const errors = [];
 
-function sum(a, b) {
-	return a + b;
-}
-
 function collate(data, renderer) {
-	var key = renderer.label;
-
-	if (data[key]) {
-		data[key]++;
-	}
-	else {
-		data[key] = 1;
-	}
-
-	return data;
-}
-
-function mutations(data, renderer) {
 	var key = renderer.label;
 
 	if (data[key]) {
@@ -70,7 +51,7 @@ function logRenders(tStart, tStop, errors) {
 
 function run(time) {
 	if (DEBUG) {
-		console.group('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	addons.length = 0;

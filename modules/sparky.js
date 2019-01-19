@@ -186,12 +186,12 @@ function setupSrc(src, input, firstRender, config) {
     let renderer;
 
     importTemplate(src)
+    .catch(function(error) {
+        console.log('%c'+ error.message, 'color: #d34515; font-weight: 400;');
+    })
     .then((source) => {
         if (stopped) { return; }
         renderer = setupInclude(source, input, firstRender, config);
-    })
-    .catch(function(error) {
-        console.log('%c'+ error.message, 'color: #d34515; font-weight: 400;');
     });
 
     let value;
