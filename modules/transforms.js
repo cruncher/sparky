@@ -57,6 +57,7 @@ import {
 
 var debug     = true;
 var A         = Array.prototype;
+var S         = String.prototype;
 
 const reducers = {
 	sum: add
@@ -95,6 +96,17 @@ export const transformers = {
 	'add-date':  { tx: addDate,     ix: curry(function(d, n) { return addDate('-' + d, n); }) },
 	'add-time':  { tx: addTime,     ix: subTime },
 	decibels:    { tx: todB,        ix: toLevel },
+
+	join: {
+		tx: curry(function(string, value) {
+			return A.join.call(value, string);
+		}),
+
+		ix: curry(function(string, value) {
+			return S.split.call(value, string);
+		})
+	},
+
 	multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
@@ -214,10 +226,6 @@ export const transforms = {
 	invert: function(value) {
 		return typeof value === 'number' ? 1 / value : !value ;
 	},
-
-	join: curry(function(string, value) {
-		return A.join.call(value, string);
-	}),
 
 	json: JSON.stringify,
 

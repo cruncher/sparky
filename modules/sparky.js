@@ -32,13 +32,14 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
     }
 });
 
-function logSparky(attrFn, attrInclude, target) {
+function logSparky(attrFn, attrInclude, target, desc) {
     console.log('%cSparky%c'
         + (attrFn ? ' fn="' + attrFn + '"' : '')
         + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
         'color: #6894ab; font-weight: 400;',
-        target
+        target,
+        desc
     );
 }
 
@@ -340,7 +341,12 @@ export default function Sparky(selector, options) {
     config.fn      = '';
     config.include = '';
 
-    if (DEBUG) { logSparky(attrFn, attrInclude, target); }
+    if (DEBUG) {
+        logSparky(attrFn, attrInclude, target, target.content ?
+            attrInclude ? 'template include' : 'template' :
+            attrInclude ? 'element include' : 'element'
+        );
+    }
 
     const stop = target.content ?
         attrInclude ?

@@ -16,17 +16,37 @@ const fetchDocument = cache(function fetchDocument(path) {
                 return;
             }
 
+            const dir = path.replace(/[^\/]+$/, '');
+
+            // Import templates and styles
+
             // Is there a way to do this without importing them into the current document?
             // Is that even wise?
             // Is that just unecessary complexity?
             doc.querySelectorAll('style, template').forEach(function(node) {
-                if (!node.title) { node.title = path; }
+                if (!node.title) { node.title = dir; }
+                document.head.appendChild(document.adoptNode(node));
+            });
+
+            // Import CSS links
+            doc.querySelectorAll('link[rel="stylesheet"]').forEach(function(node) {
+                if (!node.title) { node.title = dir; }
+                const href = node.getAttribute('href');
+
+                // Detect local href. Todo: very crude. Improve.
+                if (/^[^\/]/.test(href)) {
+                    // Get rid of leading './'
+                    const localHref = href.replace(/^\.\//, '');
+                    node.setAttribute('href', dir + localHref);
+                }
+
                 document.head.appendChild(document.adoptNode(node));
             });
 
             // Wait for scripts to execute
             const promise = Promise.all(
-                Array.from(doc.querySelectorAll('script'))
+                Array
+                .from(doc.querySelectorAll('script'))
                 .map(toScriptPromise)
             );
 
