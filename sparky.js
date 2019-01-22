@@ -22,6 +22,7 @@ if (window.console && window.console.log) {
 import Sparky from './modules/sparky.js';
 export default Sparky;
 
+export { default as mount } from './modules/mount.js';
 export { default as functions } from './modules/fn.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';

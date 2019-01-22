@@ -449,6 +449,9 @@ export default function mount(node, overrides) {
 		},
 
 		push: function(scope) {
+			// Render scoped attributes before any value bindings
+			renderers.reduce(push, scope);
+
 			//if (DEBUG) { console.log('mount: push(scope)', scope); }
 			if (old === scope) { return; }
 			old = scope;
@@ -462,8 +465,6 @@ export default function mount(node, overrides) {
 			structs.forEach(function(struct) {
 				struct.bind(scope, options);
 			});
-
-			renderers.reduce(push, scope);
 		}
 	};
 }
