@@ -319,6 +319,7 @@ export default function Sparky(selector, options) {
     const input  = Stream.of().map(toObserverOrSelf);
     const attrFn = config.fn || target.getAttribute(config.attributeFn) || '';
     const output = run(null, target, input, attrFn, config);
+    let stop = noop;
 
     this.push = (scope) => {
         input.push(scope);
@@ -327,7 +328,7 @@ export default function Sparky(selector, options) {
 
     this.stop = () => {
         input.stop();
-        stop && stop();
+        stop();
         return this;
     };
 
@@ -348,7 +349,7 @@ export default function Sparky(selector, options) {
         );
     }
 
-    const stop = target.content ?
+    stop = target.content ?
         attrInclude ?
             setupTemplateInclude(target, attrInclude, output, config) :
             setupTemplate(target, output, config) :
