@@ -1,12 +1,11 @@
 
-import { choose, get, isDefined, nothing, noop, overload, Observable as ObservableStream, observe } from '../../fn/fn.js';
+import { choose, get, isDefined, noop, overload } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import toRenderString from './render.js';
 import Struct, { ReadableStruct } from './struct.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
-import { cue } from './timer.js';
 import bindings from './bindings.js';
 
 const DEBUG      = false;//true;
@@ -20,9 +19,6 @@ const assign     = Object.assign;
 
 // Matches anything with a space
 const rspaces = /\s+/;
-
-// Matches empty or spaces-only string
-const rempty  = /^\s*$/;
 
 // Matches anything that contains a non-space character
 const rtext = /\S/;
@@ -40,6 +36,7 @@ const push = (value, pushable) => {
 	pushable.push(value);
 	return value;
 };
+
 
 // Struct value read and write
 

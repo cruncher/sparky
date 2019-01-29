@@ -8,7 +8,7 @@ const DEBUG = false;//true;
 
 const assign = Object.assign;
 
-const defaults = {
+export const config = {
     attributeFn:      'fn',
     attributeInclude: 'include',
     functions:        fns
@@ -43,6 +43,16 @@ function logSparky(attrFn, attrInclude, target, desc) {
     );
 }
 
+function nodeToString(node) {
+    return '<' +
+    node.tagName.toLowerCase() +
+    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
+        const attr = node.getAttribute(name);
+        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
+    }, '')) +
+    '/>';
+}
+
 function toObserverOrSelf(object) {
     return Observer(object) || object;
 }
@@ -58,7 +68,15 @@ function run(context, node, input, attrFn, config) {
     while(input && attrFn && (result = captureFn({}, attrFn))) {
         // Find the Sparky function by name
         const fn = config.functions[result.name];
-        if (!fn) { throw new Error('Sparky fn "' + result.name + '" not found.'); }
+
+        if (!fn) {
+            throw new Error(
+                'Sparky function "'
+                + result.name
+                + '" not found while mounting node '
+                + nodeToString(node)
+            );
+        }
 
         config.fn = attrFn = result.remainingString;
 
@@ -303,22 +321,22 @@ function setupTemplateInclude(target, src, input, config) {
     }, config);
 }
 
-export default function Sparky(selector, options) {
+export default function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {
-        return new Sparky(selector, options);
+        return new Sparky(selector, settings);
     }
 
     const target = typeof selector === 'string' ?
         document.querySelector(selector) :
         selector ;
 
-    const config = assign({}, options, defaults);
+    const options = assign({}, config, settings);
 
     // Todo: replace with a tailored source stream rather than this
     // generic pushable stream - should not be able to push
     const input  = Stream.of().map(toObserverOrSelf);
-    const attrFn = config.fn || target.getAttribute(config.attributeFn) || '';
-    const output = run(null, target, input, attrFn, config);
+    const attrFn = options.fn || target.getAttribute(options.attributeFn) || '';
+    const output = run(null, target, input, attrFn, options);
     let stop = noop;
 
     this.push = (scope) => {
@@ -335,12 +353,12 @@ export default function Sparky(selector, options) {
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
 
-    const attrInclude = config.include || target.getAttribute(config.attributeInclude) || '';
+    const attrInclude = options.include || target.getAttribute(options.attributeInclude) || '';
 
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter
-    config.fn      = '';
-    config.include = '';
+    options.fn      = '';
+    options.include = '';
 
     if (DEBUG) {
         logSparky(attrFn, attrInclude, target, target.content ?
@@ -351,9 +369,9 @@ export default function Sparky(selector, options) {
 
     stop = target.content ?
         attrInclude ?
-            setupTemplateInclude(target, attrInclude, output, config) :
-            setupTemplate(target, output, config) :
+            setupTemplateInclude(target, attrInclude, output, options) :
+            setupTemplate(target, output, options) :
         attrInclude ?
-            setupElementInclude(target, attrInclude, output, config) :
-            setupElement(target, output, config) ;
+            setupElementInclude(target, attrInclude, output, options) :
+            setupElement(target, output, options) ;
 }
