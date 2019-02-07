@@ -18,7 +18,8 @@ export default function get(node, input, params) {
             noop ;
     });
 
-    input.then(() => stop());
+    // Stream has .then, Fn does not. Todo: what to do?
+    //input.then(() => stop());
 
     return output;
 }

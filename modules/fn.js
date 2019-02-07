@@ -6,6 +6,7 @@ import on       from './fn.on.js';
 import _if      from './fn.if.js';
 import _import  from './fn.import.js';
 import starton  from './fn.start-on.js';
+import scope    from './fn.scope.js';
 
 export default {
     'debug':    debug,
@@ -15,5 +16,6 @@ export default {
     'if':       _if,
     'import':   _import,
     'on':       on,
-    'start-on': starton
+    'start-on': starton,
+    'scope':    scope
 };

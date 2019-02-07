@@ -4,7 +4,7 @@ import { parseParams, parseText } from './parse.js';
 import mount from './mount.js';
 import fns from './fn.js';
 
-const DEBUG = false;//true;
+const DEBUG = true;
 
 const assign = Object.assign;
 

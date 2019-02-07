@@ -19,7 +19,7 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
-import Sparky, { config } from './modules/sparky.js';
+import Sparky from './modules/sparky.js';
 export default Sparky;
 
 export { config } from './modules/sparky.js';
@@ -31,14 +31,25 @@ export { events } from '../dom/dom.js';
 export { notify } from '../fn/fn.js';
 import { cue }    from './modules/timer.js';
 
+const DEBUG = !!window.DEBUG;
+
 // Launch sparky on sparky templates.
 // Ultimately this will be a web component, I guess
 cue({
     fire: function() {
-        window.document
-        .querySelectorAll('[is="sparky"]')
-        .forEach((node) => {
-            new Sparky(node);
-        });
+        const templates = window.document.querySelectorAll('[is="sparky"]');
+
+        if (DEBUG) {
+            console.group('%cSparky%c ' + templates.length + ' root template' + (templates.length === 1 ? '' : 's'),
+                'color: #858720; font-weight: 600;',
+                'color: #6894ab; font-weight: 400;'
+            );
+        }
+
+        templates.forEach(Sparky);
+
+        if (DEBUG) {
+            console.groupEnd();
+        }
     }
 });
