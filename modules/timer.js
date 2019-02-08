@@ -65,10 +65,10 @@ function run(time) {
 	if (DEBUG) {
 		for (renderer of queue) {
 			try {
-					(renderer.fire ? renderer.fire() : renderer.render());
+				(renderer.fire ? renderer.fire() : renderer.render());
 			}
 			catch(e) {
-				console.log('%cError rendering ' + renderer.token + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
+				console.log('%cError rendering ' + renderer.label + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
 				console.error(e);
 				errors.push(renderer.token);
 			}

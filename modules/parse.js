@@ -78,6 +78,13 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 });
 
 
+
+
+
+
+
+
+
 /* Parse function */
 
 import { transformers, transforms } from './transforms.js';
@@ -120,7 +127,7 @@ assign(Tag.prototype, {
     toString: function toString() {
         // Don't pipe undefined
         return toRenderString(
-            this.value === undefined ?
+            this.value === undefined || this.value === null ?
                 undefined :
                 this.pipe(this.value)
         );
@@ -128,7 +135,7 @@ assign(Tag.prototype, {
 
     valueOf: function valueOf() {
         // Don't pipe undefined
-        return this.value === undefined ?
+        return this.value === undefined || this.value === null ?
             undefined :
             this.pipe(this.value) ;
     }
@@ -159,7 +166,7 @@ export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Tag opener '{['
     1: function(data, tokens) {
         const tag = parseTag(new Tag(), tokens);
-        tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.consumed);
+        tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         data.push(tag);
         return parseBoolean(data, tokens);
     }
@@ -178,7 +185,7 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     // Tag opener '{['
     2: function(data, tokens) {
         const tag = parseTag(new Tag(), tokens);
-        tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.consumed);
+        tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         data.push(tag);
         return parseText(data, tokens);
     }
