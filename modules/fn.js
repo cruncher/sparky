@@ -3,6 +3,7 @@ import each     from './fn.each.js';
 import entries  from './fn.entries.js';
 import get      from './fn.get.js';
 import on       from './fn.on.js';
+import prevent  from './fn.prevent.js';
 import _if      from './fn.if.js';
 import _import  from './fn.import.js';
 import starton  from './fn.start-on.js';
@@ -16,6 +17,7 @@ export default {
     'if':       _if,
     'import':   _import,
     'on':       on,
+    'prevent':  prevent,
     'start-on': starton,
     'scope':    scope
 };

@@ -73,7 +73,7 @@ function run(context, node, input, attrFn, config) {
             throw new Error(
                 'Sparky function "'
                 + result.name
-                + '" not found while mounting node '
+                + '" not found mounting node '
                 + nodeToString(node)
             );
         }
