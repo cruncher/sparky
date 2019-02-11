@@ -40,16 +40,24 @@ cue({
         const templates = window.document.querySelectorAll('[is="sparky"]');
 
         if (DEBUG) {
-            console.group('%cSparky%c ' + templates.length + ' root template' + (templates.length === 1 ? '' : 's'),
-                'color: #858720; font-weight: 600;',
-                'color: #6894ab; font-weight: 400;'
-            );
+            templates.forEach((template) => {
+                const attrFn      = template.getAttribute('fn');
+                const attrInclude = template.getAttribute('include');
+
+                console.group('%cSparky%c is="sparky"'
+                    + (attrFn ? ' fn="' + attrFn + '"' : '')
+                    + (attrInclude ? ' include="' + attrInclude + '"' : ''),
+                    'color: #858720; font-weight: 600;',
+                    'color: #6894ab; font-weight: 400;'
+                );
+
+                Sparky(template);
+
+                console.groupEnd();
+            });
         }
-
-        templates.forEach(Sparky);
-
-        if (DEBUG) {
-            console.groupEnd();
+        else {
+            templates.forEach(Sparky);
         }
     }
 });
