@@ -78,13 +78,6 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 });
 
 
-
-
-
-
-
-
-
 /* Parse function */
 
 import { transformers, transforms } from './transforms.js';
@@ -124,6 +117,8 @@ function Tag() {}
 assign(Tag.prototype, {
     pipe: id,
 
+    // Tags are stored in arrays with any surrounding strings, and joined
+    // on render. Array.join() causes .toString() to be called.
     toString: function toString() {
         // Don't pipe undefined
         return toRenderString(
