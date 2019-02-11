@@ -141,6 +141,10 @@ assign(Tag.prototype, {
     }
 });
 
+function throwError(regex, string) {
+    throw new Error('Cannot parse tag "' + string + '" with ' + regex);
+}
+
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
     1: (data, tokens) => {
@@ -157,7 +161,7 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
 
     // Tag close ']}'
     close: function(data, tokens) {
-        exec(/^\s*\]\}/, noop, tokens);
+        exec(/^\s*\]\}/, noop, throwError, tokens);
         return data;
     }
 });
@@ -169,9 +173,14 @@ export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         data.push(tag);
         return parseBoolean(data, tokens);
-    }
+    },
+
+    // Where nothing is found, don't complain
+    catch: id
 });
 
+// Todo: Does this function actually grab any and all text and push it in? It
+// does, doesn't it? Fix.
 export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     // String of text, whitespace and newlines included '...'
     1: (data, tokens) => {
