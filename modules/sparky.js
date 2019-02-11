@@ -37,9 +37,9 @@ function logSparky(attrFn, attrInclude, target, desc) {
         + (attrFn ? ' fn="' + attrFn + '"' : '')
         + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;',
+        'color: #6894ab; font-weight: 400;'/*,
         target,
-        desc
+        desc*/
     );
 }
 
@@ -82,6 +82,7 @@ function run(context, node, input, attrFn, config) {
 
         // Return values from Sparky functions mean -
         // stream    - use the new input stream
+        // promise   - use the promise
         // undefined - use the same input streeam
         // false     - stop processing this node
         const output = fn.call(context, node, input, result.params, config);
