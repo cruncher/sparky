@@ -1,14 +1,16 @@
 
+import { rest }       from '../../fn/fn.js';
 import Renderer       from './renderer.js';
 import { parseText }  from './parse.js';
 
 const assign = Object.assign;
 const empty  = Object.freeze({});
 
-export default function StringRenderer(source, fn) {
+export default function StringRenderer(source, fn, data) {
     this.label  = 'String renderer';
     this.fn     = fn;
     this.tokens = parseText([], source);
+    this.data   = data;
 
     // If there are no dynamic tokens to render, don't return a renderer
     if (this.tokens.length === 0 || (this.tokens.length === 1 && typeof this.tokens[0] === 'string')) {
@@ -25,7 +27,7 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         // Avoid rendering the same value twice
         if (this.valueRendered === value) { return; }
 
-        this.fn.call(null, value);
+        this.fn.call(null, value, this.data);
         this.valueRendered = value;
     }
 });

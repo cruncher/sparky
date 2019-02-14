@@ -86,11 +86,14 @@ function run(context, node, input, attrFn, config) {
         // undefined - use the same input streeam
         // false     - stop processing this node
         const output = fn.call(context, node, input, result.params, config);
-        input = output === undefined ? input :
-            output === input ? input :
-            output && output.map(toObserverOrSelf) ;
 
-        // Keep the config object sane, a precaution aginst
+        input = (output === undefined) ? input :
+            (output === input) ? input :
+            (output && output.map) ? output.map(toObserverOrSelf) :
+            (output && output.then) ? output.then(toObserverOrSelf) :
+            output ;
+
+        // Keep the config object sane, a hacky precaution aginst
         // this config object ending up being used elsewhere
         config.fn = '';
     }
@@ -114,11 +117,11 @@ function mountContent(content, config) {
             var sparky = Sparky(node, assign({
                 fn:      attrFn,
                 include: attrInclude,
-                createStruct: function(node, token, path, render, pipe, data, type, read) {
+                createStruct: function(node, token, path, render, pipe, type, read) {
                     if (!/^\.\./.test(path)) { return; }
                     console.log('ToDo something about this');
                     path = path.slice(2);
-                    const struct = options.createStruct(node, token, path, render, pipe, data, type, read);
+                    const struct = options.createStruct(node, token, path, render, pipe, type, read);
 
                     return {
                         stop: function() {
@@ -165,7 +168,8 @@ function setupTarget(src, input, render, config) {
         stop = setupSrc(renderedSrc, output, render, config);
     }
 
-    input.each(function(scope) {
+    // Support streams and promises
+    input[input.each ? 'each' : 'then'](function(scope) {
         let n = tokens.length;
 
         while (n--) {
@@ -237,7 +241,8 @@ function setupInclude(include, input, firstRender, config) {
 
     let renderer;
 
-    input.each((scope) => {
+    // Support streams and promises
+    input[input.each ? 'each' : 'then']((scope) => {
         const first = !renderer;
         if (first) { renderer = mountContent(content, config); }
         renderer.push(scope);
@@ -256,7 +261,8 @@ function setupInclude(include, input, firstRender, config) {
 function setupElement(target, input, config) {
     let renderer;
 
-    input.each((scope) => {
+    // Support streams and promises
+    input[input.each ? 'each' : 'then']((scope) => {
         renderer = renderer || mountContent(target, config);
         renderer.push(scope);
     });
@@ -269,7 +275,8 @@ function setupElement(target, input, config) {
 function setupTemplate(target, input, config) {
     let renderer;
 
-    input.each((scope) => {
+    // Support streams and promises
+    input[input.each ? 'each' : 'then']((scope) => {
         const init = !renderer;
         if (init) { renderer = mountContent(target.content, config); }
         renderer.push(scope);

@@ -53,13 +53,12 @@ function addStruct(struct) {
 	structs.push(struct);
 }
 
-export default function Struct(node, token, path, render, pipe, data) {
+export default function Struct(node, token, path, render, pipe) {
 	this.node    = node;
 	this.token   = token;
 	this.path    = path;
 	this.render  = render;
 	this.pipe    = pipe;
-	this.data    = data;
 
 	// From .start() - we moved it here to simplify things
 	// Todo: We need rid of the leading '|' in struct.pipe
@@ -171,9 +170,9 @@ function observeMutations(node, fn) {
 	};
 }
 
-export function ReadableStruct(node, token, path, render, pipe, data, type, read) {
+export function ReadableStruct(node, token, path, render, pipe, type, read) {
 	// ReadableStruct extends Struct
-	Struct.call(this, node, token, path, render, pipe, data);
+	Struct.call(this, node, token, path, render, pipe);
 	this.type = type;
 	this.read = read;
 

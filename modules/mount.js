@@ -6,6 +6,7 @@ import Struct, { ReadableStruct } from './struct.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
+//import ValueController from './controller.value.js';
 import bindings from './bindings.js';
 
 const DEBUG      = false;//true;
@@ -40,9 +41,11 @@ const push = (value, pushable) => {
 
 // Struct value read and write
 
-function writeValue(value) {
-	var node = this.node;
+function renderText(string, node) {
+	node.nodeValue = string;
+}
 
+function renderValue(value, node) {
 	// Avoid updating with the same value as it sends the cursor to
 	// the end of the field (in Chrome, at least).
 	if (value === node.value) { return; }
@@ -112,6 +115,13 @@ function readValueRadio() {
 		node.checked ;
 }
 
+function controlValue(source, read, options, data) {
+	if (!source) { return; }
+
+	const controller = new StringController(source, read, data);
+
+	//options.renderers.push(renderer);
+}
 
 // Mount
 
@@ -155,14 +165,14 @@ function writeBooleanAttr(name, node, value) {
 	}
 }
 
-function mountString(source, render, options) {
+function mountString(source, render, options, data) {
 	if (!source) { return; }
 
-	const renderer = new StringRenderer(source, render);
+	const renderer = new StringRenderer(source, render, data);
 
 	// We are reduced to checking for push as constructor cant return
 	// undefined. Todo: turn StringRenderer into a factory function rather
-	// than a constructor so it can return undefined.
+	// than a constructor so it can return undefined?
 	if (!renderer.push) { return; }
 
 	options.renderers.push(renderer);
@@ -174,7 +184,7 @@ function mountAttribute(name, node, options, prefixed) {
 		&& node.getAttribute(options.attributePrefix + name)
 		|| node.getAttribute(name) ;
 
-	return mountString(source, (string) => node.setAttribute(cased[name] || name, string), options);
+	return mountString(source, (string, node) => node.setAttribute(name, string), options, node);
 }
 
 function mountAttributes(names, node, options) {
@@ -263,17 +273,15 @@ function mountValueNumber(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueNumber, match[3], undefined, 'input', readValueNumber);
+	options.createStruct(node, match[0], match[2], writeValueNumber, match[3], 'input', readValueNumber);
 }
 
 function mountValueString(node, options) {
-	var string = attribute(options.attributePrefix + 'value', node)
-		|| attribute('value', node) ;
-	var match = matchToken(string, options);
-	if (!match) { return; }
+	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
+	if (!source) { return; }
 
-	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValue, match[3], undefined, 'input', readValue);
+	mountString(source, renderValue, options, node);
+	//controlValue(source, readValue, options, 'input', node);
 }
 
 function mountValueCheckbox(node, options) {
@@ -282,7 +290,7 @@ function mountValueCheckbox(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], undefined, 'change', readValueCheckbox);
+	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueCheckbox);
 }
 
 function mountValueRadio(node, options) {
@@ -291,7 +299,7 @@ function mountValueRadio(node, options) {
 	if (!match) { return; }
 
 	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], undefined, 'change', readValueRadio);
+	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueRadio);
 }
 
 function mountInput(types, node, options) {
@@ -366,7 +374,7 @@ const mountNode  = overload(get('nodeType'), {
 
 	// text
 	3: function mountText(node, options) {
-		mountString(node.nodeValue, (string) => node.nodeValue = string, options);
+		mountString(node.nodeValue, renderText, options, node);
 	},
 
 	// comment
@@ -404,13 +412,13 @@ export default function mount(node, overrides) {
 	var options = assign({}, settings, overrides);
 	var old;
 
-	options.createStruct = function createStruct(node, token, path, render, pipe, data, type, read) {
+	options.createStruct = function createStruct(node, token, path, render, pipe, type, read) {
 		const struct = (
-			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, data, type, read)
+			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
 		) || (
 			type ?
-				new ReadableStruct(node, token, path, render, pipe, data, type, read) :
-				new Struct(node, token, path, render, pipe, data)
+				new ReadableStruct(node, token, path, render, pipe, type, read) :
+				new Struct(node, token, path, render, pipe)
 		);
 
 		structs.push(struct);
