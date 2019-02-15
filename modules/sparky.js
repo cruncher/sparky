@@ -211,7 +211,7 @@ function setupSrc(src, input, firstRender, config) {
 
     importTemplate(src)
     .catch(function(error) {
-        console.log('%c'+ error.message, 'color: #d34515; font-weight: 400;');
+        console.error('%c'+ error.message, 'color: #d34515; font-weight: 400;');
     })
     .then((source) => {
         if (stopped) { return; }

@@ -87,7 +87,7 @@ export default function importTemplate(src) {
     const id    = parts[1] || '';
 
     if (DEBUG && !id) {
-        throw new Error('Sparky: template URL "' + src + '" does not have an #id');
+        throw new Error('Sparky template "' + src + '" URL must have an #id');
     }
 
     return fetchDocument(path)
@@ -96,7 +96,7 @@ export default function importTemplate(src) {
         const elem = document.getElementById(id);
 
         if (DEBUG && !elem) {
-            throw new Error('Sparky: template "' + id + '" not found in "' + path + '"');
+            throw new Error('Sparky template id="' + id + '" not found in document');
         }
 
         return elem;
