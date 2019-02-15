@@ -2,7 +2,8 @@ import { noop, observe } from '../../fn/fn.js';
 import { before, remove, replace } from '../../dom/dom.js';
 import Marker from './marker.js';
 
-export default function(node, stream, params) {
+export default function(node, input, params) {
+    const output  = Stream.of();
     const name    = params[0];
     const marker  = Marker(node);
 
@@ -13,7 +14,7 @@ export default function(node, stream, params) {
     before(node, marker);
     remove(node);
 
-    return stream.map(function(scope) {
+    input.each(function(scope) {
         unobserve();
         unobserve = observe(name, (value) => {
             var visibility = !!value;
@@ -23,10 +24,14 @@ export default function(node, stream, params) {
 
             if (visible) {
                 replace(marker, node);
+                output.push(scope);
             }
             else {
                 replace(node, marker);
+                output.push(null);
             }
         }, scope);
     });
+
+    return output;
 }
