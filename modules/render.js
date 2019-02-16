@@ -3,7 +3,7 @@
 
 import { id, overload, toType } from '../../fn/fn.js';
 
-// Matches the arguments list in the result of a fn.toString()
+// Matches the arguments list in the result of fn.toString()
 const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;
 
 export default overload(toType, {

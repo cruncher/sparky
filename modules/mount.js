@@ -1,28 +1,27 @@
 
 import { choose, get, isDefined, noop, overload } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
-import toRenderString from './render.js';
-import Struct, { ReadableStruct } from './struct.js';
+import toRenderString  from './render.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
-//import ValueController from './controller.value.js';
-import bindings from './bindings.js';
+import Listener        from './listener.js';
+import bindings        from './bindings.js';
 
 const DEBUG      = false;//true;
 
 const A          = Array.prototype;
 const assign     = Object.assign;
 
-// Matches tags plus any directly adjacent text
-//var rclasstagstemplate = /[^\s]*{{0}}[^\}]+{{1}}[^\s]*/g;
-//var rclasstags;
-
 // Matches anything with a space
 const rspaces = /\s+/;
 
 // Matches anything that contains a non-space character
 const rtext = /\S/;
+
+const cased = {
+	viewbox: 'viewBox'
+};
 
 const settings = {
 	attributePrefix: 'sparky-',
@@ -33,16 +32,76 @@ const settings = {
 	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
 };
 
+
+// Helpers
+
 const push = (value, pushable) => {
 	pushable.push(value);
 	return value;
 };
 
+const stop = (object) => object.stop();
 
-// Struct value read and write
+const getType = get('type');
 
-function renderText(string, node) {
-	node.nodeValue = string;
+
+// Read
+
+function readValue(node) {
+	return node.value;
+}
+
+function readValueNumber(node) {
+	return node.value && parseFloat(node.value) || undefined;
+}
+
+function readValueCheckbox(node) {
+	// TODO: Why do we check attribute here?
+	return isDefined(node.getAttribute('value')) ?
+		node.checked ? node.value : undefined :
+		node.checked ;
+}
+
+function readValueRadio(node) {
+	if (!node.checked) { return; }
+
+	return isDefined(node.getAttribute('value')) ?
+		node.value :
+		node.checked ;
+}
+
+
+// Render
+
+function addClasses(classList, text) {
+	var classes = toRenderString(text).trim().split(rspaces);
+	classList.add.apply(classList, classes);
+}
+
+function removeClasses(classList, text) {
+	var classes = toRenderString(text).trim().split(rspaces);
+	classList.remove.apply(classList, classes);
+}
+
+function renderText(value, node) {
+	node.nodeValue = value;
+}
+
+function renderAttribute(value, node, name) {
+	node.setAttribute(cased[name] || name, value);
+}
+
+function renderBooleanAttribute(value, node, name) {
+	if (value) {
+		node.setAttribute(name, name);
+	}
+	else {
+		node.removeAttribute(name);
+	}
+}
+
+function renderProperty(value, node, name) {
+	node[name] = value;
 }
 
 function renderValue(value, node) {
@@ -58,9 +117,7 @@ function renderValue(value, node) {
 	trigger('dom-update', node);
 }
 
-function writeValueNumber(value) {
-	var node = this.node;
-
+function renderValueNumber(value, node) {
 	// Avoid updating with the same value as it sends the cursor to
 	// the end of the field (in Chrome, at least).
 	if (value === parseFloat(node.value)) { return; }
@@ -73,9 +130,7 @@ function writeValueNumber(value) {
 	trigger('dom-update', node);
 }
 
-function writeValueRadioCheckbox(value) {
-	var node = this.node;
-
+function renderValueRadioCheckbox(value, node) {
 	// Where value is defined check against it, otherwise
 	// value is "on", uselessly. Set checked state directly.
 	node.checked = isDefined(node.getAttribute('value')) ?
@@ -86,89 +141,13 @@ function writeValueRadioCheckbox(value) {
 	trigger('dom-update', node);
 }
 
-function readValue() {
-	var node = this.node;
-	return node.value;
-}
-
-function readValueNumber() {
-	var node = this.node;
-	return node.value ? parseFloat(node.value) : undefined ;
-}
-
-function readValueCheckbox() {
-	var node = this.node;
-
-	// TODO: Why do we check attribute here?
-	return isDefined(node.getAttribute('value')) ?
-		node.checked ? node.value : undefined :
-		node.checked ;
-}
-
-function readValueRadio() {
-	var node = this.node;
-
-	if (!node.checked) { return; }
-
-	return isDefined(node.getAttribute('value')) ?
-		node.value :
-		node.checked ;
-}
-
-function controlValue(source, read, options, data) {
-	if (!source) { return; }
-
-	const controller = new StringController(source, read, data);
-
-	//options.renderers.push(renderer);
-}
 
 // Mount
 
-const cased = {
-	viewbox: 'viewBox'
-};
-
-const getType = get('type');
-
-
-function addClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.add.apply(classList, classes);
-}
-
-function removeClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.remove.apply(classList, classes);
-}
-
-function matchToken(string, options) {
-	var rtoken = options.rtoken;
-	rtoken.lastIndex = 0;
-	return rtoken.exec(string);
-}
-
-function writeProperty(name, node, value) {
-	node[name] = value;
-}
-
-function writeAttribute(name, node, value) {
-	node.setAttribute(cased[name] || name, value);
-}
-
-function writeBooleanAttr(name, node, value) {
-	if (value) {
-		node.setAttribute(name, name);
-	}
-	else {
-		node.removeAttribute(name);
-	}
-}
-
-function mountString(source, render, options, data) {
+function mountString(source, render, options, node, name) {
 	if (!source) { return; }
 
-	const renderer = new StringRenderer(source, render, data);
+	const renderer = new StringRenderer(source, render, node, name);
 
 	// We are reduced to checking for push as constructor cant return
 	// undefined. Todo: turn StringRenderer into a factory function rather
@@ -176,6 +155,7 @@ function mountString(source, render, options, data) {
 	if (!renderer.push) { return; }
 
 	options.renderers.push(renderer);
+	return renderer;
 }
 
 function mountAttribute(name, node, options, prefixed) {
@@ -184,7 +164,7 @@ function mountAttribute(name, node, options, prefixed) {
 		&& node.getAttribute(options.attributePrefix + name)
 		|| node.getAttribute(name) ;
 
-	return mountString(source, (string, node) => node.setAttribute(name, string), options, node);
+	return mountString(source, renderAttribute, options, node, name);
 }
 
 function mountAttributes(names, node, options) {
@@ -208,16 +188,10 @@ function mountBoolean(name, node, options) {
 	if (!source) { return; }
 
 	const render = name in node ?
-		(bool) => {
-			node[name] = bool ;
-		} :
-		(bool) => {
-			bool ?
-				node.setAttribute(name, '') :
-				node.removeAttribute(name) ;
-		} ;
+		renderProperty :
+		renderBooleanAttribute ;
 
-	const renderer = new BooleanRenderer(source, render);
+	const renderer = new BooleanRenderer(source, render, node, name);
 
 	// We are reduced to checking for push as constructor cant return
 	// undefined. Todo: turn BooleanRenderer into a factory function rather
@@ -265,42 +239,75 @@ function mountClass(node, options) {
 }
 
 function mountValueNumber(node, options) {
-	var string = attribute(options.attributePrefix + 'value', node)
-		|| attribute('value', node) ;
+	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
+	if (!source) { return; }
 
-	var match = matchToken(string, options);
+	const renderer = mountString(source, renderValueNumber, options, node);
+	if (!renderer) { return; }
 
-	if (!match) { return; }
+	const listener = new Listener(node, readValueNumber, renderer.tokens[0], 'input');
+	if (!listener) { return; }
 
-	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueNumber, match[3], 'input', readValueNumber);
+	options.renderers.push(listener);
 }
 
 function mountValueString(node, options) {
 	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
 	if (!source) { return; }
 
-	mountString(source, renderValue, options, node);
-	//controlValue(source, readValue, options, 'input', node);
+	const renderer = mountString(source, renderValue, options, node);
+	if (!renderer) { return; }
+
+	const listener = new Listener(node, readValue, renderer.tokens[0], 'input');
+	if (!listener) { return; }
+
+	options.renderers.push(listener);
+
+	/*
+	var struct = this;
+
+	if (node.tagName.toLowerCase() === 'select') {
+		this.unobserveMutations = observeMutations(node, function() {
+			cue(struct);
+		});
+	}
+    */
 }
 
 function mountValueCheckbox(node, options) {
-	var string = attribute(options.attributePrefix + 'value', node);
-	var match  = matchToken(string, options);
-	if (!match) { return; }
+	var sourcePrefixed = node.getAttribute(options.attributePrefix + 'value') ;
+	var source         = node.getAttribute('value') ;
+	if (!(source || sourcePrefixed)) { return; }
 
-	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueCheckbox);
+	const renderer = mountString(source || sourcePrefixed, renderValueRadioCheckbox, options, node);
+	if (!renderer) { return; }
+
+	const listener = new Listener(node, readValueCheckbox, renderer.tokens[0], 'change');
+	if (!listener) { return; }
+
+	options.renderers.push(listener);
 }
 
 function mountValueRadio(node, options) {
-	var string = attribute(options.attributePrefix + 'value', node);
-	var match  = matchToken(string, options);
-	if (!match) { return; }
+	var sourcePrefixed = node.getAttribute(options.attributePrefix + 'value') ;
+	var source         = node.getAttribute('value') ;
+	if (!(source || sourcePrefixed)) { return; }
 
-	// createStruct(node, token, path, render, pipe, type, read)
-	options.createStruct(node, match[0], match[2], writeValueRadioCheckbox, match[3], 'change', readValueRadio);
+	const renderer = mountString(source || sourcePrefixed, renderValueRadioCheckbox, options, node);
+	if (!renderer) { return; }
+
+	const listener = new Listener(node, readValueRadio, renderer.tokens[0], 'change');
+	if (!listener) { return; }
+
+	options.renderers.push(listener);
 }
+
+const mountValue = choose({
+	string:   mountValueString,
+	number:   mountValueNumber,
+	checkbox: mountValueCheckbox,
+	radio:    mountValueRadio
+});
 
 function mountInput(types, node, options) {
 	var type    = getType(node);
@@ -310,10 +317,6 @@ function mountInput(types, node, options) {
 		if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
 		if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
 		if (setting.value) {
-			if (setting.value === 'radio' || setting.value === 'checkbox') {
-				mountAttribute('value', node, options, false);
-			}
-
 			mountValue(setting.value, node, options);
 		}
 	}
@@ -331,30 +334,17 @@ function mountTag(settings, node, options) {
 }
 
 function mountCollection(children, options, structs) {
-	let n = -1;
-	let child;
+	var n = -1;
+	var child;
 
 	while ((child = children[++n])) {
-		//struct = options.mount(child, options);
-		//if (struct) {
-		//	structs.push(struct);
-		//}
-		//else {
-			mountNode(child, options, structs) ;
-		//}
+		mountNode(child, options, structs);
 	}
 }
 
-const mountValue = choose({
-	string:   mountValueString,
-	number:   mountValueNumber,
-	checkbox: mountValueCheckbox,
-	radio:    mountValueRadio
-});
-
 const mountNode  = overload(get('nodeType'), {
 	// element
-	1: function mountElement(node, options, structs) {
+	1: function mountElement(node, options) {
 		const sparky = options.mount(node, options);
 		if (sparky) {
 			options.renderers.push(sparky);
@@ -365,7 +355,7 @@ const mountNode  = overload(get('nodeType'), {
 		// dynamic, and we don't want to mount elements that may be dynamically
 		// inserted later by other sparky processes, so turn childNodes into
 		// an array.
-		mountCollection(Array.from(node.childNodes), options, structs);
+		mountCollection(Array.from(node.childNodes), options);
 		mountClass(node, options);
 		mountBooleans(bindings.default.booleans, node, options);
 		mountAttributes(bindings.default.attributes, node, options);
@@ -381,16 +371,16 @@ const mountNode  = overload(get('nodeType'), {
 	8: noop,
 
 	// document
-	9: function mountDocument(node, options, structs) {
-		mountCollection(A.slice.apply(node.childNodes), options, structs);
+	9: function mountDocument(node, options) {
+		mountCollection(A.slice.apply(node.childNodes), options);
 	},
 
 	// doctype
 	10: noop,
 
 	// fragment
-	11: function mountFragment(node, options, structs) {
-		mountCollection(A.slice.apply(node.childNodes), options, structs);
+	11: function mountFragment(node, options) {
+		mountCollection(A.slice.apply(node.childNodes), options);
 	},
 
 	// array or array-like
@@ -403,82 +393,41 @@ const mountNode  = overload(get('nodeType'), {
 	}
 });
 
-export { bindings as settings };
+function Mount(node, options) {
+	if (DEBUG) {
+		console.groupCollapsed('mount: ', node);
+	}
 
-export default function mount(node, overrides) {
-	if (DEBUG) { console.groupCollapsed('mount: ', node); }
-
-	var structs = [];
-	var options = assign({}, settings, overrides);
-	var old;
-
-	options.createStruct = function createStruct(node, token, path, render, pipe, type, read) {
-		const struct = (
-			overrides && overrides.createStruct && overrides.createStruct(node, token, path, render, pipe, type, read)
-		) || (
-			type ?
-				new ReadableStruct(node, token, path, render, pipe, type, read) :
-				new Struct(node, token, path, render, pipe)
-		);
-
-		structs.push(struct);
-
-		// If structs have already been started, start this one too
-		if (old) {
-			struct.reset && struct.reset(options);
-			struct.bind(old, options);
-		}
-
-		return struct;
-	};
-
-	// Renderers is the new hotness. We should be able to replace structs
-	// entirely with renderers.
-	const renderers = options.renderers = [];
-
-	mountNode(node, options, structs);
+	options = assign({}, settings, options);
+	this.renderers = options.renderers = [];
+	mountNode(node, options);
 
 	if (DEBUG) {
 		console.groupEnd();
-		console.table(structs, ['token']);
+		console.table(this.renderers, ['token']);
 	}
-
-	// Return a read-only stream-like
-	return {
-		stop: function stop() {
-			structs.forEach(function(struct) {
-				struct.stop();
-			});
-
-			renderers.forEach((renderer) => renderer.stop());
-		},
-
-		push: function(scope) {
-			// Render scoped attributes before any value bindings
-			renderers.reduce(push, scope);
-
-			//if (DEBUG) { console.log('mount: push(scope)', scope); }
-			if (old === scope) { return; }
-			old = scope;
-
-			// Setup structs on the first scope push, unbind them on
-			// later pushes with reset()
-			structs.forEach(function(struct) {
-				struct.reset(options);
-			});
-
-			structs.forEach(function(struct) {
-				struct.bind(scope, options);
-			});
-		}
-	};
 }
 
-// Expose a way to get scopes from node for event delegation and debugging
+assign(Mount.prototype, {
+	stop: function() {
+		this.renderers.forEach(stop);
+		return this;
+	},
 
-mount.getScope = function getScope(node) {
-	var scope = Struct.findScope(node);
-	return scope === undefined && node.parentNode ?
-		getScope(node.parentNode) :
-		scope ;
-};
+	push: function(scope) {
+		if (this.scope === scope) {
+			return this;
+		}
+
+		this.scope = scope;
+		this.renderers.reduce(push, scope);
+
+		return this;
+	}
+});
+
+export default function mount(node, options) {
+	return new Mount(node, options);
+}
+
+export { bindings as settings };

@@ -102,7 +102,8 @@ function run(context, node, input, attrFn, config) {
 }
 
 function mountContent(content, config) {
-    const settings = {
+    // Launch rendering
+    return mount(content, {
         mount: function(node, options) {
             // This is a half-assed way of preventing the root node of this
             // sparky from being remounted.
@@ -116,19 +117,7 @@ function mountContent(content, config) {
 
             var sparky = Sparky(node, assign({
                 fn:      attrFn,
-                include: attrInclude,
-                createStruct: function(node, token, path, render, pipe, type, read) {
-                    if (!/^\.\./.test(path)) { return; }
-                    console.log('ToDo something about this');
-                    path = path.slice(2);
-                    const struct = options.createStruct(node, token, path, render, pipe, type, read);
-
-                    return {
-                        stop: function() {
-                            struct.stop();
-                        }
-                    };
-                }
+                include: attrInclude
             }, config));
 
             // This is just some help for logging mounted tags
@@ -143,10 +132,7 @@ function mountContent(content, config) {
         attributeFn: config.attributeFn,
         attributeInclude: config.attributeInclude,
         createStruct: config.createStruct
-    };
-
-    // Launch rendering
-    return mount(content, settings);
+    });
 }
 
 function setupTarget(src, input, render, config) {

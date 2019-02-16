@@ -5,7 +5,7 @@ import toRenderString from './render.js';
 const assign          = Object.assign;
 const parseArrayClose = capture(/^\]\s*/, nothing);
 
-//                                        number                                     "string"                   'string'                    null   true   false  array function(args)   string      comma
+//                                        number                                     "string"            'string'                    null   true   false  array function(args)   string      comma
 export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, tokens) {
@@ -91,16 +91,17 @@ function getTransform(name) {
 export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     // Function name '...'
     1: function(fns, tokens) {
-        const fn = getTransform(tokens[1]);
-        if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
-        fns.push(fn);
+        fns.push({
+            name: tokens[1],
+            args: nothing
+        });
+
         return fns;
     },
 
     // Params ':'
     2: function(fns, tokens) {
-        const params = parseParams([], tokens);
-        fns[fns.length - 1] = fns[fns.length - 1].apply(null, params);
+        fns[fns.length - 1].args = parseParams([], tokens);
         return fns;
     },
 
@@ -115,7 +116,7 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
 function Tag() {}
 
 assign(Tag.prototype, {
-    pipe: id,
+    transform: id,
 
     // Tags are stored in arrays with any surrounding strings, and joined
     // on render. Array.join() causes .toString() to be called.
@@ -124,7 +125,7 @@ assign(Tag.prototype, {
         return toRenderString(
             this.value === undefined || this.value === null ?
                 undefined :
-                this.pipe(this.value)
+                this.transform(this.value)
         );
     },
 
@@ -132,7 +133,7 @@ assign(Tag.prototype, {
         // Don't pipe undefined
         return this.value === undefined || this.value === null ?
             undefined :
-            this.pipe(this.value) ;
+            this.transform(this.value) ;
     }
 });
 
@@ -142,29 +143,39 @@ function throwError(regex, string) {
 
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
-    1: (data, tokens) => {
-        data.path = tokens[1];
-        return data;
+    1: (none, tokens) => {
+        const tag = new Tag();
+        tag.path = tokens[1];
+        return tag;
     },
 
     // Pipe '|'
-    2: function(data, tokens) {
-        const fns = parsePipe([], tokens);
-        data.pipe = pipe.apply(null, fns);
-        return data;
+    2: function(tag, tokens) {
+        tag.pipe = parsePipe([], tokens);
+        if (!tag.pipe || !tag.pipe.length) { return tag; }
+
+        tag.transform = pipe.apply(null, tag.pipe.map((data) => {
+            const fn = getTransform(data.name);
+            if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
+            return data.args && data.args.length ?
+                fn.apply(null, data.args) :
+                fn ;
+        }));
+
+        return tag;
     },
 
     // Tag close ']}'
-    close: function(data, tokens) {
+    close: function(tag, tokens) {
         exec(/^\s*\]\}/, noop, throwError, tokens);
-        return data;
+        return tag;
     }
 });
 
 export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Tag opener '{['
     1: function(data, tokens) {
-        const tag = parseTag(new Tag(), tokens);
+        const tag = parseTag(null, tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         data.push(tag);
         return parseBoolean(data, tokens);
@@ -188,7 +199,7 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
 
     // Tag opener '{['
     2: function(data, tokens) {
-        const tag = parseTag(new Tag(), tokens);
+        const tag = parseTag(Tag, tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         data.push(tag);
         return parseText(data, tokens);

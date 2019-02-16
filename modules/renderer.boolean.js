@@ -9,9 +9,11 @@ function isTruthy(token) {
 	return !!token.valueOf();
 }
 
-export default function BooleanRenderer(source, fn, data) {
+export default function BooleanRenderer(source, fn, node, name) {
     this.label  = 'Boolean renderer';
 	this.fn     = fn;
+	this.node   = node;
+    this.name   = name;
 	this.tokens = parseBoolean([], source);
 
 	// If there are no dynamic tokens to render, don't return a renderer
@@ -28,7 +30,7 @@ assign(BooleanRenderer.prototype, Renderer.prototype, {
 
         // Avoid rendering the same value twice
         if (this.valueRendered === value) { return; }
-        this.fn.call(null, value);
+        this.fn.call(null, value, this.node, this.name);
         this.valueRendered = value;
     }
 });
