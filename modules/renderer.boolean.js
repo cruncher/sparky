@@ -7,12 +7,34 @@ function isTruthy(token) {
 	return !!token.valueOf();
 }
 
-export default function BooleanRenderer(tokens, fn, node, name) {
+function renderBooleanAttribute(value, node, name) {
+	if (value) {
+		node.setAttribute(name, name);
+	}
+	else {
+		node.removeAttribute(name);
+	}
+
+	// Return DOM mod count
+	return 1;
+}
+
+function renderProperty(value, node, name) {
+	node[name] = value;
+
+	// Return DOM mod count
+	return 1;
+}
+
+export default function BooleanRenderer(tokens, node, name) {
     this.label  = 'Boolean renderer';
-	this.fn     = fn;
 	this.node   = node;
     this.name   = name;
 	this.tokens = tokens;
+
+	this.fn = name in node ?
+		renderProperty :
+		renderBooleanAttribute ;
 }
 
 assign(BooleanRenderer.prototype, Renderer.prototype, {

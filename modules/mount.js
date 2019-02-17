@@ -82,18 +82,6 @@ function renderAttribute(value, node, name) {
 	return 1;
 }
 
-function renderBooleanAttribute(value, node, name) {
-	if (value) {
-		node.setAttribute(name, name);
-	}
-	else {
-		node.removeAttribute(name);
-	}
-
-	// Return DOM mod count
-	return 1;
-}
-
 function renderProperty(value, node, name) {
 	node[name] = value;
 
@@ -212,11 +200,7 @@ function mountBoolean(name, node, options) {
 	const tokens = parseBoolean([], source);
 	if (!tokens) { return; }
 
-	const render = name in node ?
-		renderProperty :
-		renderBooleanAttribute ;
-
-	const renderer = new BooleanRenderer(tokens, render, node, name);
+	const renderer = new BooleanRenderer(tokens, node, name);
 	options.renderers.push(renderer);
 	return renderer;
 }
@@ -238,7 +222,7 @@ function mountClass(node, options) {
 	const tokens = parseText([], source);
 	if (!tokens) { return; }
 
-	const renderer = new ClassRenderer(node, tokens);
+	const renderer = new ClassRenderer(tokens, node);
 	options.renderers.push(renderer);
 }
 
