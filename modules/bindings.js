@@ -32,7 +32,13 @@ export default {
 	option:   { attributes: ['value'], booleans: ['disabled'] },
 	output:   { attributes: ['for'] },
 	progress: { attributes: ['max', 'value'] },
-	select:   { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
+	select:   {
+		attributes: ['name'],
+		booleans: ['disabled', 'required'],
+		types: {
+			default: { value: 'string' }
+		}
+	},
 	textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
 	time:     { attributes: ['datetime'] },
 

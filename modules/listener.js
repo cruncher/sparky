@@ -2,11 +2,16 @@
 import { getPath, setPath, id, noop, pipe } from '../../fn/fn.js';
 import { transformers } from './transforms.js';
 
+const inputMap  = new WeakMap();
+const changeMap = new WeakMap();
+
 function getInvert(name) {
     return transformers[name] && transformers[name].ix;
 }
 
 function setup(object, pipeData) {
+    object.timerId = null;
+
     if (pipeData) {
         object.transform = pipe.apply(null,
             pipeData
@@ -21,25 +26,20 @@ function setup(object, pipeData) {
         );
     }
 
-    object.fn = () => {
+    const fn = () => {
         const v1 = object.read(object.node);
         if (v1 === undefined) { return; }
         const v2 = object.transform(v1);
         if (v2 === undefined) { return; }
-
-        console.log('Sparky property set', v2);
-
         object.set(v2);
     };
 
-    object.node.addEventListener(object.type, object.fn);
+    object.fns.set(object.node, fn);
 
-    console.log('Listening to', object.type, object.node.type, object.node);
-
-    // Where the initial value of struct.path is not set, set it to
-    // the value of the <input/>.
+    // Where the initial value at path is not set, set it to
+    // the <input> value
     if (getPath(object.path, object.scope) === undefined) {
-        object.fn();
+        fn();
     }
 }
 
@@ -48,6 +48,9 @@ export default function Listener(node, read, token, type) {
 	this.read = read;
     this.path = token.path;
     this.type = type;
+    this.fns  = type === 'input' ? inputMap :
+        type === 'change' ? changeMap :
+        undefined ;
 
     // Delay setup of event listeners, keeping them away from
     // rendering for a short time
@@ -56,22 +59,39 @@ export default function Listener(node, read, token, type) {
 
 Object.assign(Listener.prototype, {
     transform: id,
-    set:       noop,
+
+    set: noop,
 
     push: function(scope) {
         this.set = setPath(this.path, scope);
+        return this;
     },
 
     stop: function() {
-        // If we are set uop with a function
-        if (this.fn) {
-            this.node.removeEventListener(this.type, this.fn);
-        }
-        // otherwise cancel setup
-        else {
+        // If setup has not yet run, cancel it
+        if (this.timerId) {
             clearTimeout(this.timerId);
+            this.timerId = null;
+            return this;
         }
 
+        this.fns.delete(this.node);
         return this;
     }
+});
+
+
+// Delegate input and change handlers to the document at the cost of
+// one WeakMap lookup
+
+document.addEventListener('input', function(e) {
+    const fn = inputMap.get(e.target);
+    if (!fn) { return; }
+    fn();
+});
+
+document.addEventListener('change', function(e) {
+    const fn = changeMap.get(e.target);
+    if (!fn) { return; }
+    fn();
 });

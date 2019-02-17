@@ -172,36 +172,58 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     }
 });
 
-export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
+export const parseToken = capture(/^\s*(\{\[)/, {
     // Tag opener '{['
-    1: function(data, tokens) {
+    1: function(none, tokens) {
         const tag = parseTag(null, tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
-        data.push(tag);
-        return parseBoolean(data, tokens);
+        return tag;
+    },
+
+    close: function(tag, tokens) {
+        // Only spaces allowed til end
+        exec(/^\s*$/, noop, throwError, tokens);
+        return tag;
     },
 
     // Where nothing is found, don't complain
     catch: id
 });
 
-// Todo: Does this function actually grab any and all text and push it in? It
-// does, doesn't it? Fix.
+export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
+    // Tag opener '{['
+    1: function(array, tokens) {
+        const tag = parseTag(null, tokens);
+        tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
+        array.push(tag);
+        return parseBoolean(array, tokens);
+    },
+
+    // Where nothing is found, don't complain
+    catch: id
+});
+
 export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
-    // String of text, whitespace and newlines included '...'
-    1: (data, tokens) => {
-        // If it exists, push in the leading text
-        if (tokens[1]) {
-            data.push(tokens[1]);
+    // String of text, whitespace and newlines included
+    1: (array, tokens) => {
+        // If no tags have been found return undefined
+        if (!array.length && !tokens[2]) {
+            return;
         }
-        return data;
+
+        // If it is not empty, push in leading text
+        if (tokens[1]) {
+            array.push(tokens[1]);
+        }
+
+        return array;
     },
 
     // Tag opener '{['
-    2: function(data, tokens) {
+    2: function(array, tokens) {
         const tag = parseTag(Tag, tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
-        data.push(tag);
-        return parseText(data, tokens);
+        array.push(tag);
+        return parseText(array, tokens);
     }
 });

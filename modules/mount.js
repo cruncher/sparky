@@ -1,6 +1,7 @@
 
-import { choose, get, isDefined, noop, overload } from '../../fn/fn.js';
+import { get, isDefined, noop, overload } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
+import { parseToken, parseText, parseBoolean } from './parse.js';
 import toRenderString  from './render.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
@@ -43,6 +44,8 @@ const push = (value, pushable) => {
 const stop = (object) => object.stop();
 
 const getType = get('type');
+
+const getNodeType = get('nodeType');
 
 
 // Read
@@ -130,7 +133,7 @@ function renderValueNumber(value, node) {
 	trigger('dom-update', node);
 }
 
-function renderValueRadioCheckbox(value, node) {
+function renderValueChecked(value, node) {
 	// Where value is defined check against it, otherwise
 	// value is "on", uselessly. Set checked state directly.
 	node.checked = isDefined(node.getAttribute('value')) ?
@@ -144,16 +147,26 @@ function renderValueRadioCheckbox(value, node) {
 
 // Mount
 
-function mountString(source, render, options, node, name) {
+function mountToken(source, render, options, node, name) {
+	// Shirtcut empty string
 	if (!source) { return; }
 
-	const renderer = new StringRenderer(source, render, node, name);
+	const token = parseToken(null, source);
+	if (!token) { return; }
 
-	// We are reduced to checking for push as constructor cant return
-	// undefined. Todo: turn StringRenderer into a factory function rather
-	// than a constructor so it can return undefined?
-	if (!renderer.push) { return; }
+	const renderer = new StringRenderer([token], render, node, name);
+	options.renderers.push(renderer);
+	return renderer;
+}
 
+function mountString(source, render, options, node, name) {
+	// Shirtcut empty string
+	if (!source) { return; }
+
+	const tokens = parseText([], source);
+	if (!tokens) { return; }
+
+	const renderer = new StringRenderer(tokens, render, node, name);
 	options.renderers.push(renderer);
 	return renderer;
 }
@@ -187,27 +200,16 @@ function mountBoolean(name, node, options) {
 	const source   = prefixed || node.getAttribute(name);
 	if (!source) { return; }
 
+	const tokens = parseBoolean([], source);
+	if (!tokens) { return; }
+
 	const render = name in node ?
 		renderProperty :
 		renderBooleanAttribute ;
 
-	const renderer = new BooleanRenderer(source, render, node, name);
-
-	// We are reduced to checking for push as constructor cant return
-	// undefined. Todo: turn BooleanRenderer into a factory function rather
-	// than a constructor so it can return undefined.
-	if (!renderer.push) { return; }
-
+	const renderer = new BooleanRenderer(tokens, render, node, name);
 	options.renderers.push(renderer);
-
-	/* Not sure what for ?
-		if (string.length > i) {
-			value = string.slice(i);
-			if (!rempty.test(value)) {
-				values.push(value);
-			}
-		}
-	*/
+	return renderer;
 }
 
 function mountBooleans(names, node, options) {
@@ -224,8 +226,11 @@ function mountClass(node, options) {
 	const source = attribute('class', node);
 	if (!source) { return; }
 
+	const tokens = parseText([], source);
+	if (!tokens) { return; }
+
 	const list = classes(node);
-	const renderer = new ClassRenderer(node, source, (string, current) => {
+	const renderer = new ClassRenderer(node, tokens, (string, current) => {
 		current && rtext.test(current) && removeClasses(list, current);
 		string && rtext.test(string) && addClasses(list, string);
 	});
@@ -238,27 +243,14 @@ function mountClass(node, options) {
 	options.renderers.push(renderer);
 }
 
-function mountValueNumber(node, options) {
+function mountValueProp(node, options, render, read) {
 	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
 	if (!source) { return; }
 
-	const renderer = mountString(source, renderValueNumber, options, node);
+	const renderer = mountString(source, render, options, node);
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, readValueNumber, renderer.tokens[0], 'input');
-	if (!listener) { return; }
-
-	options.renderers.push(listener);
-}
-
-function mountValueString(node, options) {
-	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
-	if (!source) { return; }
-
-	const renderer = mountString(source, renderValue, options, node);
-	if (!renderer) { return; }
-
-	const listener = new Listener(node, readValue, renderer.tokens[0], 'input');
+	const listener = new Listener(node, read, renderer.tokens[0], 'input');
 	if (!listener) { return; }
 
 	options.renderers.push(listener);
@@ -274,39 +266,40 @@ function mountValueString(node, options) {
     */
 }
 
-function mountValueCheckbox(node, options) {
-	var sourcePrefixed = node.getAttribute(options.attributePrefix + 'value') ;
-	var source         = node.getAttribute('value') ;
-	if (!(source || sourcePrefixed)) { return; }
+function mountValueChecked(node, options, render, read) {
+	const source = node.getAttribute('value') ;
+	mountString(source, renderProperty, options, node, 'value');
 
-	const renderer = mountString(source || sourcePrefixed, renderValueRadioCheckbox, options, node);
+	const sourcePre = node.getAttribute(options.attributePrefix + 'value');
+	const renderer = mountToken(sourcePre, render, options, node);
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, readValueCheckbox, renderer.tokens[0], 'change');
+	const listener = new Listener(node, read, renderer.tokens[0], 'change');
 	if (!listener) { return; }
 
 	options.renderers.push(listener);
 }
 
-function mountValueRadio(node, options) {
-	var sourcePrefixed = node.getAttribute(options.attributePrefix + 'value') ;
-	var source         = node.getAttribute('value') ;
-	if (!(source || sourcePrefixed)) { return; }
+const mountValue = overload(getType, {
+	number: function(node, options) {
+		return mountValueProp(node, options, renderValueNumber, readValueNumber);
+	},
 
-	const renderer = mountString(source || sourcePrefixed, renderValueRadioCheckbox, options, node);
-	if (!renderer) { return; }
+	range: function(node, options) {
+		return mountValueProp(node, options, renderValueNumber, readValueNumber);
+	},
 
-	const listener = new Listener(node, readValueRadio, renderer.tokens[0], 'change');
-	if (!listener) { return; }
+	checkbox: function(node, options) {
+		return mountValueChecked(node, options, renderValueChecked, readValueCheckbox);
+	},
 
-	options.renderers.push(listener);
-}
+	radio: function(node, options) {
+		return mountValueChecked(node, options, renderValueChecked, readValueRadio);
+	},
 
-const mountValue = choose({
-	string:   mountValueString,
-	number:   mountValueNumber,
-	checkbox: mountValueCheckbox,
-	radio:    mountValueRadio
+	default: function(node, options) {
+		return mountValueProp(node, options, renderValue, readValue);
+	}
 });
 
 function mountInput(types, node, options) {
@@ -316,9 +309,7 @@ function mountInput(types, node, options) {
 	if (setting) {
 		if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
 		if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
-		if (setting.value) {
-			mountValue(setting.value, node, options);
-		}
+		if (setting.value)      { mountValue(node, options); }
 	}
 }
 
@@ -327,10 +318,10 @@ function mountTag(settings, node, options) {
 	var setting = settings[name];
 
 	if (!setting) { return; }
-	if (setting.booleans) { mountBooleans(setting.booleans, node, options); }
+	if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
 	if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
-	if (setting.types) { mountInput(setting.types, node, options); }
-	if (setting.value) { mountValue(setting.value, node, options); }
+	if (setting.types)      { mountInput(setting.types, node, options); }
+	if (setting.value)      { mountValue(node, options); }
 }
 
 function mountCollection(children, options, structs) {
@@ -342,7 +333,7 @@ function mountCollection(children, options, structs) {
 	}
 }
 
-const mountNode  = overload(get('nodeType'), {
+const mountNode = overload(getNodeType, {
 	// element
 	1: function mountElement(node, options) {
 		const sparky = options.mount(node, options);
@@ -393,7 +384,11 @@ const mountNode  = overload(get('nodeType'), {
 	}
 });
 
-function Mount(node, options) {
+export default function Mount(node, options) {
+	if (!Mount.prototype.isPrototypeOf(this)) {
+        return new Mount(node, options);
+    }
+
 	if (DEBUG) {
 		console.groupCollapsed('mount: ', node);
 	}
@@ -415,19 +410,16 @@ assign(Mount.prototype, {
 	},
 
 	push: function(scope) {
+		// Dedup
 		if (this.scope === scope) {
 			return this;
 		}
 
+		// Set new scope
 		this.scope = scope;
 		this.renderers.reduce(push, scope);
-
 		return this;
 	}
 });
-
-export default function mount(node, options) {
-	return new Mount(node, options);
-}
 
 export { bindings as settings };

@@ -139,7 +139,7 @@ function setupTarget(src, input, render, config) {
     const tokens = parseText([], src);
 
     // If there are no dynamic tokens to render, return the include
-    if (tokens.length === 0 || (tokens.length === 1 && typeof tokens[0] === 'string')) {
+    if (!tokens) {
         return setupSrc(src, input, render, config);
     }
 

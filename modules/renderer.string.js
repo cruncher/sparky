@@ -5,17 +5,12 @@ import { parseText }  from './parse.js';
 const assign = Object.assign;
 const empty  = Object.freeze({});
 
-export default function StringRenderer(source, fn, node, name) {
+export default function StringRenderer(tokens, fn, node, name) {
     this.label  = 'String renderer';
     this.fn     = fn;
     this.node   = node;
     this.name   = name;
-    this.tokens = parseText([], source);
-
-    // If there are no dynamic tokens to render, don't return a renderer
-    if (this.tokens.length === 0 || (this.tokens.length === 1 && typeof this.tokens[0] === 'string')) {
-        return empty;
-    }
+    this.tokens = tokens;
 }
 
 assign(StringRenderer.prototype, Renderer.prototype, {

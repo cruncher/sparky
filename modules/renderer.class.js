@@ -1,6 +1,5 @@
 
 import Renderer      from './renderer.js';
-import { parseText } from './parse.js';
 
 const assign = Object.assign;
 const empty  = Object.freeze({});
@@ -10,11 +9,11 @@ const partitionByType = (data, token) => {
     return data;
 };
 
-export default function ClassRenderer(node, source, fn) {
+export default function ClassRenderer(node, tokens, fn) {
     this.label  = 'Class renderer';
 	this.fn     = fn;
+    this.tokens = tokens;
 
-	const tokens = parseText([], source);
     const data = tokens.reduce(partitionByType, {
         string: [],
         object: []
