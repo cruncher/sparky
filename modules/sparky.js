@@ -1,19 +1,12 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
-import mount from './mount.js';
-import fns from './fn.js';
+import config from './config.js';
+import mount  from './mount.js';
 
 const DEBUG = false;//true;
 
 const assign = Object.assign;
-
-export const config = {
-    attributeFn:      'fn',
-    attributeInclude: 'include',
-    functions:        fns,
-    mutations:        0
-};
 
 const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
     1: function(output, tokens) {
@@ -102,37 +95,33 @@ function run(context, node, input, attrFn, config) {
     return input;
 }
 
-function mountContent(content, config) {
+function mountContent(content, options) {
+    options.mount = function(node, options) {
+        // This is a half-assed way of preventing the root node of this
+        // sparky from being remounted.
+        if (node === content) { return; }
+
+        // Does the node have Sparkyfiable attributes?
+        const attrFn      = node.getAttribute(config.attributeFn);
+        const attrInclude = node.getAttribute(config.attributeInclude);
+
+        if (!attrFn && !attrInclude) { return; }
+
+        options.fn = attrFn;
+        options.include = attrInclude;
+        var sparky = Sparky(node, options);
+
+        // This is just some help for logging mounted tags
+        sparky.label = 'Sparky (child)';
+
+        // Return a writeable stream. A write stream
+        // must have the methods .push() and .stop()
+        // A sparky is a write stream.
+        return sparky;
+    };
+
     // Launch rendering
-    return mount(content, {
-        mount: function(node, options) {
-            // This is a half-assed way of preventing the root node of this
-            // sparky from being remounted.
-            if (node === content) { return; }
-
-            // Does the node have Sparkyfiable attributes?
-            const attrFn      = node.getAttribute(config.attributeFn);
-            const attrInclude = node.getAttribute(config.attributeInclude);
-
-            if (!attrFn && !attrInclude) { return; }
-
-            var sparky = Sparky(node, assign({
-                fn:      attrFn,
-                include: attrInclude
-            }, config));
-
-            // This is just some help for logging mounted tags
-            sparky.label = 'Sparky (child)';
-
-            // Return a writeable stream. A write stream
-            // must have the methods .push() and .stop()
-            // A sparky is a write stream.
-            return sparky;
-        },
-
-        attributeFn: config.attributeFn,
-        attributeInclude: config.attributeInclude
-    });
+    return mount(content, options);
 }
 
 function setupTarget(src, input, render, config) {
@@ -147,11 +136,14 @@ function setupTarget(src, input, render, config) {
     let stop    = noop;
     let prevSrc;
 
-    function update(renderedSrc, scope) {
+    function update(scope) {
+        const src = tokens.join('');
+        if (src === prevSrc) { return; }
+        prevSrc = src;
         output.stop();
         output = Stream.of(scope);
         stop();
-        stop = setupSrc(renderedSrc, output, render, config);
+        stop = setupSrc(src, output, render, config);
     }
 
     // Support streams and promises
@@ -169,11 +161,8 @@ function setupTarget(src, input, render, config) {
             // works because even NaN !== NaN.
             token.unobserve && token.unobserve();
             token.unobserve = observe(token.path, (value) => {
-                token.value = value || null;
-                const src = tokens.join('');
-                if (src === prevSrc) { return; }
-                prevSrc = src;
-                update(src, scope);
+                token.value = value;
+                update(scope);
             }, scope, NaN);
         }
     });

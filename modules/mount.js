@@ -1,13 +1,13 @@
 
 import { get, isDefined, noop, overload } from '../../fn/fn.js';
-import { attribute, classes, tag, trigger } from '../../dom/dom.js';
+import { tag, trigger } from '../../dom/dom.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
 import ValueRenderer   from './renderer.value.js';
 import Listener        from './listener.js';
-import bindings        from './bindings.js';
+import config          from './config-mount.js';
 
 const DEBUG      = false;//true;
 
@@ -16,14 +16,6 @@ const assign     = Object.assign;
 
 const cased = {
 	viewbox: 'viewBox'
-};
-
-const settings = {
-	attributePrefix: 'sparky-',
-	mount:           noop,
-	parse:           noop,
-	transforms:      {},
-	transformers:    {}
 };
 
 
@@ -310,7 +302,7 @@ function mountCollection(children, options, structs) {
 const mountNode = overload(getNodeType, {
 	// element
 	1: function mountElement(node, options) {
-		const sparky = options.mount(node, options);
+		const sparky = options.mount && options.mount(node, options);
 		if (sparky) {
 			options.renderers.push(sparky);
 			return;
@@ -322,9 +314,9 @@ const mountNode = overload(getNodeType, {
 		// an array.
 		mountCollection(Array.from(node.childNodes), options);
 		mountClass(node, options);
-		mountBooleans(bindings.default.booleans, node, options);
-		mountAttributes(bindings.default.attributes, node, options);
-		mountTag(bindings, node, options);
+		mountBooleans(config.default.booleans, node, options);
+		mountAttributes(config.default.attributes, node, options);
+		mountTag(config, node, options);
 	},
 
 	// text
@@ -367,8 +359,8 @@ export default function Mount(node, options) {
 		console.groupCollapsed('mount: ', node);
 	}
 
-	options = assign({}, settings, options);
 	this.renderers = options.renderers = [];
+	if (!options.attributePrefix) { options.attributePrefix = ':'; }
 	mountNode(node, options);
 
 	if (DEBUG) {
@@ -396,5 +388,3 @@ assign(Mount.prototype, {
 		return this;
 	}
 });
-
-export { bindings as settings };
