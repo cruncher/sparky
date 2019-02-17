@@ -2,7 +2,6 @@
 import { get, isDefined, noop, overload } from '../../fn/fn.js';
 import { attribute, classes, tag, trigger } from '../../dom/dom.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
-import toRenderString  from './render.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
@@ -14,12 +13,6 @@ const DEBUG      = false;//true;
 const A          = Array.prototype;
 const assign     = Object.assign;
 
-// Matches anything with a space
-const rspaces = /\s+/;
-
-// Matches anything that contains a non-space character
-const rtext = /\S/;
-
 const cased = {
 	viewbox: 'viewBox'
 };
@@ -29,8 +22,7 @@ const settings = {
 	mount:           noop,
 	parse:           noop,
 	transforms:      {},
-	transformers:    {},
-	rtoken:          /(\{\[)\s*(.*?)(?:\s*(\|.*?))?\s*(\]\})/g
+	transformers:    {}
 };
 
 
@@ -76,22 +68,18 @@ function readValueRadio(node) {
 
 // Render
 
-function addClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.add.apply(classList, classes);
-}
-
-function removeClasses(classList, text) {
-	var classes = toRenderString(text).trim().split(rspaces);
-	classList.remove.apply(classList, classes);
-}
-
 function renderText(value, node) {
 	node.nodeValue = value;
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderAttribute(value, node, name) {
 	node.setAttribute(cased[name] || name, value);
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderBooleanAttribute(value, node, name) {
@@ -101,16 +89,25 @@ function renderBooleanAttribute(value, node, name) {
 	else {
 		node.removeAttribute(name);
 	}
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderProperty(value, node, name) {
 	node[name] = value;
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderValue(value, node) {
+	// Don't render into focused nodes
+	if (document.activeElement === node) { return 0; }
+
 	// Avoid updating with the same value as it sends the cursor to
 	// the end of the field (in Chrome, at least).
-	if (value === node.value) { return; }
+	if (value === node.value) { return 0; }
 
 	node.value = typeof value === 'string' ?
 		value :
@@ -118,12 +115,18 @@ function renderValue(value, node) {
 
 	// Trigger validation
 	trigger('dom-update', node);
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderValueNumber(value, node) {
+	// Don't render into focused nodes
+	if (document.activeElement === node) { return 0; }
+
 	// Avoid updating with the same value as it sends the cursor to
 	// the end of the field (in Chrome, at least).
-	if (value === parseFloat(node.value)) { return; }
+	if (value === parseFloat(node.value)) { return 0; }
 
 	node.value = typeof value === 'number' && !Number.isNaN(value) ?
 		value :
@@ -131,6 +134,9 @@ function renderValueNumber(value, node) {
 
 	// Trigger validation
 	trigger('dom-update', node);
+
+	// Return DOM mod count
+	return 1;
 }
 
 function renderValueChecked(value, node) {
@@ -142,6 +148,9 @@ function renderValueChecked(value, node) {
 
 	// Trigger validation
 	trigger('dom-update', node);
+
+	// Return DOM mod count
+	return 1;
 }
 
 
@@ -223,23 +232,13 @@ function mountBooleans(names, node, options) {
 
 function mountClass(node, options) {
 	// Are there classes?
-	const source = attribute('class', node);
+	const source = node.getAttribute('class');
 	if (!source) { return; }
 
 	const tokens = parseText([], source);
 	if (!tokens) { return; }
 
-	const list = classes(node);
-	const renderer = new ClassRenderer(node, tokens, (string, current) => {
-		current && rtext.test(current) && removeClasses(list, current);
-		string && rtext.test(string) && addClasses(list, string);
-	});
-
-	// We are reduced to checking for push as constructor cant return
-	// undefined. Todo: turn BooleanRenderer into a factory function rather
-	// than a constructor so it can return undefined.
-	if (!renderer || !renderer.push) { return; }
-
+	const renderer = new ClassRenderer(node, tokens);
 	options.renderers.push(renderer);
 }
 
@@ -418,6 +417,7 @@ assign(Mount.prototype, {
 		// Set new scope
 		this.scope = scope;
 		this.renderers.reduce(push, scope);
+
 		return this;
 	}
 });

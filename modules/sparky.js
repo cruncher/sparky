@@ -11,7 +11,8 @@ const assign = Object.assign;
 export const config = {
     attributeFn:      'fn',
     attributeInclude: 'include',
-    functions:        fns
+    functions:        fns,
+    mutations:        0
 };
 
 const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
@@ -130,8 +131,7 @@ function mountContent(content, config) {
         },
 
         attributeFn: config.attributeFn,
-        attributeInclude: config.attributeInclude,
-        createStruct: config.createStruct
+        attributeInclude: config.attributeInclude
     });
 }
 
@@ -204,8 +204,6 @@ function setupSrc(src, input, firstRender, config) {
         renderer = setupInclude(source, input, firstRender, config);
     });
 
-    let value;
-
     return function stop() {
         stopped = true;
         renderer && renderer.stop();
@@ -266,7 +264,13 @@ function setupTemplate(target, input, config) {
         const init = !renderer;
         if (init) { renderer = mountContent(target.content, config); }
         renderer.push(scope);
-        if (init) { replace(target, target.content); }
+
+        if (init) {
+            replace(target, target.content);
+
+            // For logging
+            ++config.mutations;
+        }
     });
 
     return function stop() {
@@ -278,6 +282,9 @@ function setupElementInclude(target, src, input, config) {
     return setupTarget(src, input, (content) => {
         target.innerHTML = '';
         target.appendChild(content);
+
+        // For logging
+        config.mutations += 2;
     }, config);
 }
 
@@ -289,6 +296,9 @@ function setupTemplateInclude(target, src, input, config) {
     if (children[0]) {
         replace(target, target.content);
         target = children[0];
+
+        // For logging
+        ++config.mutations;
     }
 
     return setupTarget(src, input, (content) => {
@@ -297,7 +307,11 @@ function setupTemplateInclude(target, src, input, config) {
         let n = -1;
         while (children[++n]) {
             // Ignore n === 0
-            if (n) { children[n].remove(); }
+            if (n) {
+                children[n].remove();
+                // For logging
+                ++config.mutations;
+            }
             children[n] = undefined;
         }
 
@@ -308,6 +322,9 @@ function setupTemplateInclude(target, src, input, config) {
         // which we avoided doing above to keep it as a position marker in
         // the DOM for this...
         replace(target, content);
+
+        // For logging
+        ++config.mutations;
 
         // Update target
         if (!children[0]) { throw new Error('No target, use marker'); }
@@ -332,6 +349,8 @@ export default function Sparky(selector, settings) {
     const attrFn = options.fn || target.getAttribute(options.attributeFn) || '';
     const output = run(null, target, input, attrFn, options);
     let stop = noop;
+
+    this.mutations = 0;
 
     this.push = (scope) => {
         input.push(scope);
@@ -368,4 +387,6 @@ export default function Sparky(selector, settings) {
         attrInclude ?
             setupElementInclude(target, attrInclude, output, options) :
             setupElement(target, output, options) ;
+
+    this.mutations = options.mutations;
 }

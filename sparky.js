@@ -36,8 +36,9 @@ const DEBUG = !!window.DEBUG;
 // Launch sparky on sparky templates.
 // Ultimately this will be a web component, I guess
 cue({
-    fire: function() {
+    render: function() {
         const templates = window.document.querySelectorAll('[is="sparky"]');
+        var mutations = 0;
 
         if (DEBUG) {
             templates.forEach((template) => {
@@ -51,13 +52,16 @@ cue({
                     'color: #6894ab; font-weight: 400;'
                 );
 
-                Sparky(template);
+                const sparky = Sparky(template);
+                mutations += sparky.mutations;
 
                 console.groupEnd();
             });
         }
         else {
-            templates.forEach(Sparky);
+            templates.forEach(Sparky) ;
         }
+
+        return mutations;
     }
 });

@@ -21,9 +21,10 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         const value = this.tokens.join('');
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return; }
-
-        this.fn.call(null, value, this.node, this.name);
+        if (this.valueRendered === value) { return 0; }
         this.valueRendered = value;
+
+        // Return DOM mutation count
+        return this.fn.call(null, value, this.node, this.name);
     }
 });

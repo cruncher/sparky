@@ -11,32 +11,21 @@ const queue = new Set();
 
 const addons = [];
 
-let frame;
 const errors = [];
 
-function collate(data, renderer) {
-	var key = renderer.label;
+var mutationCount = 0;
 
-	if (data[key]) {
-		data[key]++;
-	}
-	else {
-		data[key] = 1;
-	}
+var frame;
 
-	return data;
-}
 
-function logRenders(tStart, tStop, errors) {
+function logRenders(tStart, tStop, mutations, errors) {
 	// Pass some information to the frame cuer for debugging
-	const renderers = Array.from(queue).concat(addons);
-	const data      = renderers.reduce(collate, {});
-	const mutations = renderers.filter((renderer) => renderer.tokens).length;
-
+	//const renderers = Array.from(queue).concat(addons);
+	//const data      = renderers.reduce(collate, {});
 	//console.table(data);
 
 	if (DEBUG) {
-		console.log('%c' + queue.size + ' cued call' + (queue.size === 1 ? '' : 's') + '. ' + addons.length + ' immediate call'+ (addons.length === 1 ? '' : 's') + '. ' + mutations + ' DOM renders %c' + (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
+		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. ' + addons.length + ' added renderer'+ (addons.length === 1 ? '' : 's') + '. ' + mutations + ' DOM mutations %c' + (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
 		console.groupEnd();
 	}
 
@@ -49,23 +38,14 @@ function logRenders(tStart, tStop, errors) {
 	}
 }
 
-function run(time) {
-	if (DEBUG) {
-		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
-	}
-
-	addons.length = 0;
-	errors.length = 0;
-	frame = true;
-
-	const tStart = now();
-
-	let renderer;
+function fire(queue) {
+	var count = 0;
+	var renderer;
 
 	if (DEBUG) {
 		for (renderer of queue) {
 			try {
-				(renderer.fire ? renderer.fire() : renderer.render());
+				count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
 			}
 			catch(e) {
 				console.log('%cError rendering ' + renderer.label + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
@@ -76,14 +56,31 @@ function run(time) {
 	}
 	else {
 		for (renderer of queue) {
-			(renderer.fire ? renderer.fire() : renderer.render());
+			count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
 		}
 	}
 
-	const tStop = now();
+	return count;
+}
+
+function run(time) {
+	if (DEBUG) {
+		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+	}
+
+	addons.length = 0;
+	errors.length = 0;
+	mutationCount = 0;
+	frame = true;
+
+	const tStart = now();
+	const count  = fire(queue);
+	const tStop  = now();
+
+	mutationCount += count;
 
 	if (DEBUG || errors.length || ((tStop - tStart) > maxFrameDuration)) {
-		logRenders(tStart, tStop, errors);
+		logRenders(tStart, tStop, mutationCount, errors);
 	}
 
 	queue.clear();
@@ -99,7 +96,8 @@ export function cue(renderer) {
 	// Functions cued during frame are run syncronously (to preserve
 	// inner-DOM-first order of execution during setup)
 	if (frame === true) {
-		(renderer.fire ? renderer.fire() : renderer.render());
+		const count = (renderer.fire ? renderer.fire() : renderer.render()) || 0;
+		mutationCount += count;
 		addons.push(renderer);
 		return;
 	}

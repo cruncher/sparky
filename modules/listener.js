@@ -52,6 +52,8 @@ export default function Listener(node, read, token, type) {
         type === 'change' ? changeMap :
         undefined ;
 
+    this.valueOriginal = node.value;
+
     // Delay setup of event listeners, keeping them away from
     // rendering for a short time
     this.timerId = setTimeout(setup, 60, this, token.pipe);
