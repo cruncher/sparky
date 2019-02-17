@@ -137,6 +137,17 @@ assign(Tag.prototype, {
     }
 });
 
+function toFunction(data) {
+    const fn = getTransform(data.name);
+    if (!fn) { throw new Error('fn ' + data.name + '() not found.'); }
+
+    return data.args && data.args.length ?
+        // fn is expected to return a fn
+        fn.apply(null, data.args) :
+        // fn is used directly
+        fn ;
+}
+
 function throwError(regex, string) {
     throw new Error('Cannot parse tag "' + string + '" with ' + regex);
 }
@@ -153,15 +164,7 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     2: function(tag, tokens) {
         tag.pipe = parsePipe([], tokens);
         if (!tag.pipe || !tag.pipe.length) { return tag; }
-
-        tag.transform = pipe.apply(null, tag.pipe.map((data) => {
-            const fn = getTransform(data.name);
-            if (!fn) { throw new Error('fn ' + tokens[1] + '() not found.'); }
-            return data.args && data.args.length ?
-                fn.apply(null, data.args) :
-                fn ;
-        }));
-
+        tag.transform = pipe.apply(null, tag.pipe.map(toFunction));
         return tag;
     },
 

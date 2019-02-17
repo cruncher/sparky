@@ -10,7 +10,7 @@ function getInvert(name) {
 }
 
 function setup(object, pipeData) {
-    object.timerId = null;
+    //object.timerId = null;
 
     if (pipeData) {
         object.transform = pipe.apply(null,
@@ -28,9 +28,8 @@ function setup(object, pipeData) {
 
     const fn = () => {
         const v1 = object.read(object.node);
-        if (v1 === undefined) { return; }
         const v2 = object.transform(v1);
-        if (v2 === undefined) { return; }
+        // Allow setting of undefined
         object.set(v2);
     };
 
@@ -56,7 +55,8 @@ export default function Listener(node, read, token, type) {
 
     // Delay setup of event listeners, keeping them away from
     // rendering for a short time
-    this.timerId = setTimeout(setup, 60, this, token.pipe);
+    //this.timerId = setTimeout(setup, 60, this, token.pipe);
+    setup(this, token.pipe);
 }
 
 Object.assign(Listener.prototype, {
@@ -71,11 +71,11 @@ Object.assign(Listener.prototype, {
 
     stop: function() {
         // If setup has not yet run, cancel it
-        if (this.timerId) {
-            clearTimeout(this.timerId);
-            this.timerId = null;
-            return this;
-        }
+        //if (this.timerId) {
+        //    clearTimeout(this.timerId);
+        //    this.timerId = null;
+        //    return this;
+        //}
 
         this.fns.delete(this.node);
         return this;
@@ -96,4 +96,9 @@ document.addEventListener('change', function(e) {
     const fn = changeMap.get(e.target);
     if (!fn) { return; }
     fn();
+});
+
+document.addEventListener('focusout', function(e) {
+    // Changes are not rendered while node is focused,
+    // render them on blur
 });

@@ -15,14 +15,14 @@ function renderBooleanAttribute(value, node, name) {
 		node.removeAttribute(name);
 	}
 
-	// Return DOM mod count
+	// Return DOM mutation count
 	return 1;
 }
 
 function renderProperty(value, node, name) {
 	node[name] = value;
 
-	// Return DOM mod count
+	// Return DOM mutation count
 	return 1;
 }
 
