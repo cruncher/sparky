@@ -89,7 +89,6 @@ function run(time) {
 
 export function cue(renderer) {
 	if (queue.has(renderer)) {
-		//if (DEBUG) { console.warn('frame: Trying to add an existing fn. Dropped', fn.name + '()'); }
 		return;
 	}
 
@@ -105,7 +104,6 @@ export function cue(renderer) {
 	queue.add(renderer);
 
 	if (frame === undefined) {
-		//if (DEBUG) { console.log('(request head frame)'); }
 		frame = requestAnimationFrame(run);
 	}
 }
