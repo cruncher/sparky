@@ -23,8 +23,12 @@ Object.assign(Renderer.prototype, {
             // callback to be called immediately. It's a bit tricksy, but this
             // works because even NaN !== NaN.
             token.unobserve && token.unobserve();
-            token.unobserve = observe(token.path, (value = null) => {
+            token.unobserve = observe(token.path, (value) => {
                 token.value = value;
+
+                // If token has noRender flag set, it is being updated from
+                // an input and does not need to be rendered back to the input
+                if (token.noRender) { return; }
                 if (this.cued) { return; }
                 this.cued = true;
                 cue(this);

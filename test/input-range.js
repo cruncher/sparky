@@ -8,7 +8,7 @@ group('input[type="range"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 0 };
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('0', node.value);
@@ -25,7 +25,7 @@ group('input[type="range"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-2');
 		var model = {};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(0, model.property);
@@ -40,7 +40,7 @@ group('input[type="range"]', function(test, log, fixture) {
 			max: 2
 		};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('1', node.min);
@@ -53,11 +53,11 @@ group('input[type="range"]', function(test, log, fixture) {
 	test('input[type="range", value, min, max] | add:2', function(equals, done) {
 		var node  = fixture.querySelector('.node-4');
 		var model = {
-			min: 0,
-			max: 20
+			//min: 0,
+			//max: 20
 		};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(-2, model.property);
@@ -72,6 +72,7 @@ group('input[type="range"]', function(test, log, fixture) {
 
 			requestAnimationFrame(function() {
 				equals('14', node.value);
+				equals(12, model.property);
 				done();
 			});
 		});

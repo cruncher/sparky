@@ -1,6 +1,7 @@
 
 import { getPath, setPath, id, noop, pipe } from '../../fn/fn.js';
 import { transformers } from './transforms.js';
+import { cue, uncue }   from './timer.js';
 
 const inputMap  = new WeakMap();
 const changeMap = new WeakMap();
@@ -26,37 +27,34 @@ function setup(object, pipeData) {
         );
     }
 
-    const fn = () => {
+    object.fn = () => {
         const v1 = object.read(object.node);
-        const v2 = object.transform(v1);
+
         // Allow setting of undefined
+        if (v1 === undefined) {
+            object.set(v1);
+            return;
+        }
+
+        const v2 = object.transform(v1);
         object.set(v2);
     };
 
-    object.fns.set(object.node, fn);
-
-    // Where the initial value at path is not set, set it to
-    // the <input> value
-    if (getPath(object.path, object.scope) === undefined) {
-        fn();
-    }
+    object.fns.set(object.node, object.fn);
 }
 
 export default function Listener(node, read, token, type) {
     this.node = node;
 	this.read = read;
+    this.token = token;
     this.path = token.path;
+    this.pipe = token.pipe;
     this.type = type;
     this.fns  = type === 'input' ? inputMap :
         type === 'change' ? changeMap :
         undefined ;
 
     this.valueOriginal = node.value;
-
-    // Delay setup of event listeners, keeping them away from
-    // rendering for a short time
-    //this.timerId = setTimeout(setup, 60, this, token.pipe);
-    setup(this, token.pipe);
 }
 
 Object.assign(Listener.prototype, {
@@ -64,19 +62,31 @@ Object.assign(Listener.prototype, {
 
     set: noop,
 
+    fire: function() {
+        if (!this.fn) {
+            setup(this, this.pipe);
+        }
+
+        if (getPath(this.path, this.scope) === undefined) {
+            this.token.noRender = true;
+            this.fn();
+            this.token.noRender = false;
+        }
+    },
+
     push: function(scope) {
+        this.scope = scope;
         this.set = setPath(this.path, scope);
+
+        // Wait for values to have been rendered on the next frame
+        // before setting up. This is so that min and max and other
+        // constraints have had a chance to affect value before it is
+        // read and set on scope.
+        cue(this);
         return this;
     },
 
     stop: function() {
-        // If setup has not yet run, cancel it
-        //if (this.timerId) {
-        //    clearTimeout(this.timerId);
-        //    this.timerId = null;
-        //    return this;
-        //}
-
         this.fns.delete(this.node);
         return this;
     }

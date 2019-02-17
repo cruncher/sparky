@@ -10,10 +10,10 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 		var node1 = fixture.querySelector('.node-1');
 		var model1 = { property: true };
 
-		Sparky(node1, model1);
+		Sparky(node1).push(model1);
 
 		requestAnimationFrame(function() {
-			equals(true, node1.checked,   'Checkbox 1 should be checked');
+			equals(true, node1.checked, 'Checkbox 1 should be checked');
 
 			node1.checked = false;
 			node1.dispatchEvent(changeEvent);
@@ -36,7 +36,7 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 		var node2 = fixture.querySelector('.node-2');
 		var model2 = { };
 
-		Sparky(node2, model2);
+		Sparky(node2).push(model2);
 
 		requestAnimationFrame(function() {
 			equals(true, model2.property, 'model2.property should be true');
@@ -55,7 +55,7 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-3');
 		var model = { };
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('good', model.property);

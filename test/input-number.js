@@ -4,7 +4,7 @@ import Sparky from '../sparky.js';
 
 group('input[type="number"]', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
-/*
+
 	test('input[type="number"]', function(equals, done) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 0 };
@@ -13,6 +13,7 @@ group('input[type="number"]', function(test, log, fixture) {
 
 		requestAnimationFrame(function() {
 			equals('0', node.value);
+
 			node.value = '';
 			node.dispatchEvent(inputEvent);
 			equals(undefined, model.property);
@@ -25,11 +26,12 @@ group('input[type="number"]', function(test, log, fixture) {
 
 			requestAnimationFrame(function() {
 				equals('', node.value);
+				equals(false, model.property);
 				done();
 			});
 		});
 	});
-*/
+
 	test('input[type="number", value]', function(equals, done) {
 		var node  = fixture.querySelector('.node-2');
 		var model = {};
@@ -41,10 +43,11 @@ group('input[type="number"]', function(test, log, fixture) {
 
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+
 			equals(undefined, model.property);
 			done();
 		});
-	});/*
+	});
 
 	test('input[type="number", value, min, max]', function(equals, done) {
 		var node  = fixture.querySelector('.node-3');
@@ -53,17 +56,18 @@ group('input[type="number"]', function(test, log, fixture) {
 			max: 2
 		};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(0, model.property);
+
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+
 			equals(undefined, model.property);
 			done();
 		});
 	});
-*/
 }, function() {/*
 
 <input class="node-1" type="number" sparky-value="{[property]}" />

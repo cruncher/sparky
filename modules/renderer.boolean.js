@@ -48,6 +48,6 @@ assign(BooleanRenderer.prototype, Renderer.prototype, {
 		this.valueRendered = value;
 
 		// Return DOM mutation count
-        return this.fn.call(null, value, this.node, this.name);
+        return this.fn(value, this.node, this.name);
     }
 });

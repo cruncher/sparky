@@ -96,7 +96,7 @@ group('Child sparky', function(test, log, fixture) {
 //		var node = fixture.querySelector('div');
 //		var model = Observer({ property: 'peas' });
 //
-//		Sparky(node, model);
+//		Sparky(node).push(model);
 //		equals(true, !!node.classList.contains('peas'),  'Classes expected to contain "peas", actual: ' + node.getAttribute('class'));
 //
 //		node.classList.add('hello');
@@ -126,7 +126,7 @@ group('Child sparky', function(test, log, fixture) {
 //		var model = { property: 'peas' };
 //
 //		Sparky.data.model = model;
-//		Sparky(node, model);
+//		Sparky(node).push(model);
 //		node.classList.remove('class-2');
 //
 //		window.requestAnimationFrame(function() {
@@ -189,7 +189,7 @@ group('Child sparky', function(test, log, fixture) {
 //
 //		equals(true, !!node.classList, 'classList does not exist');
 //
-//		Sparky(node, model);
+//		Sparky(node).push(model);
 //		node.classList.add('hello');
 //
 //		window.requestAnimationFrame(function() {

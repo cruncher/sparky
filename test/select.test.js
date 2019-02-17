@@ -1,6 +1,40 @@
 
-import { Fn, test as group, Observer } from '../../fn/fn.js';
+import { Fn, noop, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
+
+group('select > option', function(test, log, fixture) {
+	var select = fixture.children[0];
+
+	test("Array scope", function(equals, done) {
+		const model = { country: 'UK' };
+		Sparky(select).push(model);
+
+		requestAnimationFrame(function functionName() {
+			equals(true, !!select);
+			equals(2, select.children.length);
+			equals('UK', select.value);
+
+			Observer(model).country = 'CH';
+
+			requestAnimationFrame(function functionName() {
+				equals('CH', select.value);
+				Observer(model).country = '--';
+
+				requestAnimationFrame(function functionName() {
+					equals('', select.value);
+					done();
+				});
+			});
+		});
+	}, 5);
+}, function() {/*
+	<select sparky-value="{[country]}" name="country">
+		<option value="UK">United Kingdom</option>
+		<option value="CH">Switzerland</option>
+	</select>
+*/});
+
+
 /*
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];
@@ -42,12 +76,10 @@ group('select > option|each', function(test, log, fixture) {
 		});
 	}, 2);
 }, function() {/*
-
 	<select sparky-fn="array-scope" class="{[length|add:1|prepend:'length-']}" id="test-select" name="name">
 		<option sparky-fn="each" value="{[key]}">{[value]}</option>
 		<option value="Infinity">Infinity</option>
 	</select>
-
 *//*});
 
 
@@ -90,34 +122,33 @@ group('select > option|each', function(test, log, fixture) {
 *//*});
 */
 
-group('select > option|each', function(test, log, fixture) {
+
+noop('select > async options', function(test, log, fixture) {
 	var node = fixture.children[0];
 
 	test("Array scope", function(equals, done) {
-		Sparky(node).push({
-			country: 'GB'
-		});
+		const model = { country: 'GB' };
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function functionName() {
 			var select = fixture.querySelector('select');
 			equals(true, !!select);
-			equals(0, select.children.length);
 
 			// Wait countries.json to import
 			setTimeout(function() {
-				equals(2, select.children.length);
+				equals(3, select.children.length);
 				equals('GB', select.value);
 				done();
-			}, 400);
+			}, 500);
 		});
-	}, 4);
+	}, 3);
 }, function() {/*
-	<form sparky-fn="template:#address-editor">HEY</form>
+	<form include="#address-editor">HEY</form>
 
 	<template id="address-editor">
 	    <label class="country-select-button select-button button">
-	        <select value="{[country]}" name="country">
-	            <option sparky-fn="import:countries.json each" value="{[key]}">{[value]}</option>
+	        <select sparky-value="{[country]}" name="country">
+	            <option fn="import:countries.json each" value="{[code]}">{[value]}</option>
 	        </select>
 	    </label>
 	</template>

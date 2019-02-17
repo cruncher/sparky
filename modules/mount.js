@@ -44,11 +44,11 @@ const getNodeType = get('nodeType');
 // Read
 
 function readValue(node) {
-	return node.value;
+	return node.value || undefined ;
 }
 
 function readValueNumber(node) {
-	return node.value && parseFloat(node.value) || undefined;
+	return node.value ? parseFloat(node.value) : undefined;
 }
 
 function readValueCheckbox(node) {
