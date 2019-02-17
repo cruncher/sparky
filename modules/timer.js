@@ -19,11 +19,6 @@ var frame;
 
 
 function logRenders(tStart, tStop, mutations, errors) {
-	// Pass some information to the frame cuer for debugging
-	//const renderers = Array.from(queue).concat(addons);
-	//const data      = renderers.reduce(collate, {});
-	//console.table(data);
-
 	if (DEBUG) {
 		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. ' + addons.length + ' added renderer'+ (addons.length === 1 ? '' : 's') + '. ' + mutations + ' DOM mutations %c' + (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
 		console.groupEnd();
