@@ -2,7 +2,7 @@
 import { Fn, noop, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
-group('select > option', function(test, log, fixture) {
+noop('select > option', function(test, log, fixture) {
 	var select = fixture.children[0];
 
 	test("Array scope", function(equals, done) {
@@ -123,7 +123,7 @@ group('select > option|each', function(test, log, fixture) {
 */
 
 
-noop('select > async options', function(test, log, fixture) {
+group('select > async options', function(test, log, fixture) {
 	var node = fixture.children[0];
 
 	test("Array scope", function(equals, done) {

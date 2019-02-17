@@ -13,7 +13,6 @@ export default function get(node, input, params) {
         stop();
         stop = object ?
             Observable(params[0], object)
-            .tap(console.log)
             .each(output.push)
             .stop :
             noop ;

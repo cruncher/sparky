@@ -1,22 +1,24 @@
-import { test as group } from '../../fn/fn.js';
-import Sparky from '../sparky.js';
+import { test as group, noop, Observer } from '../../fn/fn.js';
+import Sparky, { functions } from '../sparky.js';
 
-Sparky.fn['pass-through'] = function(node, stream) {
+var frame = window.requestAnimationFrame;
+
+functions['pass-through'] = function(node, stream) {
 	//return stream.tap(console.log);
 };
 
 group('.stop() scopes', function(test, log, fixture) {
-	var frame = window.requestAnimationFrame;
-
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');
 		var p      = fixture.querySelector('p');
-		var sparky = Sparky(div, { property: '0' });
+		var sparky = Sparky(div).push({ property: '0' });
 
 		frame(function() {
 			equals('0', p.innerHTML);
 
-			sparky.push({ property: '1' });
+			var model = { property: '1' };
+
+			sparky.push(model);
 
 			frame(function() {
 				equals('1', p.innerHTML);
@@ -26,12 +28,18 @@ group('.stop() scopes', function(test, log, fixture) {
 				.push({ property: '2' });
 
 				frame(function() {
-					equals('1', p.innerHTML);
-					done();
+					equals('1', p.innerHTML, 'Scope change should not cause changes after .stop()');
+
+					Observer(model).property = '0';
+
+					frame(function() {
+						equals('1', p.innerHTML, 'Scope mutation should not cause changes after .stop()');
+						done();
+					});
 				});
 			});
 		});
-	}, 3);
+	}, 4);
 }, function() {/*
 
 <div>
@@ -47,7 +55,7 @@ group('.stop() scopes to child', function(test, log, fixture) {
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');
 		var p      = fixture.querySelector('p');
-		var sparky = Sparky(div, { property: '0' });
+		var sparky = Sparky(div).push({ property: '0' });
 
 		frame(function() {
 			equals('0', p.innerHTML);
@@ -83,7 +91,7 @@ group('.stop() scopes to templated child', function(test, log, fixture) {
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');
-		var sparky = Sparky(div, { property: '0' });
+		var sparky = Sparky(div).push({ property: '0' });
 
 		frame(function() {
 			var p = fixture.querySelector('p');
@@ -109,7 +117,7 @@ group('.stop() scopes to templated child', function(test, log, fixture) {
 	}, 3);
 }, function() {/*
 
-<div sparky-fn="template:'#stop-test-1'">
+<div include="#stop-test-1">
 	Unrendered
 </div>
 

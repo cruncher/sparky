@@ -5,7 +5,7 @@ import { parseToken, parseText, parseBoolean } from './parse.js';
 import BooleanRenderer from './renderer.boolean.js';
 import ClassRenderer   from './renderer.class.js';
 import StringRenderer  from './renderer.string.js';
-import TokenRenderer   from './renderer.token.js';
+import ValueRenderer   from './renderer.value.js';
 import Listener        from './listener.js';
 import bindings        from './bindings.js';
 
@@ -152,7 +152,7 @@ function mountToken(source, render, options, node, name) {
 	const token = parseToken(null, source);
 	if (!token) { return; }
 
-	const renderer = new TokenRenderer(token, render, node, name);
+	const renderer = new ValueRenderer(token, render, node, name);
 	options.renderers.push(renderer);
 	return renderer;
 }
@@ -238,16 +238,6 @@ function mountValueProp(node, options, render, read) {
 	if (!listener) { return; }
 
 	options.renderers.push(listener);
-
-	/*
-	var struct = this;
-
-	if (node.tagName.toLowerCase() === 'select') {
-		this.unobserveMutations = observeMutations(node, function() {
-			cue(struct);
-		});
-	}
-    */
 }
 
 function mountValueChecked(node, options, render, read) {
