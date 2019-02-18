@@ -74,6 +74,12 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     // Comma terminator - more params to come
     11: function(params, tokens) {
         return parseParams(params, tokens);
+    },
+
+    catch: function(params, string) {
+        // string is either the input string or a tokens object
+        // from a higher level of parsing
+        throw new SyntaxError('Invalid parameter "' + (string.input || string) + '"');
     }
 });
 
@@ -110,7 +116,13 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
         1: function(fns, tokens) {
             return parsePipe(fns, tokens);
         }
-    })
+    }),
+
+    catch: function(fns, string) {
+        // string is either the input string or a tokens object
+        // from a higher level of parsing
+        throw new SyntaxError('Invalid pipe "' + (string.input || string) + '"');
+    }
 })
 
 function Tag() {}
@@ -137,6 +149,10 @@ assign(Tag.prototype, {
     }
 });
 
+// Pipes are cached against their JSON representations so that
+// many tokens may share the same pipe. Export them for logging.
+export const pipes = {};
+
 function toFunction(data) {
     const fn = getTransform(data.name);
     if (!fn) { throw new Error('fn ' + data.name + '() not found.'); }
@@ -148,8 +164,12 @@ function toFunction(data) {
         fn ;
 }
 
-function throwError(regex, string) {
-    throw new Error('Cannot parse tag "' + string + '" with ' + regex);
+function createPipe(array) {
+    // Cache pipes for reuse by other tokens
+    const key = JSON.stringify(array);
+    return pipes[key] || (
+        pipes[key] = pipe.apply(null, array.map(toFunction))
+    );
 }
 
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
@@ -163,16 +183,22 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Pipe '|'
     2: function(tag, tokens) {
         tag.pipe = parsePipe([], tokens);
-        if (!tag.pipe || !tag.pipe.length) { return tag; }
-        tag.transform = pipe.apply(null, tag.pipe.map(toFunction));
+        if (!tag.pipe) { return tag; }
+        tag.transform = createPipe(tag.pipe);
         return tag;
     },
 
     // Tag close ']}'
     close: function(tag, tokens) {
-        exec(/^\s*\]\}/, noop, throwError, tokens);
+        if (!exec(/^\s*\]\}/, id, tokens)) {
+            throw new SyntaxError('Unclosed tag in "' + tokens.input + '"');
+        }
+
         return tag;
-    }
+    },
+
+    // Where nothing is found, don't complain
+    catch: id
 });
 
 export const parseToken = capture(/^\s*(\{\[)/, {
@@ -185,7 +211,10 @@ export const parseToken = capture(/^\s*(\{\[)/, {
 
     close: function(tag, tokens) {
         // Only spaces allowed til end
-        exec(/^\s*$/, noop, throwError, tokens);
+        if (!exec(/^\s*$/, id, tokens)) {
+            throw new SyntaxError('Invalid characters after token (only spaces valid) "' + tokens.input + '"');
+        }
+
         return tag;
     },
 
@@ -228,5 +257,8 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseText(array, tokens);
-    }
+    },
+
+    // Where nothing is found, don't complain
+    catch: id
 });

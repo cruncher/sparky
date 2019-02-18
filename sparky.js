@@ -21,6 +21,7 @@ if (window.console && window.console.log) {
 
 import { cue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
+import { pipes } from './modules/parse.js';
 
 export default Sparky;
 export { default as config } from './modules/config.js';
@@ -65,3 +66,8 @@ cue({
         return mutations;
     }
 });
+
+if (DEBUG) {
+    window.Sparky = Sparky;
+    Sparky.pipes = pipes;
+}

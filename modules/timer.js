@@ -37,23 +37,23 @@ function fire(queue) {
 	var count = 0;
 	var renderer;
 
-	if (DEBUG) {
-		for (renderer of queue) {
-			try {
-				count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
-			}
-			catch(e) {
-				console.log('%cError rendering ' + renderer.label + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
-				console.error(e);
-				errors.push(renderer.token);
-			}
-		}
-	}
-	else {
+	//if (DEBUG) {
+	//	for (renderer of queue) {
+	//		try {
+	//			count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
+	//		}
+	//		catch(e) {
+	//			console.log('%cError rendering ' + renderer.label + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
+	//			console.error(e);
+	//			errors.push(renderer.token);
+	//		}
+	//	}
+	//}
+	//else {
 		for (renderer of queue) {
 			count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
 		}
-	}
+	//}
 
 	return count;
 }
