@@ -95,7 +95,7 @@ export default function importTemplate(src) {
         // Imported templates are now in the current document
         const elem = document.getElementById(id);
 
-        if (DEBUG && !elem) {
+        if (!elem) {
             throw new Error('Sparky template id="' + id + '" not found in document');
         }
 
