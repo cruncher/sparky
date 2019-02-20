@@ -68,6 +68,7 @@ Object.assign(Listener.prototype, {
         }
 
         if (getPath(this.path, this.scope) === undefined) {
+            // A fudgy hack. A hacky fudge.
             this.token.noRender = true;
             this.fn();
             this.token.noRender = false;
@@ -76,7 +77,17 @@ Object.assign(Listener.prototype, {
 
     push: function(scope) {
         this.scope = scope;
-        this.set = setPath(this.path, scope);
+
+        if (scope[this.path] && scope[this.path].setValueAtTime) {
+            // Its an AudioParam... oooo... eeeuuuhhh...
+            this.set = (value) => {
+                if (value === undefined) { return; }
+                scope[this.path].setValueAtTime(value, scope.context.currentTime);
+            };
+        }
+        else {
+            this.set = setPath(this.path, scope);
+        }
 
         // Wait for values to have been rendered on the next frame
         // before setting up. This is so that min and max and other
@@ -99,13 +110,13 @@ Object.assign(Listener.prototype, {
 document.addEventListener('input', function(e) {
     const fn = inputMap.get(e.target);
     if (!fn) { return; }
-    fn();
+    fn(e.target.value);
 });
 
 document.addEventListener('change', function(e) {
     const fn = changeMap.get(e.target);
     if (!fn) { return; }
-    fn();
+    fn(e.target.value);
 });
 
 document.addEventListener('focusout', function(e) {

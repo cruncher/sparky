@@ -107,6 +107,16 @@ export const transformers = {
 		})
 	},
 
+	'numbers-string': {
+		tx: curry(function(string, value) {
+			return A.join.call(value, string);
+		}),
+
+		ix: curry(function(string, value) {
+			return S.split.call(value, string).map(parseFloat);
+		})
+	},
+
 	multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
@@ -119,8 +129,8 @@ export const transformers = {
 	normalise:   { tx: normalise,   ix: denormalise },
 	denormalise: { tx: denormalise, ix: normalise },
 	floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
-	'float-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: parseFloat },
-	'int-string':   { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
+	'float-string': { tx: (value) => value + '', ix: parseFloat },
+	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
 
 	interpolate: {
 		tx: function(point) {

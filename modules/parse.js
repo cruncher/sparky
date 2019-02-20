@@ -260,5 +260,5 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     },
 
     // Where nothing is found, don't complain
-    catch: id
+    catch: noop
 });
