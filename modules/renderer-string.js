@@ -1,9 +1,7 @@
 
-import Renderer       from './renderer.js';
-import { parseText }  from './parse.js';
+import Renderer from './renderer.js';
 
 const assign = Object.assign;
-const empty  = Object.freeze({});
 
 export default function StringRenderer(tokens, fn, node, name) {
     this.label  = 'String renderer';
@@ -25,6 +23,6 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         this.valueRendered = value;
 
         // Return DOM mutation count
-        return this.fn(value, this.node, this.name);
+        return this.fn(this.name, this.node, value);
     }
 });

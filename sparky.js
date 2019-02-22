@@ -22,12 +22,13 @@ if (window.console && window.console.log) {
 import { cue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
 import { pipes } from './modules/parse.js';
+import functions from './modules/fn.js';
 
 export default Sparky;
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
-export { default as functions } from './modules/fn.js';
+export { functions };
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';
 export { notify } from '../fn/fn.js';
@@ -70,4 +71,5 @@ cue({
 if (DEBUG) {
     window.Sparky = Sparky;
     Sparky.pipes = pipes;
+    Sparky.functions = functions;
 }

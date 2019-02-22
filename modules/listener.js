@@ -1,5 +1,5 @@
 
-import { getPath, setPath, id, noop, pipe } from '../../fn/fn.js';
+import { getPath, setPath, id, noop, pipe, Target } from '../../fn/fn.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './timer.js';
 
@@ -82,7 +82,7 @@ Object.assign(Listener.prototype, {
             // Its an AudioParam... oooo... eeeuuuhhh...
             this.set = (value) => {
                 if (value === undefined) { return; }
-                scope[this.path].setValueAtTime(value, scope.context.currentTime);
+                Target(scope)[this.path].setValueAtTime(value, scope.context.currentTime);
             };
         }
         else {

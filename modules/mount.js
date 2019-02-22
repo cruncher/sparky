@@ -2,10 +2,10 @@
 import { get, isDefined, noop, overload } from '../../fn/fn.js';
 import { tag, trigger } from '../../dom/dom.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
-import BooleanRenderer from './renderer.boolean.js';
-import ClassRenderer   from './renderer.class.js';
-import StringRenderer  from './renderer.string.js';
-import ValueRenderer   from './renderer.value.js';
+import BooleanRenderer from './renderer-boolean.js';
+import ClassRenderer   from './renderer-class.js';
+import StringRenderer  from './renderer-string.js';
+import TokenRenderer   from './renderer-token.js';
 import Listener        from './listener.js';
 import config          from './config-mount.js';
 
@@ -32,21 +32,29 @@ const getType = get('type');
 
 const getNodeType = get('nodeType');
 
+const types = {
+	'number':     'number',
+	'range':      'number'
+};
+
 
 // Read
 
-function readValue(node) {
+function readValueString(node) {
 	return node.value || undefined ;
 }
 
 function readValueNumber(node) {
-	return node.value ? parseFloat(node.value) : undefined;
+	return +(node.value);
 }
 
 function readValueCheckbox(node) {
-	// TODO: Why do we check attribute here?
+	// Check whether value is defined to determine whether we treat
+	// the input as a value matcher or as a boolean
 	return isDefined(node.getAttribute('value')) ?
+		// Return string or undefined
 		node.checked ? node.value : undefined :
+		// Return boolean
 		node.checked ;
 }
 
@@ -54,132 +62,151 @@ function readValueRadio(node) {
 	if (!node.checked) { return; }
 
 	return isDefined(node.getAttribute('value')) ?
+		// Return value string
 		node.value :
+		// Return boolean
 		node.checked ;
 }
 
 
 // Render
 
-function renderText(value, node) {
+function renderText(name, node, value) {
 	node.nodeValue = value;
 
 	// Return DOM mod count
 	return 1;
 }
 
-function renderAttribute(value, node, name) {
+function renderAttribute(name, node, value) {
 	node.setAttribute(cased[name] || name, value);
 
 	// Return DOM mod count
 	return 1;
 }
 
-function renderProperty(value, node, name) {
-	node[name] = value;
+function renderProperty(name, node, value) {
+	// Bit of an edge case, but where we have a custom element that has not
+	// been upgraded yet, but it gets a property defined on its prototype when
+	// it does upgrade, setting the property on the instance now will mask the
+	// ultimate get/set definition on the prototype when it does arrive.
+	//
+	// So don't, if property is not in node. Set the attribute, it will be
+	// picked up on upgrade.
+	if (name in node) {
+		node[name] = value;
+	}
+	else {
+		node.setAttribute(name, value);
+	}
 
-	// Return DOM mod count
+	// Return DOM mutation count
 	return 1;
 }
 
-function renderValue(value, node) {
-	// Don't render into focused nodes
-	if (document.activeElement === node) { return 0; }
+function renderPropertyBoolean(name, node, value) {
+	if (name in node) {
+		node[name] = value;
+	}
+	else if (value) {
+		node.setAttribute(name, name);
+	}
+	else {
+		node.removeAttribute(name);
+	}
 
-	// Avoid updating with the same value as it sends the cursor to
-	// the end of the field (in Chrome, at least).
-	if (value === node.value) { return 0; }
+	// Return DOM mutation count
+	return 1;
+}
 
-	node.value = typeof value === 'string' ?
+function renderValue(name, node, value) {
+	// Don't render into focused nodes, it makes the cursor jump to the
+	// end of the field, plus we should cede control to the user anyway
+	if (document.activeElement === node) {
+		return 0;
+	}
+
+	value = typeof value === (types[node.type] || 'string') ?
 		value :
-		'' ;
+		null ;
 
-	// Trigger validation
+	// Avoid updating with the same value. Support values that are any
+	// type as well as values that are always strings
+	if (value === node.value || (value + '') === node.value) { return 0; }
+
+	const count = renderProperty('value', node, value);
+
+	// Event hook (validation in dom lib)
 	trigger('dom-update', node);
 
 	// Return DOM mod count
-	return 1;
+	return count;
 }
 
-function renderValueNumber(value, node) {
-	// Don't render into focused nodes
-	if (document.activeElement === node) { return 0; }
-
-	// Avoid updating with the same value as it sends the cursor to
-	// the end of the field (in Chrome, at least).
-	if (value === parseFloat(node.value)) { return 0; }
-
-	node.value = typeof value === 'number' && !Number.isNaN(value) ?
-		value :
-		'' ;
-
-	// Trigger validation
-	trigger('dom-update', node);
-
-	// Return DOM mod count
-	return 1;
-}
-
-function renderValueChecked(value, node) {
+function renderChecked(name, node, value) {
 	// Where value is defined check against it, otherwise
 	// value is "on", uselessly. Set checked state directly.
-	node.checked = isDefined(node.getAttribute('value')) ?
+	const checked = isDefined(node.getAttribute('value')) ?
 		value === node.value :
 		value === true ;
 
-	// Trigger validation
+	if (checked === node.checked) { return 0; }
+
+	const count = renderPropertyBoolean('checked', node, checked);
+
+	// Event hook (validation in dom lib)
 	trigger('dom-update', node);
 
 	// Return DOM mod count
-	return 1;
+	return count;
 }
 
 
 // Mount
 
-function mountToken(source, render, options, node, name) {
+function mountToken(source, render, renderers, node, name) {
 	// Shirtcut empty string
 	if (!source) { return; }
 
 	const token = parseToken(null, source);
 	if (!token) { return; }
 
-	const renderer = new ValueRenderer(token, render, node, name);
-	options.renderers.push(renderer);
+	const renderer = new TokenRenderer(token, render, node, name);
+	renderers.push(renderer);
 	return renderer;
 }
 
-function mountString(source, render, options, node, name) {
-	// Shirtcut empty string
+function mountString(source, render, renderers, node, name) {
+	// Shortcut empty string
 	if (!source) { return; }
 
 	const tokens = parseText([], source);
 	if (!tokens) { return; }
 
 	const renderer = new StringRenderer(tokens, render, node, name);
-	options.renderers.push(renderer);
+	renderers.push(renderer);
 	return renderer;
 }
 
-function mountAttribute(name, node, options, prefixed) {
+function mountAttribute(name, node, renderers, options, prefixed) {
 	name = cased[name] || name;
 	var source = prefixed !== false
 		&& node.getAttribute(options.attributePrefix + name)
 		|| node.getAttribute(name) ;
 
-	return mountString(source, renderAttribute, options, node, name);
+	return mountString(source, renderAttribute, renderers, node, name);
 }
 
-function mountAttributes(names, node, options) {
+function mountAttributes(names, node, renderers, options) {
 	var name;
 	var n = -1;
 
 	while ((name = names[++n])) {
-		mountAttribute(name, node, options);
+		mountAttribute(name, node, renderers, options);
 	}
 }
 
-function mountBoolean(name, node, options) {
+function mountBoolean(name, node, renderers, options) {
 	// Look for prefixed attributes before attributes.
 	//
 	// In FF, the disabled attribute is set to the previous value that the
@@ -194,20 +221,20 @@ function mountBoolean(name, node, options) {
 	if (!tokens) { return; }
 
 	const renderer = new BooleanRenderer(tokens, node, name);
-	options.renderers.push(renderer);
+	renderers.push(renderer);
 	return renderer;
 }
 
-function mountBooleans(names, node, options) {
+function mountBooleans(names, node, renderers, options) {
 	var name;
 	var n = -1;
 
 	while ((name = names[++n])) {
-		mountBoolean(name, node, options);
+		mountBoolean(name, node, renderers, options);
 	}
 }
 
-function mountClass(node, options) {
+function mountClass(node, renderers, options) {
 	// Are there classes?
 	const source = node.getAttribute('class');
 	if (!source) { return; }
@@ -216,95 +243,95 @@ function mountClass(node, options) {
 	if (!tokens) { return; }
 
 	const renderer = new ClassRenderer(tokens, node);
-	options.renderers.push(renderer);
+	renderers.push(renderer);
 }
 
-function mountValueProp(node, options, render, read) {
+function mountValueProp(node, renderers, options, render, read) {
 	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
 	if (!source) { return; }
 
-	const renderer = mountToken(source, render, options, node);
+	const renderer = mountToken(source, render, renderers, node);
 	if (!renderer) { return; }
 
 	const listener = new Listener(node, read, renderer.tokens[0], 'input');
 	if (!listener) { return; }
 
-	options.renderers.push(listener);
+	renderers.push(listener);
 }
 
-function mountValueChecked(node, options, render, read) {
+function mountValueChecked(node, renderers, options, render, read) {
 	const source = node.getAttribute('value') ;
-	mountString(source, renderProperty, options, node, 'value');
+	mountString(source, renderProperty, renderers, node, 'value');
 
 	const sourcePre = node.getAttribute(options.attributePrefix + 'value');
-	const renderer = mountToken(sourcePre, render, options, node);
+	const renderer = mountToken(sourcePre, render, renderers, node);
 	if (!renderer) { return; }
 
 	const listener = new Listener(node, read, renderer.tokens[0], 'change');
 	if (!listener) { return; }
 
-	options.renderers.push(listener);
+	renderers.push(listener);
 }
 
 const mountValue = overload(getType, {
-	number: function(node, options) {
-		return mountValueProp(node, options, renderValueNumber, readValueNumber);
+	number: function(node, renderers, options) {
+		return mountValueProp(node, renderers, options, renderValue, readValueNumber);
 	},
 
-	range: function(node, options) {
-		return mountValueProp(node, options, renderValueNumber, readValueNumber);
+	range: function(node, renderers, options) {
+		return mountValueProp(node, renderers, options, renderValue, readValueNumber);
 	},
 
-	checkbox: function(node, options) {
-		return mountValueChecked(node, options, renderValueChecked, readValueCheckbox);
+	checkbox: function(node, renderers, options) {
+		return mountValueChecked(node, renderers, options, renderChecked, readValueCheckbox);
 	},
 
-	radio: function(node, options) {
-		return mountValueChecked(node, options, renderValueChecked, readValueRadio);
+	radio: function(node, renderers, options) {
+		return mountValueChecked(node, renderers, options, renderChecked, readValueRadio);
 	},
 
-	default: function(node, options) {
-		return mountValueProp(node, options, renderValue, readValue);
+	default: function(node, renderers, options) {
+		return mountValueProp(node, renderers, options, renderValue, readValueString);
 	}
 });
 
-function mountInput(types, node, options) {
+function mountInput(types, node, renderers, options) {
 	var type    = getType(node);
 	var setting = types[type] || types.default;
 
 	if (setting) {
-		if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
-		if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
-		if (setting.value)      { mountValue(node, options); }
+		if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
+		if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
+		if (setting.value)      { mountValue(node, renderers, options); }
 	}
 }
 
-function mountTag(settings, node, options) {
+function mountTag(settings, node, renderers, options) {
 	var name    = tag(node);
 	var setting = settings[name];
 
 	if (!setting) { return; }
-	if (setting.booleans)   { mountBooleans(setting.booleans, node, options); }
-	if (setting.attributes) { mountAttributes(setting.attributes, node, options); }
-	if (setting.types)      { mountInput(setting.types, node, options); }
-	if (setting.value)      { mountValue(node, options); }
+	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
+	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
+	if (setting.types)      { mountInput(setting.types, node, renderers, options); }
+	if (setting.value)      { mountValue(node, renderers, options); }
 }
 
-function mountCollection(children, options, structs) {
+function mountCollection(children, renderers, options) {
 	var n = -1;
 	var child;
 
 	while ((child = children[++n])) {
-		mountNode(child, options, structs);
+		mountNode(child, renderers, options);
 	}
 }
 
 const mountNode = overload(getNodeType, {
 	// element
-	1: function mountElement(node, options) {
+	1: function mountElement(node, renderers, options) {
 		const sparky = options.mount && options.mount(node, options);
 		if (sparky) {
-			options.renderers.push(sparky);
+			renderers.push(sparky);
 			return;
 		}
 
@@ -312,41 +339,41 @@ const mountNode = overload(getNodeType, {
 		// dynamic, and we don't want to mount elements that may be dynamically
 		// inserted later by other sparky processes, so turn childNodes into
 		// an array.
-		mountCollection(Array.from(node.childNodes), options);
-		mountClass(node, options);
-		mountBooleans(config.default.booleans, node, options);
-		mountAttributes(config.default.attributes, node, options);
-		mountTag(config, node, options);
+		mountCollection(Array.from(node.childNodes), renderers, options);
+		mountClass(node, renderers, options);
+		mountBooleans(config.default.booleans, node, renderers, options);
+		mountAttributes(config.default.attributes, node, renderers, options);
+		mountTag(config, node, renderers, options);
 	},
 
 	// text
-	3: function mountText(node, options) {
-		mountString(node.nodeValue, renderText, options, node);
+	3: function mountText(node, renderers, options) {
+		mountString(node.nodeValue, renderText, renderers, node);
 	},
 
 	// comment
 	8: noop,
 
 	// document
-	9: function mountDocument(node, options) {
-		mountCollection(A.slice.apply(node.childNodes), options);
+	9: function mountDocument(node, renderers, options) {
+		mountCollection(A.slice.apply(node.childNodes), renderers, options);
 	},
 
 	// doctype
 	10: noop,
 
 	// fragment
-	11: function mountFragment(node, options) {
-		mountCollection(A.slice.apply(node.childNodes), options);
+	11: function mountFragment(node, renderers, options) {
+		mountCollection(A.slice.apply(node.childNodes), renderers, options);
 	},
 
 	// array or array-like
-	default: function mountArray(collection, options) {
+	default: function mountArray(collection, renderers, options) {
 		if (typeof collection.length !== 'number') {
 			throw new Error('Cannot mount object. It is neither a node nor a collection.', collection);
 		}
 
-		mountCollection(collection, options);
+		mountCollection(collection, renderers, options);
 	}
 });
 
@@ -359,9 +386,9 @@ export default function Mount(node, options) {
 		console.groupCollapsed('mount: ', node);
 	}
 
-	this.renderers = options.renderers = [];
+	const renderers = this.renderers = [];
 	if (!options.attributePrefix) { options.attributePrefix = ':'; }
-	mountNode(node, options);
+	mountNode(node, renderers, options);
 
 	if (DEBUG) {
 		console.groupEnd();
