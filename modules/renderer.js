@@ -45,8 +45,6 @@ Object.assign(Renderer.prototype, {
             tokens[n].unobserve && tokens[n].unobserve();
         }
 
-        //this.unobserveMutations && this.unobserveMutations();
-
         this.stop = noop;
     }
 });

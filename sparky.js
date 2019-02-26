@@ -19,12 +19,13 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
-import { cue } from './modules/timer.js';
+import { cue, uncue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
 import { pipes } from './modules/parse.js';
 import functions from './modules/fn.js';
 
 export default Sparky;
+export { cue, uncue };
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
