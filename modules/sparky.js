@@ -182,20 +182,20 @@ function setupSrc(src, input, firstRender, config) {
     }
 
     let stopped;
-    let renderer;
+    let stop = noop;
 
     importTemplate(src)
     .then((source) => {
         if (stopped) { return; }
-        renderer = setupInclude(source, input, firstRender, config);
+        stop = setupInclude(source, input, firstRender, config);
     })
     .catch(function(error) {
         console.error(error.message);
     });
 
-    return function stop() {
+    return function() {
         stopped = true;
-        renderer && renderer.stop();
+        stop();
     }
 }
 
