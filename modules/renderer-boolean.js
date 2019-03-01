@@ -7,7 +7,7 @@ function isTruthy(token) {
 	return !!token.valueOf();
 }
 
-function renderBooleanAttribute(value, node, name) {
+function renderBooleanAttribute(name, node, value) {
 	if (value) {
 		node.setAttribute(name, name);
 	}
@@ -19,7 +19,7 @@ function renderBooleanAttribute(value, node, name) {
 	return 1;
 }
 
-function renderProperty(value, node, name) {
+function renderProperty(name, node, value) {
 	node[name] = value;
 
 	// Return DOM mutation count
