@@ -91,7 +91,7 @@ export default function importTemplate(src) {
     }
 
     return fetchDocument(path)
-    .then((doc) => {
+    .then(id ? (doc) => {
         // Imported templates are now in the current document
         const elem = document.getElementById(id);
 
@@ -100,5 +100,8 @@ export default function importTemplate(src) {
         }
 
         return elem;
+    } : (doc) => {
+        // Todo: doc.bodyt does not worky
+        return document.adoptNode(doc.body);
     });
 }
