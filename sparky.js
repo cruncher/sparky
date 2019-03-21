@@ -29,6 +29,7 @@ export { cue, uncue };
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
+export { getScope } from './modules/fn.scope.js';
 export { functions };
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';

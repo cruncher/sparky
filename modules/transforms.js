@@ -31,6 +31,7 @@ import {
 	log,
 	root,
 	slugify,
+	toCamelCase,
 	toCartesian,
 	toPolar,
 	toDeg,
@@ -128,21 +129,25 @@ export const transformers = {
 
 	normalise:   {
 		tx: curry(function(curve, min, max, number) {
-			return normalise[curve](min, max, number);
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
 		}),
 
 		ix: curry(function(curve, min, max, number) {
-			return denormalise[curve](min, max, number);
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
 		})
 	},
 
 	denormalise:   {
 		tx: curry(function(curve, min, max, number) {
-			return denormalise[curve](min, max, number);
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
 		}),
 
 		ix: curry(function(curve, min, max, number) {
-			return normalise[curve](min, max, number);
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
 		})
 	},
 

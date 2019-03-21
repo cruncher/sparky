@@ -10,14 +10,14 @@ import starton  from './fn.start-on.js';
 import scope    from './fn.scope.js';
 
 export default {
-    'debug':    debug,
-    'each':     each,
-    'entries':  entries,
-    'get':      get,
-    'if':       _if,
-    'import':   _import,
-    'on':       on,
-    'prevent':  prevent,
-    'start-on': starton,
-    'scope':    scope
+    'debug':     debug,
+    'each':      each,
+    'entries':   entries,
+    'get':       get,
+    'if':        _if,
+    'import':    _import,
+    'on':        on,
+    'prevent':   prevent,
+    'start-on':  starton,
+    'scope':     scope
 };

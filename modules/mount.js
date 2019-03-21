@@ -337,8 +337,7 @@ const mountNode = overload(getNodeType, {
 
 		// Get an immutable list of children. Remember node.childNodes is
 		// dynamic, and we don't want to mount elements that may be dynamically
-		// inserted later by other sparky processes, so turn childNodes into
-		// an array.
+		// inserted, so turn childNodes into an array first.
 		mountCollection(Array.from(node.childNodes), renderers, options);
 		mountClass(node, renderers, options);
 		mountBooleans(config.default.booleans, node, renderers, options);
