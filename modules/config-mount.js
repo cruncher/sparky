@@ -42,5 +42,5 @@ export default {
     text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
     textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
     time:     { attributes: ['datetime'] },
-    use:      { attributes: ['href', 'transform'] }
+    use:      { attributes: ['href', 'transform', 'x', 'y'] }
 };

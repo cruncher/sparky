@@ -201,7 +201,9 @@ function setupSrc(src, input, firstRender, config) {
 
 function setupInclude(include, input, firstRender, config) {
     const attrFn  = include.getAttribute(config.attributeFn);
-    const content = include.content.cloneNode(true);
+    const content = include.content ? include.content.cloneNode(true) :
+        include instanceof SVGElement ? include.cloneNode(true) :
+        undefined ;
 
     if (attrFn) {
         input = run(null, content, input, attrFn, config);
@@ -321,6 +323,23 @@ function setupTemplateInclude(target, src, input, config) {
     }, config);
 }
 
+function setupSVGInclude(target, src, input, config) {
+    return setupTarget(src, input, (content) => {
+        content.removeAttribute('id');
+
+        // Replace target, also neatly removes previous children[0],
+        // which we avoided doing above to keep it as a position marker in
+        // the DOM for this...
+        replace(target, content);
+
+        // For logging
+        ++config.mutations;
+
+        // Update target
+        target = content;
+    }, config);
+}
+
 export default function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {
         return new Sparky(selector, settings);
@@ -370,9 +389,15 @@ export default function Sparky(selector, settings) {
     }
 
     stop = target.content ?
-        attrInclude ?
-            setupTemplateInclude(target, attrInclude, output, options) :
-            setupTemplate(target, output, options) :
+            attrInclude ?
+                setupTemplateInclude(target, attrInclude, output, options) :
+                setupTemplate(target, output, options) :
+
+        target.tagName === 'use' ?
+            attrInclude ?
+                setupSVGInclude(target, attrInclude, output, options) :
+                setupElement(target, output, options) :
+
         attrInclude ?
             setupElementInclude(target, attrInclude, output, options) :
             setupElement(target, output, options) ;

@@ -190,9 +190,15 @@ function mountString(source, render, renderers, node, name) {
 
 function mountAttribute(name, node, renderers, options, prefixed) {
 	name = cased[name] || name;
-	var source = prefixed !== false
-		&& node.getAttribute(options.attributePrefix + name)
-		|| node.getAttribute(name) ;
+
+	var source = prefixed !== false && node.getAttribute(options.attributePrefix + name);
+
+	if (source) {
+		node.removeAttribute(options.attributePrefix + name);
+	}
+	else {
+		source = node.getAttribute(name);
+	}
 
 	return mountString(source, renderAttribute, renderers, node, name);
 }
@@ -214,7 +220,12 @@ function mountBoolean(name, node, renderers, options) {
 	// tags. The proper way to address this problem is to set
 	// autocomplete="off" on the parent form or on the field.
 	const prefixed = node.getAttribute(options.attributePrefix + name);
-	const source   = prefixed || node.getAttribute(name);
+
+	if (prefixed) {
+		node.removeAttribute(options.attributePrefix + name);
+	}
+
+	const source = prefixed || node.getAttribute(name);
 	if (!source) { return; }
 
 	const tokens = parseBoolean([], source);
@@ -235,8 +246,14 @@ function mountBooleans(names, node, renderers, options) {
 }
 
 function mountClass(node, renderers, options) {
+	const prefixed = node.getAttribute(options.attributePrefix + 'class');
+
+	if (prefixed) {
+		node.removeAttribute(options.attributePrefix + 'class');
+	}
+
 	// Are there classes?
-	const source = node.getAttribute('class');
+	const source = prefixed || node.getAttribute('class');
 	if (!source) { return; }
 
 	const tokens = parseText([], source);
@@ -247,7 +264,13 @@ function mountClass(node, renderers, options) {
 }
 
 function mountValueProp(node, renderers, options, render, read) {
-	var source = node.getAttribute(options.attributePrefix + 'value') || node.getAttribute('value') ;
+	const prefixed = node.getAttribute(options.attributePrefix + 'value');
+
+	if (prefixed) {
+		node.removeAttribute(options.attributePrefix + 'value');
+	}
+
+	const source   = prefixed || node.getAttribute('value');
 	if (!source) { return; }
 
 	const renderer = mountToken(source, render, renderers, node);
