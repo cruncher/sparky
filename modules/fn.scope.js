@@ -10,6 +10,15 @@ export function getScope(node) {
 }
 
 export default function scope(node, input, params) {
+    input.toPromise().then(() => {
+        console.log('Input stopped. Removing scope from cache.', node);
+        map.delete(node);
+    });
+
     // Todo: remove scope on destroy
-    return input.tap((scope) => map.set(node, scope));
+    return input.tap((scope) => {
+        scope ?
+            map.set(node, scope) :
+            map.delete(node);
+    });
 }
