@@ -1,5 +1,5 @@
 
-import { get, isDefined, noop, overload } from '../../fn/fn.js';
+import { get, isDefined, noop, overload, pipe } from '../../fn/fn.js';
 import { tag, trigger } from '../../dom/dom.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
 import BooleanRenderer from './renderer-boolean.js';
@@ -8,11 +8,14 @@ import StringRenderer  from './renderer-string.js';
 import TokenRenderer   from './renderer-token.js';
 import Listener        from './listener.js';
 import config          from './config-mount.js';
+import { transformers, transforms } from './transforms.js';
 
-const DEBUG      = false;//true;
+const DEBUG  = false;//true;
 
-const A          = Array.prototype;
-const assign     = Object.assign;
+const A      = Array.prototype;
+const assign = Object.assign;
+
+const $cache = Symbol('cache');
 
 const cased = {
 	viewbox: 'viewBox'
@@ -36,6 +39,72 @@ const types = {
 	'number':     'number',
 	'range':      'number'
 };
+
+
+
+// Pipes
+
+// Add a global cache to transforms, soon to be known as pipes
+const pipesCache = transforms[$cache] = {};
+
+function getTransform(name) {
+    return transformers[name] ?
+        transformers[name].tx :
+        transforms[name] ;
+}
+
+function applyTransform(data, fn) {
+	return data.args && data.args.length ?
+		// fn is expected to return a fn
+		fn.apply(null, data.args) :
+		// fn is used directly
+		fn ;
+}
+
+function createPipe(array, pipes) {
+    // Cache is dependent on pipes object - a new pipes object
+    // results in a new cache
+    const localCache = pipes && (pipes[$cache] || (
+        pipes[$cache] = {}
+    ));
+
+    // Cache pipes for reuse by other tokens
+    const key = JSON.stringify(array);
+
+    // Check global and local pipes caches
+    if (pipesCache[key]) { return pipesCache[key]; }
+    if (localCache && localCache[key]) { return localCache[key]; }
+
+	// All a bit dodgy - we cycle over transforms and switch the cache to
+	// local cache if a global pipe is not found...
+    var cache = pipesCache;
+    const fns = array.map((data) => {
+		// Look in global pipes first
+		var fn = getTransform(data.name);
+
+		if (!fn) {
+			// Switch the cache, look in local pipes
+			cache = localCache;
+			fn = pipes[data.name];
+
+			if (!fn) {
+				throw new Error('fn ' + data.name + '() not found.');
+			}
+		}
+
+		return applyTransform(data, fn);
+	});
+
+	// Cache the result
+    return (cache[key] = pipe.apply(null, fns));
+}
+
+function assignTransform(pipes, token) {
+	if (token.pipe) {
+		token.transform = createPipe(token.pipe, pipes);
+	}
+	return pipes;
+}
 
 
 // Read
@@ -164,24 +233,30 @@ function renderChecked(name, node, value) {
 
 // Mount
 
-function mountToken(source, render, renderers, node, name) {
+function mountToken(source, render, renderers, options, node, name) {
 	// Shirtcut empty string
 	if (!source) { return; }
 
-	const token = parseToken(null, source);
+	const token = parseToken(options.pipes, source);
 	if (!token) { return; }
+
+	// Create transform from pipe
+	assignTransform(options.pipes, token);
 
 	const renderer = new TokenRenderer(token, render, node, name);
 	renderers.push(renderer);
 	return renderer;
 }
 
-function mountString(source, render, renderers, node, name) {
+function mountString(source, render, renderers, options, node, name) {
 	// Shortcut empty string
 	if (!source) { return; }
 
 	const tokens = parseText([], source);
 	if (!tokens) { return; }
+
+	// Create transform from pipe
+	tokens.reduce(assignTransform, options.pipes);
 
 	const renderer = new StringRenderer(tokens, render, node, name);
 	renderers.push(renderer);
@@ -200,7 +275,7 @@ function mountAttribute(name, node, renderers, options, prefixed) {
 		source = node.getAttribute(name);
 	}
 
-	return mountString(source, renderAttribute, renderers, node, name);
+	return mountString(source, renderAttribute, renderers, options, node, name);
 }
 
 function mountAttributes(names, node, renderers, options) {
@@ -231,6 +306,9 @@ function mountBoolean(name, node, renderers, options) {
 	const tokens = parseBoolean([], source);
 	if (!tokens) { return; }
 
+	// Create transform from pipe
+	tokens.reduce(assignTransform, options.pipes);
+
 	const renderer = new BooleanRenderer(tokens, node, name);
 	renderers.push(renderer);
 	return renderer;
@@ -259,6 +337,9 @@ function mountClass(node, renderers, options) {
 	const tokens = parseText([], source);
 	if (!tokens) { return; }
 
+	// Create transform from pipe
+	tokens.reduce(assignTransform, options.pipes);
+
 	const renderer = new ClassRenderer(tokens, node);
 	renderers.push(renderer);
 }
@@ -273,7 +354,7 @@ function mountValueProp(node, renderers, options, render, read) {
 	const source   = prefixed || node.getAttribute('value');
 	if (!source) { return; }
 
-	const renderer = mountToken(source, render, renderers, node);
+	const renderer = mountToken(source, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
 	const listener = new Listener(node, read, renderer.tokens[0], 'input');
@@ -284,10 +365,10 @@ function mountValueProp(node, renderers, options, render, read) {
 
 function mountValueChecked(node, renderers, options, render, read) {
 	const source = node.getAttribute('value') ;
-	mountString(source, renderProperty, renderers, node, 'value');
+	mountString(source, renderProperty, renderers, options, node, 'value');
 
 	const sourcePre = node.getAttribute(options.attributePrefix + 'value');
-	const renderer = mountToken(sourcePre, render, renderers, node);
+	const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
 	const listener = new Listener(node, read, renderer.tokens[0], 'change');
@@ -370,7 +451,7 @@ const mountNode = overload(getNodeType, {
 
 	// text
 	3: function mountText(node, renderers, options) {
-		mountString(node.nodeValue, renderText, renderers, node);
+		mountString(node.nodeValue, renderText, renderers, options, node);
 	},
 
 	// comment

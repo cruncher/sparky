@@ -1,8 +1,9 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
-import config from './config.js';
-import mount  from './mount.js';
+import config    from './config.js';
+import functions from './fn.js';
+import mount     from './mount.js';
 
 const DEBUG = false;//true;
 
@@ -56,12 +57,15 @@ function replace(target, content) {
     target.remove();
 }
 
-function run(context, node, input, attrFn, config) {
+function run(context, node, input, attrFn, options) {
     let result;
 
     while(input && attrFn && (result = captureFn({}, attrFn))) {
-        // Find the Sparky function by name
-        const fn = config.functions[result.name];
+        // Find Sparky function by name, looking in global functions store
+        // first, then local options. This order makes it impossible to
+        // overwrite built-in fns.
+        const fn = functions[result.name]
+            || options.functions && options.functions[result.name];
 
         if (!fn) {
             throw new Error(
@@ -72,14 +76,19 @@ function run(context, node, input, attrFn, config) {
             );
         }
 
-        config.fn = attrFn = result.remainingString;
+        options.fn = attrFn = result.remainingString;
+
+        if (fn.settings) {
+            // Overwrite functions / pipes
+            assign(options, fn.settings);
+        }
 
         // Return values from Sparky functions mean -
         // stream    - use the new input stream
         // promise   - use the promise
         // undefined - use the same input streeam
         // false     - stop processing this node
-        const output = fn.call(context, node, input, result.params, config);
+        const output = fn.call(context, node, input, result.params, options);
 
         input = (output === undefined) ? input :
             (output === input) ? input :
@@ -87,9 +96,9 @@ function run(context, node, input, attrFn, config) {
             (output && output.then) ? output.then(toObserverOrSelf) :
             output ;
 
-        // Keep the config object sane, a hacky precaution aginst
-        // this config object ending up being used elsewhere
-        config.fn = '';
+        // Keep the options object sane, a hacky precaution aginst
+        // this options object ending up being used elsewhere
+        options.fn = '';
     }
 
     return input;
@@ -233,12 +242,12 @@ function setupInclude(include, input, firstRender, config) {
     };
 }
 
-function setupElement(target, input, config) {
+function setupElement(target, input, options) {
     let renderer;
 
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
-        renderer = renderer || mountContent(target, config);
+        renderer = renderer || mountContent(target, options);
         renderer.push(scope);
     });
 
@@ -374,7 +383,9 @@ export default function Sparky(selector, settings) {
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
 
-    const attrInclude = options.include || target.getAttribute(options.attributeInclude) || '';
+    const attrInclude = options.include
+        || target.getAttribute(options.attributeInclude)
+        || '';
 
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter

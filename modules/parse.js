@@ -1,5 +1,5 @@
 
-import { capture, exec, id, noop, nothing, pipe } from '../../fn/fn.js'
+import { capture, exec, id, noop, nothing } from '../../fn/fn.js'
 import toRenderString from './render.js';
 
 const assign          = Object.assign;
@@ -86,14 +86,6 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 
 /* Parse function */
 
-import { transformers, transforms } from './transforms.js';
-
-function getTransform(name) {
-    return transformers[name] ?
-        transformers[name].tx :
-        transforms[name] ;
-}
-
 export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     // Function name '...'
     1: function(fns, tokens) {
@@ -149,32 +141,9 @@ assign(Tag.prototype, {
     }
 });
 
-// Pipes are cached against their JSON representations so that
-// many tokens may share the same pipe. Export them for logging.
-export const pipes = {};
-
-function toFunction(data) {
-    const fn = getTransform(data.name);
-    if (!fn) { throw new Error('fn ' + data.name + '() not found.'); }
-
-    return data.args && data.args.length ?
-        // fn is expected to return a fn
-        fn.apply(null, data.args) :
-        // fn is used directly
-        fn ;
-}
-
-function createPipe(array) {
-    // Cache pipes for reuse by other tokens
-    const key = JSON.stringify(array);
-    return pipes[key] || (
-        pipes[key] = pipe.apply(null, array.map(toFunction))
-    );
-}
-
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
-    1: (none, tokens) => {
+    1: (nothing, tokens) => {
         const tag = new Tag();
         tag.path = tokens[1];
         return tag;
@@ -184,7 +153,6 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     2: function(tag, tokens) {
         tag.pipe = parsePipe([], tokens);
         if (!tag.pipe) { return tag; }
-        tag.transform = createPipe(tag.pipe);
         return tag;
     },
 
@@ -203,7 +171,7 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
 
 export const parseToken = capture(/^\s*(\{\[)/, {
     // Tag opener '{['
-    1: function(none, tokens) {
+    1: function(nothing, tokens) {
         const tag = parseTag(null, tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         return tag;
@@ -252,8 +220,8 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     },
 
     // Tag opener '{['
-    2: function(array, tokens) {
-        const tag = parseTag(Tag, tokens);
+    2: (array, tokens) => {
+        const tag = parseTag(null, tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseText(array, tokens);
