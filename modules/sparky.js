@@ -134,6 +134,11 @@ function mountContent(content, options) {
 }
 
 function setupTarget(string, input, render, options) {
+    // If there are no dynamic tokens to render, return the include
+    if (!string) {
+        throw new Error('Sparky attribute include cannot be empty');
+    }
+
     const tokens = parseText([], string);
 
     // If there are no dynamic tokens to render, return the include
@@ -151,11 +156,20 @@ function setupTarget(string, input, render, options) {
     function update(scope) {
         const src = tokens.join('');
 
+        // If nothing has changed
         if (src === prevSrc) { return; }
         prevSrc = src;
 
+        // Stop the previous
         output.stop();
         stop();
+
+        // If include is empty string
+        if (!src) {
+            output = nothing;
+            stop = noop;
+            return;
+        }
 
         output = Stream.of(scope);
         stop = setupSrc(src, output, render, options);
