@@ -3,7 +3,7 @@ import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import functions from './fn.js';
-import mount     from './mount.js';
+import mount, { assignTransform } from './mount.js';
 
 const DEBUG = false;//true;
 
@@ -133,13 +133,16 @@ function mountContent(content, options) {
     return mount(content, options);
 }
 
-function setupTarget(src, input, render, config) {
-    const tokens = parseText([], src);
+function setupTarget(string, input, render, options) {
+    const tokens = parseText([], string);
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
-        return setupSrc(src, input, render, config);
+        return setupSrc(string, input, render, options);
     }
+
+    // Create transform from pipe
+	tokens.reduce(assignTransform, options.pipes);
 
     let output  = nothing;
     let stop    = noop;
@@ -147,12 +150,15 @@ function setupTarget(src, input, render, config) {
 
     function update(scope) {
         const src = tokens.join('');
+
         if (src === prevSrc) { return; }
         prevSrc = src;
+
         output.stop();
-        output = Stream.of(scope);
         stop();
-        stop = setupSrc(src, output, render, config);
+
+        output = Stream.of(scope);
+        stop = setupSrc(src, output, render, options);
     }
 
     // Support streams and promises

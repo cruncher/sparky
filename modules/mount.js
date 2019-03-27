@@ -99,7 +99,7 @@ function createPipe(array, pipes) {
     return (cache[key] = pipe.apply(null, fns));
 }
 
-function assignTransform(pipes, token) {
+export function assignTransform(pipes, token) {
 	if (token.pipe) {
 		token.transform = createPipe(token.pipe, pipes);
 	}
