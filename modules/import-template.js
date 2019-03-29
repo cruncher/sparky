@@ -1,68 +1,64 @@
 import { cache } from '../../fn/fn.js';
-import { parse } from '../../dom/dom.js';
+import { append, children, create, parse, query } from '../../dom/dom.js';
 
 const DEBUG = window.DEBUG;
 
-const documentRequest = Promise.resolve(window.document);
-
 const fetchDocument = cache(function fetchDocument(path) {
-    return path ?
-        fetch(path)
+    return fetch(path)
         .then((response) => response.text())
         .then(parse('html'))
-        .then(function(doc) {
-            if (!doc) {
-                console.warn('Template not found.');
-                return;
-            }
-
-            const dir = path.replace(/[^\/]+$/, '');
-
-            // Import templates and styles
-
-            // Is there a way to do this without importing them into the current document?
-            // Is that even wise?
-            // Is that just unecessary complexity?
-            doc.querySelectorAll('style, template').forEach(function(node) {
-                if (!node.title) { node.title = dir; }
-                document.head.appendChild(document.adoptNode(node));
-            });
-
-            // Import CSS links
-            doc.querySelectorAll('link[rel="stylesheet"]').forEach(function(node) {
-                if (!node.title) { node.title = dir; }
-                const href = node.getAttribute('href');
-
-                // Detect local href. Todo: very crude. Improve.
-                if (/^[^\/]/.test(href)) {
-                    // Get rid of leading './'
-                    const localHref = href.replace(/^\.\//, '');
-                    node.setAttribute('href', dir + localHref);
-                }
-
-                document.head.appendChild(document.adoptNode(node));
-            });
-
-            // Wait for scripts to execute
-            const promise = Promise.all(
-                Array
-                .from(doc.querySelectorAll('script'))
-                .map(toScriptPromise)
-            );
-
-            return DEBUG ? promise.then((object) => {
-                console.log('%cSparky %cinclude', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
-                return object;
-            }) :
-            promise ;
-        })
         .catch(function(error) {
-            console.warn(error);
-        }) :
-        documentRequest ;
+            throw error;
+        });
 });
 
 let scriptCount = 0;
+
+function importDependencies(path, doc) {
+    if (!doc) {
+        console.warn('Template not found.');
+        return;
+    }
+
+    const dir = path.replace(/[^\/]+$/, '');
+
+    // Import templates and styles
+
+    // Is there a way to do this without importing them into the current document?
+    // Is that even wise?
+    // Is that just unecessary complexity?
+    doc.querySelectorAll('style, template').forEach(function(node) {
+        if (!node.title) { node.title = dir; }
+        document.head.appendChild(document.adoptNode(node));
+    });
+
+    // Import CSS links
+    doc.querySelectorAll('link[rel="stylesheet"]').forEach(function(node) {
+        if (!node.title) { node.title = dir; }
+        const href = node.getAttribute('href');
+
+        // Detect local href. Todo: very crude. Improve.
+        if (/^[^\/]/.test(href)) {
+            // Get rid of leading './'
+            const localHref = href.replace(/^\.\//, '');
+            node.setAttribute('href', dir + localHref);
+        }
+
+        document.head.appendChild(document.adoptNode(node));
+    });
+
+    // Wait for scripts to execute
+    const promise = Promise.all(
+        query('script', doc).map(toScriptPromise)
+    )
+    .then(() => doc);
+
+    return DEBUG ? promise.then((object) => {
+        console.log('%cSparky %cinclude', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;', path);
+        return object;
+    }) :
+    promise ;
+}
 
 function toScriptPromise(node) {
     return new Promise(function(resolve, reject) {
@@ -81,27 +77,41 @@ function toScriptPromise(node) {
     });
 }
 
+function findTemplate(id) {
+    // Imported templates are now in the current document
+    const template = document.getElementById(id);
+
+    if (!template) {
+        throw new Error('Sparky template id="' + id + '" not found');
+    }
+
+    return template;
+}
+
 export default function importTemplate(src) {
     const parts = src.split('#');
     const path  = parts[0] || '';
     const id    = parts[1] || '';
 
-    if (DEBUG && !id) {
-        throw new Error('Sparky template "' + src + '" URL must have an #id');
+    if (DEBUG && !path && !id) {
+        throw new Error('Sparky template import URL "' + src + '" must have a path or a hash ref');
     }
 
-    return fetchDocument(path)
-    .then(id ? (doc) => {
-        // Imported templates are now in the current document
-        const elem = document.getElementById(id);
+    return path ?
+        id ?
+            fetchDocument(path)
+            .then((doc) => importDependencies(path, doc))
+            .then((doc) => findTemplate(id)) :
 
-        if (!elem) {
-            throw new Error('Sparky template id="' + id + '" not found in document');
-        }
+        fetchDocument(path)
+        .then((doc) => {
 
-        return elem;
-    } : (doc) => {
-        // Todo: doc.bodyt does not worky
-        return document.adoptNode(doc.body);
-    });
+console.log('1', doc);
+            return document.adoptNode(doc.body)
+
+        }) :
+
+        // If path is blank we are looking in the current document, so there
+        // must be a template id (we can't import the document into itself!)
+        Promise.resolve(findTemplate(id)) ;
 }

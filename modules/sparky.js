@@ -1,4 +1,5 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
+import { fragmentFromChildren } from '../../dom/dom.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config from './config.js';
@@ -178,16 +179,19 @@ function setupSrc(src, input, firstRender, config) {
     const source = document.getElementById(src.replace(/^#/, ''));
 
     if (source) {
-        return setupInclude(source, input, firstRender, config);
+        const attrFn = source.getAttribute(config.attributeFn);
+        return setupInclude(source.content.cloneNode(true), attrFn, input, firstRender, config);
     }
 
     let stopped;
     let stop = noop;
 
     importTemplate(src)
-    .then((source) => {
+    .then((node) => {
         if (stopped) { return; }
-        stop = setupInclude(source, input, firstRender, config);
+        const attrFn   = node.getAttribute(config.attributeFn);
+        const fragment = node.content || fragmentFromChildren(node);
+        stop = setupInclude(fragment, attrFn, input, firstRender, config);
     })
     .catch(function(error) {
         console.error(error.message);
@@ -196,18 +200,17 @@ function setupSrc(src, input, firstRender, config) {
     return function() {
         stopped = true;
         stop();
+        stop = noop;
     }
 }
 
-function setupInclude(include, input, firstRender, config) {
-    const attrFn  = include.getAttribute(config.attributeFn);
-    const content = include.content.cloneNode(true);
-
+function setupInclude(content, attrFn, input, firstRender, options) {
+console.log('2', content, attrFn, input, firstRender, options)
     if (attrFn) {
-        input = run(null, content, input, attrFn, config);
+        input = run(null, content, input, attrFn, options);
 
         if (!input) {
-            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;', include.id);
+            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
             return noop;
         }
     }
@@ -217,13 +220,13 @@ function setupInclude(include, input, firstRender, config) {
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const first = !renderer;
-        if (first) { renderer = mountContent(content, config); }
+        if (first) { renderer = mountContent(content, options); }
         renderer.push(scope);
         if (first) { firstRender(content); }
     });
 
     if (DEBUG) {
-        console.log('%cSparky %cinclude', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;', include.id);
+        console.log('%cSparky %cinclude', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
     }
 
     return function() {
