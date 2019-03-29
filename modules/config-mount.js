@@ -1,14 +1,14 @@
 export default {
-    // All
-    default:  { booleans:   ['hidden'], attributes: ['id', 'title', 'style'] },
-
-    // HTML
+    default:  { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
     a:        { attributes: ['href'] },
     button:   { booleans:   ['disabled'] },
+    circle:   { attributes: ['cx', 'cy', 'r', 'transform'] },
+    ellipse:  { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
     form:     { attributes: ['method', 'action'] },
     fieldset: { booleans:   ['disabled'] },
+    g:        { attributes: ['transform'] },
     img:      { attributes: ['alt']	},
-    input:    {
+    input: {
         booleans:   ['disabled', 'required'],
         attributes: ['name'],
         types: {
@@ -27,27 +27,20 @@ export default {
         }
     },
     label:    { attributes: ['for'] },
+    line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
     meta:     { attributes: ['content'] },
     meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
     option:   { attributes: ['value'], booleans: ['disabled'] },
     output:   { attributes: ['for'] },
+    path:     { attributes: ['d', 'transform'] },
+    polygon:  { attributes: ['points', 'transform'] },
+    polyline: { attributes: ['points', 'transform'] },
     progress: { attributes: ['max', 'value'] },
-    select:   {
-        attributes: ['name'],
-        booleans: ['disabled', 'required'],
-        types: {
-            default: { value: 'string' }
-        }
-    },
+    rect:     { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
+    select:   { attributes: ['name'], booleans: ['disabled', 'required'], types: { default: { value: 'string' }}},
+    svg:      { attributes: ['viewbox'] },
+    text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
     textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
     time:     { attributes: ['datetime'] },
-
-    // SVG
-    svg:      { attributes: ['viewbox'] },
-    g:        { attributes: ['transform'] },
-    path:     { attributes: ['d', 'transform'] },
-    line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
-    rect:     { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-    text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
-    use:      { attributes: ['href', 'transform'] }
+    use:      { attributes: ['href', 'transform', 'x', 'y'] }
 };

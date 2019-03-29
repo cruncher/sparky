@@ -21,7 +21,6 @@ if (window.console && window.console.log) {
 
 import { cue, uncue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
-import { pipes } from './modules/parse.js';
 import functions from './modules/fn.js';
 
 export default Sparky;
@@ -29,10 +28,16 @@ export { cue, uncue };
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
+export { getScope } from './modules/fn.scope.js';
 export { functions };
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';
 export { notify } from '../fn/fn.js';
+
+export function register(name, fn, options) {
+    functions[name] = fn;
+    functions[name].settings = options;
+}
 
 const DEBUG = !!window.DEBUG;
 
@@ -79,6 +84,5 @@ cue({
 
 if (DEBUG) {
     window.Sparky = Sparky;
-    Sparky.pipes = pipes;
     Sparky.functions = functions;
 }

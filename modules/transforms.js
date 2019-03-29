@@ -1,6 +1,4 @@
 
-// Sparky.filter
-
 import {
 	add,
 	append,
@@ -33,6 +31,7 @@ import {
 	log,
 	root,
 	slugify,
+	toCamelCase,
 	toCartesian,
 	toPolar,
 	toDeg,
@@ -43,10 +42,11 @@ import {
 	toFloat,
 	toFixed,
 	toString,
-	toType,
-	normalise,
-	denormalise
+	toType
 } from '../../fn/fn.js';
+
+import * as normalise   from '../../fn/modules/normalise.js';
+import * as denormalise from '../../fn/modules/denormalise.js';
 
 import {
 	escape,
@@ -126,8 +126,31 @@ export const transformers = {
 	int:         { tx: toFixed(0),  ix: toInt },
 	float:       { tx: toFloat,     ix: toString },
 	boolean:     { tx: Boolean,     ix: toString },
-	normalise:   { tx: normalise,   ix: denormalise },
-	denormalise: { tx: denormalise, ix: normalise },
+
+	normalise:   {
+		tx: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		}),
+
+		ix: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		})
+	},
+
+	denormalise:   {
+		tx: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		}),
+
+		ix: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		})
+	},
+
 	floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
 	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
