@@ -4,7 +4,7 @@
 
 
 import { last, noop, observe } from '../../fn/fn.js';
-import { before, tag, isFragmentNode } from '../../dom/dom.js';
+import { before, remove, tag, isFragmentNode } from '../../dom/dom.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
@@ -216,13 +216,13 @@ export default function each(node, scopes, params, config) {
 	// Get the value of scopes in frames after it has changed
 	var unEachFrame = eachFrame(scopes.latest().dedup(), update);
 
-	//this.then(function() {
-	//	remove(marker);
-	//	unEachFrame();
-	//	sparkies.forEach(function(sparky) {
-	//		sparky.stop();
-	//	});
-	//});
+	scopes.done(() => {
+		remove(marker);
+		unEachFrame();
+		sparkies.forEach(function(sparky) {
+			sparky.stop();
+		});
+	});
 
 	// Return false to prevent further processing of this Sparky
 	return false;

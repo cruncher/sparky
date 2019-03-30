@@ -11,9 +11,6 @@ export function getScope(node) {
 }
 
 export default function scope(node, input, params) {
-    input
-    .toPromise()
-    .then(() => map.delete(node));
-
+    input.done(() => map.delete(node));
     return input.tap((scope) => map.set(node, scope));
 }

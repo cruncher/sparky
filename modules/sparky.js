@@ -4,6 +4,8 @@ import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import functions from './fn.js';
 import mount, { assignTransform } from './mount.js';
+import { create } from '../../dom/dom.js';
+
 
 const DEBUG = false;//true;
 
@@ -90,15 +92,27 @@ function run(context, node, input, attrFn, options) {
         // false     - stop processing this node
         const output = fn.call(context, node, input, result.params, options);
 
-        input = (output === undefined) ? input :
-            (output === input) ? input :
-            (output && output.map) ? output.map(toObserverOrSelf) :
-            (output && output.then) ? output.then(toObserverOrSelf) :
-            output ;
-
         // Keep the options object sane, a hacky precaution aginst
         // this options object ending up being used elsewhere
         options.fn = '';
+
+        if (output === false) {
+            input = false;
+        }
+        else if (output && output !== input) {
+            const done = input.done;
+
+            input = output.map ? output.map(toObserverOrSelf) :
+                output.then ? output.then(toObserverOrSelf) :
+                output ;
+
+            // Transfer done(fn) method if new input doesnt have one
+            // A bit dodge, this. Maybe we should insist that output
+            // type is a stream.
+            if (!input.done) {
+                input.done = done;
+            }
+        }
     }
 
     return input;
@@ -156,16 +170,21 @@ function setupTarget(string, input, render, options) {
     function update(scope) {
         const src = tokens.join('');
 
-        // If nothing has changed
-        if (src === prevSrc) { return; }
+        // If template path has not changed
+        if (src === prevSrc) {
+            output.push(scope);
+            return;
+        }
+
         prevSrc = src;
 
         // Stop the previous
         output.stop();
         stop();
 
-        // If include is empty string
+        // If include is empty string render nothing
         if (!src) {
+            render(null);
             output = nothing;
             stop = noop;
             return;
@@ -248,7 +267,7 @@ function setupInclude(include, input, firstRender, config) {
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const first = !renderer;
-        if (first) { renderer = mountContent(content, config); }
+        renderer = renderer || mountContent(content, config);
         renderer.push(scope);
         if (first) { firstRender(content); }
     });
@@ -282,7 +301,7 @@ function setupTemplate(target, input, config) {
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const init = !renderer;
-        if (init) { renderer = mountContent(target.content, config); }
+        renderer = renderer || mountContent(target.content, config);
         renderer.push(scope);
 
         if (init) {
@@ -308,48 +327,42 @@ function setupElementInclude(target, src, input, config) {
     }, config);
 }
 
-function setupTemplateInclude(target, src, input, config) {
-    const children = assign({}, target.content.childNodes);
-
-    // We assume content to be static, perhaps naively, as the include
-    // template is going to overwrite it.
-    if (children[0]) {
-        replace(target, target.content);
-        target = children[0];
-
-        // For logging
-        ++config.mutations;
-    }
+function setupTemplateInclude(target, src, input, options) {
+    const nodes = { 0: target };
 
     return setupTarget(src, input, (content) => {
-        // Remove children from 1 up,
-        // uncache from 0 up
-        let n = -1;
-        while (children[++n]) {
-            // Ignore n === 0
-            if (n) {
-                children[n].remove();
-                // For logging
-                ++config.mutations;
-            }
-            children[n] = undefined;
+        // Store child 0
+        const target = nodes[0];
+
+        // Remove nodes from 1 up
+        var n = 0;
+        while (nodes[++n]) {
+            nodes[n].remove();
+            nodes[n] = undefined;
+
+            // For logging
+            ++options.mutations;
         }
 
-        // Assign new children
-        assign(children, content.childNodes);
+        // If there is content cache new nodes
+        if (content && content.childNodes && content.childNodes.length) {
+            assign(nodes, content.childNodes);
+        }
 
-        // Replace target, also neatly removes previous children[0],
-        // which we avoided doing above to keep it as a position marker in
-        // the DOM for this...
+        // Otherwise content is a placemarker text node
+        else {
+            content = nodes[0] = DEBUG ?
+                create('comment', ' include="' + src + '" ') :
+                create('text', '') ;
+        }
+
+        // Replace child 0, which we avoided doing above to keep it as a
+        // position marker in the DOM for this...
         replace(target, content);
 
         // For logging
-        ++config.mutations;
-
-        // Update target
-        if (!children[0]) { throw new Error('No target, use marker'); }
-        target = children[0];
-    }, config);
+        ++options.mutations;
+    }, options);
 }
 
 function setupSVGInclude(target, src, input, config) {
