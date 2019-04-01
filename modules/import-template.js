@@ -77,17 +77,6 @@ function toScriptPromise(node) {
     });
 }
 
-function findTemplate(id) {
-    // Imported templates are now in the current document
-    const template = document.getElementById(id);
-
-    if (!template) {
-        throw new Error('Sparky template id="' + id + '" not found');
-    }
-
-    return template;
-}
-
 export default function importTemplate(src) {
     const parts = src.split('#');
     const path  = parts[0] || '';
@@ -101,17 +90,12 @@ export default function importTemplate(src) {
         id ?
             fetchDocument(path)
             .then((doc) => importDependencies(path, doc))
-            .then((doc) => findTemplate(id)) :
+            .then((doc) => document.getElementById(id))
 
-        fetchDocument(path)
-        .then((doc) => {
-
-console.log('1', doc);
-            return document.adoptNode(doc.body)
-
-        }) :
+            fetchDocument(path)
+            .then((doc) => document.adoptNode(doc.body)) :
 
         // If path is blank we are looking in the current document, so there
         // must be a template id (we can't import the document into itself!)
-        Promise.resolve(findTemplate(id)) ;
+        Promise.resolve(document.getElementById(id)) ;
 }
