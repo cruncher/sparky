@@ -61,6 +61,14 @@ cue({
                 );
 
                 const sparky = Sparky(template);
+
+                // If there is no attribute fn, there is no way for this sparky
+                // to launch as it will never get scope. Enable sparky templates
+                // with just an include by passing in blank scope.
+                if (!attrFn) {
+                    sparky.push(null);
+                }
+
                 mutations += sparky.mutations;
 
                 console.groupEnd();

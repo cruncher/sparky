@@ -1,4 +1,5 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
+import { fragmentFromChildren } from '../../dom/dom.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
@@ -226,16 +227,31 @@ function setupSrc(src, input, firstRender, config) {
     const source = document.getElementById(src.replace(/^#/, ''));
 
     if (source) {
-        return setupInclude(source, input, firstRender, config);
+        const attrFn = source.getAttribute(config.attributeFn);
+        const content = source.content ? source.content.cloneNode(true) :
+            source instanceof SVGElement ? source.cloneNode(true) :
+            undefined ;
+
+        return setupInclude(content, attrFn, input, firstRender, config);
     }
 
     let stopped;
     let stop = noop;
 
     importTemplate(src)
-    .then((source) => {
+    .then((node) => {
         if (stopped) { return; }
-        stop = setupInclude(source, input, firstRender, config);
+        const attrFn   = node.getAttribute(config.attributeFn);
+
+        const content =
+            // Support templates
+            source.content ? source.content.cloneNode(true) :
+            // Support SVG elements
+            source instanceof SVGElement ? source.cloneNode(true) :
+            // Support body elements imported from exernal documents
+            fragmentFromChildren(node) ;
+
+        stop = setupInclude(content, attrFn, input, firstRender, config);
     })
     .catch(function(error) {
         console.error(error.message);
@@ -244,20 +260,16 @@ function setupSrc(src, input, firstRender, config) {
     return function() {
         stopped = true;
         stop();
+        stop = noop;
     }
 }
 
-function setupInclude(include, input, firstRender, config) {
-    const attrFn  = include.getAttribute(config.attributeFn);
-    const content = include.content ? include.content.cloneNode(true) :
-        include instanceof SVGElement ? include.cloneNode(true) :
-        undefined ;
-
+function setupInclude(content, attrFn, input, firstRender, options) {
     if (attrFn) {
-        input = run(null, content, input, attrFn, config);
+        input = run(null, content, input, attrFn, options);
 
         if (!input) {
-            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;', include.id);
+            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
             return noop;
         }
     }
@@ -273,7 +285,7 @@ function setupInclude(include, input, firstRender, config) {
     });
 
     if (DEBUG) {
-        console.log('%cSparky %cinclude', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;', include.id);
+        console.log('%cSparky %cinclude', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
     }
 
     return function() {
