@@ -7,8 +7,8 @@ import functions from './fn.js';
 import mount, { assignTransform } from './mount.js';
 import toRenderString from './render.js';
 
-
-const DEBUG = false;//true;
+// Debug mode is on by default
+const DEBUG = window.DEBUG === undefined || window.DEBUG;
 
 const assign = Object.assign;
 
@@ -34,14 +34,13 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(attrFn, attrInclude, target, desc) {
+function logSparky(options) {
     console.log('%cSparky%c'
-        + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
+        + (options.is ? ' is="' + options.is + '"')
+        + (options.fn ? ' fn="' + options.fn + '"' : '')
+        + (options.include ? ' include="' + options.include + '"' : ''),
         'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;'/*,
-        target,
-        desc*/
+        'color: #6894ab; font-weight: 400;'
     );
 }
 
@@ -430,7 +429,9 @@ function targetFromSelector(selector) {
         selector ;
 }
 
-function setup(target, attrInclude, output, options) {
+function setup(target, output, options) {
+    const attrInclude = options.include;
+
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter
     options.fn      = '';
@@ -456,6 +457,7 @@ export default function Sparky(selector, settings) {
         return new Sparky(selector, settings);
     }
 
+    const attrInclude = template.getAttribute('include');
     const options = assign({}, config, settings);
     const target  = targetFromSelector(selector);
     // Todo: replace with a tailored source stream rather than this
@@ -482,18 +484,12 @@ export default function Sparky(selector, settings) {
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
 
-    const attrInclude = options.include
+    options.include = options.include
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    if (DEBUG) {
-        logSparky(attrFn, attrInclude, target, target.content ?
-            attrInclude ? 'template include' : 'template' :
-            attrInclude ? 'element include' : 'element'
-        );
-    }
+    if (DEBUG) { logSparky(options); }
 
-    stop = setup(target, attrInclude, output, options);
-
+    stop = setup(target, output, options);
     this.mutations = options.mutations;
 }
