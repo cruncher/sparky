@@ -64,9 +64,9 @@ function applyTransform(data, fn) {
 function createPipe(array, pipes) {
     // Cache is dependent on pipes object - a new pipes object
     // results in a new cache
-    const localCache = pipes && (pipes[$cache] || (
-        pipes[$cache] = {}
-    ));
+    const localCache = (pipes
+		&& pipes[$cache])
+		|| (pipes[$cache] = {});
 
     // Cache pipes for reuse by other tokens
     const key = JSON.stringify(array);
