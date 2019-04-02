@@ -27,7 +27,7 @@ function renderProperty(name, node, value) {
 }
 
 export default function BooleanRenderer(tokens, node, name) {
-    this.label  = 'Boolean renderer';
+    this.label  = 'BooleanRenderer';
 	this.node   = node;
     this.name   = name;
 	this.tokens = tokens;
@@ -44,10 +44,10 @@ assign(BooleanRenderer.prototype, Renderer.prototype, {
         const value = !!this.tokens.find(isTruthy);
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return 0; }
+        if (this.renderedValue === value) { return 0; }
 
 		// Return DOM mutation count
-        this.mutationCount = this.render(this.name, this.node, value);
-		this.valueRendered = value;
+        this.mutationCount += this.render(this.name, this.node, value);
+		this.renderedValue = value;
     }
 });

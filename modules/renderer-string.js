@@ -4,7 +4,7 @@ import Renderer from './renderer.js';
 const assign = Object.assign;
 
 export default function StringRenderer(tokens, render, node, name) {
-    this.label  = 'String renderer';
+    this.label  = 'StringRenderer';
     this.render = render;
     this.node   = node;
     this.name   = name;
@@ -20,10 +20,10 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         const value = this.tokens.join('');
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return; }
+        if (this.renderedValue === value) { return; }
 
         // Return DOM mutation count
-        this.mutationCount = this.render(this.name, this.node, value);
-        this.valueRendered = value;
+        this.mutationCount += this.render(this.name, this.node, value);
+        this.renderedValue = value;
     }
 });

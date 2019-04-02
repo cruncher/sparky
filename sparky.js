@@ -24,12 +24,11 @@ import Sparky from './modules/sparky.js';
 import functions from './modules/fn.js';
 
 export default Sparky;
-export { cue, uncue };
+export { cue, uncue, functions };
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn.scope.js';
-export { functions };
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';
 export { notify } from '../fn/fn.js';
@@ -45,18 +44,24 @@ const options = { is: 'sparky' };
 // component, I guess
 
 cue({
+    label: "IsRenderer",
+
     fire: function() {
+        const renderer = this;
+
         window.document
         .querySelectorAll('[is="sparky"]')
         .forEach((template) => {
             const attrFn = options.fn = template.getAttribute('fn');
-            const sparky = Sparky(template, options);
+            const sparky = new Sparky(template, options);
 
             // If there is no attribute fn, there is no way for this sparky
             // to launch as it will never get scope. Enable sparky templates
             // with just an include by passing in blank scope.
             if (!attrFn) {
-                sparky.push(null);
+                const blank = {};
+                sparky.push(blank);
+                renderer.renderedValue = blank;
             }
         });
     }

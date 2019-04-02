@@ -13,18 +13,18 @@ const rspaces = /\s+/;
 
 function addClasses(classList, text) {
     var classes = text.trim().split(rspaces);
-	classList.add.apply(classList, classes);
+    classList.add.apply(classList, classes);
 
-	// Return DOM mutation count
-	return 1;
+    // Return DOM mutation count
+    return 1;
 }
 
 function removeClasses(classList, text) {
     var classes = text.trim().split(rspaces);
-	classList.remove.apply(classList, classes);
+    classList.remove.apply(classList, classes);
 
-	// Return DOM mutation count
-	return 1;
+    // Return DOM mutation count
+    return 1;
 }
 
 function partitionByType(data, token) {
@@ -33,7 +33,7 @@ function partitionByType(data, token) {
 }
 
 export default function ClassRenderer(tokens, node) {
-    this.label  = 'Class renderer';
+    this.label  = 'ClassRenderer';
     this.mutationCount = 0;
 
     const types = tokens.reduce(partitionByType, {
@@ -45,7 +45,7 @@ export default function ClassRenderer(tokens, node) {
     this.classList = classes(node);
 
     // Overwrite the class with just the static text
-	node.setAttribute('class', types.string.join(' '));
+    node.setAttribute('class', types.string.join(' '));
 }
 
 assign(ClassRenderer.prototype, Renderer.prototype, {
@@ -56,12 +56,18 @@ assign(ClassRenderer.prototype, Renderer.prototype, {
         const value = this.tokens.join(' ');
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) {
+        if (this.renderedValue === value) {
             return;
         }
 
-		this.mutationCount += (this.valueRendered && rtext.test(this.valueRendered) ? removeClasses(list, this.valueRendered) : 0);
-		this.mutationCount += (value && rtext.test(value) ? addClasses(list, value) : 0);
-        this.valueRendered = value;
+        this.mutationCount += this.renderedValue && rtext.test(this.renderedValue) ?
+            removeClasses(list, this.renderedValue) :
+            0 ;
+
+        this.mutationCount += value && rtext.test(value) ?
+            addClasses(list, value) :
+            0 ;
+
+        this.renderedValue = value;
     }
 });

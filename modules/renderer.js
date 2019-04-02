@@ -9,7 +9,6 @@ export default function Renderer() {
 Object.assign(Renderer.prototype, {
     fire: function() {
         this.cued = false;
-        return this.mutationCount;
     },
 
     push: function(scope) {

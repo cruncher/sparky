@@ -12,27 +12,63 @@ const queue = new Set();
 
 const addons = [];
 
-const errors = [];
-
 var mutationCount = 0;
 
 var frame;
 
 
-function logRenders(tStart, tStop, mutations, errors) {
+
+/* Console logging */
+
+function tabulateRenderer(renderer) {
+	return {
+		'Label':  renderer.label,
+		'Source': renderer.tokens ?
+			renderer.tokens
+			.filter((token) => token.label !== 'Listener')
+			.map((token) => {
+				return typeof token === 'string' ? token : token.label;
+			})
+			.join('') :
+
+			renderer.path,
+		'Rendered': renderer.renderedValue,
+		'Total renders': renderer.mutationCount
+	};
+}
+
+function filterListener(renderer) {
+	return renderer.constructor.name !== 'Listener';
+}
+
+function logRenders(tStart, tStop) {
 	if (DEBUG) {
-		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. ' + addons.length + ' added renderer'+ (addons.length === 1 ? '' : 's') + '. ' + mutations + ' DOM mutations %c' + (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
+		console.table(
+			Array.from(queue)
+			.concat(addons)
+			.filter(filterListener)
+			.map(tabulateRenderer)
+		);
+
+		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
+		+ addons.length + ' frame renderer' + (addons.length === 1 ? '' : 's') + '. '
+		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
+		+ (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
+
 		console.groupEnd();
 	}
 
-	if (errors.length) {
-		console.log('       %c' + errors.length + ' Errors rendering ' + errors.join(' '), 'color: #d34515; font-weight: 400;');
-	}
-
 	if ((tStop - tStart) > maxFrameDuration) {
-		console.log('       %c' + mutations + ' DOM mutations took ' + (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 400;');
+		console.log('%c  ' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
+		+ addons.length + ' frame renderer' + (addons.length === 1 ? '' : 's') + '. '
+		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
+		+ (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 300;', '');
 	}
 }
+
+
+
+/* The meat and potatoes */
 
 function fireEach(queue) {
 	var renderer;
@@ -44,25 +80,20 @@ function fireEach(queue) {
 }
 
 function run(time) {
-	frame = undefined;
-
 	if (DEBUG) {
 		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	mutationCount = 0;
 	addons.length = 0;
-	errors.length = 0;
-	frame = true;
 
 	const tStart = now();
+	frame = true;
 	fireEach(queue);
+	frame = undefined;
 	const tStop  = now();
 
-	if (DEBUG || errors.length || ((tStop - tStart) > maxFrameDuration)) {
-		logRenders(tStart, tStop, mutationCount, errors);
-	}
-
+	logRenders(tStart, tStop);
 	queue.clear();
 }
 
@@ -76,12 +107,12 @@ export function cue(renderer) {
 		return;
 	}
 
-	// Functions cued during frame are run syncronously (to preserve
+	// Run functions cued during frame syncronously (to preserve
 	// inner-DOM-first order of execution during setup)
 	if (frame === true) {
 		renderer.fire();
 		mutationCount += renderer.mutationCount || 0;
-		addons.push(renderer);
+		if (DEBUG) { addons.push(renderer); }
 		return;
 	}
 

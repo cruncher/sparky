@@ -38,6 +38,7 @@ function setup(object, pipeData) {
 }
 
 export default function Listener(node, read, token, type) {
+    this.label = "Listener";
     this.node = node;
 	this.read = read;
     this.token = token;

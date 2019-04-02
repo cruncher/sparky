@@ -16,20 +16,84 @@ const assign  = Object.assign;
 
 const $scope = Symbol('scope');
 
-function MutationRenderer(render, scope) {
-	this.label  = 'each mutation';
-	this.render = render;
-	this.scope  = scope;
+
+/* Renderers */
+
+function MutationRenderer(scope, args) {
+	this.label    = 'MutationRenderer';
+	this.scope    = scope;
+	this.node     = args[1];
+	this.marker   = args[2];
+	this.sparkies = args[3];
+	this.isOption = args[4];
+	this.options  = args[5];
 	this.mutationCount = 0;
 }
 
 assign(MutationRenderer.prototype, {
 	fire: function render(time) {
 		this.render(this.scope);
-	}
+		this.value = this.scope;
+	},
+
+	render: function render(array) {
+		const node     = this.node;
+		const marker   = this.marker;
+		const sparkies = this.sparkies;
+		const isOption = this.isOption;
+		const options  = this.options;
+
+		// Selects will lose their value if the selected option is removed
+		// from the DOM, even if there is another <option> of same value
+		// already in place. (Interestingly, value is not lost if the
+		// selected <option> is simply moved). Make an effort to have
+		// selects retain their value.
+		var value = isOption ? marker.parentNode.value : undefined ;
+
+		if (!isArray(array)) {
+			array = Object.entries(array).map(entryToKeyValue);
+		}
+
+		this.mutationCount += reorderCache(node, array, sparkies, options);
+		this.mutationCount += reorderNodes(marker, array, sparkies);
+
+		// A fudgy workaround because observe() callbacks (like this update
+		// function) are not batched to ticks.
+		// TODO: batch observe callbacks to ticks.
+		if (isOption && value !== undefined) {
+			marker.parentNode.value = value;
+		}
+	},
+
+	mutationCount: 0
 });
 
-function createEntry(master, index, options) {
+function EachRenderer(input, node, marker, sparkies, isOption, options) {
+	this.label = 'EachRenderer';
+	this.input = input;
+	this.args  = arguments;
+}
+
+assign(EachRenderer.prototype, {
+	fire: function render(time) {
+		var scope = this.input.shift();
+		if (!scope) { return; }
+
+		const renderer = new MutationRenderer(scope, this.args);
+
+		this.stop();
+		this.stop = observe('.', () => cue(renderer), scope);
+	},
+
+	stop: noop,
+
+	mutationCount: 0
+});
+
+
+/* Logic */
+
+function createEntry(master, options) {
 	const node = master.cloneNode(true);
 	const fragment = document.createDocumentFragment();
 	fragment.appendChild(node);
@@ -41,9 +105,11 @@ function createEntry(master, index, options) {
 	return sparky;
 }
 
-function reorderCache(master, array, sparkies, index, options) {
+function reorderCache(master, array, sparkies, options) {
 	// Reorder sparkies
-	let n = -1;
+	var n = -1;
+	var mutationCount = 0;
+
 	while (++n < array.length) {
 		const object = array[n];
 		let sparky = sparkies[n];
@@ -59,7 +125,7 @@ function reorderCache(master, array, sparkies, index, options) {
 
 		// Create a new one or splice the existing one out
 		sparky = i === sparkies.length ?
-			createEntry(master, index++, options) :
+			createEntry(master, options) :
 			sparkies.splice(i, 1)[0];
 
 		// Splice it into place
@@ -72,21 +138,24 @@ function reorderCache(master, array, sparkies, index, options) {
 		const sparky = sparkies.pop().stop();
 
 		// If sparky nodes are not yet in the DOM, sparky does not have a
-		// .nodes property and we may ignore it
+		// .nodes property and we may ignore it, otherwise go ahead
+		// and get rid of the nodes
 		if (sparky.nodes) {
 			A.forEach.call(sparky.nodes, (node) => node.remove());
+			mutationCount += sparky.nodes.length;
 		}
 	}
 
-	// Keep index up to date
-	return index;
+	return mutationCount;
 }
 
 function reorderNodes(node, array, sparkies) {
 	// Reorder nodes in the DOM
-	var l = sparkies.length;
+	const l = sparkies.length;
+	const parent = node.parentNode;
+
+	var mutationCount = 0;
 	var n = -1;
-	var parent = node.parentNode;
 
 	while (n < l) {
 		// Note that node is null where nextSibling does not exist.
@@ -106,12 +175,18 @@ function reorderNodes(node, array, sparkies) {
 				// Stick fragment in the DOM
 				parent.insertBefore(sparkies[n].fragment, node);
 				sparkies[n].fragment = undefined;
+
+				// Increment mutationCount for logging
+				++mutationCount;
 			}
 			else {
 				// Reorder exising nodes
 				let i = -1;
 				while (sparkies[n].nodes[++i]) {
 					parent.insertBefore(sparkies[n].nodes[i], node);
+
+					// Increment mutationCount for logging
+					++mutationCount;
 				}
 			}
 		}
@@ -119,26 +194,15 @@ function reorderNodes(node, array, sparkies) {
 		if (!sparkies[n]) { break; }
 		node = last(sparkies[n].nodes);
 	}
+
+	return mutationCount;
 }
 
-function eachFrame(stream, fn) {
-	var unobserve = noop;
-
-	stream.label = 'each';
-	stream.mutationCount = 0;
-
-	stream.fire  = function fire(time) {
-		var scope = this.shift();
-		if (!scope) { return; }
-
-		const renderer = new MutationRenderer(fn, scope);
-
-		unobserve();
-		unobserve = observe('.', () => cue(renderer), scope);
-	};
+function eachFrame(stream, node, marker, sparkies, isOption, options) {
+	const renderer = new EachRenderer(stream, node, marker, sparkies, isOption, options);
 
 	function push() {
-		cue(stream);
+		cue(renderer);
 	}
 
 	// Support functors
@@ -146,8 +210,8 @@ function eachFrame(stream, fn) {
 		push();
 
 		return function stop() {
-			unobserve();
-			uncue(stream);
+			renderer.stop();
+			uncue(renderer);
 		};
 	}
 
@@ -155,11 +219,9 @@ function eachFrame(stream, fn) {
 	stream.on('push', push);
 
 	return function stop() {
-		if (stream.on) {
-			stream.off('push', push);
-		}
-		unobserve();
-		uncue(stream);
+		stream.off('push', push);
+		renderer.stop();
+		uncue(renderer);
 	};
 }
 
@@ -179,32 +241,6 @@ export default function each(node, scopes, params, options) {
 	const marker   = Marker(node);
 	const isOption = tag(node) === 'option';
 
-	// An internal index for each created node. Used only for debugging.
-	let index = 0;
-
-	function update(array) {
-		// Selects will lose their value if the selected option is removed
-		// from the DOM, even if there is another <option> of same value
-		// already in place. (Interestingly, value is not lost if the
-		// selected <option> is simply moved). Make an effort to have
-		// selects retain their value.
-		var value = isOption ? marker.parentNode.value : undefined ;
-
-		if (!isArray(array)) {
-			array = Object.entries(array).map(entryToKeyValue);
-		}
-
-		index = reorderCache(node, array, sparkies, index, options);
-		reorderNodes(marker, array, sparkies);
-
-		// A fudgy workaround because observe() callbacks (like this update
-		// function) are not batched to ticks.
-		// TODO: batch observe callbacks to ticks.
-		if (isOption && value !== undefined) {
-			marker.parentNode.value = value;
-		}
-	}
-
 	// Put the marker in place and remove the node
 	before(node, marker);
 
@@ -221,7 +257,7 @@ export default function each(node, scopes, params, options) {
 	options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
-	var unEachFrame = eachFrame(scopes.latest().dedup(), update);
+	var unEachFrame = eachFrame(scopes.latest().dedup(), node, marker, sparkies, isOption, options);
 
 	scopes.done(() => {
 		remove(marker);

@@ -13,7 +13,7 @@ function observeMutations(node, fn) {
 }
 
 export default function TokenRenderer(token, render, node, name) {
-    this.label  = 'Value renderer';
+    this.label  = 'ValueRenderer';
 	this.mutationCount = 0;
     this.render = render;
     this.node   = node;
@@ -24,8 +24,8 @@ export default function TokenRenderer(token, render, node, name) {
     // the select, and try to preserve the value if possible
     if (node.tagName.toLowerCase() === 'select') {
 		this.unobserveMutations = observeMutations(node, () => {
-            if (node.value === this.valueRendered + '') { return; }
-            this.valueRendered = undefined;
+            if (node.value === this.renderedValue + '') { return; }
+            this.renderedValue = undefined;
 			cue(this);
 		});
 	}
@@ -39,12 +39,12 @@ assign(TokenRenderer.prototype, Renderer.prototype, {
         const value = token.valueOf();
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) {
+        if (this.renderedValue === value) {
 			return;
 		}
 
-        this.mutationCount = this.render(this.name, this.node, value);
-		this.valueRendered = value;
+        this.mutationCount += this.render(this.name, this.node, value);
+		this.renderedValue = value;
     },
 
     stop: function stop() {
