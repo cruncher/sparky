@@ -39,43 +39,25 @@ export function register(name, fn, options) {
     functions[name].settings = options;
 }
 
-const DEBUG = !!window.DEBUG;
+const options = { is: 'sparky' };
 
-const options = {
-    is: 'sparky'
-};
+// Launch sparky on sparky templates. Ultimately this will be a web
+// component, I guess
 
-// Launch sparky on sparky templates.
-// Ultimately this will be a web component, I guess
 cue({
-    render: function() {
-        const templates = window.document.querySelectorAll('[is="sparky"]');
-        var mutations = 0;
+    fire: function() {
+        window.document
+        .querySelectorAll('[is="sparky"]')
+        .forEach((template) => {
+            const attrFn = options.fn = template.getAttribute('fn');
+            const sparky = Sparky(template, options);
 
-        if (DEBUG) {
-            templates.forEach((template) => {
-                const attrFn = options.fn = template.getAttribute('fn');
-                const sparky = Sparky(template, options);
-
-                // If there is no attribute fn, there is no way for this sparky
-                // to launch as it will never get scope. Enable sparky templates
-                // with just an include by passing in blank scope.
-                if (!attrFn) {
-                    sparky.push(null);
-                }
-
-                mutations += sparky.mutations;
-            });
-        }
-        else {
-            templates.forEach(Sparky) ;
-        }
-
-        return mutations;
+            // If there is no attribute fn, there is no way for this sparky
+            // to launch as it will never get scope. Enable sparky templates
+            // with just an include by passing in blank scope.
+            if (!attrFn) {
+                sparky.push(null);
+            }
+        });
     }
 });
-
-if (DEBUG) {
-    window.Sparky = Sparky;
-    Sparky.functions = functions;
-}

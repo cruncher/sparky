@@ -28,28 +28,26 @@ function renderProperty(name, node, value) {
 
 export default function BooleanRenderer(tokens, node, name) {
     this.label  = 'Boolean renderer';
-	this.mutationCount = 0;
 	this.node   = node;
     this.name   = name;
 	this.tokens = tokens;
-
-	this.fn = name in node ?
+	this.render = name in node ?
 		renderProperty :
 		renderBooleanAttribute ;
+	this.mutationCount = 0;
 }
 
 assign(BooleanRenderer.prototype, Renderer.prototype, {
-    render: function renderBoolean() {
-        Renderer.prototype.render.apply(this, arguments);
+    fire: function renderBoolean() {
+        Renderer.prototype.fire.apply(this, arguments);
 
         const value = !!this.tokens.find(isTruthy);
 
         // Avoid rendering the same value twice
         if (this.valueRendered === value) { return 0; }
-		this.valueRendered = value;
 
 		// Return DOM mutation count
-        this.mutationCount = this.fn(this.name, this.node, value);
-		return this.mutationCount;
+        this.mutationCount = this.render(this.name, this.node, value);
+		this.valueRendered = value;
     }
 });

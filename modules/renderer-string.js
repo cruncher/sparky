@@ -3,28 +3,27 @@ import Renderer from './renderer.js';
 
 const assign = Object.assign;
 
-export default function StringRenderer(tokens, fn, node, name) {
+export default function StringRenderer(tokens, render, node, name) {
     this.label  = 'String renderer';
-    this.mutationCount = 0;
-    this.fn     = fn;
+    this.render = render;
     this.node   = node;
     this.name   = name;
     this.tokens = tokens;
+    this.mutationCount = 0;
 }
 
 assign(StringRenderer.prototype, Renderer.prototype, {
-    render: function renderString() {
-        Renderer.prototype.render.apply(this, arguments);
+    fire: function renderString() {
+        Renderer.prototype.fire.apply(this, arguments);
 
         // Causes token.toString() to be called
         const value = this.tokens.join('');
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return 0; }
-        this.valueRendered = value;
+        if (this.valueRendered === value) { return; }
 
         // Return DOM mutation count
-        this.mutationCount = this.fn(this.name, this.node, value);
-        return this.mutationCount;
+        this.mutationCount = this.render(this.name, this.node, value);
+        this.valueRendered = value;
     }
 });

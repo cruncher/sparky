@@ -1,25 +1,15 @@
 import { cache } from '../../fn/fn.js';
 import { append, children, create, parse, query } from '../../dom/dom.js';
 
-const DEBUG = window.DEBUG;
-
 const fetchDocument = cache(function fetchDocument(path) {
     return fetch(path)
         .then((response) => response.text())
-        .then(parse('html'))
-        .catch(function(error) {
-            throw error;
-        });
+        .then(parse('html'));
 });
 
 let scriptCount = 0;
 
 function importDependencies(path, doc) {
-    if (!doc) {
-        console.warn('Template not found.');
-        return;
-    }
-
     const dir = path.replace(/[^\/]+$/, '');
 
     // Import templates and styles
@@ -82,10 +72,6 @@ export default function importTemplate(src) {
     const path  = parts[0] || '';
     const id    = parts[1] || '';
 
-    if (DEBUG && !path && !id) {
-        throw new Error('Sparky template import URL "' + src + '" must have a path or a hash ref');
-    }
-
     return path ?
         id ?
             fetchDocument(path)
@@ -97,9 +83,10 @@ export default function importTemplate(src) {
                 }
             }) :
 
-            fetchDocument(path)
-            .then((doc) => document.adoptNode(doc.body)) :
+        fetchDocument(path)
+        .then((doc) => document.adoptNode(doc.body)) :
 
+    id ?
         // If path is blank we are looking in the current document, so there
         // must be a template id (we can't import the document into itself!)
         Promise
@@ -108,5 +95,8 @@ export default function importTemplate(src) {
             if (!template) {
                 throw new Error('Sparky template "' + src + '" not found');
             }
-        }) ;
+        }) :
+
+    // If no path and no id
+    Promise.reject(new Error('Sparky template "' + src + '" not found. URL must have a path or a hash ref')) ;
 }

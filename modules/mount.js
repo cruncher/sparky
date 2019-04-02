@@ -496,6 +496,7 @@ export default function Mount(node, options) {
     }
 
 	const renderers = this.renderers = [];
+
 	if (!options.attributePrefix) { options.attributePrefix = ':'; }
 	mountNode(node, renderers, options);
 }

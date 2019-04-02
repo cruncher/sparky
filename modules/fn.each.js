@@ -9,31 +9,39 @@ import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
 
-const DEBUG   = true;//false;
-
 const A       = Array.prototype;
 
 const isArray = Array.isArray;
+const assign  = Object.assign;
 
 const $scope = Symbol('scope');
 
-function createEntry(master, index, config) {
+function MutationRenderer(render, scope) {
+	this.label  = 'each mutation';
+	this.render = render;
+	this.scope  = scope;
+	this.mutationCount = 0;
+}
+
+assign(MutationRenderer.prototype, {
+	fire: function render(time) {
+		this.render(this.scope);
+	}
+});
+
+function createEntry(master, index, options) {
 	const node = master.cloneNode(true);
 	const fragment = document.createDocumentFragment();
 	fragment.appendChild(node);
 
-	if (DEBUG) {
-		node.setAttribute('data-index', index);
-	}
-
 	// We treat the sparky object as a store for carrying internal data
 	// like fragment and nodes, because we can
-	const sparky = new Sparky(node, config);
+	const sparky = new Sparky(node, options);
 	sparky.fragment = fragment;
 	return sparky;
 }
 
-function reorderCache(master, array, sparkies, index, config) {
+function reorderCache(master, array, sparkies, index, options) {
 	// Reorder sparkies
 	let n = -1;
 	while (++n < array.length) {
@@ -51,7 +59,7 @@ function reorderCache(master, array, sparkies, index, config) {
 
 		// Create a new one or splice the existing one out
 		sparky = i === sparkies.length ?
-			createEntry(master, index++, config) :
+			createEntry(master, index++, options) :
 			sparkies.splice(i, 1)[0];
 
 		// Splice it into place
@@ -117,19 +125,15 @@ function eachFrame(stream, fn) {
 	var unobserve = noop;
 
 	stream.label = 'each';
-	stream.render = function update(time) {
-		var scope = stream.shift();
+	stream.mutationCount = 0;
+
+	stream.fire  = function fire(time) {
+		var scope = this.shift();
 		if (!scope) { return; }
 
+		const renderer = new MutationRenderer(fn, scope);
+
 		unobserve();
-
-		const renderer = {
-			name: 'each mutation',
-			fire: function render(time) {
-				fn(scope);
-			}
-		};
-
 		unobserve = observe('.', () => cue(renderer), scope);
 	};
 
@@ -137,15 +141,20 @@ function eachFrame(stream, fn) {
 		cue(stream);
 	}
 
-	// Support streams and functors
-	if (stream.on) {
-		stream.on('push', push);
-	}
-	else {
+	// Support functors
+	if (!stream.on) {
 		push();
+
+		return function stop() {
+			unobserve();
+			uncue(stream);
+		};
 	}
 
-	return function() {
+	// Support streams
+	stream.on('push', push);
+
+	return function stop() {
 		if (stream.on) {
 			stream.off('push', push);
 		}
@@ -161,7 +170,7 @@ function entryToKeyValue(entry) {
 	};
 }
 
-export default function each(node, scopes, params, config) {
+export default function each(node, scopes, params, options) {
 	if (isFragmentNode(node)) {
 		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
 	}
@@ -185,7 +194,7 @@ export default function each(node, scopes, params, config) {
 			array = Object.entries(array).map(entryToKeyValue);
 		}
 
-		index = reorderCache(node, array, sparkies, index, config);
+		index = reorderCache(node, array, sparkies, index, options);
 		reorderNodes(marker, array, sparkies);
 
 		// A fudgy workaround because observe() callbacks (like this update
@@ -201,17 +210,15 @@ export default function each(node, scopes, params, config) {
 
 	// The master node has it's fn attribute truncated to avoid setup
 	// functions being run again. Todo: This is a bit clunky - can we avoid
-	// doing this by passing in the fn string in config to the child instead
+	// doing this by passing in the fn string in options to the child instead
 	// of reparsing the fn attribute?
-	if (config.fn) { node.setAttribute(config.attributeFn, config.fn); }
-	else { node.removeAttribute(config.attributeFn); }
-
-	if (DEBUG) { node.setAttribute('data-index', 'master'); }
+	if (options.fn) { node.setAttribute(options.attributeFn, options.fn); }
+	else { node.removeAttribute(options.attributeFn); }
 
 	node.remove();
 
 	// Prevent further functions being run on current node
-	config.fn = '';
+	options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
 	var unEachFrame = eachFrame(scopes.latest().dedup(), update);

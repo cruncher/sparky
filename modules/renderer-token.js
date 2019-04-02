@@ -12,10 +12,10 @@ function observeMutations(node, fn) {
 	};
 }
 
-export default function TokenRenderer(token, fn, node, name) {
+export default function TokenRenderer(token, render, node, name) {
     this.label  = 'Value renderer';
 	this.mutationCount = 0;
-    this.fn     = fn;
+    this.render = render;
     this.node   = node;
     this.name   = name;
     this.tokens = [token];
@@ -32,19 +32,19 @@ export default function TokenRenderer(token, fn, node, name) {
 }
 
 assign(TokenRenderer.prototype, Renderer.prototype, {
-    render: function renderValue() {
-        Renderer.prototype.render.apply(this, arguments);
+    fire: function renderValue() {
+        Renderer.prototype.fire.apply(this, arguments);
 
         const token = this.tokens[0];
         const value = token.valueOf();
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return 0; }
-        this.valueRendered = value;
+        if (this.valueRendered === value) {
+			return;
+		}
 
-        // Return DOM mutation count
-        this.mutationCount = this.fn(this.name, this.node, value);
-		return this.mutationCount;
+        this.mutationCount = this.render(this.name, this.node, value);
+		this.valueRendered = value;
     },
 
     stop: function stop() {

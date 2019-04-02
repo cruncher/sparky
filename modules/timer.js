@@ -2,7 +2,8 @@
 import { get } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
-const DEBUG  = window.DEBUG || false;
+// Debug mode on by default
+const DEBUG = window.DEBUG === undefined || window.DEBUG;
 
 // Render queue
 const maxFrameDuration = 0.015;
@@ -33,65 +34,53 @@ function logRenders(tStart, tStop, mutations, errors) {
 	}
 }
 
-function fire(queue) {
-	var count = 0;
+function fireEach(queue) {
 	var renderer;
 
-	//if (DEBUG) {
-	//	for (renderer of queue) {
-	//		try {
-	//			count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
-	//		}
-	//		catch(e) {
-	//			console.log('%cError rendering ' + renderer.label + ' with', 'color: #d34515; font-weight: 300;', renderer.scope);
-	//			console.error(e);
-	//			errors.push(renderer.token);
-	//		}
-	//	}
-	//}
-	//else {
-		for (renderer of queue) {
-			count += (renderer.fire ? renderer.fire() : renderer.render()) || 0;
-		}
-	//}
-
-	return count;
+	for (renderer of queue) {
+		renderer.fire();
+		mutationCount += renderer.mutationCount || 0;
+	}
 }
 
 function run(time) {
+	frame = undefined;
+
 	if (DEBUG) {
 		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
+	mutationCount = 0;
 	addons.length = 0;
 	errors.length = 0;
-	mutationCount = 0;
 	frame = true;
 
 	const tStart = now();
-	const count  = fire(queue);
+	fireEach(queue);
 	const tStop  = now();
-
-	mutationCount += count;
 
 	if (DEBUG || errors.length || ((tStop - tStart) > maxFrameDuration)) {
 		logRenders(tStart, tStop, mutationCount, errors);
 	}
 
 	queue.clear();
-	frame = undefined;
 }
 
 export function cue(renderer) {
+	// Don't recue cued renderers
 	if (queue.has(renderer)) {
+		if (DEBUG) {
+			console.trace('Sparky trying to cue renderer that is already cued');
+		}
+
 		return;
 	}
 
 	// Functions cued during frame are run syncronously (to preserve
 	// inner-DOM-first order of execution during setup)
 	if (frame === true) {
-		const count = (renderer.fire ? renderer.fire() : renderer.render()) || 0;
-		mutationCount += count;
+		renderer.fire();
+		mutationCount += renderer.mutationCount || 0;
 		addons.push(renderer);
 		return;
 	}

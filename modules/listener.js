@@ -11,8 +11,6 @@ function getInvert(name) {
 }
 
 function setup(object, pipeData) {
-    //object.timerId = null;
-
     if (pipeData) {
         object.transform = pipe.apply(null,
             pipeData
@@ -27,19 +25,15 @@ function setup(object, pipeData) {
         );
     }
 
+    // Define the event handler
     object.fn = () => {
-        const v1 = object.read(object.node);
+        const value = object.read(object.node);
 
-        // Allow setting of undefined
-        if (v1 === undefined) {
-            object.set(v1);
-            return;
-        }
-
-        const v2 = object.transform(v1);
-        object.set(v2);
+        // Allow undefined to pass through with no transform
+        object.set(value !== undefined ? object.transform(value) : undefined);
     };
 
+    // Add it to the delegate pool
     object.fns.set(object.node, object.fn);
 }
 
@@ -54,7 +48,7 @@ export default function Listener(node, read, token, type) {
         type === 'change' ? changeMap :
         undefined ;
 
-    this.valueOriginal = node.value;
+    this.originalValue = node.value;
 }
 
 Object.assign(Listener.prototype, {
@@ -67,6 +61,10 @@ Object.assign(Listener.prototype, {
             setup(this, this.pipe);
         }
 
+        // Test for undefined and if so set value on scope from the current
+        // value of the node. Yes, this means the data can change unexpectedly
+        // but the alternative are inputs that jump values when their scope
+        // is replaced
         if (getPath(this.path, this.scope) === undefined) {
             // A fudgy hack. A hacky fudge.
             this.token.noRender = true;
@@ -120,6 +118,6 @@ document.addEventListener('change', function(e) {
 });
 
 document.addEventListener('focusout', function(e) {
-    // Changes are not rendered while node is focused,
+    // Todo: Changes are not rendered while node is focused,
     // render them on blur
 });

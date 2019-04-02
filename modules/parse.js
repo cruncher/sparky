@@ -1,6 +1,6 @@
 
 import { capture, exec, id, noop, nothing } from '../../fn/fn.js'
-import toRenderString from './render.js';
+import toText from './to-text.js';
 
 const assign          = Object.assign;
 const parseArrayClose = capture(/^\]\s*/, nothing);
@@ -125,7 +125,7 @@ assign(Tag.prototype, {
     // Tags are stored in arrays with any surrounding strings, and joined
     // on render. Array.join() causes .toString() to be called.
     toString: function toString() {
-        return toRenderString(this.valueOf());
+        return toText(this.valueOf());
     },
 
     valueOf: function valueOf() {

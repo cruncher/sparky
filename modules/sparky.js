@@ -5,7 +5,7 @@ import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import functions from './fn.js';
 import mount, { assignTransform } from './mount.js';
-import toRenderString from './render.js';
+import toText from './to-text.js';
 
 // Debug mode is on by default
 const DEBUG = window.DEBUG === undefined || window.DEBUG;
@@ -196,7 +196,7 @@ function setupTarget(string, input, render, options) {
 
         // Join the tokens together
         const src = values
-        .map(toRenderString)
+        .map(toText)
         .join('');
 
         // If template path has not changed
@@ -272,9 +272,6 @@ function setupSrc(src, input, firstRender, config) {
     let stop = noop;
 
     importTemplate(src)
-    // Swallow errors – unfound templates should not stop the rendering of
-    // the rest of the tree – but log them to the console as errors.
-    .catch((error) => console.error(error.stack))
     .then((node) => {
         if (stopped) { return; }
 
@@ -289,6 +286,11 @@ function setupSrc(src, input, firstRender, config) {
             fragmentFromChildren(node) ;
 
         stop = setupInclude(content, attrFn, input, firstRender, config);
+    })
+    // Swallow errors – unfound templates should not stop the rendering of
+    // the rest of the tree – but log them to the console as errors.
+    .catch((error) => {
+        console.error(error.stack);
     });
 
     return function() {

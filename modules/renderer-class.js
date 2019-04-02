@@ -49,21 +49,19 @@ export default function ClassRenderer(tokens, node) {
 }
 
 assign(ClassRenderer.prototype, Renderer.prototype, {
-    render: function renderBoolean() {
-        Renderer.prototype.render.apply(this, arguments);
+    fire: function renderBoolean() {
+        Renderer.prototype.fire.apply(this, arguments);
 
         const list  = this.classList;
         const value = this.tokens.join(' ');
 
         // Avoid rendering the same value twice
-        if (this.valueRendered === value) { return count; }
+        if (this.valueRendered === value) {
+            return;
+        }
 
 		this.mutationCount += (this.valueRendered && rtext.test(this.valueRendered) ? removeClasses(list, this.valueRendered) : 0);
 		this.mutationCount += (value && rtext.test(value) ? addClasses(list, value) : 0);
-
         this.valueRendered = value;
-
-		// Return DOM mutation count
-        return this.mutationCount;
     }
 });
