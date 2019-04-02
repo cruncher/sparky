@@ -5,6 +5,7 @@ const assign = Object.assign;
 
 export default function StringRenderer(tokens, fn, node, name) {
     this.label  = 'String renderer';
+    this.mutationCount = 0;
     this.fn     = fn;
     this.node   = node;
     this.name   = name;
@@ -23,6 +24,7 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         this.valueRendered = value;
 
         // Return DOM mutation count
-        return this.fn(this.name, this.node, value);
+        this.mutationCount = this.fn(this.name, this.node, value);
+        return this.mutationCount;
     }
 });

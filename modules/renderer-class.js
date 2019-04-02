@@ -34,6 +34,7 @@ function partitionByType(data, token) {
 
 export default function ClassRenderer(tokens, node) {
     this.label  = 'Class renderer';
+    this.mutationCount = 0;
 
     const types = tokens.reduce(partitionByType, {
         string: [],
@@ -54,17 +55,15 @@ assign(ClassRenderer.prototype, Renderer.prototype, {
         const list  = this.classList;
         const value = this.tokens.join(' ');
 
-        var count = 0;
-
         // Avoid rendering the same value twice
         if (this.valueRendered === value) { return count; }
 
-		count += (this.valueRendered && rtext.test(this.valueRendered) ? removeClasses(list, this.valueRendered) : 0);
-		count += (value && rtext.test(value) ? addClasses(list, value) : 0);
+		this.mutationCount += (this.valueRendered && rtext.test(this.valueRendered) ? removeClasses(list, this.valueRendered) : 0);
+		this.mutationCount += (value && rtext.test(value) ? addClasses(list, value) : 0);
 
         this.valueRendered = value;
 
 		// Return DOM mutation count
-		return count;
+        return this.mutationCount;
     }
 });

@@ -2,11 +2,14 @@
 import { observe, noop } from '../../fn/fn.js'
 import { cue, uncue }   from './timer.js';
 
-export default function Renderer() {}
+export default function Renderer() {
+    this.mutationCount = 0;
+}
 
 Object.assign(Renderer.prototype, {
     render: function() {
         this.cued = false;
+        return this.mutationCount;
     },
 
     push: function(scope) {

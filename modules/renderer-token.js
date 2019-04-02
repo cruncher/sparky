@@ -14,6 +14,7 @@ function observeMutations(node, fn) {
 
 export default function TokenRenderer(token, fn, node, name) {
     this.label  = 'Value renderer';
+	this.mutationCount = 0;
     this.fn     = fn;
     this.node   = node;
     this.name   = name;
@@ -42,7 +43,8 @@ assign(TokenRenderer.prototype, Renderer.prototype, {
         this.valueRendered = value;
 
         // Return DOM mutation count
-        return this.fn(this.name, this.node, value);
+        this.mutationCount = this.fn(this.name, this.node, value);
+		return this.mutationCount;
     },
 
     stop: function stop() {

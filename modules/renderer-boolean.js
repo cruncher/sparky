@@ -28,6 +28,7 @@ function renderProperty(name, node, value) {
 
 export default function BooleanRenderer(tokens, node, name) {
     this.label  = 'Boolean renderer';
+	this.mutationCount = 0;
 	this.node   = node;
     this.name   = name;
 	this.tokens = tokens;
@@ -48,6 +49,7 @@ assign(BooleanRenderer.prototype, Renderer.prototype, {
 		this.valueRendered = value;
 
 		// Return DOM mutation count
-        return this.fn(this.name, this.node, value);
+        this.mutationCount = this.fn(this.name, this.node, value);
+		return this.mutationCount;
     }
 });
