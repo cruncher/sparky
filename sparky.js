@@ -51,15 +51,6 @@ cue({
         if (DEBUG) {
             templates.forEach((template) => {
                 const attrFn      = template.getAttribute('fn');
-                const attrInclude = template.getAttribute('include');
-
-                console.group('%cSparky%c is="sparky"'
-                    + (attrFn ? ' fn="' + attrFn + '"' : '')
-                    + (attrInclude ? ' include="' + attrInclude + '"' : ''),
-                    'color: #858720; font-weight: 600;',
-                    'color: #6894ab; font-weight: 400;'
-                );
-
                 const sparky = Sparky(template);
 
                 // If there is no attribute fn, there is no way for this sparky
@@ -70,8 +61,6 @@ cue({
                 }
 
                 mutations += sparky.mutations;
-
-                console.groupEnd();
             });
         }
         else {
