@@ -41,6 +41,10 @@ export function register(name, fn, options) {
 
 const DEBUG = !!window.DEBUG;
 
+const options = {
+    is: 'sparky'
+};
+
 // Launch sparky on sparky templates.
 // Ultimately this will be a web component, I guess
 cue({
@@ -50,8 +54,8 @@ cue({
 
         if (DEBUG) {
             templates.forEach((template) => {
-                const attrFn      = template.getAttribute('fn');
-                const sparky = Sparky(template);
+                const attrFn = options.fn = template.getAttribute('fn');
+                const sparky = Sparky(template, options);
 
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates

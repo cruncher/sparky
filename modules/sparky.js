@@ -34,10 +34,10 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(options) {
+function logSparky(options, attrFn) {
     console.log('%cSparky%c'
-        + (options.is ? ' is="' + options.is + '"')
-        + (options.fn ? ' fn="' + options.fn + '"' : '')
+        + (options.is ? ' is="' + options.is + '"' : '')
+        + (attrFn ? ' fn="' + attrFn + '"' : '')
         + (options.include ? ' include="' + options.include + '"' : ''),
         'color: #858720; font-weight: 600;',
         'color: #6894ab; font-weight: 400;'
@@ -63,15 +63,33 @@ function replace(target, content) {
     target.remove();
 }
 
-function run(context, node, input, attrFn, options) {
-    let result;
+function prepareInput(input, output) {
+    const done = input.done;
 
-    while(input && attrFn && (result = captureFn({}, attrFn))) {
+    // Support promises and functors
+    input = output.map ? output.map(toObserverOrSelf) :
+        output.then ? output.then(toObserverOrSelf) :
+        output ;
+
+    // Transfer done(fn) method if new input doesnt have one
+    // A bit dodge, this. Maybe we should insist that output
+    // type is a stream.
+    if (!input.done) {
+        input.done = done;
+    }
+
+    return input;
+}
+
+function run(context, node, input, options) {
+    var result;
+
+    while(input && options.fn && (result = captureFn({}, options.fn))) {
         // Find Sparky function by name, looking in global functions store
         // first, then local options. This order makes it impossible to
         // overwrite built-in fns.
         const fn = functions[result.name]
-            || options.functions && options.functions[result.name];
+            || (options.functions && options.functions[result.name]);
 
         if (!fn) {
             throw new Error(
@@ -82,7 +100,7 @@ function run(context, node, input, attrFn, options) {
             );
         }
 
-        options.fn = attrFn = result.remainingString;
+        options.fn = result.remainingString;
 
         if (fn.settings) {
             // Overwrite functions / pipes
@@ -96,26 +114,13 @@ function run(context, node, input, attrFn, options) {
         // false     - stop processing this node
         const output = fn.call(context, node, input, result.params, options);
 
-        // Keep the options object sane, a hacky precaution aginst
-        // this options object ending up being used elsewhere
-        options.fn = '';
-
+        // Output false means stop processing the node
         if (output === false) {
-            input = false;
+            return false;
         }
-        else if (output && output !== input) {
-            const done = input.done;
 
-            input = output.map ? output.map(toObserverOrSelf) :
-                output.then ? output.then(toObserverOrSelf) :
-                output ;
-
-            // Transfer done(fn) method if new input doesnt have one
-            // A bit dodge, this. Maybe we should insist that output
-            // type is a stream.
-            if (!input.done) {
-                input.done = done;
-            }
+        if (output && output !== input) {
+            input = prepareInput(input, output);
         }
     }
 
@@ -313,10 +318,6 @@ function setupInclude(content, attrFn, input, firstRender, options) {
         if (first) { firstRender(content); }
     });
 
-    if (DEBUG) {
-        console.log('%cSparky %cinclude', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
-    }
-
     return function() {
         renderer && renderer.stop();
     };
@@ -457,14 +458,16 @@ export default function Sparky(selector, settings) {
         return new Sparky(selector, settings);
     }
 
-    const attrInclude = template.getAttribute('include');
-    const options = assign({}, config, settings);
     const target  = targetFromSelector(selector);
+    const options = assign({}, config, settings);
+    const attrFn  = options.fn = options.fn
+        || target.getAttribute(options.attributeFn)
+        || '';
+
     // Todo: replace with a tailored source stream rather than this
     // generic pushable stream - should not be able to push
     const input   = Stream.of().map(toObserverOrSelf);
-    const attrFn  = options.fn || target.getAttribute(options.attributeFn) || '';
-    const output  = run(null, target, input, attrFn, options);
+    const output  = run(null, target, input, options);
 
     var stop = noop;
 
@@ -488,7 +491,7 @@ export default function Sparky(selector, settings) {
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    if (DEBUG) { logSparky(options); }
+    if (DEBUG) { logSparky(options, attrFn); }
 
     stop = setup(target, output, options);
     this.mutations = options.mutations;
