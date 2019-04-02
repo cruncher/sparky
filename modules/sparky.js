@@ -7,8 +7,8 @@ import functions from './fn.js';
 import mount, { assignTransform } from './mount.js';
 import toRenderString from './render.js';
 
-
-const DEBUG = false;//true;
+// Debug mode is on by default
+const DEBUG = window.DEBUG === undefined || window.DEBUG;
 
 const assign = Object.assign;
 
@@ -34,14 +34,13 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(attrFn, attrInclude, target, desc) {
+function logSparky(options) {
     console.log('%cSparky%c'
-        + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
+        + (options.is ? ' is="' + options.is + '"')
+        + (options.fn ? ' fn="' + options.fn + '"' : '')
+        + (options.include ? ' include="' + options.include + '"' : ''),
         'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;'/*,
-        target,
-        desc*/
+        'color: #6894ab; font-weight: 400;'
     );
 }
 
@@ -424,23 +423,50 @@ function setupSVGInclude(target, src, input, config) {
     }, config);
 }
 
+function targetFromSelector(selector) {
+    return typeof selector === 'string' ?
+        document.querySelector(selector) :
+        selector ;
+}
+
+function setup(target, output, options) {
+    const attrInclude = options.include;
+
+    // We have consumed fn and include now, we may blank them before
+    // passing them on to the mounter
+    options.fn      = '';
+    options.include = '';
+
+    return target.content ?
+            attrInclude ?
+                setupTemplateInclude(target, attrInclude, output, options) :
+                setupTemplate(target, output, options) :
+
+        target.tagName === 'use' ?
+            attrInclude ?
+                setupSVGInclude(target, attrInclude, output, options) :
+                setupElement(target, output, options) :
+
+        attrInclude ?
+            setupElementInclude(target, attrInclude, output, options) :
+            setupElement(target, output, options) ;
+}
+
 export default function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {
         return new Sparky(selector, settings);
     }
 
-    const target = typeof selector === 'string' ?
-        document.querySelector(selector) :
-        selector ;
-
+    const attrInclude = template.getAttribute('include');
     const options = assign({}, config, settings);
-
+    const target  = targetFromSelector(selector);
     // Todo: replace with a tailored source stream rather than this
     // generic pushable stream - should not be able to push
-    const input  = Stream.of().map(toObserverOrSelf);
-    const attrFn = options.fn || target.getAttribute(options.attributeFn) || '';
-    const output = run(null, target, input, attrFn, options);
-    let stop = noop;
+    const input   = Stream.of().map(toObserverOrSelf);
+    const attrFn  = options.fn || target.getAttribute(options.attributeFn) || '';
+    const output  = run(null, target, input, attrFn, options);
+
+    var stop = noop;
 
     this.mutations = 0;
 
@@ -458,35 +484,12 @@ export default function Sparky(selector, settings) {
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
 
-    const attrInclude = options.include
+    options.include = options.include
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    // We have consumed fn and include now, we may blank them before
-    // passing them on to the mounter
-    options.fn      = '';
-    options.include = '';
+    if (DEBUG) { logSparky(options); }
 
-    if (DEBUG) {
-        logSparky(attrFn, attrInclude, target, target.content ?
-            attrInclude ? 'template include' : 'template' :
-            attrInclude ? 'element include' : 'element'
-        );
-    }
-
-    stop = target.content ?
-            attrInclude ?
-                setupTemplateInclude(target, attrInclude, output, options) :
-                setupTemplate(target, output, options) :
-
-        target.tagName === 'use' ?
-            attrInclude ?
-                setupSVGInclude(target, attrInclude, output, options) :
-                setupElement(target, output, options) :
-
-        attrInclude ?
-            setupElementInclude(target, attrInclude, output, options) :
-            setupElement(target, output, options) ;
-
+    stop = setup(target, output, options);
     this.mutations = options.mutations;
 }

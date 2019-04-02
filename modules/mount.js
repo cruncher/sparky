@@ -63,6 +63,7 @@ function applyTransform(data, fn) {
 }
 
 function createPipe(array, pipes) {
+	console.log('D', array, pipes)
     // Cache is dependent on pipes object - a new pipes object
     // results in a new cache
     const localCache = pipes
