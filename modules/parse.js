@@ -125,17 +125,12 @@ assign(Tag.prototype, {
     // Tags are stored in arrays with any surrounding strings, and joined
     // on render. Array.join() causes .toString() to be called.
     toString: function toString() {
-        // Don't pipe undefined
-        return toRenderString(
-            this.value === undefined || this.value === null ?
-                undefined :
-                this.transform(this.value)
-        );
+        return toRenderString(this.valueOf());
     },
 
     valueOf: function valueOf() {
         // Don't pipe undefined
-        return this.value === undefined || this.value === null ?
+        return this.value === undefined ?
             undefined :
             this.transform(this.value) ;
     }

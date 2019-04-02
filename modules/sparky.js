@@ -1,11 +1,11 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
-import { fragmentFromChildren } from '../../dom/dom.js';
+import { create, fragmentFromChildren } from '../../dom/dom.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import functions from './fn.js';
 import mount, { assignTransform } from './mount.js';
-import { create } from '../../dom/dom.js';
+import toRenderString from './render.js';
 
 
 const DEBUG = false;//true;
@@ -29,6 +29,10 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
         return output;
     }
 });
+
+function valueOf(object) {
+    return object.valueOf();
+}
 
 function logSparky(attrFn, attrInclude, target, desc) {
     console.log('%cSparky%c'
@@ -166,10 +170,30 @@ function setupTarget(string, input, render, options) {
 
     let output  = nothing;
     let stop    = noop;
-    let prevSrc;
+    let prevSrc = null;
 
     function update(scope) {
-        const src = tokens.join('');
+        const values = tokens.map(valueOf);
+
+        // Tokens in the include tag MUST evaluate in order that a template
+        // may be rendered.
+        //
+        // If any tokens evaluated to undefined (which can happen frequently
+        // because observe is not batched, it will attempt to update() before
+        // all tokens have value) we don't want to go looking for a template.
+        if (values.indexOf(undefined) !== -1) {
+            if (prevSrc !== null) {
+                render(null);
+                prevSrc = null;
+            }
+
+            return;
+        }
+
+        // Join the tokens together
+        const src = values
+        .map(toRenderString)
+        .join('');
 
         // If template path has not changed
         if (src === prevSrc) {
@@ -185,12 +209,17 @@ function setupTarget(string, input, render, options) {
 
         // If include is empty string render nothing
         if (!src) {
-            render(null);
+            if (prevSrc !== null) {
+                render(null);
+                prevSrc = null;
+            }
+
             output = nothing;
             stop = noop;
             return;
         }
 
+        // Push scope to the template renderer
         output = Stream.of(scope);
         stop = setupSrc(src, output, render, options);
     }
@@ -239,9 +268,13 @@ function setupSrc(src, input, firstRender, config) {
     let stop = noop;
 
     importTemplate(src)
+    // Swallow errors – unfound templates should not stop the rendering of
+    // the rest of the tree – but log them to the console as errors.
+    .catch((error) => console.error(error.stack))
     .then((node) => {
         if (stopped) { return; }
-        const attrFn   = node.getAttribute(config.attributeFn);
+
+        const attrFn = node.getAttribute(config.attributeFn);
 
         const content =
             // Support templates
@@ -252,9 +285,6 @@ function setupSrc(src, input, firstRender, config) {
             fragmentFromChildren(node) ;
 
         stop = setupInclude(content, attrFn, input, firstRender, config);
-    })
-    .catch(function(error) {
-        console.error(error.message);
     });
 
     return function() {

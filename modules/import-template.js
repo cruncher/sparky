@@ -91,11 +91,22 @@ export default function importTemplate(src) {
             fetchDocument(path)
             .then((doc) => importDependencies(path, doc))
             .then((doc) => document.getElementById(id))
+            .then((template) => {
+                if (!template) {
+                    throw new Error('Sparky template "' + src + '" not found');
+                }
+            }) :
 
             fetchDocument(path)
             .then((doc) => document.adoptNode(doc.body)) :
 
         // If path is blank we are looking in the current document, so there
         // must be a template id (we can't import the document into itself!)
-        Promise.resolve(document.getElementById(id)) ;
+        Promise
+        .resolve(document.getElementById(id))
+        .then((template) => {
+            if (!template) {
+                throw new Error('Sparky template "' + src + '" not found');
+            }
+        }) ;
 }
