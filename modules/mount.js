@@ -10,7 +10,8 @@ import Listener        from './listener.js';
 import config          from './config-mount.js';
 import { transformers, transforms } from './transforms.js';
 
-const DEBUG  = false;//true;
+// Debug mode on by default
+const DEBUG = window.DEBUG === undefined || window.DEBUG;
 
 const A      = Array.prototype;
 const assign = Object.assign;
@@ -64,9 +65,8 @@ function applyTransform(data, fn) {
 function createPipe(array, pipes) {
     // Cache is dependent on pipes object - a new pipes object
     // results in a new cache
-    const localCache = (pipes
-		&& pipes[$cache])
-		|| (pipes[$cache] = {});
+    const localCache = pipes
+		&& (pipes[$cache] || (pipes[$cache] = {}));
 
     // Cache pipes for reuse by other tokens
     const key = JSON.stringify(array);
@@ -87,9 +87,19 @@ function createPipe(array, pipes) {
 			cache = localCache;
 			fn = pipes[data.name];
 
-			if (!fn) {
-				throw new Error('fn ' + data.name + '() not found.');
+			if (DEBUG && !fn) {
+				throw new Error('pipe ' + data.name + '() not found.');
 			}
+		}
+
+		// Does the number of arguments supplied match the signature of the
+		// transform? If not, error of the form
+		// transform:arg,arg,arg takes 3 arguments, 2 given arg,arg
+		if (DEBUG && data.args.length !== fn.length - 1) {
+			throw new Error(data.name + ':'
+				+ /\(((?:(?:,\s*)?\w*)*),/.exec(fn.toString())[1].replace(/\s*/g, '')
+				+ ' takes ' + (fn.length - 1) + ' arguments, '
+				+ data.args.length + ' given ' + data.args);
 		}
 
 		return applyTransform(data, fn);
@@ -485,18 +495,9 @@ export default function Mount(node, options) {
         return new Mount(node, options);
     }
 
-	if (DEBUG) {
-		console.groupCollapsed('mount: ', node);
-	}
-
 	const renderers = this.renderers = [];
 	if (!options.attributePrefix) { options.attributePrefix = ':'; }
 	mountNode(node, renderers, options);
-
-	if (DEBUG) {
-		console.groupEnd();
-		console.table(this.renderers, ['token']);
-	}
 }
 
 assign(Mount.prototype, {
