@@ -2,7 +2,7 @@
   "name": "sparky",
   "title": "Sparky",
   "description": "Sparky is a live data binding DOM templating engine that enhances HTML with declarative tags and composeable templates, and batches rendering changes to the browser frame rate.",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "Stephen Band",
@@ -37,10 +37,10 @@
     "lint-modules": "eslint modules/*.js",
     "lint-plugins": "eslint plugins/*.js",
     "lint": "npm run lint-modules && npm run lint-plugins",
-    "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 3.1.0\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
+    "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 3.1.1\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
     "build-min": "uglifyjs dist/sparky.js --compress --output dist/sparky.min.js",
     "build": "npm run build-iife && npm run build-min",
-    "build-version": "npm run build && cp dist/sparky.js dist/sparky-3.1.0.js && cp dist/sparky.min.js dist/sparky-3.1.0.min.js && cp dist/sparky.css dist/sparky-3.1.0.css"
+    "build-version": "npm run build && cp dist/sparky.js dist/sparky-3.1.1.js && cp dist/sparky.min.js dist/sparky-3.1.1.min.js && cp dist/sparky.css dist/sparky-3.1.1.css"
   },
   "dependencies": {
     "npm": "^6.0.0"
