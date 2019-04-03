@@ -64,5 +64,7 @@ cue({
                 renderer.renderedValue = blank;
             }
         });
-    }
+    },
+
+    renderCount: 0
 });

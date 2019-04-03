@@ -27,7 +27,7 @@ function MutationRenderer(scope, args) {
 	this.sparkies = args[3];
 	this.isOption = args[4];
 	this.options  = args[5];
-	this.mutationCount = 0;
+	this.renderCount = 0;
 }
 
 assign(MutationRenderer.prototype, {
@@ -54,8 +54,8 @@ assign(MutationRenderer.prototype, {
 			array = Object.entries(array).map(entryToKeyValue);
 		}
 
-		this.mutationCount += reorderCache(node, array, sparkies, options);
-		this.mutationCount += reorderNodes(marker, array, sparkies);
+		this.renderCount += reorderCache(node, array, sparkies, options);
+		this.renderCount += reorderNodes(marker, array, sparkies);
 
 		// A fudgy workaround because observe() callbacks (like this update
 		// function) are not batched to ticks.
@@ -65,7 +65,7 @@ assign(MutationRenderer.prototype, {
 		}
 	},
 
-	mutationCount: 0
+	renderCount: 0
 });
 
 function EachRenderer(input, node, marker, sparkies, isOption, options) {
@@ -87,7 +87,7 @@ assign(EachRenderer.prototype, {
 
 	stop: noop,
 
-	mutationCount: 0
+	renderCount: 0
 });
 
 
@@ -108,7 +108,7 @@ function createEntry(master, options) {
 function reorderCache(master, array, sparkies, options) {
 	// Reorder sparkies
 	var n = -1;
-	var mutationCount = 0;
+	var renderCount = 0;
 
 	while (++n < array.length) {
 		const object = array[n];
@@ -142,11 +142,11 @@ function reorderCache(master, array, sparkies, options) {
 		// and get rid of the nodes
 		if (sparky.nodes) {
 			A.forEach.call(sparky.nodes, (node) => node.remove());
-			mutationCount += sparky.nodes.length;
+			renderCount += sparky.nodes.length;
 		}
 	}
 
-	return mutationCount;
+	return renderCount;
 }
 
 function reorderNodes(node, array, sparkies) {
@@ -154,7 +154,7 @@ function reorderNodes(node, array, sparkies) {
 	const l = sparkies.length;
 	const parent = node.parentNode;
 
-	var mutationCount = 0;
+	var renderCount = 0;
 	var n = -1;
 
 	while (n < l) {
@@ -176,8 +176,8 @@ function reorderNodes(node, array, sparkies) {
 				parent.insertBefore(sparkies[n].fragment, node);
 				sparkies[n].fragment = undefined;
 
-				// Increment mutationCount for logging
-				++mutationCount;
+				// Increment renderCount for logging
+				++renderCount;
 			}
 			else {
 				// Reorder exising nodes
@@ -185,8 +185,8 @@ function reorderNodes(node, array, sparkies) {
 				while (sparkies[n].nodes[++i]) {
 					parent.insertBefore(sparkies[n].nodes[i], node);
 
-					// Increment mutationCount for logging
-					++mutationCount;
+					// Increment renderCount for logging
+					++renderCount;
 				}
 			}
 		}
@@ -195,7 +195,7 @@ function reorderNodes(node, array, sparkies) {
 		node = last(sparkies[n].nodes);
 	}
 
-	return mutationCount;
+	return renderCount;
 }
 
 function eachFrame(stream, node, marker, sparkies, isOption, options) {

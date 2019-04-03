@@ -3,7 +3,7 @@ import { observe, noop } from '../../fn/fn.js'
 import { cue, uncue }   from './timer.js';
 
 export default function Renderer() {
-    this.mutationCount = 0;
+    this.renderCount = 0;
 }
 
 Object.assign(Renderer.prototype, {

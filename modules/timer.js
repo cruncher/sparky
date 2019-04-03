@@ -1,5 +1,4 @@
 
-import { get } from '../../fn/fn.js';
 import { now } from '../../dom/dom.js';
 
 // Debug mode on by default
@@ -12,13 +11,16 @@ const queue = new Set();
 
 const addons = [];
 
-var mutationCount = 0;
+var renderCount = 0;
 
 var frame;
 
 
-
 /* Console logging */
+
+function tokenOrLabel(token) {
+	return typeof token === 'string' ? token : token.label;
+}
 
 function tabulateRenderer(renderer) {
 	return {
@@ -26,14 +28,11 @@ function tabulateRenderer(renderer) {
 		'Source': renderer.tokens ?
 			renderer.tokens
 			.filter((token) => token.label !== 'Listener')
-			.map((token) => {
-				return typeof token === 'string' ? token : token.label;
-			})
+			.map(tokenOrLabel)
 			.join('') :
-
 			renderer.path,
 		'Rendered': renderer.renderedValue,
-		'Total renders (accumulative)': renderer.mutationCount
+		'Total renders (accumulative)': renderer.renderCount
 	};
 }
 
@@ -52,7 +51,7 @@ function logRenders(tStart, tStop) {
 
 		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
 		+ addons.length + ' in-frame renderer' + (addons.length === 1 ? '' : 's') + '. '
-		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
+		+ renderCount + ' DOM mutation' + (renderCount === 1 ? '' : 's') + '. %c'
 		+ (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
 
 		console.groupEnd();
@@ -61,21 +60,31 @@ function logRenders(tStart, tStop) {
 	if ((tStop - tStart) > maxFrameDuration) {
 		console.log('%c  ' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
 		+ addons.length + ' in-frame renderer' + (addons.length === 1 ? '' : 's') + '. '
-		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
+		+ renderCount + ' DOM mutation' + (renderCount === 1 ? '' : 's') + '. %c'
 		+ (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 300;', '');
 	}
 }
 
 
-
 /* The meat and potatoes */
 
 function fireEach(queue) {
-	var renderer;
+	var count, renderer;
 
 	for (renderer of queue) {
+		if (DEBUG) {
+			count = renderer.renderCount;
+
+			if (typeof count !== 'number') {
+				console.log('OIOIO', renderer);
+			}
+		}
+
 		renderer.fire();
-		mutationCount += renderer.mutationCount || 0;
+
+		if (DEBUG) {
+			renderCount += (renderer.renderCount - count);
+		}
 	}
 }
 
@@ -84,7 +93,7 @@ function run(time) {
 		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
-	mutationCount = 0;
+	renderCount = 0;
 	addons.length = 0;
 
 	const tStart = now();
@@ -98,7 +107,7 @@ function run(time) {
 }
 
 export function cue(renderer) {
-	// Don't recue cued renderers
+	// Don't recue cued renderers. This should never happen.
 	if (queue.has(renderer)) {
 		if (DEBUG) {
 			console.trace('Sparky trying to cue renderer that is already cued');
@@ -107,12 +116,26 @@ export function cue(renderer) {
 		return;
 	}
 
-	// Run functions cued during frame syncronously (to preserve
-	// inner-DOM-first order of execution during setup)
+	var count;
+
+	// Run functions cued during frame synchronously to preserve
+	// inner-DOM-first order of execution during setup
 	if (frame === true) {
+		if (DEBUG) {
+			count = renderer.renderCount;
+
+			if (typeof count !== 'number') {
+				console.log('OIOIO', renderer);
+			}
+		}
+
 		renderer.fire();
-		mutationCount += renderer.mutationCount || 0;
-		if (DEBUG) { addons.push(renderer); }
+
+		if (DEBUG) {
+			addons.push(renderer);
+			renderCount += (renderer.renderCount - count);
+		}
+
 		return;
 	}
 

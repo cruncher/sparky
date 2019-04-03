@@ -334,7 +334,7 @@ function setupElement(target, input, options, sparky) {
             replace(target, content);
 
             // Increment mutations for logging
-            ++sparky.mutationsCount;
+            ++sparky.renderCount;
         }
     });
 
@@ -357,7 +357,7 @@ function setupTemplate(target, src, input, options, sparky) {
             nodes[n] = undefined;
 
             // Update count for logging
-            ++sparky.mutationsCount;
+            ++sparky.renderCount;
         }
 
         // If there is content cache new nodes
@@ -379,7 +379,7 @@ function setupTemplate(target, src, input, options, sparky) {
         replace(node0, content);
 
         // Update count for logging
-        ++sparky.mutationsCount;
+        ++sparky.renderCount;
     }, options);
 }
 
@@ -390,7 +390,7 @@ function setupSVG(target, src, input, options, sparky) {
         target = content;
 
         // Increment muitations for logging
-        ++sparky.mutationsCount;
+        ++sparky.renderCount;
     }, options);
 }
 
@@ -425,7 +425,7 @@ export default function Sparky(selector, settings) {
     };
 
     this.label = 'Sparky';
-    this.mutationsCount = 0;
+    this.renderCount = 0;
 
     // If output is false do not go on to parse and mount content
     if (!output) { return; }

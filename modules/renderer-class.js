@@ -34,7 +34,7 @@ function partitionByType(data, token) {
 
 export default function ClassRenderer(tokens, node) {
     this.label  = 'ClassRenderer';
-    this.mutationCount = 0;
+    this.renderCount = 0;
 
     const types = tokens.reduce(partitionByType, {
         string: [],
@@ -60,11 +60,11 @@ assign(ClassRenderer.prototype, Renderer.prototype, {
             return;
         }
 
-        this.mutationCount += this.renderedValue && rtext.test(this.renderedValue) ?
+        this.renderCount += this.renderedValue && rtext.test(this.renderedValue) ?
             removeClasses(list, this.renderedValue) :
             0 ;
 
-        this.mutationCount += value && rtext.test(value) ?
+        this.renderCount += value && rtext.test(value) ?
             addClasses(list, value) :
             0 ;
 

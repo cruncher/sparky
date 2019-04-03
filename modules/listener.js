@@ -49,6 +49,7 @@ export default function Listener(node, read, token, type) {
         type === 'change' ? changeMap :
         undefined ;
 
+    this.renderCount = 0;
     this.originalValue = node.value;
 }
 

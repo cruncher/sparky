@@ -9,7 +9,7 @@ export default function StringRenderer(tokens, render, node, name) {
     this.node   = node;
     this.name   = name;
     this.tokens = tokens;
-    this.mutationCount = 0;
+    this.renderCount = 0;
 }
 
 assign(StringRenderer.prototype, Renderer.prototype, {
@@ -23,7 +23,7 @@ assign(StringRenderer.prototype, Renderer.prototype, {
         if (this.renderedValue === value) { return; }
 
         // Return DOM mutation count
-        this.mutationCount += this.render(this.name, this.node, value);
+        this.renderCount += this.render(this.name, this.node, value);
         this.renderedValue = value;
     }
 });
