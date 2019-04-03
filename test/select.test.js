@@ -2,7 +2,7 @@
 import { Fn, noop, test as group, Observer } from '../../fn/fn.js';
 import Sparky from '../sparky.js';
 
-noop('select > option', function(test, log, fixture) {
+group('select > option', function(test, log, fixture) {
 	var select = fixture.children[0];
 
 	test("Array scope", function(equals, done) {
@@ -28,7 +28,7 @@ noop('select > option', function(test, log, fixture) {
 		});
 	}, 5);
 }, function() {/*
-	<select sparky-value="{[country]}" name="country">
+	<select :value="{[country]}" name="country">
 		<option value="UK">United Kingdom</option>
 		<option value="CH">Switzerland</option>
 	</select>
@@ -114,7 +114,7 @@ group('select > option|each', function(test, log, fixture) {
 	}, 4);
 }, function() {/*
 
-	<select sparky-fn="array-scope-2" sparky-value="{[value]}" id="test-select-2" name="name">
+	<select sparky-fn="array-scope-2" :value="{[value]}" id="test-select-2" name="name">
 		<option sparky-fn="get:options each" value="{[key]}">{[value]}</option>
 		<option value="Infinity">Infinity</option>
 	</select>
@@ -129,7 +129,7 @@ group('select > async options', function(test, log, fixture) {
 	test("Array scope", function(equals, done) {
 		const model = { country: 'GB' };
 		Sparky(node).push(model);
-
+/*
 		requestAnimationFrame(function functionName() {
 			var select = fixture.querySelector('select');
 			equals(true, !!select);
@@ -141,13 +141,14 @@ group('select > async options', function(test, log, fixture) {
 				done();
 			}, 500);
 		});
+*/
 	}, 3);
 }, function() {/*
 	<form include="#address-editor">HEY</form>
 
 	<template id="address-editor">
 	    <label class="country-select-button select-button button">
-	        <select sparky-value="{[country]}" name="country">
+	        <select :value="{[country]}" name="country">
 	            <option fn="import:countries.json each" value="{[code]}">{[value]}</option>
 	        </select>
 	    </label>

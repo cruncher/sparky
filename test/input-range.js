@@ -79,9 +79,9 @@ group('input[type="range"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="range" sparky-value="{[property]}" />
-<input class="node-2" type="range" sparky-value="{[property]}" value="0" />
-<input class="node-3" type="range" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
-<input class="node-4" type="range" sparky-value="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="range" :value="{[property]}" />
+<input class="node-2" type="range" :value="{[property]}" value="0" />
+<input class="node-3" type="range" :value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-4" type="range" :value="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});

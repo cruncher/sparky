@@ -126,7 +126,7 @@ function readValueString(node) {
 }
 
 function readValueNumber(node) {
-	return +(node.value);
+	return node.value ? +node.value : undefined ;
 }
 
 function readValueCheckbox(node) {

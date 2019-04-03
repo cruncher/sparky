@@ -272,9 +272,9 @@ function setupSrc(src, input, firstRender, config) {
 
         const content =
             // Support templates
-            source.content ? source.content.cloneNode(true) :
+            node.content ? node.content.cloneNode(true) :
             // Support SVG elements
-            source instanceof SVGElement ? source.cloneNode(true) :
+            node instanceof SVGElement ? node.cloneNode(true) :
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
@@ -403,12 +403,17 @@ export default function Sparky(selector, settings) {
         document.querySelector(selector) :
         selector ;
 
+    if (config.fn) {
+        console.log(config.fn, target);
+        debugger
+    }
+
     const options = assign({}, config, settings);
-    const attrFn  = options.fn = options.fn
+    const attrFn = options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
 
-    const input  = Stream.of().map(toObserverOrSelf);
+    const input = Stream.of().map(toObserverOrSelf);
     const output = run(null, target, input, options);
 
     var stop = noop;

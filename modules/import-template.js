@@ -78,9 +78,8 @@ export default function importTemplate(src) {
             .then((doc) => importDependencies(path, doc))
             .then((doc) => document.getElementById(id))
             .then((template) => {
-                if (!template) {
-                    throw new Error('Sparky template "' + src + '" not found');
-                }
+                if (!template) { throw new Error('Sparky template "' + src + '" not found'); }
+                return template;
             }) :
 
         fetchDocument(path)
@@ -92,9 +91,8 @@ export default function importTemplate(src) {
         Promise
         .resolve(document.getElementById(id))
         .then((template) => {
-            if (!template) {
-                throw new Error('Sparky template "' + src + '" not found');
-            }
+            if (!template) { throw new Error('Sparky template "' + src + '" not found'); }
+            return template;
         }) :
 
     // If no path and no id

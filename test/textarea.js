@@ -46,7 +46,7 @@ group('textarea', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<textarea class="node-1" sparky-value="{[property]}"></textarea>
-<textarea class="node-2" sparky-value="{[property]}">bla bla</textarea>
+<textarea class="node-1" :value="{[property]}"></textarea>
+<textarea class="node-2" :value="{[property]}">bla bla</textarea>
 
 */});

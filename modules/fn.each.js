@@ -240,7 +240,10 @@ export default function each(node, scopes, params, options) {
 	const sparkies = [];
 	const marker   = Marker(node);
 	const isOption = tag(node) === 'option';
-
+console.log('EACH', node)
+if (node.type) {
+	debugger
+}
 	// Put the marker in place and remove the node
 	before(node, marker);
 

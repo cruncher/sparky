@@ -16,6 +16,7 @@ group('input[type="number"]', function(test, log, fixture) {
 
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+			equals(node.value, '');
 			equals(undefined, model.property);
 
 			node.value = '1';
@@ -70,8 +71,8 @@ group('input[type="number"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="number" sparky-value="{[property]}" />
-<input class="node-2" type="number" sparky-value="{[property]}" value="0" />
-<input class="node-3" type="number" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="number" :value="{[property]}" />
+<input class="node-2" type="number" :value="{[property]}" value="0" />
+<input class="node-3" type="number" :value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});

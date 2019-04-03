@@ -2,7 +2,7 @@ import { create, tag } from '../../dom/dom.js';
 
 const DEBUG = window.DEBUG;
 
-export default function MarkerNode(node, config) {
+export default function MarkerNode(node, options) {
     // A text node, or comment node in DEBUG mode, for marking a
     // position in the DOM tree so it can be swapped out with some
     // content in the future.
@@ -11,12 +11,12 @@ export default function MarkerNode(node, config) {
         return create('text', '');
     }
 
-    var attrFn      = node && node.getAttribute(config ? config.attributeFn : 'fn');
-    var attrInclude = node && node.getAttribute(config ? config.attributeInclude : 'template');
+    var attrFn      = node && node.getAttribute(options ? options.attributeFn : 'fn');
+    var attrInclude = node && node.getAttribute(options ? options.attributeInclude : 'include');
 
     return create('comment',
         tag(node) +
-        (attrFn ? ' ' + (config ? config.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
-        (attrInclude ? ' ' + (config ? config.attributeInclude : 'template') + '="' + attrInclude + '"' : '')
+        (attrFn ? ' ' + (options ? options.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
+        (attrInclude ? ' ' + (options ? options.attributeInclude : 'include') + '="' + attrInclude + '"' : '')
     );
 }

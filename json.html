@@ -74,13 +74,13 @@ small {
 	<button sparky-fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button>
 </template>
 
-<template id="string-editor"><input class="string-input" type="text" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="string-editor"><input class="string-input" type="text" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
 
-<template id="number-editor"><input class="number-input" type="number" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="number-editor"><input class="number-input" type="number" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
 
-<template id="boolean-editor"><input class="masked" type="checkbox" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /><label class="boolean-label" for="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};">{[value]}</label> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="boolean-editor"><input class="masked" type="checkbox" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /><label class="boolean-label" for="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};">{[value]}</label> <span sparky-fn="template:'#types-editor'"></span></template>
 
-<template id="date-editor"><input class="date-input" type="date" sparky-value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="date-editor"><input class="date-input" type="date" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /> <span sparky-fn="template:'#types-editor'"></span></template>
 
 <template id="object-editor">{<span sparky-fn="entries"><span sparky-fn="each">
 {[indent]}<span class="{[type|append:'-name-editor']} name-editor"><input class="name-input" type="text" sparky-fn="value-on:'change','name' value-on:'input','chars'" style="width: {[chars|get:'length'|multiply:0.5|add:0.0625|append:'rem']};"/>:</span><span class="entry" sparky-fn="entry-editor"></span></span></span>

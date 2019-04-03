@@ -79,8 +79,8 @@ group('input[type="checkbox"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="checkbox" sparky-value="{[property]}" />
-<input class="node-2" type="checkbox" sparky-value="{[property]}" checked="checked" />
-<input class="node-3" type="checkbox" sparky-value="{[property]}" checked="checked" value="good" />
+<input class="node-1" type="checkbox" :value="{[property]}" />
+<input class="node-2" type="checkbox" :value="{[property]}" checked="checked" />
+<input class="node-3" type="checkbox" :value="{[property]}" checked="checked" value="good" />
 
 */});

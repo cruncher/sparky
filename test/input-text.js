@@ -49,7 +49,7 @@ group('input[type="text"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="text" sparky-value="{[property]}" />
-<input class="node-2" type="text" sparky-value="{[property]}" value="blabla" />
+<input class="node-1" type="text" :value="{[property]}" />
+<input class="node-2" type="text" :value="{[property]}" value="blabla" />
 
 */});

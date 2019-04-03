@@ -575,7 +575,7 @@ My name is {[title]} and I'm {[version]}!
 					</li>
 					<li>
 					For the <code class="js-code">value</code> attribute, where you don't want to interfere with the
-					browser's autocompletion or default values, use <code class="js-code">sparky-value</code>.
+					browser's autocompletion or default values, use <code class="js-code">:value</code>.
 					</li>
 					<li>
 					Where you want to provide different html content to browsers that fail to run Sparky.
@@ -697,7 +697,7 @@ My name is {[title]} and I'm {[version]}!
 	<template id="license-editor">
 	    <h2>{[product.name]}</h2>
 	    <p>Workstations {[license]}</p>
-	    <input type="number" sparky-value="{[license]}" name="{[product.name|slugify]}-license" min="10" max="10000" />
+	    <input type="number" :value="{[license]}" name="{[product.name|slugify]}-license" min="10" max="10000" />
 	</template>
 
 	<script type="module">
