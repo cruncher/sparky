@@ -1,5 +1,5 @@
 /*
-        import { Observer } from '../fn/fn.js';
+        import { Observer } from '../fn/module.js';
         import { parseText } from './modules/parse.js';
 
         console.log(

@@ -31,7 +31,7 @@ export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn.scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { events } from '../dom/dom.js';
-export { notify } from '../fn/fn.js';
+export { notify } from '../fn/module.js';
 
 export function register(name, fn, options) {
     functions[name] = fn;

@@ -1,5 +1,5 @@
 
-import { noop, Observer, test as group } from '../../fn/fn.js';
+import { noop, Observer, test as group } from '../../fn/module.js';
 import Sparky from '../sparky.js';
 
 group('input[type="text"]', function(test, log, fixture) {

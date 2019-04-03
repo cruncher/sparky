@@ -1,4 +1,4 @@
-import { test as group } from '../../fn/fn.js';
+import { test as group } from '../../fn/module.js';
 import Sparky from '../sparky.js';
 
 group('[sparky-fn="clock"]', function(test, log, fixture) {

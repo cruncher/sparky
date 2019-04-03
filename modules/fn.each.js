@@ -3,7 +3,7 @@
 */
 
 
-import { last, noop, observe } from '../../fn/fn.js';
+import { last, noop, observe } from '../../fn/module.js';
 import { before, remove, tag, isFragmentNode } from '../../dom/dom.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';

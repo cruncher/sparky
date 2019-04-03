@@ -1,4 +1,4 @@
-import { Fn, Stream, invoke, nothing } from '../../fn/fn.js';
+import { Fn, Stream, invoke, nothing } from '../../fn/module.js';
 import Sparky from './sparky.js';
 
 const DEBUG = window.DEBUG;

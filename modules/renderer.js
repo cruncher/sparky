@@ -1,5 +1,5 @@
 
-import { observe, noop } from '../../fn/fn.js'
+import { observe, noop } from '../../fn/module.js'
 import { cue, uncue }   from './timer.js';
 
 export default function Renderer() {

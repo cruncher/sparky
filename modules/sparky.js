@@ -1,4 +1,4 @@
-import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/fn.js';
+import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/module.js';
 import { create, fragmentFromChildren } from '../../dom/dom.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';

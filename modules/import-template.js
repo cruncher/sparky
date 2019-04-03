@@ -1,4 +1,4 @@
-import { cache } from '../../fn/fn.js';
+import { cache } from '../../fn/module.js';
 import { append, children, create, parse, query } from '../../dom/dom.js';
 
 const fetchDocument = cache(function fetchDocument(path) {

@@ -1,5 +1,5 @@
 
-import { capture, exec, id, noop, nothing } from '../../fn/fn.js'
+import { capture, exec, id, noop, nothing } from '../../fn/module.js'
 import toText from './to-text.js';
 
 const assign          = Object.assign;

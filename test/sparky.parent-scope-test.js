@@ -1,5 +1,5 @@
 
-import { Fn, test as group, Observer } from '../../fn/fn.js';
+import { Fn, test as group, Observer } from '../../fn/module.js';
 import Sparky from '../sparky.js';
 
 group('Parent sparky', function(test, log, fixture) {

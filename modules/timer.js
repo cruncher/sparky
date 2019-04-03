@@ -122,11 +122,11 @@ export function cue(renderer) {
 	// inner-DOM-first order of execution during setup
 	if (frame === true) {
 		if (DEBUG) {
-			count = renderer.renderCount;
-
-			if (typeof count !== 'number') {
-				console.log('OIOIO', renderer);
+			if (typeof renderer.renderCount !== 'number') {
+				console.warn('Sparky renderer has no property renderCount', renderer);
 			}
+
+			count = renderer.renderCount;
 		}
 
 		renderer.fire();

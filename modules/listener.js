@@ -1,5 +1,5 @@
 
-import { getPath, setPath, id, noop, pipe, Target } from '../../fn/fn.js';
+import { getPath, setPath, id, noop, pipe, Target } from '../../fn/module.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './timer.js';
 

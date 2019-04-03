@@ -1,4 +1,4 @@
-import { noop, observe } from '../../fn/fn.js';
+import { noop, observe } from '../../fn/module.js';
 import { before, remove, replace } from '../../dom/dom.js';
 import Marker from './marker.js';
 

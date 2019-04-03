@@ -1,4 +1,4 @@
-import { test as group, noop, Observer } from '../../fn/fn.js';
+import { test as group, noop, Observer } from '../../fn/module.js';
 import Sparky, { functions } from '../sparky.js';
 
 var frame = window.requestAnimationFrame;

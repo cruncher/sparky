@@ -43,10 +43,10 @@ import {
 	toFixed,
 	toString,
 	toType
-} from '../../fn/fn.js';
+} from '../../fn/module.js';
 
-import * as normalise   from '../../fn/modules/normalise.js';
-import * as denormalise from '../../fn/modules/denormalise.js';
+import * as normalise   from '../../fn/modules/normalisers.js';
+import * as denormalise from '../../fn/modules/denormalisers.js';
 
 import {
 	escape,

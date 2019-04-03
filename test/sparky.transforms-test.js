@@ -1,4 +1,4 @@
-import { test as group } from '../../fn/fn.js';
+import { test as group } from '../../fn/module.js';
 import { transforms, transformers } from '../modules/transforms.js';
 
 group('Sparky.transformers', function(test, log) {

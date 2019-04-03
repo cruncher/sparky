@@ -112,7 +112,7 @@ small {
 
 	<!-- Debug -->
 	<script type="module">
-	import * as fn  from '../fn/fn.js';
+	import * as fn  from '../fn/module.js';
 	import * as dom from '../dom/dom.js';
 	window.fn  = fn;
 	window.Stream = fn.Stream;
@@ -131,7 +131,7 @@ small {
 	<!-- Initialise app -->
 
 	<script type="module">
-	import { by, compose, get, id, invoke, is, nothing, map, overload, pipe, set, sort, Stream, ObserveStream, observe, Observer } from '../fn/fn.js';
+	import { by, compose, get, id, invoke, is, nothing, map, overload, pipe, set, sort, Stream, ObserveStream, observe, Observer } from '../fn/module.js';
 	import { append, clone, empty, events, fragmentFromId, identify, trigger } from '../dom/dom.js';
 	import Sparky from './sparky.js';
 

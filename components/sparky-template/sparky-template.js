@@ -16,7 +16,7 @@ version displays notes, control change and pitch bend messages.
 This module has external dependencies.
 */
 
-import { noop, overload, toInt } from '../../../fn/fn.js';
+import { noop, overload, toInt } from '../../../fn/module.js';
 import { append, define, query, trigger, empty, now } from '../../../dom/dom.js';
 import { print } from '../../modules/print.js';
 

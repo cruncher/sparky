@@ -1,4 +1,4 @@
-import { Observer, test as group } from '../../fn/fn.js';
+import { Observer, test as group } from '../../fn/module.js';
 import Sparky from '../sparky.js';
 
 

@@ -1,4 +1,4 @@
-import { noop, Observable, Stream } from '../../fn/fn.js';
+import { noop, Observable, Stream } from '../../fn/module.js';
 
 export default function get(node, input, params) {
     // TODO: We should be able to express this with
