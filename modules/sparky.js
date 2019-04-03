@@ -34,11 +34,11 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(options, attrFn) {
+function logSparky(attrIs, attrFn, attrInclude) {
     console.log('%cSparky%c'
-        + (options.is ? ' is="' + options.is + '"' : '')
+        + (attrIs ? ' is="' + attrIs + '"' : '')
         + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (options.include ? ' include="' + options.include + '"' : ''),
+        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
         'color: #6894ab; font-weight: 400;'
     );
@@ -130,26 +130,19 @@ function run(context, node, input, options) {
 function mountContent(content, options) {
     options.mount = function(node, options) {
         // This is a half-assed way of preventing the root node of this
-        // sparky from being remounted.
+        // sparky from being remounted. Still needed?
         if (node === content) { return; }
 
         // Does the node have Sparkyfiable attributes?
-        const attrFn      = node.getAttribute(options.attributeFn);
-        const attrInclude = node.getAttribute(options.attributeInclude);
+        options.fn      = node.getAttribute(options.attributeFn) || '';
+        options.include = node.getAttribute(options.attributeInclude) || '';
 
-        if (!attrFn && !attrInclude) { return; }
-
-        options.fn = attrFn;
-        options.include = attrInclude;
-        var sparky = Sparky(node, options);
-
-        // This is just some help for logging mounted tags
-        sparky.label = 'Sparky (child)';
+        if (!options.fn && !options.include) { return; }
 
         // Return a writeable stream. A write stream
-        // must have the methods .push() and .stop()
-        // A sparky is a write stream.
-        return sparky;
+        // must have the methods .push() and .stop().
+        // Sparky is a write stream.
+        return Sparky(node, options);
     };
 
     // Launch rendering
@@ -325,34 +318,23 @@ function setupInclude(content, attrFn, input, firstRender, options) {
     };
 }
 
-function setupElement(target, input, options) {
-    let renderer;
-
-    // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        renderer = renderer || mountContent(target, options);
-        renderer.push(scope);
-    });
-
-    return function stop() {
-        renderer && renderer.stop();
-    };
-}
-
-function setupTemplate(target, input, config) {
-    let renderer;
+function setupElement(target, input, options, sparky) {
+    const content = target.content;
+    var renderer;
 
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const init = !renderer;
-        renderer = renderer || mountContent(target.content, config);
+
+        renderer = renderer || mountContent(content || target, options);
         renderer.push(scope);
 
-        if (init) {
-            replace(target, target.content);
+        // If target is a template, replace it
+        if (content && init) {
+            replace(target, content);
 
-            // For logging
-            ++config.mutations;
+            // Increment mutations for logging
+            ++sparky.mutationsCount;
         }
     });
 
@@ -361,31 +343,21 @@ function setupTemplate(target, input, config) {
     };
 }
 
-function setupElementInclude(target, src, input, config) {
-    return setupTarget(src, input, (content) => {
-        target.innerHTML = '';
-        target.appendChild(content);
-
-        // For logging
-        config.mutations += 2;
-    }, config);
-}
-
-function setupTemplateInclude(target, src, input, options) {
+function setupTemplate(target, src, input, options, sparky) {
     const nodes = { 0: target };
 
     return setupTarget(src, input, (content) => {
-        // Store child 0
-        const target = nodes[0];
+        // Store node 0
+        const node0 = nodes[0];
 
-        // Remove nodes from 1 up
+        // Remove nodes from 1 to last
         var n = 0;
         while (nodes[++n]) {
             nodes[n].remove();
             nodes[n] = undefined;
 
-            // For logging
-            ++options.mutations;
+            // Update count for logging
+            ++sparky.mutationsCount;
         }
 
         // If there is content cache new nodes
@@ -395,64 +367,31 @@ function setupTemplateInclude(target, src, input, options) {
 
         // Otherwise content is a placemarker text node
         else {
-            content = nodes[0] = DEBUG ?
-                create('comment', ' include="' + src + '" ') :
-                create('text', '') ;
+            content = nodes[0] = target.content ?
+                DEBUG ?
+                    create('comment', ' include="' + src + '" ') :
+                    create('text', '') :
+                target ;
         }
 
         // Replace child 0, which we avoided doing above to keep it as a
-        // position marker in the DOM for this...
-        replace(target, content);
+        // position marker in the DOM for exactly this reason this...
+        replace(node0, content);
 
-        // For logging
-        ++options.mutations;
+        // Update count for logging
+        ++sparky.mutationsCount;
     }, options);
 }
 
-function setupSVGInclude(target, src, input, config) {
+function setupSVG(target, src, input, options, sparky) {
     return setupTarget(src, input, (content) => {
         content.removeAttribute('id');
-
-        // Replace target, also neatly removes previous children[0],
-        // which we avoided doing above to keep it as a position marker in
-        // the DOM for this...
         replace(target, content);
-
-        // For logging
-        ++config.mutations;
-
-        // Update target
         target = content;
-    }, config);
-}
 
-function targetFromSelector(selector) {
-    return typeof selector === 'string' ?
-        document.querySelector(selector) :
-        selector ;
-}
-
-function setup(target, output, options) {
-    const attrInclude = options.include;
-
-    // We have consumed fn and include now, we may blank them before
-    // passing them on to the mounter
-    options.fn      = '';
-    options.include = '';
-
-    return target.content ?
-            attrInclude ?
-                setupTemplateInclude(target, attrInclude, output, options) :
-                setupTemplate(target, output, options) :
-
-        target.tagName === 'use' ?
-            attrInclude ?
-                setupSVGInclude(target, attrInclude, output, options) :
-                setupElement(target, output, options) :
-
-        attrInclude ?
-            setupElementInclude(target, attrInclude, output, options) :
-            setupElement(target, output, options) ;
+        // Increment muitations for logging
+        ++sparky.mutationsCount;
+    }, options);
 }
 
 export default function Sparky(selector, settings) {
@@ -460,20 +399,19 @@ export default function Sparky(selector, settings) {
         return new Sparky(selector, settings);
     }
 
-    const target  = targetFromSelector(selector);
+    const target  = typeof selector === 'string' ?
+        document.querySelector(selector) :
+        selector ;
+
     const options = assign({}, config, settings);
     const attrFn  = options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
 
-    // Todo: replace with a tailored source stream rather than this
-    // generic pushable stream - should not be able to push
-    const input   = Stream.of().map(toObserverOrSelf);
-    const output  = run(null, target, input, options);
+    const input  = Stream.of().map(toObserverOrSelf);
+    const output = run(null, target, input, options);
 
     var stop = noop;
-
-    this.mutations = 0;
 
     this.push = (scope) => {
         input.push(scope);
@@ -486,15 +424,27 @@ export default function Sparky(selector, settings) {
         return this;
     };
 
+    this.label = 'Sparky';
+    this.mutationsCount = 0;
+
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
 
-    options.include = options.include
+    const attrInclude = options.include
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    if (DEBUG) { logSparky(options, attrFn); }
+    if (DEBUG) { logSparky(options.is, attrInclude, attrFn); }
 
-    stop = setup(target, output, options);
-    this.mutations = options.mutations;
+    // We have consumed fn and include now, we may blank them before
+    // passing them on to the mounter, to protect against them being
+    // used again.
+    options.fn      = '';
+    options.include = '';
+
+    stop = attrInclude ?
+        target.tagName === 'use' ?
+            setupSVG(target, attrInclude, output, options, this) :
+            setupTemplate(target, attrInclude, output, options, this) :
+        setupElement(target, output, options, this) ;
 }

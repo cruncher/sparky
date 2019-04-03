@@ -25,13 +25,6 @@ const cased = {
 
 // Helpers
 
-const push = (value, pushable) => {
-	pushable.push(value);
-	return value;
-};
-
-const stop = (object) => object.stop();
-
 const getType = get('type');
 
 const getNodeType = get('nodeType');
@@ -41,6 +34,15 @@ const types = {
 	'range':      'number'
 };
 
+function push(value, pushable) {
+	pushable.push(value);
+	return value;
+}
+
+function stop(object) {
+	object.stop();
+	return object;
+}
 
 
 // Pipes
@@ -496,8 +498,6 @@ export default function Mount(node, options) {
     }
 
 	const renderers = this.renderers = [];
-
-	if (!options.attributePrefix) { options.attributePrefix = ':'; }
 	mountNode(node, renderers, options);
 }
 

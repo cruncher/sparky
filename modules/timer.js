@@ -33,7 +33,7 @@ function tabulateRenderer(renderer) {
 
 			renderer.path,
 		'Rendered': renderer.renderedValue,
-		'Total renders': renderer.mutationCount
+		'Total renders (accumulative)': renderer.mutationCount
 	};
 }
 
@@ -51,7 +51,7 @@ function logRenders(tStart, tStop) {
 		);
 
 		console.log('%c' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
-		+ addons.length + ' frame renderer' + (addons.length === 1 ? '' : 's') + '. '
+		+ addons.length + ' in-frame renderer' + (addons.length === 1 ? '' : 's') + '. '
 		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
 		+ (tStop - tStart).toFixed(3) + 's', 'color: #6894ab; font-weight: 300;', '');
 
@@ -60,7 +60,7 @@ function logRenders(tStart, tStop) {
 
 	if ((tStop - tStart) > maxFrameDuration) {
 		console.log('%c  ' + queue.size + ' cued renderer' + (queue.size === 1 ? '' : 's') + '. '
-		+ addons.length + ' frame renderer' + (addons.length === 1 ? '' : 's') + '. '
+		+ addons.length + ' in-frame renderer' + (addons.length === 1 ? '' : 's') + '. '
 		+ mutationCount + ' DOM mutation' + (mutationCount === 1 ? '' : 's') + '. %c'
 		+ (tStop - tStart).toFixed(3) + 's', 'color: #d34515; font-weight: 300;', '');
 	}
