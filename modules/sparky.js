@@ -248,17 +248,17 @@ function setupTarget(string, input, render, options) {
     };
 }
 
-function setupSrc(src, input, firstRender, config) {
+function setupSrc(src, input, firstRender, options) {
     // Strip off leading # before running the test
     const source = document.getElementById(src.replace(/^#/, ''));
 
     if (source) {
-        const attrFn = source.getAttribute(config.attributeFn);
+        const attrFn = source.getAttribute(options.attributeFn);
         const content = source.content ? source.content.cloneNode(true) :
             source instanceof SVGElement ? source.cloneNode(true) :
             undefined ;
 
-        return setupInclude(content, attrFn, input, firstRender, config);
+        return setupInclude(content, attrFn, input, firstRender, options);
     }
 
     let stopped;
@@ -268,7 +268,7 @@ function setupSrc(src, input, firstRender, config) {
     .then((node) => {
         if (stopped) { return; }
 
-        const attrFn = node.getAttribute(config.attributeFn);
+        const attrFn = node.getAttribute(options.attributeFn);
 
         const content =
             // Support templates
@@ -278,7 +278,7 @@ function setupSrc(src, input, firstRender, config) {
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
-        stop = setupInclude(content, attrFn, input, firstRender, config);
+        stop = setupInclude(content, attrFn, input, firstRender, options);
     })
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
@@ -308,7 +308,7 @@ function setupInclude(content, attrFn, input, firstRender, options) {
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const first = !renderer;
-        renderer = renderer || mountContent(content, config);
+        renderer = renderer || mountContent(content, options);
         renderer.push(scope);
         if (first) { firstRender(content); }
     });
@@ -402,11 +402,6 @@ export default function Sparky(selector, settings) {
     const target  = typeof selector === 'string' ?
         document.querySelector(selector) :
         selector ;
-
-    if (config.fn) {
-        console.log(config.fn, target);
-        debugger
-    }
 
     const options = assign({}, config, settings);
     const attrFn = options.fn = options.fn

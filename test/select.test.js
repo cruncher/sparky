@@ -22,11 +22,16 @@ group('select > option', function(test, log, fixture) {
 
 				requestAnimationFrame(function functionName() {
 					equals('', select.value);
-					done();
+					Observer(model).country = 'UK';
+
+					requestAnimationFrame(function functionName() {
+						equals('UK', select.value);
+						done();
+					});
 				});
 			});
 		});
-	}, 5);
+	}, 6);
 }, function() {/*
 	<select :value="{[country]}" name="country">
 		<option value="UK">United Kingdom</option>
@@ -129,7 +134,7 @@ group('select > async options', function(test, log, fixture) {
 	test("Array scope", function(equals, done) {
 		const model = { country: 'GB' };
 		Sparky(node).push(model);
-/*
+
 		requestAnimationFrame(function functionName() {
 			var select = fixture.querySelector('select');
 			equals(true, !!select);
@@ -141,7 +146,6 @@ group('select > async options', function(test, log, fixture) {
 				done();
 			}, 500);
 		});
-*/
 	}, 3);
 }, function() {/*
 	<form include="#address-editor">HEY</form>

@@ -47,8 +47,11 @@ assign(MutationRenderer.prototype, {
 		// from the DOM, even if there is another <option> of same value
 		// already in place. (Interestingly, value is not lost if the
 		// selected <option> is simply moved). Make an effort to have
-		// selects retain their value.
-		var value = isOption ? marker.parentNode.value : undefined ;
+		// selects retain their value across scope changes.
+		//
+		// There is also code for something siimilar in render-token.js
+		// maybe have a look and decide on what's right
+//var value = isOption ? marker.parentNode.value : undefined ;
 
 		if (!isArray(array)) {
 			array = Object.entries(array).map(entryToKeyValue);
@@ -60,9 +63,9 @@ assign(MutationRenderer.prototype, {
 		// A fudgy workaround because observe() callbacks (like this update
 		// function) are not batched to ticks.
 		// TODO: batch observe callbacks to ticks.
-		if (isOption && value !== undefined) {
-			marker.parentNode.value = value;
-		}
+//		if (isOption && value !== undefined) {
+//			marker.parentNode.value = value;
+//		}
 	},
 
 	renderCount: 0
@@ -240,10 +243,7 @@ export default function each(node, scopes, params, options) {
 	const sparkies = [];
 	const marker   = Marker(node);
 	const isOption = tag(node) === 'option';
-console.log('EACH', node)
-if (node.type) {
-	debugger
-}
+
 	// Put the marker in place and remove the node
 	before(node, marker);
 

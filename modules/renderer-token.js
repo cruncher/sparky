@@ -5,11 +5,11 @@ import { cue, uncue }   from './timer.js';
 const assign = Object.assign;
 
 function observeMutations(node, fn) {
-	var observer = new MutationObserver(fn);
-	observer.observe(node, { childList: true });
-	return function unobserveMutations() {
-		observer.disconnect();
-	};
+    var observer = new MutationObserver(fn);
+    observer.observe(node, { childList: true });
+    return function unobserveMutations() {
+        observer.disconnect();
+    };
 }
 
 export default function TokenRenderer(token, render, node, name) {
@@ -23,12 +23,12 @@ export default function TokenRenderer(token, render, node, name) {
     // Observe mutations to select children, they alter the value of
     // the select, and try to preserve the value if possible
     if (node.tagName.toLowerCase() === 'select') {
-		this.unobserveMutations = observeMutations(node, () => {
+        this.unobserveMutations = observeMutations(node, () => {
             if (node.value === this.renderedValue + '') { return; }
             this.renderedValue = undefined;
-			cue(this);
-		});
-	}
+            cue(this);
+        });
+    }
 }
 
 assign(TokenRenderer.prototype, Renderer.prototype, {
@@ -40,11 +40,11 @@ assign(TokenRenderer.prototype, Renderer.prototype, {
 
         // Avoid rendering the same value twice
         if (this.renderedValue === value) {
-			return;
-		}
+            return;
+        }
 
         this.renderCount += this.render(this.name, this.node, value);
-		this.renderedValue = value;
+        this.renderedValue = value;
     },
 
     stop: function stop() {
