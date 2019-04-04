@@ -8,8 +8,8 @@
     "name": "Stephen Band",
     "twitter": "stephband"
   },
-  "main": "dist/sparky.js",
-  "module": "sparky.js",
+  "main": "index.js",
+  "module": "module.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/cruncher/sparky.git"
@@ -37,10 +37,10 @@
     "lint-modules": "eslint modules/*.js",
     "lint-plugins": "eslint plugins/*.js",
     "lint": "npm run lint-modules && npm run lint-plugins",
-    "build-iife": "rollup sparky.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 3.1.1\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
+    "build-iife": "rollup module.js --o dist/sparky.js --f iife --n Sparky --banner '// Sparky 3.1.1\n//\n// by @stephband\n// http://stephen.band/sparky\n'",
     "build-min": "uglifyjs dist/sparky.js --compress --output dist/sparky.min.js",
     "build": "npm run build-iife && npm run build-min",
-    "build-version": "npm run build && cp dist/sparky.js dist/sparky-3.1.1.js && cp dist/sparky.min.js dist/sparky-3.1.1.min.js && cp dist/sparky.css dist/sparky-3.1.1.css"
+    "build-version": "npm run build && cp dist/module.js dist/sparky-3.1.1.js && cp dist/sparky.min.js dist/sparky-3.1.1.min.js && cp dist/sparky.css dist/sparky-3.1.1.css"
   },
   "dependencies": {
     "npm": "^6.0.0"

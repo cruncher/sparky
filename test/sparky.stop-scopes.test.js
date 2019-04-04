@@ -1,5 +1,5 @@
 import { test as group, noop, Observer } from '../../fn/module.js';
-import Sparky, { functions } from '../sparky.js';
+import Sparky, { functions } from '../module.js';
 
 var frame = window.requestAnimationFrame;
 

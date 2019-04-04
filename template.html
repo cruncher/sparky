@@ -612,7 +612,7 @@ line { stroke-width: 1; stroke: inherit; }
 	<!-- Debug -->
 	<script type="module">
 	import * as fn  from '../fn/module.js';
-	import * as dom from '../dom/dom.js';
+	import * as dom from '../dom/module.js';
 	window.fn  = fn;
 	window.dom = dom;
 	</script>
@@ -629,7 +629,7 @@ line { stroke-width: 1; stroke: inherit; }
 		requestAnimationFrame(count);
 	});
 
-	import Sparky from './sparky.js';
+	import Sparky from './module.js';
 	import '../dom/js/dom-activate.js';
 	import '../dom/js/dom.root.js';
 	import '../dom/js/dom.switchable.js';

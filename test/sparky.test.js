@@ -1,6 +1,6 @@
 
 import { Fn, test as group, Observer } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 //Sparky.fn['ctrl'] = function(node, scopes) {
 //	return Fn.of({ property: 'peas' });

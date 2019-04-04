@@ -17,7 +17,7 @@ This module has external dependencies.
 */
 
 import { noop, overload, toInt } from '../../../fn/module.js';
-import { append, define, query, trigger, empty, now } from '../../../dom/dom.js';
+import { append, define, query, trigger, empty, now } from '../../../dom/module.js';
 import { print } from '../../modules/print.js';
 
 // define(name, setup, attributes, shadow)

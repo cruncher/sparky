@@ -1,5 +1,5 @@
 import { Observer, test as group } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 
 group('input[type="number"]', function(test, log, fixture) {

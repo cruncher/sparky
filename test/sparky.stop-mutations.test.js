@@ -1,5 +1,5 @@
 import { Observer, test as group } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 Sparky.fn['pass-through'] = function(node, stream) {
 

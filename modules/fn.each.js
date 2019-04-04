@@ -4,7 +4,7 @@
 
 
 import { last, noop, observe } from '../../fn/module.js';
-import { before, remove, tag, isFragmentNode } from '../../dom/dom.js';
+import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';

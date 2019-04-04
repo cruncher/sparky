@@ -1,5 +1,5 @@
 
-import { classes } from '../../dom/dom.js';
+import { classes } from '../../dom/module.js';
 import Renderer from './renderer.js';
 
 const assign = Object.assign;

@@ -1,5 +1,5 @@
 
-import { events, isTargetEvent } from '../../dom/dom.js';
+import { events, isTargetEvent } from '../../dom/module.js';
 
 export default function startOn(node, scopes, params) {
     const name = params[0];

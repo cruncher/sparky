@@ -1,5 +1,5 @@
 
-import { now } from '../../dom/dom.js';
+import { now } from '../../dom/module.js';
 
 // Debug mode on by default
 const DEBUG = window.DEBUG === undefined || window.DEBUG;

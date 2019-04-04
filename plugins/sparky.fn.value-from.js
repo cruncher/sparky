@@ -1,6 +1,6 @@
 import { get, set, normalise, Observer } from '../../fn/module.js';
-import dom from '../../dom/dom.js';
-import Sparky from '../sparky.js';
+import dom from '../../dom/module.js';
+import Sparky from '../module.js';
 
 function getValue(target) {
     return parseFloat(target.value);

@@ -3,8 +3,8 @@
 // <div sparky-fn="calendar:'2018-01-01',14">
 
 import { Fn, Stream, get, prepad, nowDate, addDate, floorDate, formatDate, formatDateISO, diffDateDays, parseDate, nothing, Observer } from '../../fn/module.js';
-import { closest } from '../../dom/dom.js';
-import Sparky from '../sparky.js';
+import { closest } from '../../dom/module.js';
+import Sparky from '../module.js';
 
 var addDate1   = addDate('0000-00-01');
 

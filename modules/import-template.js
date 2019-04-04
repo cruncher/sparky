@@ -1,5 +1,5 @@
 import { cache } from '../../fn/module.js';
-import { append, children, create, parse, query } from '../../dom/dom.js';
+import { append, children, create, parse, query } from '../../dom/module.js';
 
 const fetchDocument = cache(function fetchDocument(path) {
     return fetch(path)

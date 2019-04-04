@@ -53,7 +53,7 @@ import {
 	toPx,
 	toRem,
 	parse
-} from '../../dom/dom.js';
+} from '../../dom/module.js';
 
 var debug     = true;
 var A         = Array.prototype;

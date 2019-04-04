@@ -133,7 +133,7 @@
 
     <script type="module">
         import { Observer, Stream, Fn } from '../fn/module.js';
-        import Sparky, { functions } from './sparky.js';
+        import Sparky, { functions } from './module.js';
 
         const data1 = [{ id: 1 }, { id: 2 }];
         const data2 = [{ id: 3 }, { id: 4 }];
@@ -157,9 +157,9 @@
                 setTimeout(function() {
                     scopes.push(data1);
 
-                    setTimeout(function() {
-                        scopes.push(data2);
-                    }, 1000);
+        //            setTimeout(function() {
+        //                scopes.push(data2);
+        //            }, 1000);
                 }, 1000);
             }, 1000);
 

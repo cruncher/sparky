@@ -1,5 +1,5 @@
 import { test as group } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 group('[sparky-fn="clock"]', function(test, log, fixture) {
 	var node   = fixture.children[0];

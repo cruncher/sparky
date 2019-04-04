@@ -1,6 +1,6 @@
 
 import { get, isDefined, noop, overload, pipe } from '../../fn/module.js';
-import { tag, trigger } from '../../dom/dom.js';
+import { tag, trigger } from '../../dom/module.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
 import BooleanRenderer from './renderer-boolean.js';
 import ClassRenderer   from './renderer-class.js';

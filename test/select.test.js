@@ -1,6 +1,6 @@
 
 import { Fn, noop, test as group, Observer } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 group('select > option', function(test, log, fixture) {
 	var select = fixture.children[0];

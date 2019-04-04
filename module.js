@@ -30,7 +30,7 @@ export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn.scope.js';
 export { transforms, transformers } from './modules/transforms.js';
-export { events } from '../dom/dom.js';
+export { events } from '../dom/module.js';
 export { notify } from '../fn/module.js';
 
 export function register(name, fn, options) {

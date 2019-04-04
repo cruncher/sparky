@@ -1,6 +1,6 @@
 
 import { Fn, test as group, Observer } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 group('Parent sparky', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;

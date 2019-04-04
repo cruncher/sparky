@@ -1,5 +1,5 @@
 import { noop, observe } from '../../fn/module.js';
-import { before, remove, replace } from '../../dom/dom.js';
+import { before, remove, replace } from '../../dom/module.js';
 import Marker from './marker.js';
 
 export default function(node, input, params) {

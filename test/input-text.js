@@ -1,6 +1,6 @@
 
 import { noop, Observer, test as group } from '../../fn/module.js';
-import Sparky from '../sparky.js';
+import Sparky from '../module.js';
 
 group('input[type="text"]', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
