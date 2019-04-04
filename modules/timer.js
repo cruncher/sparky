@@ -107,14 +107,8 @@ function run(time) {
 }
 
 export function cue(renderer) {
-	// Don't recue cued renderers. This should never happen.
-	if (queue.has(renderer)) {
-		if (DEBUG) {
-			console.trace('Sparky trying to cue renderer that is already cued');
-		}
-
-		return;
-	}
+	// Don't recue cued renderers.
+	if (queue.has(renderer)) { return; }
 
 	var count;
 

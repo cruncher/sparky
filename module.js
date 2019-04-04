@@ -19,19 +19,20 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
+
 import { cue, uncue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
 import functions from './modules/fn.js';
 
 export default Sparky;
 export { cue, uncue, functions };
+export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
+export { events, trigger } from '../dom/module.js';
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn.scope.js';
 export { transforms, transformers } from './modules/transforms.js';
-export { events } from '../dom/module.js';
-export { notify } from '../fn/module.js';
 
 export function register(name, fn, options) {
     functions[name] = fn;
