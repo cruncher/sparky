@@ -1,5 +1,5 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/module.js';
-import { create, fragmentFromChildren } from '../../dom/module.js';
+import { create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
@@ -34,13 +34,14 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(attrIs, attrFn, attrInclude) {
+function logSparky(attrIs, attrFn, attrInclude, target) {
     console.log('%cSparky%c'
         + (attrIs ? ' is="' + attrIs + '"' : '')
         + (attrFn ? ' fn="' + attrFn + '"' : '')
         + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;'
+        'color: #6894ab; font-weight: 400;',
+        target
     );
 }
 
@@ -253,12 +254,11 @@ function setupSrc(src, input, firstRender, options) {
     const source = document.getElementById(src.replace(/^#/, ''));
 
     if (source) {
-        const attrFn = source.getAttribute(options.attributeFn);
         const content = source.content ? source.content.cloneNode(true) :
             source instanceof SVGElement ? source.cloneNode(true) :
             undefined ;
 
-        return setupInclude(content, attrFn, input, firstRender, options);
+        return setupInclude(content, input, firstRender, options);
     }
 
     let stopped;
@@ -278,7 +278,7 @@ function setupSrc(src, input, firstRender, options) {
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
-        stop = setupInclude(content, attrFn, input, firstRender, options);
+        stop = setupInclude(content, input, firstRender, options);
     })
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
@@ -293,24 +293,21 @@ function setupSrc(src, input, firstRender, options) {
     }
 }
 
-function setupInclude(content, attrFn, input, firstRender, options) {
-    if (attrFn) {
-        input = run(null, content, input, attrFn, options);
-
-        if (!input) {
-            console.log('%cSparky %cstopped include', 'color: #858720; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
-            return noop;
-        }
-    }
-
-    let renderer;
+function setupInclude(content, input, firstRender, options) {
+    var renderer;
 
     // Support streams and promises
     input[input.each ? 'each' : 'then']((scope) => {
         const first = !renderer;
-        renderer = renderer || mountContent(content, options);
+        renderer = renderer || (isFragmentNode(content) ?
+            mountContent(content, options) :
+            new Sparky(content, options)
+        );
         renderer.push(scope);
-        if (first) { firstRender(content); }
+        if (first) {
+            firstRender(content);
+            input.done(() => renderer.stop());
+        }
     });
 
     return function() {
@@ -383,13 +380,14 @@ function setupTemplate(target, src, input, options, sparky) {
     }, options);
 }
 
-function setupSVG(target, src, input, options, sparky) {
-    return setupTarget(src, input, (content) => {
+function setupSVG(target, src, output, options, sparky) {
+    return setupTarget(src, output, (content) => {
         content.removeAttribute('id');
+
         replace(target, content);
         target = content;
 
-        // Increment muitations for logging
+        // Increment mutations for logging
         ++sparky.renderCount;
     }, options);
 }
@@ -420,6 +418,7 @@ export default function Sparky(selector, settings) {
 
     this.stop = () => {
         input.stop();
+        output.stop();
         stop();
         return this;
     };
@@ -434,11 +433,12 @@ export default function Sparky(selector, settings) {
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    if (DEBUG) { logSparky(options.is, attrInclude, attrFn); }
+    if (DEBUG) { logSparky(options.is, attrFn, attrInclude, target); }
 
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter, to protect against them being
     // used again.
+    options.is      = '';
     options.fn      = '';
     options.include = '';
 

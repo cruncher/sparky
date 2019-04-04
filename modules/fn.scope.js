@@ -2,8 +2,8 @@
 const map = new WeakMap();
 
 export function getScope(node) {
-    if (!map.has(node)) {
-        console.warn('Sparky scope is not set on node', node);
+    if (!map.has(node.correspondingUseElement || node)) {
+        throw new Error('Sparky scope is not set on node');
         return;
     }
 
@@ -12,5 +12,9 @@ export function getScope(node) {
 
 export default function scope(node, input, params) {
     input.done(() => map.delete(node));
-    return input.tap((scope) => map.set(node, scope));
+    return input.tap((scope) => {
+        console.log('SCOPE', node.correspondingUseElement || node, scope);
+
+        return map.set(node.correspondingUseElement || node, scope);
+    });
 }
