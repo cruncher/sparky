@@ -409,22 +409,11 @@ export default function Sparky(selector, settings) {
     const input = Stream.of().map(toObserverOrSelf);
     const output = run(null, target, input, options);
 
-    var stop = noop;
-
-    this.push = (scope) => {
-        input.push(scope);
-        return this;
-    };
-
-    this.stop = () => {
-        input.stop();
-        output.stop();
-        stop();
-        return this;
-    };
-
     this.label = 'Sparky';
     this.renderCount = 0;
+
+    this.push  = input.push;
+    this.stop  = input.stop;
 
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
@@ -432,6 +421,13 @@ export default function Sparky(selector, settings) {
     const attrInclude = options.include
         || target.getAttribute(options.attributeInclude)
         || '';
+
+    this.stop = () => {
+        input.stop();
+        output.stop();
+        stop();
+        return this;
+    };
 
     if (DEBUG) { logSparky(options.is, attrFn, attrInclude, target); }
 
@@ -442,7 +438,7 @@ export default function Sparky(selector, settings) {
     options.fn      = '';
     options.include = '';
 
-    stop = attrInclude ?
+    var stop = attrInclude ?
         target.tagName === 'use' ?
             setupSVG(target, attrInclude, output, options, this) :
             setupTemplate(target, attrInclude, output, options, this) :

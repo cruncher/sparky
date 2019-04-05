@@ -13,8 +13,6 @@ export function getScope(node) {
 export default function scope(node, input, params) {
     input.done(() => map.delete(node));
     return input.tap((scope) => {
-        console.log('SCOPE', node.correspondingUseElement || node, scope);
-
         return map.set(node.correspondingUseElement || node, scope);
     });
 }
