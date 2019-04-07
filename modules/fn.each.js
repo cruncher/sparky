@@ -19,8 +19,8 @@ const $scope = Symbol('scope');
 
 /* Renderers */
 
-function MutationRenderer(scope, args) {
-	this.label    = 'MutationRenderer';
+function EachChild(scope, args) {
+	this.label    = 'EachChild';
 	this.scope    = scope;
 	this.node     = args[1];
 	this.marker   = args[2];
@@ -30,7 +30,7 @@ function MutationRenderer(scope, args) {
 	this.renderCount = 0;
 }
 
-assign(MutationRenderer.prototype, {
+assign(EachChild.prototype, {
 	fire: function render(time) {
 		this.render(this.scope);
 		this.value = this.scope;
@@ -71,18 +71,18 @@ assign(MutationRenderer.prototype, {
 	renderCount: 0
 });
 
-function EachRenderer(input, node, marker, sparkies, isOption, options) {
-	this.label = 'EachRenderer';
+function EachParent(input, node, marker, sparkies, isOption, options) {
+	this.label = 'EachParent';
 	this.input = input;
 	this.args  = arguments;
 }
 
-assign(EachRenderer.prototype, {
+assign(EachParent.prototype, {
 	fire: function render(time) {
 		var scope = this.input.shift();
 		if (!scope) { return; }
 
-		const renderer = new MutationRenderer(scope, this.args);
+		const renderer = new EachChild(scope, this.args);
 
 		this.stop();
 		this.stop = observe('.', () => cue(renderer), scope);
@@ -202,7 +202,7 @@ function reorderNodes(node, array, sparkies) {
 }
 
 function eachFrame(stream, node, marker, sparkies, isOption, options) {
-	const renderer = new EachRenderer(stream, node, marker, sparkies, isOption, options);
+	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
 
 	function push() {
 		cue(renderer);
