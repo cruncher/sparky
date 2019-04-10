@@ -10,32 +10,6 @@ function getInvert(name) {
     return transformers[name] && transformers[name].ix;
 }
 
-function setup(object, pipeData) {
-    if (pipeData) {
-        object.transform = pipe.apply(null,
-            pipeData
-            .map((data) => {
-                const fn = getInvert(data.name);
-                if (!fn) { throw new Error('Sparky invert fn ' + data.name + '() not found.'); }
-                return data.args && data.args.length ?
-                    fn.apply(null, data.args) :
-                    fn ;
-            })
-            .reverse()
-        );
-    }
-
-    // Define the event handler
-    object.fn = () => {
-        const value = object.coerce(object.read(object.node));
-        // Allow undefined to pass through with no transform
-        object.set(value !== undefined ? object.transform(value) : undefined);
-    };
-
-    // Add it to the delegate pool
-    object.fns.set(object.node, object.fn);
-}
-
 function fire() {
     // Test for undefined and if so set value on scope from the current
     // value of the node. Yes, this means the data can change unexpectedly
@@ -72,7 +46,19 @@ Object.assign(Listener.prototype, {
 
     fire: function() {
         // First render
-        setup(this, this.pipe);
+        if (this.pipe) {
+            this.transform = pipe.apply(null,
+                this.pipe
+                .map((data) => {
+                    const fn = getInvert(data.name);
+                    if (!fn) { throw new Error('Sparky invert fn ' + data.name + '() not found.'); }
+                    return data.args && data.args.length ?
+                        fn.apply(null, data.args) :
+                        fn ;
+                })
+                .reverse()
+            );
+        }
 
         // Set the original value on the scope
         if (getPath(this.path, this.scope) === undefined && this.originalValue !== undefined) {
@@ -82,7 +68,17 @@ Object.assign(Listener.prototype, {
             this.token.noRender = false;
         }
 
-        // Handle subsequent renders
+        // Define the event handler
+        this.fn = () => {
+            const value = this.coerce(this.read(this.node));
+            // Allow undefined to pass through with no transform
+            this.set(value !== undefined ? this.transform(value) : undefined);
+        };
+
+        // Add it to the delegate pool
+        this.fns.set(this.node, this.fn);
+
+        // Handle subsequent renders by replacing this fire method
         this.fire = fire;
     },
 
