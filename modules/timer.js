@@ -107,9 +107,6 @@ function run(time) {
 }
 
 export function cue(renderer) {
-	// Don't recue cued renderers.
-	if (queue.has(renderer)) { return; }
-
 	var count;
 
 	// Run functions cued during frame synchronously to preserve
@@ -132,6 +129,9 @@ export function cue(renderer) {
 
 		return;
 	}
+
+	// Don't recue cued renderers.
+	if (queue.has(renderer)) { return; }
 
 	queue.add(renderer);
 

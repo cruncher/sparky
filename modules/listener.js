@@ -1,5 +1,6 @@
 
 import { getPath, setPath, id, noop, pipe, Target } from '../../fn/module.js';
+import Renderer from './renderer.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './timer.js';
 
@@ -11,6 +12,8 @@ function getInvert(name) {
 }
 
 function fire() {
+    Renderer.prototype.fire.apply(this, arguments);
+
     // Test for undefined and if so set value on scope from the current
     // value of the node. Yes, this means the data can change unexpectedly
     // but the alternative is inputs that jump values when their scope
@@ -23,7 +26,7 @@ function fire() {
     }
 }
 
-export default function Listener(node, token, eventType, read, originalValue, coerce) {
+export default function Listener(node, token, eventType, read, readAttributeValue, coerce) {
     this.label = "Listener";
     this.node  = node;
     this.token = token;
@@ -32,11 +35,11 @@ export default function Listener(node, token, eventType, read, originalValue, co
     this.type  = eventType;
     this.renderCount = 0;
     this.read = read;
+    this.readAttributeValue = readAttributeValue;
     this.coerce = coerce || id;
     this.fns   = eventType === 'input' ? inputMap :
         eventType === 'change' ? changeMap :
         undefined ;
-    this.originalValue = originalValue;
 }
 
 Object.assign(Listener.prototype, {
@@ -45,6 +48,8 @@ Object.assign(Listener.prototype, {
     set: noop,
 
     fire: function() {
+        Renderer.prototype.fire.apply(this, arguments);
+
         // First render, set up reverse pipe
         if (this.pipe) {
             this.transform = pipe.apply(null,
@@ -60,14 +65,6 @@ Object.assign(Listener.prototype, {
             );
         }
 
-        // Set the original value on the scope
-        if (getPath(this.path, this.scope) === undefined && this.originalValue !== undefined) {
-            // A fudgy hack. A hacky fudge.
-            this.token.noRender = true;
-            this.set(this.transform(this.coerce(this.originalValue)));
-            this.token.noRender = false;
-        }
-
         // Define the event handler
         this.fn = () => {
             const value = this.coerce(this.read(this.node));
@@ -80,6 +77,21 @@ Object.assign(Listener.prototype, {
 
         // Handle subsequent renders by replacing this fire method
         this.fire = fire;
+
+        // Set the original value on the scope
+        if (getPath(this.path, this.scope) === undefined) {
+            // Has this element already had its value property set? Custom
+            // elements may not yet have the value property
+            if ('value' in this.node) {
+                this.fn();
+            }
+            else {
+                // A fudgy hack. A hacky fudge.
+                this.token.noRender = true;
+                this.set(this.transform(this.coerce(this.readAttributeValue(this.node))));
+                this.token.noRender = false;
+            }
+        }
     },
 
     push: function(scope) {

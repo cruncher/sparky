@@ -376,7 +376,7 @@ function mountClass(node, renderers, options) {
 	renderers.push(renderer);
 }
 
-function mountValueProp(node, renderers, options, render, read, readInitial, coerce) {
+function mountValueProp(node, renderers, options, render, read, readAttribute, coerce) {
 	const prefixed = node.getAttribute(options.attributePrefix + 'value');
 
 	if (prefixed) {
@@ -389,14 +389,15 @@ function mountValueProp(node, renderers, options, render, read, readInitial, coe
 	const renderer = mountToken(source, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const originalValue = readInitial(node);
-	const listener = new Listener(node, renderer.tokens[0], 'input', read, originalValue, coerce);
+	const listener = new Listener(node, renderer.tokens[0], 'input', read, readAttribute, coerce);
 	if (!listener) { return; }
 
-	renderers.push(listener);
+	// Insert the listener ahead of the renderer so that on first
+	// cue the listener populates scope from the input value first
+	renderers.splice(renderers.length - 1, 0, listener);
 }
 
-function mountValueChecked(node, renderers, options, render, read, readInitial, coerce) {
+function mountValueChecked(node, renderers, options, render, read, readAttribute, coerce) {
 	const source = node.getAttribute('value') ;
 	mountString(source, renderProperty, renderers, options, node, 'value');
 
@@ -404,11 +405,12 @@ function mountValueChecked(node, renderers, options, render, read, readInitial, 
 	const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const originalValue = readInitial(node);
-	const listener = new Listener(node, renderer.tokens[0], 'change', read, originalValue, coerce);
+	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
 	if (!listener) { return; }
 
-	renderers.push(listener);
+	// Insert the listener ahead of the renderer so that on first
+	// cue the listener populates scope from the input value first
+	renderers.splice(renderers.length - 1, 0, listener);
 }
 
 const mountValue = choose({

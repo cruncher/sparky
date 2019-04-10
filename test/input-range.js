@@ -3,7 +3,7 @@ import Sparky from '../module.js';
 
 group('input[type="range"]', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
-
+/*
 	test('input[type="range"]', function(equals, done) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 0 };
@@ -49,13 +49,14 @@ group('input[type="range"]', function(test, log, fixture) {
 			done();
 		});
 	});
-
+*/
 	test('input[type="range", value, min, max] | add:2', function(equals, done) {
 		var node  = fixture.querySelector('.node-4');
 		var model = {
 			//min: 0,
 			//max: 20
 		};
+
 
 		Sparky(node).push(model);
 
@@ -67,12 +68,11 @@ group('input[type="range"]', function(test, log, fixture) {
 			node.dispatchEvent(inputEvent);
 
 			equals(8, model.property);
-
 			Observer(model).property = 12;
 
 			requestAnimationFrame(function() {
-				equals('14', node.value);
 				equals(12, model.property);
+				equals('14', node.value);
 				done();
 			});
 		});
