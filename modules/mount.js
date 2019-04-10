@@ -429,7 +429,7 @@ const mountValue = choose({
 	},
 
 	default: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValue, readValue, coerceString, readAttributeValue);
+		return mountValueProp(node, renderers, options, renderValue, readValue, readAttributeValue, coerceString);
 	}
 });
 
