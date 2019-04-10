@@ -27,8 +27,7 @@ function setup(object, pipeData) {
 
     // Define the event handler
     object.fn = () => {
-        const value = object.read(object.node);
-
+        const value = object.coerce(object.read(object.node));
         // Allow undefined to pass through with no transform
         object.set(value !== undefined ? object.transform(value) : undefined);
     };
@@ -37,20 +36,33 @@ function setup(object, pipeData) {
     object.fns.set(object.node, object.fn);
 }
 
-export default function Listener(node, read, token, type) {
-    this.label = "Listener";
-    this.node = node;
-	this.read = read;
-    this.token = token;
-    this.path = token.path;
-    this.pipe = token.pipe;
-    this.type = type;
-    this.fns  = type === 'input' ? inputMap :
-        type === 'change' ? changeMap :
-        undefined ;
+function fire() {
+    // Test for undefined and if so set value on scope from the current
+    // value of the node. Yes, this means the data can change unexpectedly
+    // but the alternative is inputs that jump values when their scope
+    // is replaced.
+    if (getPath(this.path, this.scope) === undefined) {
+        // A fudgy hack. A hacky fudge.
+        this.token.noRender = true;
+        this.fn();
+        this.token.noRender = false;
+    }
+}
 
+export default function Listener(node, token, eventType, read, originalValue, coerce) {
+    this.label = "Listener";
+    this.node  = node;
+    this.token = token;
+    this.path  = token.path;
+    this.pipe  = token.pipe;
+    this.type  = eventType;
     this.renderCount = 0;
-    this.originalValue = node.value;
+    this.read = read;
+    this.coerce = coerce || id;
+    this.fns   = eventType === 'input' ? inputMap :
+        eventType === 'change' ? changeMap :
+        undefined ;
+    this.originalValue = originalValue;
 }
 
 Object.assign(Listener.prototype, {
@@ -59,20 +71,19 @@ Object.assign(Listener.prototype, {
     set: noop,
 
     fire: function() {
-        if (!this.fn) {
-            setup(this, this.pipe);
-        }
+        // First render
+        setup(this, this.pipe);
 
-        // Test for undefined and if so set value on scope from the current
-        // value of the node. Yes, this means the data can change unexpectedly
-        // but the alternative are inputs that jump values when their scope
-        // is replaced
-        if (getPath(this.path, this.scope) === undefined) {
+        // Set the original value on the scope
+        if (getPath(this.path, this.scope) === undefined && this.originalValue !== undefined) {
             // A fudgy hack. A hacky fudge.
             this.token.noRender = true;
-            this.fn();
+            this.set(this.transform(this.coerce(this.originalValue)));
             this.token.noRender = false;
         }
+
+        // Handle subsequent renders
+        this.fire = fire;
     },
 
     push: function(scope) {
