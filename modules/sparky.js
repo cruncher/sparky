@@ -40,8 +40,8 @@ function logSparky(attrIs, attrFn, attrInclude, target) {
         + (attrFn ? ' fn="' + attrFn + '"' : '')
         + (attrInclude ? ' include="' + attrInclude + '"' : ''),
         'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;',
-        target
+        'color: #6894ab; font-weight: 400;'
+        //target
     );
 }
 
