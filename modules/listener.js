@@ -45,7 +45,7 @@ Object.assign(Listener.prototype, {
     set: noop,
 
     fire: function() {
-        // First render
+        // First render, set up reverse pipe
         if (this.pipe) {
             this.transform = pipe.apply(null,
                 this.pipe
