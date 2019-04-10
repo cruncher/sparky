@@ -412,8 +412,8 @@ export default function Sparky(selector, settings) {
     this.label = 'Sparky';
     this.renderCount = 0;
 
-    this.push  = input.push;
-    this.stop  = input.stop;
+    this.push = input.push;
+    this.stop = input.stop;
 
     // If output is false do not go on to parse and mount content
     if (!output) { return; }
@@ -422,7 +422,7 @@ export default function Sparky(selector, settings) {
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    this.stop = () => {
+    this.stop = function() {
         input.stop();
         output.stop();
         stop();

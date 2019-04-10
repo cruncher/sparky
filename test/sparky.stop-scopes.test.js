@@ -1,14 +1,18 @@
-import { test as group, noop, Observer } from '../../fn/module.js';
+import { test as group, noop, Observer, Stream } from '../../fn/module.js';
 import Sparky, { functions } from '../module.js';
 
 var frame = window.requestAnimationFrame;
 
-functions['pass-through'] = function(node, stream) {
-	//return stream.tap(console.log);
+functions['pass-through'] = function(node, input) {
+	return input;
+};
+
+functions['new-stream'] = function(node, input) {
+	return input.pipe(Stream.of());
 };
 
 group('.stop() scopes', function(test, log, fixture) {
-	test('', function(equals, done) {
+	test('Stops new scopes and property mutations', function(equals, done) {
 		var div    = fixture.querySelector('div');
 		var p      = fixture.querySelector('p');
 		var sparky = Sparky(div).push({ property: '0' });
@@ -49,10 +53,10 @@ group('.stop() scopes', function(test, log, fixture) {
 */});
 
 
-noop('.stop() scopes to child', function(test, log, fixture) {
+group('.stop() scopes to child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
-	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
+	test('Stops new scopes and property mutations through fn', function(equals, done) {
 		var div    = fixture.querySelector('div');
 		var p      = fixture.querySelector('p');
 		var sparky = Sparky(div).push({ property: '0' });
@@ -79,17 +83,52 @@ noop('.stop() scopes to child', function(test, log, fixture) {
 }, function() {/*
 
 <div>
-	<p sparky-fn="pass-through">{[property]}</p>
+	<p fn="pass-through">{[property]}</p>
 </div>
 
 */});
 
 
-
-noop('.stop() scopes to templated child', function(test, log, fixture) {
+group('.stop() scopes to child', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
 
-	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
+	test('Stops new scopes and property mutations through fn with new output stream', function(equals, done) {
+		var div    = fixture.querySelector('div');
+		var p      = fixture.querySelector('p');
+		var sparky = Sparky(div).push({ property: '0' });
+
+		frame(function() {
+			equals('0', p.innerHTML);
+
+			sparky.push({ property: '1' });
+
+			frame(function() {
+				equals('1', p.innerHTML);
+
+				sparky
+				.stop()
+				.push({ property: '2' });
+
+				frame(function() {
+					equals('1', p.innerHTML);
+					done();
+				});
+			});
+		});
+	}, 3);
+}, function() {/*
+
+<div>
+	<p fn="new-stream">{[property]}</p>
+</div>
+
+*/});
+
+
+group('.stop() scopes to templated child', function(test, log, fixture) {
+	var frame = window.requestAnimationFrame;
+
+	test('Stops new scopes and property mutations through include', function(equals, done) {
 		var div    = fixture.querySelector('div');
 		var sparky = Sparky(div).push({ property: '0' });
 
@@ -122,7 +161,7 @@ noop('.stop() scopes to templated child', function(test, log, fixture) {
 </div>
 
 <template id="stop-test-1">
-	<p sparky-fn="pass-through">{[property]}</p>
+	<p fn="pass-through">{[property]}</p>
 </template>
 
 */});
