@@ -176,7 +176,37 @@
 
     <!-- Tests -->
 
+    <template id="range-control-template">
+        <link rel="stylesheet" href="../dom/components/control/range-control.css" />
+        <input class="control-input" type="range" id="input" value="{[inputValue]}" min="0" max="1" step="any" />
+        <label class="control-label" for="input"><slot></slot></label>
+        <output class="control-output">{[prefix]}{[displayValue]}<abbr>{[displayUnit]}</abbr></output>
+        <template fn="get:ticks each">
+            <input class="tick-input" type="radio" name="tick" id="tick-{[value]}" value="{[tickValue|float-string]}" :value="{[root.inputValue|float-string]}" />
+            <label class="tick-label" :style="left: calc(0.5rem + (100% - 1rem) * {[tickValue]});" :for="tick-{[value]}">{[displayValue]}</label>
+        </template>
+        <slot name="plugs"></slot>
+    </template>
+
+    <!--template is="sparky" fn="thing">
+        <range-control min="0" max="1" :value="{[value]}" step="any"></range-control>
+        <input type="range" min="0" max="1" :value="{[value]}" step="any"/>
+    </template-->
+
     <script type="module">
+        import "../dom/components/control/range-control.js";
+        import { Observer, Stream, Fn } from '../fn/module.js';
+        import { functions, mountConfig } from './module.js';
+
+        functions.thing = function(node, stream, params) {
+            return Stream.of({ value: 0.4 });
+        };
+
+        // Let Sparky know about custom elements
+        Object.assign(mountConfig, {
+            'range-control':  { attributes: [], booleans: ['disabled'], value: 'number' }
+        });
+
     	// Run tests
         import './test/sparky.transforms-test.js';
         import './test/input-text.js';

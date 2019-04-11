@@ -133,7 +133,11 @@ function coerceNumber(value) {
 }
 
 function readValue(node) {
-	return node.value || undefined ;
+	// Falsy values other than false or 0 should return undefined,
+	// meaning that an empty <input> represents an undefined property
+	// on scope.
+	const value = node.value;
+	return value || value === 0 ? value : undefined ;
 }
 
 function readCheckbox(node) {
@@ -235,6 +239,27 @@ function renderValue(name, node, value) {
 	// Avoid updating with the same value. Support values that are any
 	// type as well as values that are always strings
 	if (value === node.value || (value + '') === node.value) { return 0; }
+
+	const count = renderProperty('value', node, value);
+
+	// Event hook (validation in dom lib)
+	trigger('dom-update', node);
+
+	// Return DOM mod count
+	return count;
+}
+
+function renderValueNumber(name, node, value) {
+	// Don't render into focused nodes, it makes the cursor jump to the
+	// end of the field, and we should cede control to the user anyway
+	if (document.activeElement === node) { return 0; }
+
+	// Be strict about type, dont render non-numbers
+	value = typeof value === 'number' ? value : null ;
+
+	// Avoid updating with the same value. Beware that node.value
+	// may be a string (<input>) or number (<range-control>)
+	if (value === (node.value === '' ? null : +node.value)) { return 0; }
 
 	const count = renderProperty('value', node, value);
 
@@ -415,11 +440,11 @@ function mountValueChecked(node, renderers, options, render, read, readAttribute
 
 const mountValue = choose({
 	number: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValue, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
 	},
 
 	range: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValue, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
 	},
 
 	checkbox: function(node, renderers, options) {
