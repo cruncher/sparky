@@ -1,3 +1,0 @@
-[submodule "axios"]
-	path = axios
-	url = https://github.com/axios/axios.git
