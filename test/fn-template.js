@@ -1,9 +1,11 @@
-import Sparky from '../sparky.js';
+
+import { Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
-	var data   = Observable({
+	var data   = Observer({
 		property: 'Hello'
 	});
 
@@ -40,7 +42,7 @@ group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 group('[sparky-fn="template:hash"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
-	var data   = Observable({
+	var data   = Observer({
 		property: 'Hello'
 	});
 
@@ -80,7 +82,7 @@ group('svg > [sparky-fn="template:hash"]', function(test, log, fixture) {
 	var sparky = Sparky(svg);
 
 	test('svg > [sparky-fn="template:hash"]', function(equals, done) {
-		sparky.push(Observable({}));
+		sparky.push(Observer({}));
 
 		requestAnimationFrame(function() {
 			equals(true, !fixture.querySelector('svg > g > circle'), 'The <g> should not contain a <circle>.');
@@ -103,12 +105,10 @@ group('svg > [sparky-fn="template:hash"]', function(test, log, fixture) {
 */});
 
 group('[sparky-fn="template:hash"] nested templates', function(test, log, fixture) {
-	var Observable = window.Observable;
-
 	test('[sparky-fn="template:hash"] nested templates', function(equals, done) {
 		var node   = fixture.children[0];
 		var sparky = Sparky(node);
-		var data   = Observable({
+		var data   = Observer({
 			property: 'should-appear',
 			scope: {
 				message:  'Should appear'
@@ -119,17 +119,19 @@ group('[sparky-fn="template:hash"] nested templates', function(test, log, fixtur
 		sparky.push(data);
 
 		requestAnimationFrame(function() {
-			equals(2, node.children.length);
-			var span = node.querySelector('span');
-			equals('Template 2 content: Should appear.', span.innerHTML);
-			done();
+			requestAnimationFrame(function() {
+				equals(2, node.children.length);
+				var span = node.querySelector('span');
+				equals('Template 2 content: Should appear.', span.innerHTML);
+				done();
+			});
 		});
 	}, 3);
 
 	test('[sparky-fn="template:hash"] nested templates, async sub-data', function(equals, done) {
 		var node   = fixture.children[1];
 		var sparky = Sparky(node);
-		var data   = Observable({
+		var data   = Observer({
 			property: 'should-appear'
 		});
 

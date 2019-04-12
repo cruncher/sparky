@@ -1,6 +1,6 @@
 
-import { Functor as Fn } from '../../fn/fn.js';
-import Sparky from '../sparky.js';
+import { Fn, Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 group('tokens ..parent.path', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
@@ -25,14 +25,14 @@ group('tokens ..parent.path', function(test, log, fixture) {
 		frame(function() {
 			equals(obj1.property,  p.innerHTML);
 
-			Observable(obj1).property = 'newprop1';
+			Observer(obj1).property = 'newprop1';
 
 			frame(function() {
 				equals(obj1.property,  p.innerHTML);
 
 				sparky.stop();
 
-				Observable(obj1).property = 'stopprop1';
+				Observer(obj1).property = 'stopprop1';
 
 				frame(function() {
 					equals('newprop1', p.innerHTML);

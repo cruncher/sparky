@@ -1,10 +1,10 @@
 
-// Sparky.filter
-
 import {
+	add,
 	append,
 	curry,
 	contains,
+	compose,
 	equals,
 	formatDate,
 	formatTime,
@@ -31,6 +31,7 @@ import {
 	log,
 	root,
 	slugify,
+	toCamelCase,
 	toCartesian,
 	toPolar,
 	toDeg,
@@ -41,20 +42,26 @@ import {
 	toFloat,
 	toFixed,
 	toString,
-	toType,
-	normalise,
-	denormalise
-} from '../../fn/fn.js';
+	toType
+} from '../../fn/module.js';
+
+import * as normalise   from '../../fn/modules/normalisers.js';
+import * as denormalise from '../../fn/modules/denormalisers.js';
 
 import {
 	escape,
 	toPx,
-	toRem
-} from '../../dom/dom.js';
+	toRem,
+	parse
+} from '../../dom/module.js';
 
 var debug     = true;
 var A         = Array.prototype;
-var assign    = Object.assign;
+var S         = String.prototype;
+
+const reducers = {
+	sum: add
+};
 
 function interpolateLinear(xs, ys, x) {
 	var n = -1;
@@ -89,6 +96,27 @@ export const transformers = {
 	'add-date':  { tx: addDate,     ix: curry(function(d, n) { return addDate('-' + d, n); }) },
 	'add-time':  { tx: addTime,     ix: subTime },
 	decibels:    { tx: todB,        ix: toLevel },
+
+	join: {
+		tx: curry(function(string, value) {
+			return A.join.call(value, string);
+		}),
+
+		ix: curry(function(string, value) {
+			return S.split.call(value, string);
+		})
+	},
+
+	'numbers-string': {
+		tx: curry(function(string, value) {
+			return A.join.call(value, string);
+		}),
+
+		ix: curry(function(string, value) {
+			return S.split.call(value, string).map(parseFloat);
+		})
+	},
+
 	multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
@@ -98,10 +126,34 @@ export const transformers = {
 	int:         { tx: toFixed(0),  ix: toInt },
 	float:       { tx: toFloat,     ix: toString },
 	boolean:     { tx: Boolean,     ix: toString },
-	normalise:   { tx: normalise,   ix: denormalise },
-	denormalise: { tx: denormalise, ix: normalise },
+
+	normalise:   {
+		tx: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		}),
+
+		ix: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		})
+	},
+
+	denormalise:   {
+		tx: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		}),
+
+		ix: curry(function(curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		})
+	},
+
 	floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
-	'int-string': { tx: function(value) { return value ? value + '' : '' ; }, ix: toInt },
+	'float-string': { tx: (value) => value + '', ix: parseFloat },
+	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
 
 	interpolate: {
 		tx: function(point) {
@@ -127,7 +179,6 @@ export const transformers = {
 	polar:     { tx: toPolar, ix: toCartesian },
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
-	decibels:  { tx: todB, ix: toLevel },
 	level:     { tx: toLevel, ix: todB },
 	px:        { tx: toPx, ix: toRem },
 	rem:       { tx: toRem, ix: toPx }
@@ -209,10 +260,6 @@ export const transforms = {
 		return typeof value === 'number' ? 1 / value : !value ;
 	},
 
-	join: curry(function(string, value) {
-		return A.join.call(value, string);
-	}),
-
 	json: JSON.stringify,
 
 	"less-than": curry(function(value2, value1) {
@@ -242,7 +289,6 @@ export const transforms = {
 
 		if (typeof params === undefined) {
 			fn = parse(method);
-
 			return function(array) {
 				return array.map(fn);
 			};
@@ -284,7 +330,7 @@ export const transforms = {
 	}),
 
 	reduce: curry(function(name, initialValue, array) {
-		return array && array.reduce(Fn[name], initialValue || 0);
+		return array && array.reduce(reducers[name], initialValue || 0);
 	}, true),
 
 	replace: curry(function(str1, str2, value) {

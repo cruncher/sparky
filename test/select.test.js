@@ -1,11 +1,50 @@
 
-import { Functor as Fn } from '../../fn/fn.js';
-import Sparky from '../sparky.js';
+import { Fn, noop, test as group, Observer } from '../../fn/module.js';
+import Sparky from '../module.js';
 
+group('select > option', function(test, log, fixture) {
+	var select = fixture.children[0];
+
+	test("Array scope", function(equals, done) {
+		const model = { country: 'UK' };
+		Sparky(select).push(model);
+
+		requestAnimationFrame(function functionName() {
+			equals(true, !!select);
+			equals(2, select.children.length);
+			equals('UK', select.value);
+
+			Observer(model).country = 'CH';
+
+			requestAnimationFrame(function functionName() {
+				equals('CH', select.value);
+				Observer(model).country = '--';
+
+				requestAnimationFrame(function functionName() {
+					equals('', select.value);
+					Observer(model).country = 'UK';
+
+					requestAnimationFrame(function functionName() {
+						equals('UK', select.value);
+						done();
+					});
+				});
+			});
+		});
+	}, 6);
+}, function() {/*
+	<select :value="{[country]}" name="country">
+		<option value="UK">United Kingdom</option>
+		<option value="CH">Switzerland</option>
+	</select>
+*/});
+
+
+/*
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];
 
-	var array = Observable([
+	var array = Observer([
 		{ key: '0', value: 0 },
 		{ key: '1', value: 1 },
 		{ key: '2', value: 2 }
@@ -42,21 +81,19 @@ group('select > option|each', function(test, log, fixture) {
 		});
 	}, 2);
 }, function() {/*
-
 	<select sparky-fn="array-scope" class="{[length|add:1|prepend:'length-']}" id="test-select" name="name">
 		<option sparky-fn="each" value="{[key]}">{[value]}</option>
 		<option value="Infinity">Infinity</option>
 	</select>
-
-*/});
-
+*//*});
 
 
 
+/*
 group('select > option|each', function(test, log, fixture) {
 	var node = fixture.children[0];
 
-	var scope = Observable({
+	var scope = Observer({
 		value: '1',
 		options: [
 			{ key: '0', value: 0 },
@@ -82,9 +119,42 @@ group('select > option|each', function(test, log, fixture) {
 	}, 4);
 }, function() {/*
 
-	<select sparky-fn="array-scope-2" sparky-value="{[value]}" id="test-select-2" name="name">
+	<select sparky-fn="array-scope-2" :value="{[value]}" id="test-select-2" name="name">
 		<option sparky-fn="get:options each" value="{[key]}">{[value]}</option>
 		<option value="Infinity">Infinity</option>
 	</select>
 
+*//*});
+*/
+
+
+group('select > async options', function(test, log, fixture) {
+	var node = fixture.children[0];
+
+	test("Array scope", function(equals, done) {
+		const model = { country: 'GB' };
+		Sparky(node).push(model);
+
+		requestAnimationFrame(function functionName() {
+			var select = fixture.querySelector('select');
+			equals(true, !!select);
+
+			// Wait countries.json to import
+			setTimeout(function() {
+				equals(3, select.children.length);
+				equals('GB', select.value);
+				done();
+			}, 500);
+		});
+	}, 3);
+}, function() {/*
+	<form include="#address-editor">HEY</form>
+
+	<template id="address-editor">
+	    <label class="country-select-button select-button button">
+	        <select :value="{[country]}" name="country">
+	            <option fn="import:countries.json each" value="{[code]}">{[value]}</option>
+	        </select>
+	    </label>
+	</template>
 */});

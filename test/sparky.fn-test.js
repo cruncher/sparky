@@ -1,4 +1,5 @@
-import Sparky from '../sparky.js';
+import { test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 group('[sparky-fn]', function(test, log, fixture) {
 	test('[sparky-fn]', function(equals, done) {

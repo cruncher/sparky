@@ -1,0 +1,237 @@
+
+<head>
+    <script title="config">
+        window.DEBUG = false;
+    </script>
+
+    <style>
+        body {
+            font-family: Helvetica;
+        }
+
+        .stylee {
+            background-color: yellow;
+        }
+
+        h2 {
+            font-size: 1rem;
+        }
+    </style>
+
+    <template id="template-0">
+        <p> 0 {[]} - {[.]}</p>
+    </template>
+
+    <template id="template-1">
+        <h2>template-1</h2>
+        <p>p <span>{[]}</span> - <span>{[.]}</span></p>
+        <p>p <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
+    </template>
+
+    <template id="template-2">
+        <h2>template-2</h2>
+        <p fn="test">p[fn] <span>{[]}</span> - <span>{[.]}</span></p>
+        <p fn="test">p[fn] <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
+    </template>
+
+    <template id="template-3" fn="get:1">
+        <p>Template 3 {[.]}</p>
+    </template>
+
+    <template id="template-4">
+        <p>Template 4 {[.]} {[id|add:9]}</p>
+    </template>
+
+    <template id="template-5">
+        <p>Template 5 {[.]}</p>
+    </template>
+
+    <template id="template-6">
+        <p>{[ NOPROP ]}</p>
+    </template>
+</head>
+
+<body>
+     <div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #d0e84a;">#d0e84a</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #b9d819;">#b9d819</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #a3b31f;">#a3b31f</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #858720;">#858720</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #d34515;">#d34515</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #915133;">#915133</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #723f24;">#723f24</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #6894ab;">#6894ab</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #4a6a7a;">#4a6a7a</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #25343c;">#25343c</div
+    ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
+
+    <template is="sparky" fn="data">
+        <h2>template[fn]</h2>
+        <p>p 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p>p 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>template[fn]</h2>
+        <p fn="test">p[fn] 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
+        <p fn="test">p[fn] 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
+    </template>
+
+    <template is="sparky" fn="data" include="#template-1">
+        <p>template[fn][include] Waiting for data...</p>
+    </template>
+
+    <template is="sparky" fn="data" include="#template-2">
+        <p>template[fn][include] Waiting for data...</p>
+    </template>
+
+    <template is="sparky" fn="data">
+        <div include="#template-1">div[include="#template-1"] Waiting for data...</div>
+        <div include="#template-2">div[include="#template-1"] Waiting for data...</div>
+    </template>
+
+    <template is="sparky" fn="data">
+        <template include="#template-1">template[include="#template-1"] Waiting for data...</template>
+        <template include="#template-2">template[include="#template-1"] Waiting for data...</template>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>table td[fn=each], tr[fn=each]</h2>
+        <table>
+            <tbody>
+                <tr>
+                    <td fn="each">Table cell 1 <span class="leading-class {[value]} trailing-class">{[.]}</span><span hidden="{[value|not]}"> - value: {[value]}</span></td>
+                </tr>
+                <tr fn="each">
+                    <td>Table cell 2 <span class="leading-class {[value]} trailing-class">{[.]}</span><span hidden="{[value|not]}"> - value: {[value]}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>template[include]</h2>
+        <template include="#template-{[0.id]}"></template>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>External templates</h2>
+        <template include="test-template.html#test-template-1"></template>
+        <template fn="get:0" include="test-template.html#test-template-2"></template>
+    </template>
+
+    <template is="sparky" fn="data">
+        <h2>Unrendered (should show nothing)</h2>
+        <p>{[POO]}</p>
+        <p fn="test">{[POO]}</p>
+        <p fn="test each">{[POO]}</p>
+        <p fn="test each" include="#template-6"></p>
+    </template>
+
+    <div class="test-block block">
+		<h1>Tests</h1>
+	</div>
+
+    <script type="module">
+        import { Observer, Stream, Fn } from '../fn/module.js';
+        import Sparky, { functions } from './module.js';
+
+        const data1 = [{ id: 1 }, { id: 2 }];
+        const data2 = [{ id: 3 }, { id: 4 }];
+
+        // Mangle data
+        setTimeout(function() {
+            Observer(data2)[0].value = 'surprise';
+            Observer(data2).push({ id: 5 });
+
+            setTimeout(function() {
+                Observer(data2)[0].value = 'stylee';
+            }, 2000);
+        }, 4000);
+
+        functions.data = function(node) {
+            const scopes = Stream.of();
+
+            scopes.label = 'data';
+
+            setTimeout(function() {
+                setTimeout(function() {
+                    scopes.push(data1);
+
+                    setTimeout(function() {
+                        scopes.push(data2);
+                    }, 1000);
+                }, 1000);
+            }, 1000);
+
+            return scopes;
+        };
+
+        functions.test = function(node, stream, params) {
+            //console.log('node:', node, 'params:', params);
+        };
+
+        window.Stream = Stream;
+    </script>
+
+
+    <!-- Tests -->
+
+    <template id="range-control-template">
+        <link rel="stylesheet" href="../dom/components/control/range-control.css" />
+        <input class="control-input" type="range" id="input" value="{[inputValue]}" min="0" max="1" step="any" />
+        <label class="control-label" for="input"><slot></slot></label>
+        <output class="control-output">{[prefix]}{[displayValue]}<abbr>{[displayUnit]}</abbr></output>
+        <template fn="get:ticks each">
+            <input class="tick-input" type="radio" name="tick" id="tick-{[value]}" value="{[tickValue|float-string]}" :value="{[root.inputValue|float-string]}" />
+            <label class="tick-label" :style="left: calc(0.5rem + (100% - 1rem) * {[tickValue]});" :for="tick-{[value]}">{[displayValue]}</label>
+        </template>
+        <slot name="plugs"></slot>
+    </template>
+
+    <!--template is="sparky" fn="thing">
+        <range-control min="0" max="1" :value="{[value]}" step="any"></range-control>
+        <input type="range" min="0" max="1" :value="{[value]}" step="any"/>
+    </template-->
+
+    <script type="module">
+        import "../dom/components/control/range-control.js";
+        import { Observer, Stream, Fn } from '../fn/module.js';
+        import { functions, mountConfig } from './module.js';
+
+        functions.thing = function(node, stream, params) {
+            return Stream.of({ value: 0.4 });
+        };
+
+        // Let Sparky know about custom elements
+        Object.assign(mountConfig, {
+            'range-control':  { attributes: [], booleans: ['disabled'], value: 'number' }
+        });
+
+    	// Run tests
+        import './test/sparky.transforms-test.js';
+        import './test/input-text.js';
+        import './test/input-range.js';
+        import './test/input-number.js';
+        import './test/input-checkbox.js';
+        import './test/textarea.js';
+        import './test/select.test.js';
+        import './test/sparky.stop-scopes.test.js';
+        import './test/sparky.fn.each-test.js';
+
+    	//import './test/sparky.test.js';
+    	//import './test/sparky.parent-scope-test.js';
+    	//import './test/token-parent-path.js';
+    	//import './test/token-parent-each.js';
+    	//import './test/sparky.stop-mutations.test.js';
+
+    	//import './test/sparky.fn-test.js';
+
+    	//import './test/fn-template.js';
+    	//import './test/fn-template-url.js';
+
+    	//import './test/sparky.fn.load-test.js';
+
+    	//import './plugins/sparky.fn.clock.js';
+    	//import './test/sparky.fn.clock-test.js';
+    </script>
+</body>

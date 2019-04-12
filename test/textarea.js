@@ -1,5 +1,5 @@
-
-import Sparky from '../sparky.js';
+import { Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 group('textarea', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
@@ -8,20 +8,20 @@ group('textarea', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 'boo' };
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('boo', node.value);
 
 			node.value = '';
 			node.dispatchEvent(inputEvent);
-			equals('', model.property);
+			equals(undefined, model.property);
 
 			node.value = 'baa';
 			node.dispatchEvent(inputEvent);
 			equals('baa', model.property);
 
-			Observable(model).property = false;
+			Observer(model).property = false;
 
 			requestAnimationFrame(function() {
 				equals('', node.value);
@@ -34,19 +34,19 @@ group('textarea', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-2');
 		var model = {};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('bla bla', model.property);
 			node.value = '';
 			node.dispatchEvent(inputEvent);
-			equals('', model.property);
+			equals(undefined, model.property);
 			done();
 		});
 	});
 }, function() {/*
 
-<textarea class="node-1" sparky-value="{[property]}"></textarea>
-<textarea class="node-2" sparky-value="{[property]}">bla bla</textarea>
+<textarea class="node-1" :value="{[property]}"></textarea>
+<textarea class="node-2" :value="{[property]}">bla bla</textarea>
 
 */});

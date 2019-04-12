@@ -1,5 +1,5 @@
-import { Functor as Fn, noop } from '../../fn/fn.js';
-import Sparky from '../sparky.js';
+import { Fn, noop, test as group, Observer } from '../../fn/module.js';
+import Sparky, { functions } from '../module.js';
 
 group('[sparky-fn="each"]', function(test, log, fixture) {
 
@@ -7,7 +7,7 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 		var ul     = fixture.querySelector('ul');
 		var sparky = Sparky(ul);
 		var nothing = [];
-		var array   = Observable([
+		var array   = Observer([
 			{ property: 1 },
 			{ property: 2 }
 		]);
@@ -17,7 +17,7 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 
 		requestAnimationFrame(function() {
 //console.log('• TEST FRAME 1 -------------------------')
-			equals(0, ul.querySelectorAll('li').length);
+			//equals(0, ul.querySelectorAll('li').length);
 //console.log('• TEST PUSH ARRAY')
 			sparky.push(array);
 
@@ -59,22 +59,18 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 }, function() {/*
 
 <ul>
-	<li sparky-fn="each">{[property]}</li>
+	<li fn="each">{[property]}</li>
 </ul>
 
 */});
 
 
-noop('[sparky-fn="each"]', function(test, log, fixture) {
 
+group('[sparky-fn="each"]', function(test, log, fixture) {
 	test('[sparky-fn="each"] empty array', function(equals, done) {
-		var ul = fixture.querySelector('[sparky-fn="nothing"]');
+		var ul = fixture.querySelector('ul');
 
-		Sparky.fn['nothing'] = function(node, model) {
-			return Fn.of([]);
-		};
-
-		Sparky(ul);
+		Sparky(ul).push([]);
 
 		requestAnimationFrame(function() {
 			equals(0, ul.querySelectorAll('li').length);
@@ -83,7 +79,7 @@ noop('[sparky-fn="each"]', function(test, log, fixture) {
 	}, 1);
 
 }, function() {/*
-<ul sparky-fn="nothing">
-	<li class="li-{[property]}" sparky-fn="each">{[property]}</li>
+<ul>
+	<li class="li-{[property]}" fn="each">{[property]}</li>
 </ul>
 */});

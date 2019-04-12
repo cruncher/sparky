@@ -1,4 +1,5 @@
-import Sparky from '../sparky.js';
+import { Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 
 group('input[type="number"]', function(test, log, fixture) {
@@ -8,23 +9,25 @@ group('input[type="number"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 0 };
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('0', node.value);
 
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+			equals(node.value, '');
 			equals(undefined, model.property);
 
 			node.value = '1';
 			node.dispatchEvent(inputEvent);
 			equals(1, model.property);
 
-			Observable(model).property = false;
+			Observer(model).property = false;
 
 			requestAnimationFrame(function() {
 				equals('', node.value);
+				equals(false, model.property);
 				done();
 			});
 		});
@@ -34,12 +37,14 @@ group('input[type="number"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-2');
 		var model = {};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(0, model.property);
+
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+
 			equals(undefined, model.property);
 			done();
 		});
@@ -52,20 +57,22 @@ group('input[type="number"]', function(test, log, fixture) {
 			max: 2
 		};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(0, model.property);
+
 			node.value = '';
 			node.dispatchEvent(inputEvent);
+
 			equals(undefined, model.property);
 			done();
 		});
 	});
 }, function() {/*
 
-<input class="node-1" type="number" sparky-value="{[property]}" />
-<input class="node-2" type="number" sparky-value="{[property]}" value="0" />
-<input class="node-3" type="number" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="number" :value="{[property]}" />
+<input class="node-2" type="number" :value="{[property]}" value="0" />
+<input class="node-3" type="number" :value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});

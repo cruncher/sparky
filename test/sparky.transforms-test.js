@@ -1,5 +1,5 @@
-
-import { transforms, transformers } from '../js/transforms.js';
+import { test as group } from '../../fn/module.js';
+import { transforms, transformers } from '../modules/transforms.js';
 
 group('Sparky.transformers', function(test, log) {
 	var key, filter;
@@ -13,8 +13,6 @@ group('Sparky.transformers', function(test, log) {
 			{ input: 'Pardon mE sir', expected: 'pardon-me-sir' }
 		]
 	};
-
-	console.log('Test filters...');
 
 	for (key in expected) {
 		(function(key, filter, tests) {

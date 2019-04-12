@@ -1,13 +1,14 @@
-import Sparky from '../sparky.js';
+import { Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 group('input[type="range"]', function(test, log, fixture) {
 	var inputEvent = new CustomEvent('input', { bubbles: true });
-
+/*
 	test('input[type="range"]', function(equals, done) {
 		var node  = fixture.querySelector('.node-1');
 		var model = { property: 0 };
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('0', node.value);
@@ -24,7 +25,7 @@ group('input[type="range"]', function(test, log, fixture) {
 		var node  = fixture.querySelector('.node-2');
 		var model = {};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(0, model.property);
@@ -39,7 +40,7 @@ group('input[type="range"]', function(test, log, fixture) {
 			max: 2
 		};
 
-		Sparky(node, model);
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals('1', node.min);
@@ -48,15 +49,16 @@ group('input[type="range"]', function(test, log, fixture) {
 			done();
 		});
 	});
-
+*/
 	test('input[type="range", value, min, max] | add:2', function(equals, done) {
 		var node  = fixture.querySelector('.node-4');
 		var model = {
-			min: 0,
-			max: 20
+			//min: 0,
+			//max: 20
 		};
 
-		Sparky(node, model);
+
+		Sparky(node).push(model);
 
 		requestAnimationFrame(function() {
 			equals(-2, model.property);
@@ -66,10 +68,10 @@ group('input[type="range"]', function(test, log, fixture) {
 			node.dispatchEvent(inputEvent);
 
 			equals(8, model.property);
-
-			Observable(model).property = 12;
+			Observer(model).property = 12;
 
 			requestAnimationFrame(function() {
+				equals(12, model.property);
 				equals('14', node.value);
 				done();
 			});
@@ -77,9 +79,9 @@ group('input[type="range"]', function(test, log, fixture) {
 	});
 }, function() {/*
 
-<input class="node-1" type="range" sparky-value="{[property]}" />
-<input class="node-2" type="range" sparky-value="{[property]}" value="0" />
-<input class="node-3" type="range" sparky-value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
-<input class="node-4" type="range" sparky-value="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-1" type="range" :value="{[property]}" />
+<input class="node-2" type="range" :value="{[property]}" value="0" />
+<input class="node-3" type="range" :value="{[property]}" value="0" min="{[min]}" max="{[max]}" />
+<input class="node-4" type="range" :value="{[property|add:2]}" value="0" min="{[min]}" max="{[max]}" />
 
 */});

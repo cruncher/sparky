@@ -1,5 +1,5 @@
-
-import Sparky from '../sparky.js';
+import { Observer, test as group } from '../../fn/module.js';
+import Sparky from '../module.js';
 
 Sparky.fn['pass-through'] = function(node, stream) {
 
@@ -124,7 +124,7 @@ group('.stop() mutations to each child', function(test, log, fixture) {
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
 		var div    = fixture.querySelector('div');
-		var scope  = Observable([{ property: '1' }, { property: '2' }]);
+		var scope  = Observer([{ property: '1' }, { property: '2' }]);
 		var sparky = Sparky(div).push(scope);
 
 		frame(function() {
