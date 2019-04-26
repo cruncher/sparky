@@ -4,7 +4,7 @@
 // messages.push({
 //   status:   number
 // 	 type:     string
-//   message:  string
+//   text:  string
 //   duration: seconds
 // })
 
@@ -16,52 +16,52 @@ const assign   = Object.assign;
 const messages = Observer([]);
 
 export const table = {
-	400: { status: 400, type: "error", message: 'Bad request' },
-	401: { status: 401, type: "error", message: "You don't have permission to do that." },
-	402: { status: 402, type: "error", message: "Payment Required" },
-	403: { status: 403, type: "error", message: "Forbidden" },
-	404: { status: 404, type: "error", message: "Not Found" },
-	405: { status: 405, type: "error", message: "Method Not Allowed" },
-	406: { status: 406, type: "error", message: 'Can\'t save. The server says that\'s not acceptable ' },
-	407: { status: 407, type: "error", message: "Proxy Authentication Required" },
-	408: { status: 408, type: "error", message: "Request Timeout" },
-	409: { status: 409, type: "error", message: "Conflict" },
-	410: { status: 410, type: "error", message: "Gone" },
-	411: { status: 411, type: "error", message: "Length Required" },
-	412: { status: 412, type: "error", message: "Precondition Failed" },
-	413: { status: 413, type: "error", message: "Request Entity Too Large" },
-	414: { status: 414, type: "error", message: "Request-URI Too Long" },
-	415: { status: 415, type: "error", message: "Unsupported Media Type" },
-	416: { status: 416, type: "error", message: "Requested Range Not Satisfiable" },
-	417: { status: 417, type: "error", message: "Expectation Failed" },
-	418: { status: 418, type: "error", message: "I'm a teapot (RFC 2324)" },
-	420: { status: 420, type: "error", message: "Enhance Your Calm (Twitter)" },
-	422: { status: 422, type: "error", message: "Unprocessable Entity (WebDAV)" },
-	423: { status: 423, type: "error", message: "Locked (WebDAV)" },
-	424: { status: 424, type: "error", message: "Failed Dependency (WebDAV)" },
-	425: { status: 425, type: "error", message: "Reserved for WebDAV" },
-	426: { status: 426, type: "error", message: "Upgrade Required" },
-	428: { status: 428, type: "error", message: "Precondition Required" },
-	429: { status: 429, type: "error", message: "Too Many Requests" },
-	431: { status: 431, type: "error", message: "Request Header Fields Too Large" },
-	444: { status: 444, type: "error", message: "No Response (Nginx)" },
-	449: { status: 449, type: "error", message: "Retry With (Microsoft)" },
-	450: { status: 450, type: "error", message: "Blocked by Windows Parental Controls (Microsoft)" },
-	499: { status: 499, type: "error", message: "Client Closed Request (Nginx)" },
-	500: { status: 500, type: "error", message: "Internal Server Error" },
-	501: { status: 501, type: "error", message: "Not Implemented" },
-	502: { status: 502, type: "error", message: "Bad Gateway" },
-	503: { status: 503, type: "error", message: "Service Unavailable" },
-	504: { status: 504, type: "error", message: "Gateway Timeout" },
-	505: { status: 505, type: "error", message: "HTTP Version Not Supported" },
-	506: { status: 506, type: "error", message: "Variant Also Negotiates (Experimental)" },
-	507: { status: 507, type: "error", message: "Insufficient Storage (WebDAV)" },
-	508: { status: 508, type: "error", message: "Loop Detected (WebDAV)" },
-	509: { status: 509, type: "error", message: "Bandwidth Limit Exceeded (Apache)" },
-	510: { status: 510, type: "error", message: "Not Extended" },
-	511: { status: 511, type: "error", message: "Network Authentication Required" },
-	598: { status: 598, type: "error", message: "Network read timeout error" },
-	599: { status: 599, type: "error", message: "Network connect timeout error" }
+	400: { status: 400, type: "error", text: 'Bad request' },
+	401: { status: 401, type: "error", text: "You don't have permission to do that." },
+	402: { status: 402, type: "error", text: "Payment Required" },
+	403: { status: 403, type: "error", text: "Forbidden" },
+	404: { status: 404, type: "error", text: "Not Found" },
+	405: { status: 405, type: "error", text: "Method Not Allowed" },
+	406: { status: 406, type: "error", text: 'Can\'t save. The server says that\'s not acceptable ' },
+	407: { status: 407, type: "error", text: "Proxy Authentication Required" },
+	408: { status: 408, type: "error", text: "Request Timeout" },
+	409: { status: 409, type: "error", text: "Conflict" },
+	410: { status: 410, type: "error", text: "Gone" },
+	411: { status: 411, type: "error", text: "Length Required" },
+	412: { status: 412, type: "error", text: "Precondition Failed" },
+	413: { status: 413, type: "error", text: "Request Entity Too Large" },
+	414: { status: 414, type: "error", text: "Request-URI Too Long" },
+	415: { status: 415, type: "error", text: "Unsupported Media Type" },
+	416: { status: 416, type: "error", text: "Requested Range Not Satisfiable" },
+	417: { status: 417, type: "error", text: "Expectation Failed" },
+	418: { status: 418, type: "error", text: "I'm a teapot (RFC 2324)" },
+	420: { status: 420, type: "error", text: "Enhance Your Calm (Twitter)" },
+	422: { status: 422, type: "error", text: "Unprocessable Entity (WebDAV)" },
+	423: { status: 423, type: "error", text: "Locked (WebDAV)" },
+	424: { status: 424, type: "error", text: "Failed Dependency (WebDAV)" },
+	425: { status: 425, type: "error", text: "Reserved for WebDAV" },
+	426: { status: 426, type: "error", text: "Upgrade Required" },
+	428: { status: 428, type: "error", text: "Precondition Required" },
+	429: { status: 429, type: "error", text: "Too Many Requests" },
+	431: { status: 431, type: "error", text: "Request Header Fields Too Large" },
+	444: { status: 444, type: "error", text: "No Response (Nginx)" },
+	449: { status: 449, type: "error", text: "Retry With (Microsoft)" },
+	450: { status: 450, type: "error", text: "Blocked by Windows Parental Controls (Microsoft)" },
+	499: { status: 499, type: "error", text: "Client Closed Request (Nginx)" },
+	500: { status: 500, type: "error", text: "Internal Server Error" },
+	501: { status: 501, type: "error", text: "Not Implemented" },
+	502: { status: 502, type: "error", text: "Bad Gateway" },
+	503: { status: 503, type: "error", text: "Service Unavailable" },
+	504: { status: 504, type: "error", text: "Gateway Timeout" },
+	505: { status: 505, type: "error", text: "HTTP Version Not Supported" },
+	506: { status: 506, type: "error", text: "Variant Also Negotiates (Experimental)" },
+	507: { status: 507, type: "error", text: "Insufficient Storage (WebDAV)" },
+	508: { status: 508, type: "error", text: "Loop Detected (WebDAV)" },
+	509: { status: 509, type: "error", text: "Bandwidth Limit Exceeded (Apache)" },
+	510: { status: 510, type: "error", text: "Not Extended" },
+	511: { status: 511, type: "error", text: "Network Authentication Required" },
+	598: { status: 598, type: "error", text: "Network read timeout error" },
+	599: { status: 599, type: "error", text: "Network connect timeout error" }
 };
 
 function delayRemove(message) {
@@ -109,7 +109,7 @@ export default Stream
 	string: function(string) {
 		return table[string] || {
 			type: 'info',
-			message: string
+			text: string
 		};
 	},
 
@@ -126,7 +126,7 @@ export default Stream
 				assign({}, table[object.response.status]) :
 			{
 				type:    'error',
-				message: object.message,
+				text: object.message,
 				status:  object.request && object.request.status,
 				error:   object
 			} :
