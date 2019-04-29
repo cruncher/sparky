@@ -153,7 +153,7 @@ group('select > async options', function(test, log, fixture) {
 	<template id="address-editor">
 	    <label class="country-select-button select-button button">
 	        <select :value="{[country]}" name="country">
-	            <option fn="import:countries.json each" value="{[code]}">{[value]}</option>
+	            <option fn="import:json/countries.json each" value="{[code]}">{[value]}</option>
 	        </select>
 	    </label>
 	</template>

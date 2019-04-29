@@ -3,7 +3,7 @@
 */
 
 
-import { last, noop, observe } from '../../fn/module.js';
+import { last, noop, observe, Stream } from '../../fn/module.js';
 import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
@@ -201,28 +201,23 @@ function reorderNodes(node, array, sparkies) {
 	return renderCount;
 }
 
-function eachFrame(stream, node, marker, sparkies, isOption, options) {
-	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
+function eachFrame(input, node, marker, sparkies, isOption, options) {
+	const output   = Stream.of();
+	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
 
-	function push() {
+	// Support streams
+	if (input.on) {
+		input.each((scope) => {
+			output.push(scope);
+			cue(renderer);
+		});
+	}
+	// Support functors (are we dropping support for functors?)
+	else {
 		cue(renderer);
 	}
 
-	// Support functors
-	if (!stream.on) {
-		push();
-
-		return function stop() {
-			renderer.stop();
-			uncue(renderer);
-		};
-	}
-
-	// Support streams
-	stream.on('push', push);
-
 	return function stop() {
-		stream.off('push', push);
 		renderer.stop();
 		uncue(renderer);
 	};
@@ -235,7 +230,7 @@ function entryToKeyValue(entry) {
 	};
 }
 
-export default function each(node, scopes, params, options) {
+export default function each(node, input, params, options) {
 	if (isFragmentNode(node)) {
 		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
 	}
@@ -259,12 +254,21 @@ export default function each(node, scopes, params, options) {
 	// Prevent further functions being run on current node
 	options.fn = '';
 
-	// Get the value of scopes in frames after it has changed
-	var unEachFrame = eachFrame(scopes.latest().dedup(), node, marker, sparkies, isOption, options);
+	// Set up the parent renderer with a new stream
+	const output   = Stream.of();
+	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
 
-	scopes.done(() => {
+	input
+	.latest()
+	.dedup()
+	.each((scope) => {
+		output.push(scope);
+		cue(renderer);
+	})
+	.done(() => {
 		remove(marker);
-		unEachFrame();
+		renderer.stop();
+		uncue(renderer);
 		sparkies.forEach(function(sparky) {
 			sparky.stop();
 		});
