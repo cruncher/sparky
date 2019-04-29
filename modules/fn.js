@@ -8,6 +8,7 @@ import _if      from './fn.if.js';
 import _import  from './fn.import.js';
 import starton  from './fn.start-on.js';
 import scope    from './fn.scope.js';
+import window   from './fn.window.js';
 
 export default {
     'debug':     debug,
@@ -19,5 +20,6 @@ export default {
     'on':        on,
     'prevent':   prevent,
     'start-on':  starton,
-    'scope':     scope
+    'scope':     scope,
+    'window':    window
 };

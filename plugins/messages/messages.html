@@ -1,0 +1,38 @@
+{% load sekizai_tags %}
+
+<template is="sparky" fn="messages">
+    <div class="messages-block block" id="messages">
+        <div class="{[type|append:'-message-block']} message-block block {[active|yesno:'active','']}" fn="each">
+            <p class="message-text-block block">
+                {[message]}<br/>
+                <span data-fn="if-status" class="text-6">{[status|prepend:'('|append:')']}</span>
+            </p>
+
+            <button class="message-close-thumb close-thumb thumb" fn="remove-on-click">remove</button>
+
+            {% comment %}
+            <ul class="action-index index" data-scope="{[actions]}">
+                <li data-fn="each">
+                    <a class="action-button button" href="{[href]}">{[text]}</a>
+                </li>
+            </ul>
+            {% endcomment %}
+        </div>
+    </div>
+</template>
+
+{% addtoblock "css" %}<link href="{{STATIC_URL}}components/messages/style.css" rel="stylesheet" />{% endaddtoblock %}
+{% addtoblock "config_script" %}
+{% if messages %}window.config.messages = [{% for message in messages %}{
+    text: "{{message|escapejs|safe}}",
+    type: "{{message.level_tag}}"
+    {% if message.level_tag == "success" %}, duration: 5{% endif %}
+}{% if not forloop.last %},{% endif %}{% endfor %}];{% endif %}
+{% endaddtoblock %}
+
+{% addtoblock "module" %}
+    import '{{STATIC_URL}}dom/js/dom.removeable.js';
+    import messages from '{{STATIC_URL}}components/messages/views.js';
+    if (window.config.messages) { var i=0; while(i <= window.config.messages.length) {messages.push(window.config.messages[i++])}; };
+    if (window.DEBUG) { window.messages = messages; }
+{% endaddtoblock %}
