@@ -3122,12 +3122,12 @@ const linearLogarithmic$1 = def(
 
 const cubicBezier$2 = def(
     'Object, Object, Number => Number',
-    (begin, end, value) => linear$1(cubicBezier({
+    (begin, end, value) => linear$1(begin.point[1], end.point[1], cubicBezier({
         0: linear(begin.point[0], end.point[0], begin.handle[0]),
-        1: linear(begin.point[0], end.point[0], begin.handle[0])
+        1: linear(begin.point[1], end.point[1], begin.handle[1])
     }, {
         0: linear(begin.point[0], end.point[0], end.handle[0]),
-        1: linear(begin.point[0], end.point[0], end.handle[0])
+        1: linear(begin.point[1], end.point[1], end.handle[1])
     }, 1, value))
 );
 
@@ -5915,33 +5915,6 @@ function reorderNodes(node, array, sparkies) {
 	return renderCount;
 }
 
-function eachFrame(stream, node, marker, sparkies, isOption, options) {
-	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
-
-	function push() {
-		cue(renderer);
-	}
-
-	// Support functors
-	if (!stream.on) {
-		push();
-
-		return function stop() {
-			renderer.stop();
-			uncue(renderer);
-		};
-	}
-
-	// Support streams
-	stream.on('push', push);
-
-	return function stop() {
-		stream.off('push', push);
-		renderer.stop();
-		uncue(renderer);
-	};
-}
-
 function entryToKeyValue(entry) {
 	return {
 		key:   entry[0],
@@ -5949,7 +5922,7 @@ function entryToKeyValue(entry) {
 	};
 }
 
-function each$2(node, scopes, params, options) {
+function each$2(node, input, params, options) {
 	if (isFragmentNode(node)) {
 		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
 	}
@@ -5973,12 +5946,21 @@ function each$2(node, scopes, params, options) {
 	// Prevent further functions being run on current node
 	options.fn = '';
 
-	// Get the value of scopes in frames after it has changed
-	var unEachFrame = eachFrame(scopes.latest().dedup(), node, marker, sparkies, isOption, options);
+	// Set up the parent renderer with a new stream
+	const output   = Stream$1.of();
+	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
 
-	scopes.done(() => {
+	input
+	.latest()
+	.dedup()
+	.each((scope) => {
+		output.push(scope);
+		cue(renderer);
+	})
+	.done(() => {
 		remove$2(marker);
-		unEachFrame();
+		renderer.stop();
+		uncue(renderer);
 		sparkies.forEach(function(sparky) {
 			sparky.stop();
 		});
