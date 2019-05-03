@@ -1,4 +1,4 @@
-import { Fn, Stream, invoke, nothing } from '../../fn/module.js';
+import { Stream, invoke, nothing } from '../../fn/module.js';
 import Sparky from './sparky.js';
 
 const DEBUG = window.DEBUG;
@@ -57,7 +57,7 @@ export default function(node, stream, params) {
 
     // If the resource is cached, return it as a readable
     if (cache[path]) {
-        return Fn.of(cache[path]);
+        return Stream.of(cache[path]);
     }
 
     importScope(path, scopes);
