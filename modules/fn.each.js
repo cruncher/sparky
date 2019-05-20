@@ -40,7 +40,7 @@ assign(EachChild.prototype, {
 		const node     = this.node;
 		const marker   = this.marker;
 		const sparkies = this.sparkies;
-		const isOption = this.isOption;
+//const isOption = this.isOption;
 		const options  = this.options;
 
 		// Selects will lose their value if the selected option is removed
@@ -199,28 +199,6 @@ function reorderNodes(node, array, sparkies) {
 	}
 
 	return renderCount;
-}
-
-function eachFrame(input, node, marker, sparkies, isOption, options) {
-	const output   = Stream.of();
-	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
-
-	// Support streams
-	if (input.on) {
-		input.each((scope) => {
-			output.push(scope);
-			cue(renderer);
-		});
-	}
-	// Support functors (are we dropping support for functors?)
-	else {
-		cue(renderer);
-	}
-
-	return function stop() {
-		renderer.stop();
-		uncue(renderer);
-	};
 }
 
 function entryToKeyValue(entry) {
