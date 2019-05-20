@@ -95,7 +95,17 @@ export const transformers = {
 
 	'add-date':  { tx: addDate,     ix: curry(function(d, n) { return addDate('-' + d, n); }) },
 	'add-time':  { tx: addTime,     ix: subTime },
-	decibels:    { tx: todB,        ix: toLevel },
+	'to-db':     { tx: todB,        ix: toLevel },
+
+	'to-precision': {
+		tx: curry(function(n, value) {
+			return Number.isFinite(value) ?
+				value.toPrecision(n) :
+				value ;
+		}),
+
+		ix: parseFloat
+	},
 
 	join: {
 		tx: curry(function(string, value) {
