@@ -214,6 +214,11 @@ export const transforms = {
 	get:          getPath,
 	invoke:       invoke,
 	is:           is,
+
+    has: curry(function(name, object) {
+        return object && (name in object);
+    }),
+
 	last:         last,
 	limit:        limit,
 	log:          log,
