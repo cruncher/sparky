@@ -203,14 +203,6 @@ export const transforms = {
 	formatdate:   formatDate,
 	formattime:   formatTime,
 	formatfloat:  toFixed,
-
-	// formatfloat...
-	//curry(function(n, value) {
-	//	return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-	//		!isDefined(value) ? '' :
-	//		(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-	//}),
-
 	get:          getPath,
 	invoke:       invoke,
 	is:           is,
