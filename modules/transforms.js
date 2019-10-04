@@ -207,9 +207,9 @@ export const transforms = {
 	invoke:       invoke,
 	is:           is,
 
-    has: curry(function(name, object) {
-        return object && (name in object);
-    }),
+	has: curry(function(name, object) {
+		return object && (name in object);
+	}),
 
 	last:         last,
 	limit:        limit,
@@ -225,15 +225,14 @@ export const transforms = {
 	prepend:      prepend,
 	prepad:       prepad,
 	postpad:      postpad,
+
+	// slugify('Howdy, Michael')
+	// > 'howdy-michael'
 	slugify:      slugify,
 
 	// root(2) - square root
 	// root(3) - cubed root, etc.
 	root:         root,
-
-	// slugify('Howdy, Michael')
-	// > 'howdy-michael'
-
 	type:         toType,
 
 	//toStringType: Fn.toStringType,
