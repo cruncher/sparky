@@ -233,7 +233,7 @@ export default function each(node, input, params, options) {
 	options.fn = '';
 
 	// Set up the parent renderer with a new stream
-	const output   = Stream.of();
+	const output   = Stream.of().latest();
 	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
 
 	input
