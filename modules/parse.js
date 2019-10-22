@@ -113,9 +113,10 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     catch: function(fns, string) {
         // string is either the input string or a tokens object
         // from a higher level of parsing
+        console.log(string.input, string);
         throw new SyntaxError('Invalid pipe "' + (string.input || string) + '"');
     }
-})
+});
 
 function Tag() {}
 

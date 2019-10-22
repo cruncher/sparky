@@ -51,9 +51,11 @@ import * as denormalise from '../../fn/modules/denormalisers.js';
 import {
 	escape,
 	toPx,
-	toRem,
-	parse
+	toRem
 } from '../../dom/module.js';
+
+import { parsePipe } from './parse.js';
+import { createPipe } from './mount.js';
 
 var debug     = true;
 var A         = Array.prototype;
@@ -291,10 +293,11 @@ export const transforms = {
 	},
 
 	map: function(method, params) {
-		var fn;
+		var fn, tokens;
 
-		if (typeof params === undefined) {
-			fn = parse(method);
+		if (params === undefined) {
+			tokens = parsePipe([], method);
+			fn     = createPipe(tokens, transforms);
 			return function(array) {
 				return array.map(fn);
 			};

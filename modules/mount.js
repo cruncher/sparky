@@ -64,7 +64,7 @@ function applyTransform(data, fn) {
 		fn ;
 }
 
-function createPipe(array, pipes) {
+export function createPipe(array, pipes) {
     // Cache is dependent on pipes object - a new pipes object
     // results in a new cache
     const localCache = pipes
