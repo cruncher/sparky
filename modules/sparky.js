@@ -1,5 +1,5 @@
 import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/module.js';
-import { create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
+import { before, create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
@@ -60,7 +60,8 @@ function toObserverOrSelf(object) {
 }
 
 function replace(target, content) {
-    target.before(content);
+    before(target, content);
+    //target.before(content);
     target.remove();
 }
 
