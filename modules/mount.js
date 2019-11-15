@@ -47,7 +47,6 @@ function stop(object) {
 
 // Pipes
 
-// Add a global cache to transforms, soon to be known as pipes
 const pipesCache = transforms[$cache] = {};
 
 function getTransform(name) {
