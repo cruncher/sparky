@@ -401,7 +401,7 @@ function mountClass(node, renderers, options) {
 	renderers.push(renderer);
 }
 
-function mountValueProp(node, renderers, options, render, read, readAttribute, coerce) {
+function mountValueProp(node, renderers, options, render, eventType, read, readAttribute, coerce) {
 	const prefixed = node.getAttribute(options.attributePrefix + 'value');
 
 	if (prefixed) {
@@ -414,7 +414,7 @@ function mountValueProp(node, renderers, options, render, read, readAttribute, c
 	const renderer = mountToken(source, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, renderer.tokens[0], 'input', read, readAttribute, coerce);
+	const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
 	if (!listener) { return; }
 
 	// Insert the listener ahead of the renderer so that on first
@@ -440,11 +440,11 @@ function mountValueChecked(node, renderers, options, render, read, readAttribute
 
 const mountValue = choose({
 	number: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
 	},
 
 	range: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
 	},
 
 	checkbox: function(node, renderers, options) {
@@ -455,8 +455,13 @@ const mountValue = choose({
 		return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
 	},
 
+    file: function(node, renderers, options) {
+        // Safari does not send input events on file inputs
+		return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
+	},
+
 	default: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValue, readValue, readAttributeValue, coerceString);
+		return mountValueProp(node, renderers, options, renderValue, 'input', readValue, readAttributeValue, coerceString);
 	}
 });
 
