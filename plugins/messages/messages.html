@@ -22,7 +22,7 @@
 </template>
 
 {% addtoblock "css" %}<link href="{{STATIC_URL}}components/messages/style.css" rel="stylesheet" />{% endaddtoblock %}
-{% addtoblock "config_script" %}
+{% addtoblock "config" %}
 {% if messages %}window.config.messages = [{% for message in messages %}{
     text: "{{message|escapejs|safe}}",
     type: "{{message.level_tag}}"
