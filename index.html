@@ -8,10 +8,12 @@
 
 	<title>Sparky</title>
 
-	<script>
-		document.documentElement.className = 'js';
-		//window.DEBUG = true;
-	</script>
+    <script>
+    document.documentElement.className = 'js dom-loading loading';
+    window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.remove('dom-loading'));
+    window.addEventListener('load', () => document.documentElement.classList.remove('loading'));
+    window.DEBUG = true;
+    </script>
 
 	<link rel="icon" type="image/png" href="images/favicon.png" />
 	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -614,9 +616,9 @@ My name is {[title]} and I'm {[version]}!
 	<script src="dist/sparky.js"></script>
 
 	<script src="dom/js/dom-activate.js"></script>
-	<script src="dom/js/dom.device.js"></script>
-	<script src="dom/js/dom.switchable.js"></script>
-	<script src="dom/js/dom.toggleable.js"></script>
+	<script src="dom/js/root.js"></script>
+	<script src="dom/js/switchable.js"></script>
+	<script src="dom/js/toggleable.js"></script>
 
 	<script src="dom/scripts/highlight.js"></script>
 

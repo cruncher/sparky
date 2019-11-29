@@ -1,22 +1,14 @@
-import { Stream, invoke, nothing } from '../../fn/module.js';
+import { Stream } from '../../fn/module.js';
+import { requestGet } from '../../dom/module.js';
 import Sparky from './sparky.js';
+import { register } from './functions.js';
 
 const DEBUG = window.DEBUG;
-const fetch = window.fetch;
 
-const fetchOptions = {
-    method: 'GET'
-};
-
-const cache     = {};
-
-function fetchJSON(url) {
-    return fetch(url, fetchOptions)
-    .then(invoke('json', nothing));
-}
+const cache = {};
 
 function importScope(url, scopes) {
-    fetchJSON(url)
+    requestGet(url)
     .then(function(data) {
         if (!data) { return; }
         cache[url] = data;
@@ -28,7 +20,7 @@ function importScope(url, scopes) {
     });
 }
 
-export default function(node, stream, params) {
+register('fetch', function(node, params) {
     var path = params[0];
 
     if (DEBUG && !path) {
@@ -37,8 +29,9 @@ export default function(node, stream, params) {
 
     var scopes = Stream.of();
 
+    // Test for path template
     if (/\$\{(\w+)\}/.test(path)) {
-        stream.each(function(scope) {
+        this.each(function(scope) {
             var url = path.replace(/\$\{(\w+)\}/g, function($0, $1) {
                 return scope[$1];
             });
@@ -62,4 +55,4 @@ export default function(node, stream, params) {
 
     importScope(path, scopes);
     return scopes;
-}
+});

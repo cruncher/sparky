@@ -19,53 +19,84 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
-
+import { requestTick } from '../fn/module.js';
+import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
 import Sparky from './modules/sparky.js';
-import functions from './modules/fn.js';
 
+// Register base set of Sparky functions
+import './modules/fn-debug.js';
+import './modules/fn-each.js';
+import './modules/fn-entries.js';
+import './modules/fn-get.js';
+import './modules/fn-on.js';
+import './modules/fn-scope.js';
+import './modules/fn-fetch.js';
+
+// Export API
 export default Sparky;
-export { cue, uncue, functions };
+export { cue, uncue };
 export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
 export { events, trigger } from '../dom/module.js';
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
-export { getScope } from './modules/fn.scope.js';
+export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
+export { register } from './modules/functions.js';
 
-export function register(name, fn, options) {
-    functions[name] = fn;
-    functions[name].settings = options;
-}
+// Register customised built-in element <template is="sparky-template">
 
-const options = { is: 'sparky' };
+// While loading we must wait a tick for sparky functions to register before
+// declaring the customised template element lest Sparky goes looking for
+// functions it does not yet recognise. This is a little pants, I admit.
+requestTick(function() {
+    var supportsCustomBuiltIn = false;
 
-// Launch sparky on sparky templates. Ultimately this will be a web
-// component, I guess
+    element('sparky-template', {}, {}, {
+        extends: 'template',
 
-cue({
-    label: "IsRenderer",
+        setup: function() {
+            const fn = this.getAttribute('fn');
 
-    fire: function() {
-        const renderer = this;
+            if (fn) {
+                Sparky(this, { fn: fn, is: 'sparky' });
+            }
+            else {
+                // If there is no attribute fn, there is no way for this sparky
+                // to launch as it will never get scope. Enable sparky templates
+                // with just an include by passing in blank scope.
+                Sparky(this, { is: 'sparky' }).push({});
+            }
+
+            supportsCustomBuiltIn = true;
+        }
+    });
+
+    // Test for customised built-in element support by force creating
+    // a <template is="sparky-template">
+    if (!supportsCustomBuiltIn) {
+        document.createElement('template', { is: 'sparky-template' });
+    }
+
+    // If not supported, fallback to a dom query for is="sparky-template" attributes
+    if (!supportsCustomBuiltIn) {
+        console.log('Sparky', 'browser does not support customised built-in elements');
 
         window.document
-        .querySelectorAll('[is="sparky"]')
+        .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
-            const attrFn = options.fn = template.getAttribute('fn');
-            const sparky = new Sparky(template, options);
+            const fn = template.getAttribute('fn');
 
-            // If there is no attribute fn, there is no way for this sparky
-            // to launch as it will never get scope. Enable sparky templates
-            // with just an include by passing in blank scope.
-            if (!attrFn) {
-                const blank = {};
-                sparky.push(blank);
-                renderer.renderedValue = blank;
+            if (fn) {
+                Sparky(template, { fn: fn, is: 'sparky' });
+            }
+            else {
+                // If there is no attribute fn, there is no way for this sparky
+                // to launch as it will never get scope. Enable sparky templates
+                // with just an include by passing in blank scope.
+                Sparky(template, { is: 'sparky' }).push({});
             }
         });
-    },
-
-    renderCount: 0
+    }
 });

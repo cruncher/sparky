@@ -3,11 +3,12 @@
 */
 
 
-import { last, noop, observe, Stream } from '../../fn/module.js';
+import { last, noop, observe } from '../../fn/module.js';
 import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
+import { register } from './functions.js';
 
 const A       = Array.prototype;
 
@@ -40,7 +41,7 @@ assign(EachChild.prototype, {
 		const node     = this.node;
 		const marker   = this.marker;
 		const sparkies = this.sparkies;
-//const isOption = this.isOption;
+//		const isOption = this.isOption;
 		const options  = this.options;
 
 		// Selects will lose their value if the selected option is removed
@@ -201,6 +202,33 @@ function reorderNodes(node, array, sparkies) {
 	return renderCount;
 }
 
+function eachFrame(stream, node, marker, sparkies, isOption, options) {
+	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
+
+	function push() {
+		cue(renderer);
+	}
+
+	// Support functors
+	if (!stream.on) {
+		push();
+
+		return function stop() {
+			renderer.stop();
+			uncue(renderer);
+		};
+	}
+
+	// Support streams
+	stream.on('push', push);
+
+	return function stop() {
+		stream.off('push', push);
+		renderer.stop();
+		uncue(renderer);
+	};
+}
+
 function entryToKeyValue(entry) {
 	return {
 		key:   entry[0],
@@ -208,9 +236,9 @@ function entryToKeyValue(entry) {
 	};
 }
 
-export default function each(node, input, params, options) {
+register('each', function(node, params, options) {
 	if (isFragmentNode(node)) {
-		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
+		throw new Error('Sparky.fn.each cannot be used on fragments.');
 	}
 
 	const sparkies = [];
@@ -232,21 +260,12 @@ export default function each(node, input, params, options) {
 	// Prevent further functions being run on current node
 	options.fn = '';
 
-	// Set up the parent renderer with a new stream
-	const output   = Stream.of().latest();
-	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
+	// Get the value of scopes in frames after it has changed
+	var unEachFrame = eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
 
-	input
-	.latest()
-	.dedup()
-	.each((scope) => {
-		output.push(scope);
-		cue(renderer);
-	})
-	.done(() => {
+	this.done(() => {
 		remove(marker);
-		renderer.stop();
-		uncue(renderer);
+		unEachFrame();
 		sparkies.forEach(function(sparky) {
 			sparky.stop();
 		});
@@ -254,4 +273,4 @@ export default function each(node, input, params, options) {
 
 	// Return false to prevent further processing of this Sparky
 	return false;
-}
+});
