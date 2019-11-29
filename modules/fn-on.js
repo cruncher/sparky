@@ -1,7 +1,14 @@
 
+// fn="on:type,name,..."
+//
+// Calls named method of current scope on events of type.
+// Multiple method names may be given, they are called in turn.
+
+import { register } from './functions.js';
+
 const DEBUG = window.DEBUG;
 
-export default function on(node, input, params) {
+register('on', function(node, params) {
     const type   = params[0];
     const length = params.length - 1;
 
@@ -23,7 +30,7 @@ export default function on(node, input, params) {
         scope[name](e.target.value);
     };
 
-    return input.tap(function(object) {
+    return this.tap(function(object) {
         if (!flag) {
             flag = true;
 
@@ -34,4 +41,4 @@ export default function on(node, input, params) {
 
         scope = object;
     });
-}
+});

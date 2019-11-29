@@ -64,37 +64,37 @@
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #25343c;">#25343c</div
     ><div style="display: inline-block; font-size: 0.75rem; text-align:center; width: 60px; height: 60px; color: white; background-color: #282a2b;">#282a2b</div>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>template[fn]</h2>
         <p>p 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
         <p>p 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>template[fn]</h2>
         <p fn="test">p[fn] 0.1 <span>{[]}</span> - <span>{[.]}</span></p>
         <p fn="test">p[fn] 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
-    <template is="sparky" fn="data" include="#template-1">
+    <template is="sparky-template" fn="data" include="#template-1">
         <p>template[fn][include] Waiting for data...</p>
     </template>
 
-    <template is="sparky" fn="data" include="#template-2">
+    <template is="sparky-template" fn="data" include="#template-2">
         <p>template[fn][include] Waiting for data...</p>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <div include="#template-1">div[include="#template-1"] Waiting for data...</div>
         <div include="#template-2">div[include="#template-1"] Waiting for data...</div>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <template include="#template-1">template[include="#template-1"] Waiting for data...</template>
         <template include="#template-2">template[include="#template-1"] Waiting for data...</template>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>table td[fn=each], tr[fn=each]</h2>
         <table>
             <tbody>
@@ -108,18 +108,18 @@
         </table>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>template[include]</h2>
         <template include="#template-{[0.id]}"></template>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>External templates</h2>
         <template include="test-template.html#test-template-1"></template>
         <template fn="get:0" include="test-template.html#test-template-2"></template>
     </template>
 
-    <template is="sparky" fn="data">
+    <template is="sparky-template" fn="data">
         <h2>Unrendered (should show nothing)</h2>
         <p>{[POO]}</p>
         <p fn="test">{[POO]}</p>
@@ -188,7 +188,7 @@
         <slot name="plugs"></slot>
     </template>
 
-    <!--template is="sparky" fn="thing">
+    <!--template is="sparky-template" fn="thing">
         <range-control min="0" max="1" :value="{[value]}" step="any"></range-control>
         <input type="range" min="0" max="1" :value="{[value]}" step="any"/>
     </template-->

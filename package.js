@@ -8016,7 +8016,7 @@ cue({
         const renderer = this;
 
         window.document
-        .querySelectorAll('[is="sparky"]')
+        .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
             const attrFn = options$1.fn = template.getAttribute('fn');
             const sparky = new Sparky(template, options$1);

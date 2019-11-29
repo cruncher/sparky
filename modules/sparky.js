@@ -3,7 +3,7 @@ import { create, fragmentFromChildren, isFragmentNode } from '../../dom/module.j
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
-import functions from './fn.js';
+import { functions } from './functions.js';
 import mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 
@@ -34,7 +34,7 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(attrIs, attrFn, attrInclude, target) {
+export function log(attrIs, attrFn, attrInclude, target) {
     console.log('%cSparky%c'
         + (attrIs ? ' is="' + attrIs + '"' : '')
         + (attrFn ? ' fn="' + attrFn + '"' : '')
@@ -69,12 +69,12 @@ function prepareInput(input, output) {
 
     // Support promises and functors
     input = output.map ? output.map(toObserverOrSelf) :
-        output.then ? output.then(toObserverOrSelf) :
+        output.then ? Stream.fromPromise(output).map(toObserverOrSelf) :
         output ;
 
     // Transfer done(fn) method if new input doesnt have one
-    // A bit dodge, this. Maybe we should insist that output
-    // type is a stream.
+    // Todo: A bit dodge, this. Maybe we should insist that output
+    // type is a stream?
     if (!input.done) {
         input.done = done;
     }
@@ -86,11 +86,10 @@ function run(context, node, input, options) {
     var result;
 
     while(input && options.fn && (result = captureFn({}, options.fn))) {
-        // Find Sparky function by name, looking in global functions store
+        // Find Sparky function by name, looking in global functions
         // first, then local options. This order makes it impossible to
         // overwrite built-in fns.
-        const fn = functions[result.name]
-            || (options.functions && options.functions[result.name]);
+        const fn = functions[result.name] || (options.functions && options.functions[result.name]);
 
         if (!fn) {
             throw new Error(
@@ -113,7 +112,7 @@ function run(context, node, input, options) {
         // promise   - use the promise
         // undefined - use the same input streeam
         // false     - stop processing this node
-        const output = fn.call(context, node, input, result.params, options);
+        const output = fn.call(input, node, result.params, options) ;
 
         // Output false means stop processing the node
         if (output === false) {
@@ -429,7 +428,7 @@ export default function Sparky(selector, settings) {
         return this;
     };
 
-    if (DEBUG) { logSparky(options.is, attrFn, attrInclude, target); }
+    if (DEBUG) { log(options.is, attrFn, attrInclude, target); }
 
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter, to protect against them being

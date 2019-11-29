@@ -8,6 +8,7 @@ import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
+import { register } from './functions.js';
 
 const A       = Array.prototype;
 
@@ -40,7 +41,7 @@ assign(EachChild.prototype, {
 		const node     = this.node;
 		const marker   = this.marker;
 		const sparkies = this.sparkies;
-		const isOption = this.isOption;
+//		const isOption = this.isOption;
 		const options  = this.options;
 
 		// Selects will lose their value if the selected option is removed
@@ -235,9 +236,9 @@ function entryToKeyValue(entry) {
 	};
 }
 
-export default function each(node, scopes, params, options) {
+register('each', function(node, params, options) {
 	if (isFragmentNode(node)) {
-		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
+		throw new Error('Sparky.fn.each cannot be used on fragments.');
 	}
 
 	const sparkies = [];
@@ -260,9 +261,9 @@ export default function each(node, scopes, params, options) {
 	options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
-	var unEachFrame = eachFrame(scopes.latest().dedup(), node, marker, sparkies, isOption, options);
+	var unEachFrame = eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
 
-	scopes.done(() => {
+	this.done(() => {
 		remove(marker);
 		unEachFrame();
 		sparkies.forEach(function(sparky) {
@@ -272,4 +273,4 @@ export default function each(node, scopes, params, options) {
 
 	// Return false to prevent further processing of this Sparky
 	return false;
-}
+});
