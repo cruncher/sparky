@@ -6,9 +6,9 @@ import config    from './config.js';
 import { functions } from './functions.js';
 import mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
+import { logNode } from './log.js';
 
-// Debug mode is on by default
-const DEBUG = window.DEBUG === undefined || window.DEBUG;
+const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const assign = Object.assign;
 
@@ -32,17 +32,6 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
 
 function valueOf(object) {
     return object.valueOf();
-}
-
-export function log(attrIs, attrFn, attrInclude, target) {
-    console.log('%cSparky%c'
-        + (attrIs ? ' is="' + attrIs + '"' : '')
-        + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
-        'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;'
-        //target
-    );
 }
 
 function nodeToString(node) {
@@ -428,7 +417,7 @@ export default function Sparky(selector, settings) {
         return this;
     };
 
-    if (DEBUG) { log(options.is, attrFn, attrInclude, target); }
+    if (DEBUG) { logNode(target, options.is, attrFn, attrInclude); }
 
     // We have consumed fn and include now, we may blank them before
     // passing them on to the mounter, to protect against them being

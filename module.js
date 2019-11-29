@@ -57,7 +57,6 @@ requestTick(function() {
         extends: 'template',
 
         setup: function() {
-            console.log('Custom element sparky', this);
             const fn = this.getAttribute('fn');
 
             if (fn) {
@@ -74,7 +73,8 @@ requestTick(function() {
         }
     });
 
-    // Test for customised built-in element support
+    // Test for customised built-in element support by force creating
+    // a <template is="sparky-template">
     if (!supportsCustomBuiltIn) {
         document.createElement('template', { is: 'sparky-template' });
     }
@@ -86,7 +86,6 @@ requestTick(function() {
         window.document
         .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
-            console.log('Template sparky');
             const fn = template.getAttribute('fn');
 
             if (fn) {

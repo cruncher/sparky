@@ -90,7 +90,7 @@ function fireEach(queue) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame (' + (time / 1000).toFixed(3) + ')', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	renderCount = 0;
