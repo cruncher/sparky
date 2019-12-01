@@ -1,53 +1,56 @@
-import { add, exp, limit, log, multiply, max, min, mod, pow } from '../../fn/modules/maths/core.js';
 
+// Import uncurried functions from Fn library
+
+import { getPath } from '../../fn/modules/paths.js';
 import equals    from '../../fn/modules/equals.js';
 import get       from '../../fn/modules/get.js';
 import invoke    from '../../fn/modules/invoke.js';
 import is        from '../../fn/modules/is.js';
 import isDefined from '../../fn/modules/is-defined.js';
+import not       from '../../fn/modules/not.js';
+import toFixed   from '../../fn/modules/to-fixed.js';
+import toInt     from '../../fn/modules/to-int.js';
+import toString  from '../../fn/modules/to-string.js';
+import toType    from '../../fn/modules/to-type.js';
+import * as normalise   from '../../fn/modules/normalisers.js';
+import * as denormalise from '../../fn/modules/denormalisers.js';
+
+import { add, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import toCartesian from '../../fn/modules/maths/to-cartesian.js';
+import toPolar   from '../../fn/modules/maths/to-polar.js';
 
 import append    from '../../fn/modules/strings/append.js';
 import prepend   from '../../fn/modules/strings/prepend.js';
 import prepad    from '../../fn/modules/strings/prepad.js';
 import postpad   from '../../fn/modules/strings/postpad.js';
+import slugify   from '../../fn/modules/strings/slugify.js';
+import toCamelCase from '../../fn/modules/strings/to-camel-case.js';
+
+import { contains } from '../../fn/modules/lists/core.js';
+import last from '../../fn/modules/lists/last.js';
 
 import {
-	contains,
 	compose,
 	formatDate,
 	formatTime,
-	getPath,
-	last,
 	addDate,
 	addTime,
-	subTime,
-	not,
-	root,
-	slugify,
-	toCamelCase,
-	toCartesian,
-	toPolar,
-	toDeg,
-	toRad,
-	toLevel,
-	todB,
-	toInt,
-	toFloat,
-	toFixed,
-	toString,
-	toType
+	subTime
 } from '../../fn/module.js';
 
-import * as normalise   from '../../fn/modules/normalisers.js';
-import * as denormalise from '../../fn/modules/denormalisers.js';
+
+// Import uncurried functions from Dom library
 
 import escape from '../../dom/modules/escape.js';
 import { toPx, toRem, toVw, toVh } from '../../dom/modules/values.js';
 
-//import { parsePipe } from './parse.js';
-//import { createPipe } from './mount.js';
 
-var debug     = true;
+// Helper functions
+
+const toFloat = parseFloat;
+
+
+var DEBUG     = window.DEBUG === true || window.DEBUG === 'Sparky';
 var A         = Array.prototype;
 var S         = String.prototype;
 
@@ -125,7 +128,7 @@ export const transformers = {
 	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
 	exp:         { tx: exp,         ix: log },
 	log:         { tx: log,         ix: exp },
-	int:         { tx: toFixed(0),  ix: toInt },
+	int:         { tx: function(value) { return toFixed(0, value); }, ix: toInt },
 	float:       { tx: toFloat,     ix: toString },
 	boolean:     { tx: Boolean,     ix: toString },
 
@@ -212,26 +215,18 @@ export const transforms = {
 	min:          min,
 	mod:          mod,
 	not:          not,
-	percent:      multiply(100),
 
 	// Strings
 	append:       append,
 	prepend:      prepend,
 	prepad:       prepad,
 	postpad:      postpad,
-
-	// slugify('Howdy, Michael')
-	// > 'howdy-michael'
 	slugify:      slugify,
 
 	// root(2) - square root
 	// root(3) - cubed root, etc.
 	root:         root,
 	type:         toType,
-
-	//toStringType: Fn.toStringType,
-
-	// Sparky transforms
 
 	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
@@ -242,12 +237,6 @@ export const transforms = {
 		if (!isDefined(id)) { return; }
 		var array = getPath(path, window);
 		return array && array.find(compose(is(id), get('id')));
-	},
-
-	floatformat: function(n, value) {
-		return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-			!isDefined(value) ? '' :
-			(debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
 	},
 
 	floor: Math.floor,
@@ -364,13 +353,6 @@ export const transforms = {
 		};
 	})(),
 
-	switch: function(value) {
-		if (typeof value === 'boolean') { value = Number(value); }
-		if (typeof value === 'string') { value = parseInt(value, 10); }
-		if (typeof value !== 'number' || Number.isNaN(value)) { return; }
-		return arguments[value + 1];
-	},
-
 	translate: (function() {
 		var warned = {};
 
@@ -411,13 +393,24 @@ export const transforms = {
 		return String.prototype.toUpperCase.apply(value);
 	},
 
-	//urlencode
-	//urlize
-	//urlizetrunc
-	//wordcount
-	//wordwrap
-
 	yesno: function(truthy, falsy, value) {
 		return value ? truthy : falsy ;
 	}
 };
+
+export function register(name, fn, inv) {
+	if (DEBUG && transformers[name]) {
+		throw new Error('Sparky: transform already registered with name "' + name + '"');
+	}
+
+	if (inv) {
+		transformers[name] = { tx: fn, ix: inv };
+	}
+	else {
+		if (DEBUG && transforms[name]) {
+			throw new Error('Sparky: transform already registered with name "' + name + '"');
+		}
+
+		transforms[name] = fn;
+	}
+}

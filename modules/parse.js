@@ -121,9 +121,7 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
 
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
-    1: (nothing, tokens) => {
-        return new Value(tokens[1]);
-    },
+    1: (nothing, tokens) => new Value(tokens[1]),
 
     // Pipe '|'
     2: function(tag, tokens) {
