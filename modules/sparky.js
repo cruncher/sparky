@@ -6,7 +6,7 @@ import config    from './config.js';
 import { functions } from './functions.js';
 import mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
-import { logNode } from './log.js';
+import { logNode, nodeToString } from './log.js';
 
 const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
@@ -32,16 +32,6 @@ const captureFn = capture(/^\s*([\w-]+)\s*(:)?/, {
 
 function valueOf(object) {
     return object.valueOf();
-}
-
-function nodeToString(node) {
-    return '<' +
-    node.tagName.toLowerCase() +
-    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
-        const attr = node.getAttribute(name);
-        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
-    }, '')) +
-    '/>';
 }
 
 function toObserverOrSelf(object) {

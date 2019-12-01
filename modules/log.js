@@ -18,3 +18,13 @@ export function logNode(target, attrIs, attrFn, attrInclude) {
         'color: #6894ab; font-weight: 400;'
     );
 }
+
+export function nodeToString(node) {
+    return '<' +
+    node.tagName.toLowerCase() +
+    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
+        const attr = node.getAttribute(name);
+        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
+    }, '')) +
+    '/>';
+}
