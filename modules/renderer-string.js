@@ -4,17 +4,18 @@ import Renderer from './renderer.js';
 const assign = Object.assign;
 
 export default function StringRenderer(tokens, render, node, name) {
+    Renderer.call(this);
+
     this.label  = 'StringRenderer';
     this.render = render;
     this.node   = node;
     this.name   = name;
     this.tokens = tokens;
-    this.renderCount = 0;
 }
 
 assign(StringRenderer.prototype, Renderer.prototype, {
     fire: function renderString() {
-        Renderer.prototype.fire.apply(this, arguments);
+        Renderer.prototype.fire.apply(this);
 
         // Causes token.toString() to be called
         const value = this.tokens.join('');

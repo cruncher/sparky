@@ -1,34 +1,27 @@
+import { add, exp, limit, log, multiply, max, min, mod, pow } from '../../fn/modules/maths/core.js';
+
+import equals    from '../../fn/modules/equals.js';
+import get       from '../../fn/modules/get.js';
+import invoke    from '../../fn/modules/invoke.js';
+import is        from '../../fn/modules/is.js';
+import isDefined from '../../fn/modules/is-defined.js';
+
+import append    from '../../fn/modules/strings/append.js';
+import prepend   from '../../fn/modules/strings/prepend.js';
+import prepad    from '../../fn/modules/strings/prepad.js';
+import postpad   from '../../fn/modules/strings/postpad.js';
 
 import {
-	add,
-	append,
-	curry,
 	contains,
 	compose,
-	equals,
 	formatDate,
 	formatTime,
-	get,
 	getPath,
-	invoke,
-	is,
-	isDefined,
 	last,
-	limit,
 	addDate,
 	addTime,
 	subTime,
-	max,
-	min,
-	mod,
-	multiply,
 	not,
-	pow,
-	postpad,
-	prepad,
-	prepend,
-	exp,
-	log,
 	root,
 	slugify,
 	toCamelCase,
@@ -48,14 +41,11 @@ import {
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
-import {
-	escape,
-	toPx,
-	toRem
-} from '../../dom/module.js';
+import escape from '../../dom/modules/escape.js';
+import { toPx, toRem, toVw, toVh } from '../../dom/modules/values.js';
 
-import { parsePipe } from './parse.js';
-import { createPipe } from './mount.js';
+//import { parsePipe } from './parse.js';
+//import { createPipe } from './mount.js';
 
 var debug     = true;
 var A         = Array.prototype;
@@ -91,45 +81,45 @@ function interpolateLinear(xs, ys, x) {
 
 export const transformers = {
 	add:         {
-		tx: curry(function(a, b) { return b.add ? b.add(a) : b + a ; }),
-		ix: curry(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+		tx: function(a, b) { return b.add ? b.add(a) : b + a ; },
+		ix: function(a, c) { return c.add ? c.add(-a) : c - a ; }
 	},
 
-	'add-date':  { tx: addDate,     ix: curry(function(d, n) { return addDate('-' + d, n); }) },
+	'add-date':  { tx: addDate,     ix: function(d, n) { return addDate('-' + d, n); } },
 	'add-time':  { tx: addTime,     ix: subTime },
 	'to-db':     { tx: todB,        ix: toLevel },
 
 	'to-precision': {
-		tx: curry(function(n, value) {
+		tx: function(n, value) {
 			return Number.isFinite(value) ?
 				value.toPrecision(n) :
 				value ;
-		}),
+		},
 
 		ix: parseFloat
 	},
 
 	join: {
-		tx: curry(function(string, value) {
+		tx: function(string, value) {
 			return A.join.call(value, string);
-		}),
+		},
 
-		ix: curry(function(string, value) {
+		ix: function(string, value) {
 			return S.split.call(value, string);
-		})
+		}
 	},
 
 	'numbers-string': {
-		tx: curry(function(string, value) {
+		tx: function(string, value) {
 			return A.join.call(value, string);
-		}),
+		},
 
-		ix: curry(function(string, value) {
+		ix: function(string, value) {
 			return S.split.call(value, string).map(parseFloat);
-		})
+		}
 	},
 
-	multiply:    { tx: multiply,    ix: curry(function(d, n) { return n / d; }) },
+	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
 	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
@@ -140,30 +130,30 @@ export const transformers = {
 	boolean:     { tx: Boolean,     ix: toString },
 
 	normalise:   {
-		tx: curry(function(curve, min, max, number) {
+		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return normalise[name](min, max, number);
-		}),
+		},
 
-		ix: curry(function(curve, min, max, number) {
+		ix: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return denormalise[name](min, max, number);
-		})
+		}
 	},
 
 	denormalise:   {
-		tx: curry(function(curve, min, max, number) {
+		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return denormalise[name](min, max, number);
-		}),
+		},
 
-		ix: curry(function(curve, min, max, number) {
+		ix: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return normalise[name](min, max, number);
-		})
+		}
 	},
 
-	floatformat: { tx: toFixed,     ix: curry(function(n, str) { return parseFloat(str); }) },
+	floatformat: { tx: toFixed,     ix: function(n, str) { return parseFloat(str); } },
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
 	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
 
@@ -192,8 +182,10 @@ export const transformers = {
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
 	level:     { tx: toLevel, ix: todB },
-	px:        { tx: toPx, ix: toRem },
-	rem:       { tx: toRem, ix: toPx }
+	px:        { tx: toPx,  ix: toRem },
+	rem:       { tx: toRem, ix: toPx },
+	vw:        { tx: toVw,  ix: toPx },
+	vh:        { tx: toVh,  ix: toPx }
 };
 
 export const transforms = {
@@ -209,9 +201,9 @@ export const transforms = {
 	invoke:       invoke,
 	is:           is,
 
-	has: curry(function(name, object) {
+	has: function(name, object) {
 		return object && (name in object);
-	}),
+	},
 
 	last:         last,
 	limit:        limit,
@@ -241,28 +233,28 @@ export const transforms = {
 
 	// Sparky transforms
 
-	divide: curry(function(n, value) {
+	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
 		return value / n;
-	}),
+	},
 
-	'find-in': curry(function(path, id) {
+	'find-in': function(path, id) {
 		if (!isDefined(id)) { return; }
 		var array = getPath(path, window);
 		return array && array.find(compose(is(id), get('id')));
-	}),
+	},
 
-	floatformat: curry(function(n, value) {
+	floatformat: function(n, value) {
 		return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
 			!isDefined(value) ? '' :
 			(debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-	}),
+	},
 
 	floor: Math.floor,
 
-	"greater-than": curry(function(value2, value1) {
+	"greater-than": function(value2, value1) {
 		return value1 > value2;
-	}),
+	},
 
 	invert: function(value) {
 		return typeof value === 'number' ? 1 / value : !value ;
@@ -270,11 +262,11 @@ export const transforms = {
 
 	json: JSON.stringify,
 
-	"less-than": curry(function(value2, value1) {
+	"less-than": function(value2, value1) {
 		return value1 < value2 ;
-	}),
+	},
 
-	localise: curry(function(digits, value) {
+	localise: function(digits, value) {
 		var locale = document.documentElement.lang;
 		var options = {};
 
@@ -285,15 +277,16 @@ export const transforms = {
 
 		// Todo: localise value where toLocaleString not supported
 		return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
-	}),
+	},
 
 	lowercase: function(value) {
 		if (typeof value !== 'string') { return; }
 		return String.prototype.toLowerCase.apply(value);
 	},
 
-	map: function(method, params) {
-		var fn, tokens;
+	map: function(method, params, array) {
+		/*
+		var tokens;
 
 		if (params === undefined) {
 			tokens = parsePipe([], method);
@@ -302,30 +295,36 @@ export const transforms = {
 				return array.map(fn);
 			};
 		}
+		*/
 
-		fn = ((transformers[method] && transformers[method].tx)
-			|| transforms[method]).apply(null, params);
+		var fn = (
+			(transformers[method] && transformers[method].tx) ||
+			transforms[method]
+		);
 
-		return function(array) {
-			return array && array.map(fn);
-		};
+		return array && array.map((value) => fn(...params, value));
 	},
 
-	filter: curry(function(method, args, array) {
-		return array && array.map(transforms[method].apply(null,args));
-	}, true),
+	filter: function(method, args, array) {
+		var fn = (
+			(transformers[method] && transformers[method].tx) ||
+			transforms[method]
+		);
 
-	match: curry(function(regex, string) {
+		return array && array.filter((value) => fn(...args, value));
+	},
+
+	match: function(regex, string) {
 		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 		return regex.exec(string);
-	}),
+	},
 
-	matches: curry(function(regex, string) {
+	matches: function(regex, string) {
 		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 		return !!regex.test(string);
-	}),
+	},
 
-	pluralise: curry(function(str1, str2, lang, value) {
+	pluralise: function(str1, str2, lang, value) {
 		if (typeof value !== 'number') { return; }
 
 		str1 = str1 || '';
@@ -336,26 +335,26 @@ export const transforms = {
 		return lang === 'fr' ?
 			(value < 2 && value >= 0) ? str1 : str2 :
 			value === 1 ? str1 : str2 ;
-	}),
+	},
 
-	reduce: curry(function(name, initialValue, array) {
+	reduce: function(name, initialValue, array) {
 		return array && array.reduce(reducers[name], initialValue || 0);
-	}, true),
+	},
 
-	replace: curry(function(str1, str2, value) {
+	replace: function(str1, str2, value) {
 		if (typeof value !== 'string') { return; }
 		return value.replace(RegExp(str1, 'g'), str2);
-	}),
+	},
 
-	round: curry(function round(n, value) {
+	round: function round(n, value) {
 		return Math.round(value / n) * n;
-	}),
+	},
 
-	slice: curry(function(i0, i1, value) {
+	slice: function(i0, i1, value) {
 		return typeof value === 'string' ?
 			value.slice(i0, i1) :
 			Array.prototype.slice.call(value, i0, i1) ;
-	}, true),
+	},
 
 	striptags: (function() {
 		var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
@@ -401,11 +400,11 @@ export const transforms = {
 		};
 	})(),
 
-	truncatechars: curry(function(n, value) {
+	truncatechars: function(n, value) {
 		return value.length > n ?
 			value.slice(0, n) + '…' :
 			value ;
-	}),
+	},
 
 	uppercase: function(value) {
 		if (typeof value !== 'string') { return; }
@@ -418,7 +417,7 @@ export const transforms = {
 	//wordcount
 	//wordwrap
 
-	yesno: curry(function(truthy, falsy, value) {
+	yesno: function(truthy, falsy, value) {
 		return value ? truthy : falsy ;
-	})
+	}
 };

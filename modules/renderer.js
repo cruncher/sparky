@@ -1,11 +1,29 @@
 
-import { observe, noop } from '../../fn/module.js'
+import { noop, observe } from '../../fn/module.js'
 import { cue, uncue }   from './timer.js';
+import { isValue }   from './value.js';
 
-const assign = Object.assign;
+const assign  = Object.assign;
 
 function call(fn) {
     return fn();
+}
+
+function observeThing(renderer, token, object, scope, log) {
+    // Normally observe() does not fire on undefined initial values.
+    // Passing in NaN as an initial value to forces the callback to
+    // fire immediately whatever the initial value. It's a bit
+    // smelly, but this works because even NaN !== NaN.
+    token.unobservers.push(
+        observe(object.path, (value) => {
+            object.value = value;
+log && log(object.path, object.value);
+            // If token has noRender flag set, it is being updated from
+            // the input and does not need to be rendered back to the input
+            if (token.noRender) { return; }
+            renderer.cue();
+        }, scope, NaN)
+    );
 }
 
 export default function Renderer() {
@@ -24,9 +42,13 @@ assign(Renderer.prototype, {
     },
 
     push: function(scope) {
-        const renderer = this;
         const tokens = this.tokens;
         let n = tokens.length;
+
+        // Todo: keep a renderer-level cache of paths to avoid creating duplicate observers??
+        //if (!renderer.paths) {
+        //    renderer.paths = {};
+        //}
 
         while (n--) {
             const token = tokens[n];
@@ -34,6 +56,7 @@ assign(Renderer.prototype, {
             // Ignore plain strings
             if (typeof token === 'string') { continue; }
 
+            // Empty or initialise unobservers
             if (token.unobservers) {
                 token.unobservers.forEach(call);
                 token.unobservers.length = 0;
@@ -42,27 +65,18 @@ assign(Renderer.prototype, {
                 token.unobservers = [];
             }
 
-            // Normally observe() does not fire on undefined initial values.
-            // Passing in NaN as an initial value to forces the callback to
-            // fire immediately whatever the initial value. It's a bit
-            // smelly, but this works because even NaN !== NaN.
-            token.unobservers.push(observe(token.path, (value) => {
-                token.value = value;
+            observeThing(this, token, token, scope);
 
-                // If token has noRender flag set, it is being updated from
-                // the input and does not need to be rendered back to the input
-                if (token.noRender) { return; }
-                renderer.cue();
-            }, scope, NaN));
+            let p = token.pipe && token.pipe.length;
+            while (p--) {
+                let args = token.pipe[p].args;
+                if (!args.length) { continue; }
 
-            if (token.dynamicParams) {
-                token.unobservers.push.apply(token.unobservers, token.dynamicParams.map(function(param) {
-                    return observe(param.path, (value) => {
-                        param.value = value;
-                        if (token.noRender) { return; }
-                        renderer.cue();
-                    }, scope, NaN);
-                }));
+                // Look for dynamic value objects
+                args = args.filter(isValue);
+                if (!args.length) { continue; }
+
+                args.forEach((param) => observeThing(this, token, param, scope, console.log));
             }
         }
     },
@@ -72,8 +86,14 @@ assign(Renderer.prototype, {
 
         const tokens = this.tokens;
         let n = tokens.length;
+
         while (n--) {
-            tokens[n].unobserve && tokens[n].unobserve();
+            const token = tokens[n];
+
+            if (token.unobservers) {
+                token.unobservers.forEach(call);
+                token.unobservers.length = 0;
+            }
         }
 
         this.stop = noop;

@@ -27,6 +27,8 @@ function renderProperty(name, node, value) {
 }
 
 export default function BooleanRenderer(tokens, node, name) {
+    Renderer.call(this);
+
     this.label  = 'BooleanRenderer';
 	this.node   = node;
     this.name   = name;
@@ -34,12 +36,11 @@ export default function BooleanRenderer(tokens, node, name) {
 	this.render = name in node ?
 		renderProperty :
 		renderBooleanAttribute ;
-	this.renderCount = 0;
 }
 
 assign(BooleanRenderer.prototype, Renderer.prototype, {
     fire: function renderBoolean() {
-        Renderer.prototype.fire.apply(this, arguments);
+        Renderer.prototype.fire.apply(this);
 
         const value = !!this.tokens.find(isTruthy);
 

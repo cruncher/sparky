@@ -64,22 +64,22 @@ function applyTransform(data, fn) {
 }
 
 export function createPipe(array, pipes) {
-    // Cache is dependent on pipes object - a new pipes object
-    // results in a new cache
-    const localCache = pipes
+	// Cache is dependent on pipes object - a new pipes object
+	// results in a new cache
+	const localCache = pipes
 		&& (pipes[$cache] || (pipes[$cache] = {}));
 
-    // Cache pipes for reuse by other tokens
-    const key = JSON.stringify(array);
+	// Cache pipes for reuse by other tokens
+	const key = JSON.stringify(array);
 
-    // Check global and local pipes caches
-    if (pipesCache[key]) { return pipesCache[key]; }
-    if (localCache && localCache[key]) { return localCache[key]; }
+	// Check global and local pipes caches
+	if (pipesCache[key]) { return pipesCache[key]; }
+	if (localCache && localCache[key]) { return localCache[key]; }
 
 	// All a bit dodgy - we cycle over transforms and switch the cache to
 	// local cache if a global pipe is not found...
-    var cache = pipesCache;
-    const fns = array.map((data) => {
+	var cache = pipesCache;
+	const fns = array.map((data) => {
 		// Look in global pipes first
 		var fn = getTransform(data.name);
 
@@ -103,18 +103,21 @@ export function createPipe(array, pipes) {
 				+ data.args.length + ' given ' + data.args);
 		}
 
-		return applyTransform(data, fn);
+		// If there are arguments apply them to fn
+		return data.args && data.args.length ?
+			(value) => fn(...data.args, value) :
+			fn ;
 	});
 
 	// Cache the result
-    return (cache[key] = pipe.apply(null, fns));
+	return (cache[key] = pipe.apply(null, fns));
 }
 
 export function assignTransform(pipes, token) {
 	if (token.pipe) {
 		token.transform = createPipe(token.pipe, pipes);
-        // Todo: mark the token with dynamic params here somehow
 	}
+
 	return pipes;
 }
 
