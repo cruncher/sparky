@@ -67,13 +67,7 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
 
     // string
     10: function(params, tokens) {
-        if (tokens[10][0] === '.') {
-            throw new Error('Params beginning with a "." reserved for dynamic params');
-            //params.push(getPath(tokens[10]));
-        }
-        else {
-            params.push(tokens[10]);
-        }
+        params.push(tokens[10]);
         return params;
     },
 

@@ -2,13 +2,13 @@
 import { choose, get, isDefined, noop, overload, pipe } from '../../fn/module.js';
 import { tag, trigger } from '../../dom/module.js';
 import { parseToken, parseText, parseBoolean } from './parse.js';
+import { transformers, transforms } from './transforms.js';
 import BooleanRenderer from './renderer-boolean.js';
 import ClassRenderer   from './renderer-class.js';
 import StringRenderer  from './renderer-string.js';
 import TokenRenderer   from './renderer-token.js';
 import Listener        from './listener.js';
 import config          from './config-mount.js';
-import { transformers, transforms } from './transforms.js';
 
 // Debug mode on by default
 const DEBUG = window.DEBUG === undefined || window.DEBUG;
@@ -113,6 +113,7 @@ export function createPipe(array, pipes) {
 export function assignTransform(pipes, token) {
 	if (token.pipe) {
 		token.transform = createPipe(token.pipe, pipes);
+        // Todo: mark the token with dynamic params here somehow
 	}
 	return pipes;
 }

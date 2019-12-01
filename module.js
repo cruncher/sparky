@@ -28,16 +28,16 @@ import Sparky from './modules/sparky.js';
 import './modules/fn-debug.js';
 import './modules/fn-each.js';
 import './modules/fn-entries.js';
+import './modules/fn-fetch.js';
 import './modules/fn-get.js';
 import './modules/fn-on.js';
 import './modules/fn-scope.js';
-import './modules/fn-fetch.js';
 
 // Export API
 export default Sparky;
 export { cue, uncue };
-export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
-export { events, trigger } from '../dom/module.js';
+//export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
+//export { events, trigger } from '../dom/module.js';
 export { default as config } from './modules/config.js';
 export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
@@ -46,10 +46,9 @@ export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
 
 // Register customised built-in element <template is="sparky-template">
-
+//
 // While loading we must wait a tick for sparky functions to register before
-// declaring the customised template element lest Sparky goes looking for
-// functions it does not yet recognise. This is a little pants, I admit.
+// declaring the customised template element. This is a little pants, I admit.
 requestTick(function() {
     var supportsCustomBuiltIn = false;
 
@@ -69,17 +68,18 @@ requestTick(function() {
                 Sparky(this, { is: 'sparky' }).push({});
             }
 
+            // Flag
             supportsCustomBuiltIn = true;
         }
     });
 
-    // Test for customised built-in element support by force creating
-    // a <template is="sparky-template">
+    // If one has not been found already, test for customised built-in element
+    // support by force creating a <template is="sparky-template">
     if (!supportsCustomBuiltIn) {
         document.createElement('template', { is: 'sparky-template' });
     }
 
-    // If not supported, fallback to a dom query for is="sparky-template" attributes
+    // If not supported, fallback to a dom query for [is="sparky-template"]
     if (!supportsCustomBuiltIn) {
         console.log('Sparky', 'browser does not support customised built-in elements');
 
