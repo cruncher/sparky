@@ -34,8 +34,13 @@ assign(Renderer.prototype, {
             // Ignore plain strings
             if (typeof token === 'string') { continue; }
 
-            token.unobservers && token.unobservers.forEach(call);
-            token.unobservers.length = 0;
+            if (token.unobservers) {
+                token.unobservers.forEach(call);
+                token.unobservers.length = 0;
+            }
+            else {
+                token.unobservers = [];
+            }
 
             // Normally observe() does not fire on undefined initial values.
             // Passing in NaN as an initial value to forces the callback to
