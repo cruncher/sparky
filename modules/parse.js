@@ -4,6 +4,10 @@ import Value from './value.js';
 
 const parseArrayClose = capture(/^\]\s*/, nothing);
 
+/*
+parseParams(array, string)
+*/
+
 //                                        number                                     "string"            'string'                    null   true   false  array function(args)  dot  string           comma
 export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
@@ -87,6 +91,10 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     }
 });
 
+/*
+parsePipe(array, string)
+*/
+
 export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     // Function name '...'
     1: function(fns, tokens) {
@@ -119,6 +127,10 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     }
 });
 
+/*
+parseTag(string)
+*/
+
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
     1: (nothing, tokens) => new Value(tokens[1]),
@@ -140,12 +152,16 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseToken(string)
+*/
 
 export const parseToken = capture(/^\s*(\{\[)/, {
     // Tag opener '{['
-    1: function(nothing, tokens) {
-        const tag = parseTag(null, tokens);
+    1: function(unused, tokens) {
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         return tag;
     },
@@ -161,12 +177,16 @@ export const parseToken = capture(/^\s*(\{\[)/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseBoolean(array, string)
+*/
 
 export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Tag opener '{['
     1: function(array, tokens) {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseBoolean(array, tokens);
@@ -175,6 +195,10 @@ export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Where nothing is found, don't complain
     catch: id
 });
+
+/*
+parseText(array, string)
+*/
 
 export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     // String of text, whitespace and newlines included
@@ -194,7 +218,7 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
 
     // Tag opener '{['
     2: (array, tokens) => {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseText(array, tokens);

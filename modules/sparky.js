@@ -4,7 +4,7 @@ import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import { functions } from './functions.js';
-import mount, { assignTransform } from './mount.js';
+import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 import { logNode, nodeToString } from './log.js';
 
@@ -99,6 +99,7 @@ function run(context, node, input, options) {
             return false;
         }
 
+        // If output is defined and different from input
         if (output && output !== input) {
             input = prepareInput(input, output);
         }
@@ -119,14 +120,14 @@ function mountContent(content, options) {
 
         if (!options.fn && !options.include) { return; }
 
-        // Return a writeable stream. A write stream
+        // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
-        // Sparky is a write stream.
+        // A Sparky() is a write stream.
         return Sparky(node, options);
     };
 
     // Launch rendering
-    return mount(content, options);
+    return new Mount(content, options);
 }
 
 function setupTarget(string, input, render, options) {
@@ -202,7 +203,7 @@ function setupTarget(string, input, render, options) {
     }
 
     // Support streams and promises
-    input[input.each ? 'each' : 'then'](function(scope) {
+    input.each(function(scope) {
         let n = tokens.length;
 
         while (n--) {
@@ -247,8 +248,6 @@ function setupSrc(src, input, firstRender, options) {
     .then((node) => {
         if (stopped) { return; }
 
-        const attrFn = node.getAttribute(options.attributeFn);
-
         const content =
             // Support templates
             node.content ? node.content.cloneNode(true) :
@@ -276,17 +275,18 @@ function setupInclude(content, input, firstRender, options) {
     var renderer;
 
     // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const first = !renderer;
-        renderer = renderer || (isFragmentNode(content) ?
-            mountContent(content, options) :
-            new Sparky(content, options)
-        );
-        renderer.push(scope);
-        if (first) {
-            firstRender(content);
-            input.done(() => renderer.stop());
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
         }
+
+        renderer = isFragmentNode(content) ?
+            mountContent(content, options) :
+            new Sparky(content, options) ;
+
+        renderer.push(scope);
+        firstRender(content);
+        //input.done(() => renderer.stop());
     });
 
     return function() {
@@ -299,22 +299,26 @@ function setupElement(target, input, options, sparky) {
     var renderer;
 
     // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const init = !renderer;
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
+        }
 
-        renderer = renderer || mountContent(content || target, options);
+        renderer = mountContent(content || target, options);
         renderer.push(scope);
 
         // If target is a template, replace it
-        if (content && init) {
+        if (content) {
             replace(target, content);
 
             // Increment mutations for logging
             ++sparky.renderCount;
         }
+
+        //input.done(() => renderer.stop());
     });
 
-    return function stop() {
+    return function() {
         renderer && renderer.stop();
     };
 }
@@ -376,7 +380,7 @@ export default function Sparky(selector, settings) {
         return new Sparky(selector, settings);
     }
 
-    const target  = typeof selector === 'string' ?
+    const target = typeof selector === 'string' ?
         document.querySelector(selector) :
         selector ;
 
@@ -390,28 +394,22 @@ export default function Sparky(selector, settings) {
 
     this.label = 'Sparky';
     this.renderCount = 0;
-
     this.push = input.push;
-    this.stop = input.stop;
 
     // If output is false do not go on to parse and mount content
-    if (!output) { return; }
+    if (!output) {
+        this.stop = input.stop;
+        return;
+    }
 
     const attrInclude = options.include
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    this.stop = function() {
-        input.stop();
-        output.stop();
-        stop();
-        return this;
-    };
-
     if (DEBUG) { logNode(target, options.is, attrFn, attrInclude); }
 
     // We have consumed fn and include now, we may blank them before
-    // passing them on to the mounter, to protect against them being
+    // passing them on to Mount, to protect against them being
     // used again.
     options.is      = '';
     options.fn      = '';
@@ -422,4 +420,11 @@ export default function Sparky(selector, settings) {
             setupSVG(target, attrInclude, output, options, this) :
             setupTemplate(target, attrInclude, output, options, this) :
         setupElement(target, output, options, this) ;
+
+    this.stop = function() {
+        input.stop();
+        output.stop();
+        stop();
+        return this;
+    };
 }

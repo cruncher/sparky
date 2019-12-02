@@ -10,8 +10,7 @@ import TokenRenderer   from './renderer-token.js';
 import Listener        from './listener.js';
 import config          from './config-mount.js';
 
-// Debug mode on by default
-const DEBUG = window.DEBUG === undefined || window.DEBUG;
+const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const A      = Array.prototype;
 const assign = Object.assign;
@@ -290,7 +289,7 @@ function mountToken(source, render, renderers, options, node, name) {
 	// Shortcut empty string
 	if (!source) { return; }
 
-	const token = parseToken(options.pipes, source);
+	const token = parseToken(source);
 	if (!token) { return; }
 
 	// Create transform from pipe
@@ -404,16 +403,12 @@ function mountValueProp(node, renderers, options, render, eventType, read, readA
 	}
 
 	const source   = prefixed || node.getAttribute('value');
-	if (!source) { return; }
-
 	const renderer = mountToken(source, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
-	if (!listener) { return; }
-
-	// Insert the listener ahead of the renderer so that on first
+    // Insert a new listener ahead of the renderer so that on first
 	// cue the listener populates scope from the input value first
+	const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
 	renderers.splice(renderers.length - 1, 0, listener);
 }
 
@@ -425,11 +420,9 @@ function mountValueChecked(node, renderers, options, render, read, readAttribute
 	const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
-	if (!listener) { return; }
-
-	// Insert the listener ahead of the renderer so that on first
+	// Insert a new listener ahead of the renderer so that on first
 	// cue the listener populates scope from the input value first
+	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
 	renderers.splice(renderers.length - 1, 0, listener);
 }
 
@@ -530,23 +523,33 @@ const mountNode = overload(getNodeType, {
 		mountCollection(A.slice.apply(node.childNodes), renderers, options);
 	},
 
-	// array or array-like
-	default: function mountArray(collection, renderers, options) {
-		if (typeof collection.length !== 'number') {
-			throw new Error('Cannot mount object. It is neither a node nor a collection.', collection);
-		}
-
-		mountCollection(collection, renderers, options);
-	}
+    default: function(node) {
+        throw new TypeError('mountNode(node) node is not a mountable Node');
+    }
 });
+
+
+/*
+Mount(node, options)
+
+`const mount = Mount(node, options);`
+
+A mount is a pushable stream. Push an object of data to render the templated
+node on the next animation frame.
+
+```
+mount.push(data);
+```
+*/
 
 export default function Mount(node, options) {
 	if (!Mount.prototype.isPrototypeOf(this)) {
         return new Mount(node, options);
     }
 
-	const renderers = this.renderers = [];
-	mountNode(node, renderers, options);
+	this.renderers = [];
+
+    mountNode(node, this.renderers, options);
 }
 
 assign(Mount.prototype, {
