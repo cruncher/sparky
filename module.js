@@ -22,6 +22,7 @@ if (window.console && window.console.log) {
 import { requestTick } from '../fn/module.js';
 import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
+import { log } from './modules/log.js';
 import Sparky from './modules/sparky.js';
 
 // Register base set of Sparky functions
@@ -79,9 +80,9 @@ requestTick(function() {
         document.createElement('template', { is: 'sparky-template' });
     }
 
-    // If not supported, fallback to a dom query for [is="sparky-template"]
+    // If still not supported, fallback to a dom query for [is="sparky-template"]
     if (!supportsCustomBuiltIn) {
-        console.log('Sparky', 'browser does not support customised built-in elements');
+        log("Browser does not support custom built-in elements. Doin' it oldskool selectin' stylee.");
 
         window.document
         .querySelectorAll('[is="sparky-template"]')

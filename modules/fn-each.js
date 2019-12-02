@@ -220,7 +220,7 @@ function eachFrame(stream, node, marker, sparkies, isOption, options) {
 	}
 
 	// Support streams
-	stream.on('push', push);
+	stream.on(push);
 
 	return function stop() {
 		stream.off('push', push);

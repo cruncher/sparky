@@ -394,11 +394,19 @@ export default function Sparky(selector, settings) {
 
     this.label = 'Sparky';
     this.renderCount = 0;
-    this.push = input.push;
+
+    this.push = function push() {
+        input.push(arguments[arguments.length - 1]);
+        return this;
+    };
 
     // If output is false do not go on to parse and mount content
     if (!output) {
-        this.stop = input.stop;
+        this.stop = function() {
+            input.stop();
+            return this;
+        };
+
         return;
     }
 
