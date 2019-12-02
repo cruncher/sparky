@@ -52,10 +52,10 @@ export { register } from './modules/functions.js';
 requestTick(function() {
     var supportsCustomBuiltIn = false;
 
-    element('sparky-template', {}, {}, {
+    element('sparky-template', {
         extends: 'template',
 
-        setup: function() {
+        construct: function() {
             const fn = this.getAttribute('fn');
 
             if (fn) {

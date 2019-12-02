@@ -421,6 +421,9 @@ export default function Sparky(selector, settings) {
             setupTemplate(target, attrInclude, output, options, this) :
         setupElement(target, output, options, this) ;
 
+    // Todo: should be able to replace stop() by hooking stop functions
+    // into output.done() - but it's not working... is it because .done() is
+    // async?
     this.stop = function() {
         input.stop();
         output.stop();
