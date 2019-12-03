@@ -2,7 +2,7 @@
 /*
 For creating event controllers:
 
-register('actions', Delegate('click', '[data-action]', attribute('data-action'), {
+register('events', Delegate('click', 'button[name]', get('name'), {
     name: fn
 }));
 */

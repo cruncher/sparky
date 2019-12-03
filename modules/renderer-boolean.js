@@ -29,7 +29,7 @@ function renderProperty(name, node, value) {
 export default function BooleanRenderer(tokens, node, name) {
     Renderer.call(this);
 
-    this.label  = 'BooleanRenderer';
+    this.label  = 'Boolean';
 	this.node   = node;
     this.name   = name;
 	this.tokens = tokens;

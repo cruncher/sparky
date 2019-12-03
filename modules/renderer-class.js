@@ -35,7 +35,7 @@ function partitionByType(data, token) {
 export default function ClassRenderer(tokens, node) {
     Renderer.call(this);
 
-    this.label  = 'ClassRenderer';
+    this.label  = 'Class';
 
     const types = tokens.reduce(partitionByType, {
         string: [],

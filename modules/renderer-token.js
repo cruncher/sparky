@@ -15,7 +15,7 @@ function observeMutations(node, fn) {
 export default function TokenRenderer(token, render, node, name) {
     Renderer.call(this);
 
-    this.label  = 'TokenRenderer';
+    this.label  = 'Token';
     this.render = render;
     this.node   = node;
     this.name   = name;

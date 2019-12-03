@@ -24,15 +24,15 @@ function tokenOrLabel(token) {
 
 function tabulateRenderer(renderer) {
 	return {
-		'Label':  renderer.label,
-		'Source': renderer.tokens ?
+		'label':  renderer.label,
+		'source': renderer.tokens ?
 			renderer.tokens
 			.filter((token) => token.label !== 'Listener')
 			.map(tokenOrLabel)
 			.join('') :
 			renderer.path,
-		'Rendered': renderer.renderedValue,
-		'Total renders (accumulative)': renderer.renderCount
+		'rendered': renderer.renderedValue,
+		'DOM mutations (accumulative)': renderer.renderCount
 	};
 }
 
@@ -90,7 +90,7 @@ function fireEach(queue) {
 
 function run(time) {
 	if (DEBUG) {
-		console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame (' + (time / 1000).toFixed(3) + ')', 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+		window.console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	renderCount = 0;
@@ -102,7 +102,9 @@ function run(time) {
 	frame = undefined;
 	const tStop  = now();
 
-	logRenders(tStart, tStop);
+    // Closes console group, logs warning for frame overrun even
+    // when not in DEBUG mode
+    logRenders(tStart, tStop);
 	queue.clear();
 }
 
@@ -130,7 +132,7 @@ export function cue(renderer) {
 		return;
 	}
 
-	// Don't recue cued renderers.
+	// Don't recue cued renderers. This shouldn't happen much.
 	if (queue.has(renderer)) { return; }
 
 	queue.add(renderer);
