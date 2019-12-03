@@ -27,6 +27,7 @@ register('on', function(node, params) {
             throw new Error('Sparky scope has no method "' + name + '"');
         }
 
+        // Buttons have value...
         scope[name](e.target.value);
     };
 

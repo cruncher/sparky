@@ -1,10 +1,9 @@
 import { cache } from '../../fn/module.js';
-import { append, children, create, parse, query } from '../../dom/module.js';
+import { parse, query, request } from '../../dom/module.js';
 
-const fetchDocument = cache(function fetchDocument(path) {
-    return fetch(path)
-        .then((response) => response.text())
-        .then(parse('html'));
+const requestDocument = cache(function requestDocument(path) {
+    return request('GET', 'text/html', path)
+    .then(parse('html'));
 });
 
 let scriptCount = 0;
@@ -74,7 +73,7 @@ export default function importTemplate(src) {
 
     return path ?
         id ?
-            fetchDocument(path)
+            requestDocument(path)
             .then((doc) => importDependencies(path, doc))
             .then((doc) => document.getElementById(id))
             .then((template) => {
@@ -82,7 +81,7 @@ export default function importTemplate(src) {
                 return template;
             }) :
 
-        fetchDocument(path)
+        requestDocument(path)
         .then((doc) => document.adoptNode(doc.body)) :
 
     id ?

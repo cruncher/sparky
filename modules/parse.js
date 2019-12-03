@@ -1,12 +1,15 @@
 
-import { capture, exec, getPath, id, noop, nothing } from '../../fn/module.js'
-import toText from './to-text.js';
+import { capture, exec, id, noop, nothing } from '../../fn/module.js'
+import Value from './value.js';
 
-const assign          = Object.assign;
 const parseArrayClose = capture(/^\]\s*/, nothing);
 
-//                                        number                                     "string"            'string'                    null   true   false  array function(args)   string      comma
-export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+/*
+parseParams(array, string)
+*/
+
+//                                        number                                     "string"            'string'                    null   true   false  array function(args)  dot  string           comma
+export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, tokens) {
         params.push(parseFloat(tokens[1]));
@@ -66,13 +69,18 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     //},
 
     // string
-    10: function(params, tokens) {
-        params.push(tokens[10]);
+    11: function(params, tokens) {
+        if (tokens[10]) {
+            params.push(new Value(tokens[11]));
+        }
+        else {
+            params.push(tokens[11]);
+        }
         return params;
     },
 
     // Comma terminator - more params to come
-    11: function(params, tokens) {
+    12: function(params, tokens) {
         return parseParams(params, tokens);
     },
 
@@ -83,8 +91,9 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     }
 });
 
-
-/* Parse function */
+/*
+parsePipe(array, string)
+*/
 
 export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     // Function name '...'
@@ -118,32 +127,13 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     }
 });
 
-function Tag() {}
-
-assign(Tag.prototype, {
-    transform: id,
-
-    // Tags are stored in arrays with any surrounding strings, and joined
-    // on render. Array.join() causes .toString() to be called.
-    toString: function toString() {
-        return toText(this.valueOf());
-    },
-
-    valueOf: function valueOf() {
-        // Don't pipe undefined
-        return this.value === undefined ?
-            undefined :
-            this.transform(this.value) ;
-    }
-});
+/*
+parseTag(string)
+*/
 
 export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
-    1: (nothing, tokens) => {
-        const tag = new Tag();
-        tag.path = tokens[1];
-        return tag;
-    },
+    1: (nothing, tokens) => new Value(tokens[1]),
 
     // Pipe '|'
     2: function(tag, tokens) {
@@ -162,12 +152,16 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseToken(string)
+*/
 
 export const parseToken = capture(/^\s*(\{\[)/, {
     // Tag opener '{['
-    1: function(nothing, tokens) {
-        const tag = parseTag(null, tokens);
+    1: function(unused, tokens) {
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         return tag;
     },
@@ -183,12 +177,16 @@ export const parseToken = capture(/^\s*(\{\[)/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseBoolean(array, string)
+*/
 
 export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Tag opener '{['
     1: function(array, tokens) {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseBoolean(array, tokens);
@@ -197,6 +195,10 @@ export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     // Where nothing is found, don't complain
     catch: id
 });
+
+/*
+parseText(array, string)
+*/
 
 export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
     // String of text, whitespace and newlines included
@@ -216,7 +218,7 @@ export const parseText = capture(/^([\S\s]*?)(?:(\{\[)|$)/, {
 
     // Tag opener '{['
     2: (array, tokens) => {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseText(array, tokens);

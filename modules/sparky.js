@@ -4,11 +4,11 @@ import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
 import { functions } from './functions.js';
-import mount, { assignTransform } from './mount.js';
+import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
-import { logNode } from './log.js';
+import { logNode, nodeToString } from './log.js';
 
-const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
+const DEBUG = false;//window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const assign = Object.assign;
 
@@ -34,16 +34,6 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function nodeToString(node) {
-    return '<' +
-    node.tagName.toLowerCase() +
-    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
-        const attr = node.getAttribute(name);
-        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
-    }, '')) +
-    '/>';
-}
-
 function toObserverOrSelf(object) {
     return Observer(object) || object;
 }
@@ -54,22 +44,41 @@ function replace(target, content) {
     target.remove();
 }
 
-function prepareInput(input, output) {
-    const done = input.done;
+/*
+PromiseStream()
 
-    // Support promises and functors
-    input = output.map ? output.map(toObserverOrSelf) :
-        output.then ? Stream.fromPromise(output).map(toObserverOrSelf) :
+This is a little different from a Stream.fromPromise(promise), which
+enters 'done' state as soon as it resolves. Here we want to leave
+it running as we use its state to control rendering.
+*/
+
+function PromiseSource(notify, stop, promise) {
+    this.stop = stop;
+
+    promise
+    .then((object) => {
+        this.value = object;
+        notify();
+    })
+    .catch(stop);
+}
+
+PromiseSource.prototype.shift = function() {
+    const v = this.value;
+    this.value = undefined;
+    return v;
+};
+
+function prepareInput(input, output) {
+    // Support promises and streams
+    output = output.then ?
+        new Stream(PromiseSource, output) :
         output ;
 
-    // Transfer done(fn) method if new input doesnt have one
-    // Todo: A bit dodge, this. Maybe we should insist that output
-    // type is a stream?
-    if (!input.done) {
-        input.done = done;
-    }
+    input.done(() => output.stop());
 
-    return input;
+    // Make sure the next fn gets an observable
+    return output.map(toObserverOrSelf);
 }
 
 function run(context, node, input, options) {
@@ -109,6 +118,7 @@ function run(context, node, input, options) {
             return false;
         }
 
+        // If output is defined and different from input
         if (output && output !== input) {
             input = prepareInput(input, output);
         }
@@ -129,27 +139,32 @@ function mountContent(content, options) {
 
         if (!options.fn && !options.include) { return; }
 
-        // Return a writeable stream. A write stream
+        // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
-        // Sparky is a write stream.
+        // A Sparky() is a write stream.
         return Sparky(node, options);
     };
 
     // Launch rendering
-    return mount(content, options);
+    return new Mount(content, options);
 }
 
-function setupTarget(string, input, render, options) {
+function setupTarget(input, render, options) {
+    const src = options.include;
+
     // If there are no dynamic tokens to render, return the include
-    if (!string) {
+    if (!src) {
         throw new Error('Sparky attribute include cannot be empty');
     }
 
-    const tokens = parseText([], string);
+    const tokens = parseText([], src);
+
+    // Reset options.include, it's done its job for now
+    options.include = '';
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
-        return setupSrc(string, input, render, options);
+        return setupSrc(src, input, render, options);
     }
 
     // Create transform from pipe
@@ -211,8 +226,8 @@ function setupTarget(string, input, render, options) {
         stop = setupSrc(src, output, render, options);
     }
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then'](function(scope) {
+    input
+    .each(function(scope) {
         let n = tokens.length;
 
         while (n--) {
@@ -230,12 +245,11 @@ function setupTarget(string, input, render, options) {
                 update(scope);
             }, scope, NaN);
         }
-    });
-
-    return () => {
+    })
+    .done(() => {
         output.stop();
         stop();
-    };
+    });
 }
 
 function setupSrc(src, input, firstRender, options) {
@@ -250,14 +264,9 @@ function setupSrc(src, input, firstRender, options) {
         return setupInclude(content, input, firstRender, options);
     }
 
-    let stopped;
-    let stop = noop;
-
     importTemplate(src)
     .then((node) => {
-        if (stopped) { return; }
-
-        const attrFn = node.getAttribute(options.attributeFn);
+        if (input.status === 'done') { return; }
 
         const content =
             // Support templates
@@ -267,72 +276,61 @@ function setupSrc(src, input, firstRender, options) {
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
-        stop = setupInclude(content, input, firstRender, options);
+        setupInclude(content, input, firstRender, options);
     })
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
     .catch((error) => {
         console.error(error.stack);
     });
-
-    return function() {
-        stopped = true;
-        stop();
-        stop = noop;
-    }
 }
 
 function setupInclude(content, input, firstRender, options) {
     var renderer;
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const first = !renderer;
-        renderer = renderer || (isFragmentNode(content) ?
-            mountContent(content, options) :
-            new Sparky(content, options)
-        );
-        renderer.push(scope);
-        if (first) {
-            firstRender(content);
-            input.done(() => renderer.stop());
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
         }
-    });
 
-    return function() {
-        renderer && renderer.stop();
-    };
+        renderer = isFragmentNode(content) ?
+            mountContent(content, options) :
+            new Sparky(content, options) ;
+
+        input.done(() => renderer.stop());
+        renderer.push(scope);
+        firstRender(content);
+    });
 }
 
 function setupElement(target, input, options, sparky) {
     const content = target.content;
     var renderer;
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const init = !renderer;
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
+        }
 
-        renderer = renderer || mountContent(content || target, options);
+        renderer = mountContent(content || target, options);
+        input.done(() => renderer.stop());
         renderer.push(scope);
 
         // If target is a template, replace it
-        if (content && init) {
+        if (content) {
             replace(target, content);
 
             // Increment mutations for logging
             ++sparky.renderCount;
         }
     });
-
-    return function stop() {
-        renderer && renderer.stop();
-    };
 }
 
-function setupTemplate(target, src, input, options, sparky) {
+function setupTemplate(target, input, options, sparky) {
+    const src   = options.include;
     const nodes = { 0: target };
 
-    return setupTarget(src, input, (content) => {
+    return setupTarget(input, (content) => {
         // Store node 0
         const node0 = nodes[0];
 
@@ -369,8 +367,8 @@ function setupTemplate(target, src, input, options, sparky) {
     }, options);
 }
 
-function setupSVG(target, src, output, options, sparky) {
-    return setupTarget(src, output, (content) => {
+function setupSVG(target, input, options, sparky) {
+    return setupTarget(input, (content) => {
         content.removeAttribute('id');
 
         replace(target, content);
@@ -381,55 +379,63 @@ function setupSVG(target, src, output, options, sparky) {
     }, options);
 }
 
+function makeLabel(target, options) {
+    return '<'
+        + (target.tagName ? target.tagName.toLowerCase() : '')
+        + (options.fn ? ' fn="' + options.fn + '">' : '>');
+}
+
 export default function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {
         return new Sparky(selector, settings);
     }
 
-    const target  = typeof selector === 'string' ?
+    const target = typeof selector === 'string' ?
         document.querySelector(selector) :
         selector ;
 
     const options = assign({}, config, settings);
-    const attrFn = options.fn = options.fn
+
+    // Todo: attrFn is just for logging later on... get rid of, maybe?
+    options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
+
+    // Keep hold of attrFn for debugging
+    if (DEBUG) { var attrFn = options.fn; }
+
+    this.label = makeLabel(target, options);
+    this.renderCount = 0;
 
     const input = Stream.of().map(toObserverOrSelf);
     const output = run(null, target, input, options);
 
-    this.label = 'Sparky';
-    this.renderCount = 0;
-
-    this.push = input.push;
-    this.stop = input.stop;
-
-    // If output is false do not go on to parse and mount content
-    if (!output) { return; }
-
-    const attrInclude = options.include
-        || target.getAttribute(options.attributeInclude)
-        || '';
-
-    this.stop = function() {
-        input.stop();
-        output.stop();
-        stop();
+    this.push = function push() {
+        input.push(arguments[arguments.length - 1]);
         return this;
     };
 
-    if (DEBUG) { logNode(target, options.is, attrFn, attrInclude); }
+    this.stop = function() {
+        input.stop();
+        return this;
+    };
 
-    // We have consumed fn and include now, we may blank them before
-    // passing them on to the mounter, to protect against them being
-    // used again.
-    options.is      = '';
-    options.fn      = '';
-    options.include = '';
+    // If output is false do not go on to parse and mount content,
+    // a fn is signalling that it will take over. fn="each" does this,
+    // for example, replacing the original node and Sparky with duplicates.
+    if (!output) { return; }
 
-    var stop = attrInclude ?
+    // We have consumed fn lets make sure it's really empty
+    options.fn = '';
+    options.include = options.include
+        || target.getAttribute(options.attributeInclude)
+        || '';
+
+    if (DEBUG) { logNode(target, attrFn, options.include); }
+
+    options.include ?
         target.tagName === 'use' ?
-            setupSVG(target, attrInclude, output, options, this) :
-            setupTemplate(target, attrInclude, output, options, this) :
-        setupElement(target, output, options, this) ;
+            setupSVG(target, output, options, this) :
+        setupTemplate(target, output, options, this) :
+    setupElement(target, output, options, this) ;
 }

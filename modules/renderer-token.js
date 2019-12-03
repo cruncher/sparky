@@ -13,8 +13,9 @@ function observeMutations(node, fn) {
 }
 
 export default function TokenRenderer(token, render, node, name) {
-    this.label  = 'TokenRenderer';
-	this.renderCount = 0;
+    Renderer.call(this);
+
+    this.label  = 'Token';
     this.render = render;
     this.node   = node;
     this.name   = name;
@@ -33,7 +34,7 @@ export default function TokenRenderer(token, render, node, name) {
 
 assign(TokenRenderer.prototype, Renderer.prototype, {
     fire: function renderValue() {
-        Renderer.prototype.fire.apply(this, arguments);
+        Renderer.prototype.fire.apply(this);
 
         const token = this.tokens[0];
         const value = token.valueOf();

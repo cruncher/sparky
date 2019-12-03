@@ -22,6 +22,7 @@ if (window.console && window.console.log) {
 import { requestTick } from '../fn/module.js';
 import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
+import { log } from './modules/log.js';
 import Sparky from './modules/sparky.js';
 
 // Register base set of Sparky functions
@@ -44,6 +45,7 @@ export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
+export { default as Delegate } from './modules/delegate.js';
 
 // Register customised built-in element <template is="sparky-template">
 //
@@ -52,20 +54,20 @@ export { register } from './modules/functions.js';
 requestTick(function() {
     var supportsCustomBuiltIn = false;
 
-    element('sparky-template', {}, {}, {
+    element('sparky-template', {
         extends: 'template',
 
-        setup: function() {
+        construct: function() {
             const fn = this.getAttribute('fn');
 
             if (fn) {
-                Sparky(this, { fn: fn, is: 'sparky' });
+                Sparky(this, { fn: fn });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(this, { is: 'sparky' }).push({});
+                Sparky(this).push({});
             }
 
             // Flag
@@ -79,9 +81,9 @@ requestTick(function() {
         document.createElement('template', { is: 'sparky-template' });
     }
 
-    // If not supported, fallback to a dom query for [is="sparky-template"]
+    // If still not supported, fallback to a dom query for [is="sparky-template"]
     if (!supportsCustomBuiltIn) {
-        console.log('Sparky', 'browser does not support customised built-in elements');
+        log("Browser does not support custom built-in elements. Doin' it oldskool selectin' stylee.");
 
         window.document
         .querySelectorAll('[is="sparky-template"]')
@@ -89,13 +91,13 @@ requestTick(function() {
             const fn = template.getAttribute('fn');
 
             if (fn) {
-                Sparky(template, { fn: fn, is: 'sparky' });
+                Sparky(template, { fn: fn });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(template, { is: 'sparky' }).push({});
+                Sparky(template).push({});
             }
         });
     }
