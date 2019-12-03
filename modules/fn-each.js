@@ -20,14 +20,14 @@ const $scope = Symbol('scope');
 
 /* Renderers */
 
-function EachChild(scope, args) {
+function EachChild(scope, node, marker, sparkies, isOption, options) {
 	this.label    = 'EachChild';
 	this.scope    = scope;
-	this.node     = args[1];
-	this.marker   = args[2];
-	this.sparkies = args[3];
-	this.isOption = args[4];
-	this.options  = args[5];
+	this.node     = node;
+	this.marker   = marker;
+	this.sparkies = sparkies;
+	this.isOption = isOption;
+	this.options  = options;
 	this.renderCount = 0;
 }
 
@@ -75,7 +75,11 @@ assign(EachChild.prototype, {
 function EachParent(input, node, marker, sparkies, isOption, options) {
 	this.label = 'EachParent';
 	this.input = input;
-	this.args  = arguments;
+	this.node = node;
+    this.marker = marker;
+    this.sparkies = sparkies;
+    this.isOption = isOption;
+    this.options = options;
 }
 
 assign(EachParent.prototype, {
@@ -83,7 +87,8 @@ assign(EachParent.prototype, {
 		var scope = this.input.shift();
 		if (!scope) { return; }
 
-		const renderer = new EachChild(scope, this.args);
+        //scope, node, marker, sparkies, isOption, options
+		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
 
 		this.stop();
 		this.stop = observe('.', () => cue(renderer), scope);
@@ -145,8 +150,8 @@ function reorderCache(master, array, sparkies, options) {
 		// .nodes property and we may ignore it, otherwise go ahead
 		// and get rid of the nodes
 		if (sparky.nodes) {
+            renderCount += sparky.nodes.length;
 			A.forEach.call(sparky.nodes, (node) => node.remove());
-			renderCount += sparky.nodes.length;
 		}
 	}
 
@@ -209,24 +214,13 @@ function eachFrame(stream, node, marker, sparkies, isOption, options) {
 		cue(renderer);
 	}
 
-	// Support functors
-	if (!stream.on) {
-		push();
-
-		return function stop() {
-			renderer.stop();
-			uncue(renderer);
-		};
-	}
-
 	// Support streams
-	stream.on(push);
-
-	return function stop() {
-		stream.off('push', push);
+	stream
+    .on(push)
+    .done(function stop() {
 		renderer.stop();
-		uncue(renderer);
-	};
+		//uncue(renderer);
+	});
 }
 
 function entryToKeyValue(entry) {
@@ -261,14 +255,11 @@ register('each', function(node, params, options) {
 	options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
-	var unEachFrame = eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
+	eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
 
-	this.done(() => {
+    this.done(() => {
 		remove(marker);
-		unEachFrame();
-		sparkies.forEach(function(sparky) {
-			sparky.stop();
-		});
+		sparkies.forEach((sparky) => sparky.stop());
 	});
 
 	// Return false to prevent further processing of this Sparky

@@ -5,7 +5,8 @@ export function log(text) {
     );
 }
 
-export function logNode(target, attrIs, attrFn, attrInclude) {
+export function logNode(target, attrFn, attrInclude) {
+    const attrIs = target.getAttribute('is') || '';
     window.console.log('%cSparky%c'
         + ' ' + (window.performance.now() / 1000).toFixed(3)
         + ' <'

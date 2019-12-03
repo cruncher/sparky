@@ -45,7 +45,7 @@ export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
-export { default as EventDelegator } from './modules/event-delegator.js';
+export { default as Delegate } from './modules/delegate.js';
 
 // Register customised built-in element <template is="sparky-template">
 //
@@ -61,13 +61,13 @@ requestTick(function() {
             const fn = this.getAttribute('fn');
 
             if (fn) {
-                Sparky(this, { fn: fn, is: 'sparky' });
+                Sparky(this, { fn: fn });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(this, { is: 'sparky' }).push({});
+                Sparky(this).push({});
             }
 
             // Flag
@@ -91,13 +91,13 @@ requestTick(function() {
             const fn = template.getAttribute('fn');
 
             if (fn) {
-                Sparky(template, { fn: fn, is: 'sparky' });
+                Sparky(template, { fn: fn });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(template, { is: 'sparky' }).push({});
+                Sparky(template).push({});
             }
         });
     }
