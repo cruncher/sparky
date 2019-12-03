@@ -22,7 +22,7 @@
 </template>
 
 {% addtoblock "css" %}<link href="{{STATIC_URL}}components/messages/style.css" rel="stylesheet" />{% endaddtoblock %}
-{% addtoblock "config_script" %}
+{% addtoblock "config" %}
 {% if messages %}window.config.messages = [{% for message in messages %}{
     text: "{{message|escapejs|safe}}",
     type: "{{message.level_tag}}"
@@ -31,7 +31,7 @@
 {% endaddtoblock %}
 
 {% addtoblock "module" %}
-    import '{{STATIC_URL}}dom/js/dom.removeable.js';
+    import '{{STATIC_URL}}dom/js/removeable.js';
     import messages from '{{STATIC_URL}}components/messages/views.js';
     if (window.config.messages) { var i=0; while(i <= window.config.messages.length) {messages.push(window.config.messages[i++])}; };
     if (window.DEBUG) { window.messages = messages; }
