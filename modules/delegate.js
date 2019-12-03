@@ -20,6 +20,7 @@ export default function Delegate(type, selector, toName, actions) {
         .filter((node) => !node.disabled)
         .each(run);
 
+        // Don't need - this is done internally by Sparky
         this.done(() => stream.stop());
     };
 }
