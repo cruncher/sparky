@@ -8,7 +8,7 @@ import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 import { logNode, nodeToString } from './log.js';
 
-const DEBUG = false;//window.DEBUG === true || window.DEBUG === 'Sparky';
+const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const assign = Object.assign;
 

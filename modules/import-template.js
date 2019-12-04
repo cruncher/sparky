@@ -2,7 +2,7 @@ import { cache } from '../../fn/module.js';
 import { parse, query, request } from '../../dom/module.js';
 
 const requestDocument = cache(function requestDocument(path) {
-    return request('GET', 'text/html', path)
+    return request('GET', 'text/html', path, null)
     .then(parse('html'));
 });
 
