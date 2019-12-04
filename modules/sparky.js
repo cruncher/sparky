@@ -171,7 +171,7 @@ function setupTarget(input, render, options) {
 	tokens.reduce(assignTransform, options.pipes);
 
     let output  = nothing;
-    let stop    = noop;
+    //let stop    = noop;
     let prevSrc = null;
 
     function update(scope) {
@@ -207,7 +207,7 @@ function setupTarget(input, render, options) {
 
         // Stop the previous
         output.stop();
-        stop();
+        //stop();
 
         // If include is empty string render nothing
         if (!src) {
@@ -217,13 +217,13 @@ function setupTarget(input, render, options) {
             }
 
             output = nothing;
-            stop = noop;
+            //stop = noop;
             return;
         }
 
         // Push scope to the template renderer
         output = Stream.of(scope);
-        stop = setupSrc(src, output, render, options);
+        setupSrc(src, output, render, options);
     }
 
     input
@@ -248,7 +248,7 @@ function setupTarget(input, render, options) {
     })
     .done(() => {
         output.stop();
-        stop();
+        //stop();
     });
 }
 
