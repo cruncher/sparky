@@ -9,5 +9,5 @@ register('get', function(node, params) {
         stream.stop();
         return Observable(params[0], object);
     }, nothing)
-    .join();
+    .flat();
 });
