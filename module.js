@@ -32,7 +32,9 @@ import './modules/fn-entries.js';
 import './modules/fn-fetch.js';
 import './modules/fn-get.js';
 import './modules/fn-on.js';
+import './modules/fn-rest.js';
 import './modules/fn-scope.js';
+import './modules/fn-take.js';
 
 // Export API
 export default Sparky;
