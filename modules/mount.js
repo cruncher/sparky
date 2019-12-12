@@ -75,12 +75,16 @@ export function createPipe(array, pipes) {
 		var fn = getTransform(data.name);
 
 		if (!fn) {
+			if (DEBUG && !pipes) {
+				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
+			}
+
 			// Switch the cache, look in local pipes
 			cache = localCache;
 			fn = pipes[data.name];
 
 			if (DEBUG && !fn) {
-				throw new Error('pipe ' + data.name + '() not found.');
+				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
 			}
 		}
 
