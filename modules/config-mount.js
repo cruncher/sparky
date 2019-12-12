@@ -7,7 +7,7 @@ export default {
     form:     { attributes: ['method', 'action'] },
     fieldset: { booleans:   ['disabled'] },
     g:        { attributes: ['transform'] },
-    img:      { attributes: ['alt']	},
+    img:      { attributes: ['alt', 'src']	},
     input: {
         booleans:   ['disabled', 'required'],
         attributes: ['name'],
