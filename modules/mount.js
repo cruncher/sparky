@@ -552,7 +552,6 @@ export default function Mount(node, options) {
     }
 
 	this.renderers = [];
-
     mountNode(node, this.renderers, options);
 }
 

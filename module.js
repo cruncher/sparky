@@ -22,7 +22,7 @@ if (window.console && window.console.log) {
 import { requestTick } from '../fn/module.js';
 import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
-import { log } from './modules/log.js';
+import { log, logNode } from './modules/log.js';
 import Sparky from './modules/sparky.js';
 
 // Register base set of Sparky functions
@@ -49,6 +49,7 @@ export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
 export { default as Delegate } from './modules/delegate.js';
 
+
 // Register customised built-in element <template is="sparky-template">
 //
 // While loading we must wait a tick for sparky functions to register before
@@ -61,6 +62,8 @@ requestTick(function() {
 
         construct: function() {
             const fn = this.getAttribute('fn');
+
+            if (DEBUG) { logNode(this, fn, this.getAttribute('include')); }
 
             if (fn) {
                 Sparky(this, { fn: fn });

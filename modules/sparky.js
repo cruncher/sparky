@@ -1,4 +1,4 @@
-import { Observer, observe, Stream, capture, nothing, noop } from '../../fn/module.js';
+import { Observer, observe, Stream, capture, nothing } from '../../fn/module.js';
 import { before, create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
@@ -402,7 +402,7 @@ export default function Sparky(selector, settings) {
         || '';
 
     // Keep hold of attrFn for debugging
-    if (DEBUG) { var attrFn = options.fn; }
+    //if (DEBUG) { var attrFn = options.fn; }
 
     this.label = makeLabel(target, options);
     this.renderCount = 0;
@@ -431,7 +431,7 @@ export default function Sparky(selector, settings) {
         || target.getAttribute(options.attributeInclude)
         || '';
 
-    if (DEBUG) { logNode(target, attrFn, options.include); }
+    //if (DEBUG) { logNode(target, attrFn, options.include); }
 
     options.include ?
         target.tagName === 'use' ?
