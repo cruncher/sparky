@@ -1,7 +1,7 @@
 export default {
     default:  { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
     a:        { attributes: ['href'] },
-    button:   { booleans:   ['disabled'] },
+    button:   { attributes: ['name', 'value'], booleans: ['disabled'] },
     circle:   { attributes: ['cx', 'cy', 'r', 'transform'] },
     ellipse:  { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
     form:     { attributes: ['method', 'action'] },
