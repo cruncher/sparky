@@ -132,6 +132,12 @@ export const transformers = {
 	float:       { tx: toFloat,     ix: toString },
 	boolean:     { tx: Boolean,     ix: toString },
 
+    'boolean-string': { tx: toString, ix: function(value) {
+        return value === 'true' ? true :
+            value === 'false' ? false :
+            undefined ;
+    }},
+
 	normalise:   {
 		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
