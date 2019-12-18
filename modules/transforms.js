@@ -194,7 +194,8 @@ export const transformers = {
 	px:        { tx: toPx,  ix: toRem },
 	rem:       { tx: toRem, ix: toPx },
 	vw:        { tx: toVw,  ix: toPx },
-	vh:        { tx: toVh,  ix: toPx }
+	vh:        { tx: toVh,  ix: toPx },
+    not:       { tx: not,   ix: not }
 };
 
 export const transforms = {
@@ -220,7 +221,6 @@ export const transforms = {
 	max:          max,
 	min:          min,
 	mod:          mod,
-	not:          not,
 
 	// Strings
 	append:       append,
