@@ -25,12 +25,20 @@ function listen(scopes, type, selector, fn, node) {
 export default function Delegate(type, selector, fn) {
     return typeof type === 'object' ?
         function delegate(node) {
+            var scopes = this;
             var types = type;
-            for (type in types) {
-                for (selector in types[type]) {
-                    listen(this, type, selector, types[type][selector], node);
-                }
-            }
+            var first = true;
+            return this.tap(function() {
+                if (!first) { return; }
+                first = false;
+                requestAnimationFrame(function() {
+                    for (type in types) {
+                        for (selector in types[type]) {
+                            listen(scopes, type, selector, types[type][selector], node);
+                        }
+                    }
+                });
+            });
         } :
         function delegate(node) {
             listen(this, type, selector, fn, node);
