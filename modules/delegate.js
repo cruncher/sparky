@@ -33,11 +33,12 @@ function listen(scopes, type, selector, fn, node) {
     scopes.done(() => stream.stop());
 }
 
-export default function Delegate(type, selector, fn) {
-    return typeof type === 'object' ?
+export default function Delegate(types, selector, fn) {
+    return typeof types === 'object' ?
         function delegate(node) {
+            console.log('delegate', type, selector, node);
             //var scopes = this;
-            var types = type;
+            var type;
             //var first = true;
             //return this.tap(function() {
             //    if (!first) { return; }
@@ -52,6 +53,6 @@ export default function Delegate(type, selector, fn) {
             //});
         } :
         function delegate(node) {
-            listen(this, type, selector, fn, node);
+            listen(this, types, selector, fn, node);
         } ;
 }
