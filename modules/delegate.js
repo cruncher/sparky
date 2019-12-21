@@ -2,7 +2,7 @@
 /*
 For creating event delegation controllers:
 
-register('events', Delegate({
+register('events', delegate({
     'click': {
         'button[name]': fn
     )
@@ -33,7 +33,7 @@ function listen(scopes, type, selector, fn, node) {
     scopes.done(() => stream.stop());
 }
 
-export default function Delegate(types, selector, fn) {
+export default function delegate(types, selector, fn) {
     return typeof types === 'object' ?
         function delegate(node) {
             console.log('delegate', type, selector, node);
