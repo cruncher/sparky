@@ -17,7 +17,7 @@ function observeThing(renderer, token, object, scope, log) {
     token.unobservers.push(
         observe(object.path, (value) => {
             object.value = value;
-log && log(object.path, object.value);
+
             // If token has noRender flag set, it is being updated from
             // the input and does not need to be rendered back to the input
             if (token.noRender) { return; }

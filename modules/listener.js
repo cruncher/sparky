@@ -124,21 +124,17 @@ Object.assign(Listener.prototype, {
 
 
 // Delegate input and change handlers to the document at the cost of
-// one WeakMap lookup
+// one WeakMap lookup, and using the capture phase so that accompanying
+// scope is updated before any other handlers do anything
 
 document.addEventListener('input', function(e) {
     const fn = inputMap.get(e.target);
     if (!fn) { return; }
     fn(e.target.value);
-});
+}, { capture: true });
 
 document.addEventListener('change', function(e) {
     const fn = changeMap.get(e.target);
     if (!fn) { return; }
     fn(e.target.value);
-});
-
-document.addEventListener('focusout', function(e) {
-    // Todo: Changes are not rendered while node is focused,
-    // render them on blur
-});
+}, { capture: true });
