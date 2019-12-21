@@ -11,34 +11,45 @@ register('events', Delegate({
 
 import { events } from '../../dom/module.js';
 
-function listen(scopes, type, selector, fn, node) {
-    var stream = events(type, node)
+function createArgs(e, selector) {
+    const node = e.target.closest(selector);
     // Default to undefined, the stream filters out undefined
-    .map((e) => e.target.closest(selector) || undefined)
-    .filter((node) => !node.disabled)
-    .each(fn);
+    return node ? [node, e] : undefined ;
+}
 
-    // Don't need - this is done internally by Sparky
+function notDisabled(args) {
+    return !args[0].disabled;
+}
+
+function listen(scopes, type, selector, fn, node) {
+    console.log('LISTEN', type, node, document.body.contains(node));
+    var stream = events(type, node)
+    .map((e) => createArgs(e, selector))
+    // Don't listen to disabled nodes
+    .filter(notDisabled)
+    // Call fn(node, e)
+    .each((args) => fn.apply(null, args));
+
     scopes.done(() => stream.stop());
 }
 
 export default function Delegate(type, selector, fn) {
     return typeof type === 'object' ?
         function delegate(node) {
-            var scopes = this;
+            //var scopes = this;
             var types = type;
-            var first = true;
-            return this.tap(function() {
-                if (!first) { return; }
-                first = false;
-                requestAnimationFrame(function() {
+            //var first = true;
+            //return this.tap(function() {
+            //    if (!first) { return; }
+            //    first = false;
+            //    requestAnimationFrame(function() {
                     for (type in types) {
                         for (selector in types[type]) {
-                            listen(scopes, type, selector, types[type][selector], node);
+                            listen(this, type, selector, types[type][selector], node);
                         }
                     }
-                });
-            });
+            //    });
+            //});
         } :
         function delegate(node) {
             listen(this, type, selector, fn, node);
