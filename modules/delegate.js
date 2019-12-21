@@ -22,7 +22,6 @@ function notDisabled(args) {
 }
 
 function listen(scopes, type, selector, fn, node) {
-    console.log('LISTEN', type, node, document.body.contains(node));
     var stream = events(type, node)
     .map((e) => createArgs(e, selector))
     // Don't listen to disabled nodes
@@ -36,21 +35,12 @@ function listen(scopes, type, selector, fn, node) {
 export default function delegate(types, selector, fn) {
     return typeof types === 'object' ?
         function delegate(node) {
-            console.log('delegate', type, selector, node);
-            //var scopes = this;
             var type;
-            //var first = true;
-            //return this.tap(function() {
-            //    if (!first) { return; }
-            //    first = false;
-            //    requestAnimationFrame(function() {
-                    for (type in types) {
-                        for (selector in types[type]) {
-                            listen(this, type, selector, types[type][selector], node);
-                        }
-                    }
-            //    });
-            //});
+            for (type in types) {
+                for (selector in types[type]) {
+                    listen(this, type, selector, types[type][selector], node);
+                }
+            }
         } :
         function delegate(node) {
             listen(this, types, selector, fn, node);

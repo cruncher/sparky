@@ -47,7 +47,7 @@ export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
-export { default as Delegate } from './modules/delegate.js';
+export { default as delegate } from './modules/delegate.js';
 
 
 // Register customised built-in element <template is="sparky-template">
