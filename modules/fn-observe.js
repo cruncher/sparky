@@ -18,7 +18,6 @@ export default function Observe(paths) {
         return this
         .tap(function(scope) {
             unobserve();
-
             var path;
             for (path in paths) {
                 unobservers.push(createObserver(path, paths[path], scope, node));
