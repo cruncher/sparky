@@ -44,13 +44,12 @@ function replace(target, content) {
     target.remove();
 }
 
-/*
-PromiseStream()
 
-This is a little different from a Stream.fromPromise(promise), which
-enters 'done' state as soon as it resolves. Here we want to leave
-it running as we use its state to control rendering.
-*/
+// PromiseSource()
+//
+// This is a little different from a Stream.fromPromise(promise), which
+// enters 'done' state as soon as it resolves. Here we want to leave
+// it running as we use its state to control rendering.
 
 function PromiseSource(notify, stop, promise) {
     this.stop = stop;
@@ -384,6 +383,36 @@ function makeLabel(target, options) {
         + (target.tagName ? target.tagName.toLowerCase() : '')
         + (options.fn ? ' fn="' + options.fn + '">' : '>');
 }
+
+/*
+Sparky(nodeOrSelector)
+
+Mounts a node as a template and returns a pushable stream. Push an object
+to the stream to have it rendered by the template:
+
+```html
+<div id="title-div">
+    I am { [title] }.
+</div>
+```
+```
+import Sparky from '/sparky/module.js';
+
+// Mount the <div>
+const sparky = Sparky('#title-div');
+
+// Render it by pushing in an object
+sparky.push({ title: 'rendered' });
+```
+
+Results in:
+
+```html
+<div id="title-div">
+    I am rendered.
+</div>
+```
+*/
 
 export default function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {

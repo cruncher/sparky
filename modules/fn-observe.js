@@ -1,3 +1,7 @@
+/*
+Observe()
+*/
+
 import { call, observe } from '../../fn/module.js';
 
 function createObserver(path, fn, scope, node) {

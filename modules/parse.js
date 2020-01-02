@@ -1,3 +1,9 @@
+/*
+Pipes()
+
+
+
+*/
 
 import { capture, exec, id, noop, nothing } from '../../fn/module.js'
 import Value from './value.js';

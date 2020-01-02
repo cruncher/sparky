@@ -25,6 +25,10 @@
     <link rel="stylesheet" href="../bolt/css/root.css" />
     <link rel="stylesheet" href="../bolt/css/body.css" />
     <link rel="stylesheet" href="../bolt/css/block.css" />
+    <link rel="stylesheet" href="../bolt/css/bubble.css" />
+    <link rel="stylesheet" href="../bolt/css/button.css" />
+    <link rel="stylesheet" href="../bolt/css/dialog.css" />
+    <link rel="stylesheet" href="../bolt/css/layer.css" />
     <link rel="stylesheet" href="../bolt/css/type.css" />
     <link rel="stylesheet" href="../bolt/css/text.css" />
     <link rel="stylesheet" href="../bolt/css/color.css" />
@@ -32,170 +36,53 @@
     <link rel="stylesheet" href="../dom/css/dom.css" />
     <link rel="stylesheet" href="../fn/css/prism.cruncher.css" />
     <link rel="stylesheet" href="../fn/css/tests.css" />
-    <link rel="stylesheet" href="css/docs.css" />
-    <link rel="stylesheet" href="css/theme.css" />
-    <link rel="stylesheet" href="css/respond.css" />
+    <link rel="stylesheet" href="../fn/css/docs.css" />
+    <link rel="stylesheet" href="../dom/css/theme.css" />
+    <link rel="stylesheet" href="../fn/css/respond.css" />
 </head>
 
-<body class="grid">
-    <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-11" id="header">
+<body class="@3-grid-12 grid">
+    <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-9" id="header">
         <template build-fn="fetch:package.json" build-include="/fn/templates.html#header-template"></template>
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
         <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2">Functions</h2>
-            <p>Import functions from the Fn module:</p>
-            <pre><code class="language-js">import { get, matches } from '/fn/module.js';</code></pre>
+            <h2 class="text-2">Sparky templates</h2>
         </header>
 
-        <div class="x-1 xspan-3">
-            <h4 class="text-4">Functions</h4>
-            <template build-fn="docs:
-            modules/cache.js,
-            modules/compose.js,
-            modules/curry.js,
-            modules/choose.js,
-            modules/once.js,
-            modules/overload.js,
-            modules/pipe.js,
-            modules/weak-cache.js
-            filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
-
         <div class="x-1 xspan-3 @2-xspan-4">
-            <p>
-            The functions below are curried (where they take more than one
-            parameter), allowing them to be partially applied.
-            </p>
+            <p>Import Sparky to register the custom element:</p>
+            <pre><code class="language-js">import '/sparky/module.js';</code></pre></code></pre>
+            <template build-fn="docs:
+            module.js
+            each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
 
         <div class="x-1 xspan-3 column-grid grid">
             <div class="x-1">
-                <h4 class="text-4">Objects</h4>
+                <h4 class="text-4">fn.</h4>
                 <template build-fn="docs:
-                modules/argument.js,
-                modules/call.js,
-                modules/equals.js,
-                modules/get.js,
-                modules/has.js,
-                modules/id.js,
-                modules/invoke.js,
-                modules/is.js,
-                modules/is-defined.js,
-                modules/matches.js,
-                modules/noop.js,
-                modules/not.js,
-                modules/request-tick.js,
-                modules/self.js,
-                modules/set.js,
-                modules/to-array.js,
-                modules/to-class.js,
-                modules/to-fixed.js,
-                modules/to-string.js,
-                modules/to-type.js
-                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-            </div>
-        </div>
-
-        <div class="x-1 xspan-3 @1-x-4 column-grid grid">
-            <div class="x-1">
-                <h4 class="text-4">Strings</h4>
-                <template build-fn="docs:
-                modules/capture.js,
-                modules/exec.js,
-                'modules/time.js?parseDate,parseTime',
-                modules/parse-int.js,
-                modules/parse-value.js
-                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+                modules/fn-each.js,
+                modules/fn-entries.js,
+                modules/fn-fetch.js,
+                modules/fn-take.js
+                each" build-include="/fn/templates.html#{[type]}-template"></template>
             </div>
 
             <div class="x-1">
-                <h4 class="text-4">Numbers</h4>
+                <h4 class="text-4">include.</h4>
                 <template build-fn="docs:
-                modules/maths/core.js,
-                modules/maths/cubic-bezier.js,
-                modules/maths/to-cartesian.js,
-                modules/maths/to-polar.js
-                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-            </div>
-        </div>
-
-        <div class="x-1 xspan-3 @2-x-7 column-grid grid">
-            <div class="x-1">
-                <h4 class="text-4">Arrays</h4>
-                <template build-fn="docs:
-                modules/lists/core.js,
-                modules/lists/insert.js,
-                modules/lists/last.js,
-                modules/lists/remove.js,
-                modules/lists/rest.js,
-                modules/lists/take.js,
-                modules/lists/unique.js,
-                modules/lists/update.js
-                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-            </div>
-
-            <div class="x-1">
-                <h4 class="text-4">Time</h4>
-                <template build-fn="docs:
-                modules/time.js
-                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+                modules/sparky.js
+                each" build-include="/fn/templates.html#{[type]}-template"></template>
             </div>
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="observer">
-        <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2" style="font-size: 1.875rem;">Observer</h2>
-            <p>Import and create an observer:</p>
-            <pre><code class="language-js">import { Observer, observe } from '/fn/module.js';
-const data = Observer({ a: true });</code></pre>
-            <p>
-            An observer is an ES6 Proxy of an object that intercepts and reports
-            mutations. There is only ever one observer per object, ie, calling
-            <code>Observer(object)</code> multiple times with the same object
-            always returns the same observer. Observers can be observed for
-            mutations with the observe function:
-            </p>
-
-            <pre><code class="language-js">observe('a', (value) => {...}, data);</code></pre>
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="attributes">
+        <header class="x-1 xspan-3 @1-xspan-4 block">
+            <h2 class="text-2">Functions</h2>
         </header>
-
-        <div class="x-1 xspan-3 list-grid grid">
-            <template build-fn="docs:
-            modules/observer/observer.js,
-            modules/observer/observe.js
-            filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
-    </section>
-
-    <!--div class="x-1 xspan-3 @2-x-2 @3-xspan-6 @4-xspan-5 @5-xspan-3">
-        <p>Text things</p>
-    </div-->
-
-    <!--div class="x-1 xspan-3 @2-x-2 @3-xspan-6 @4-xspan-5 @5-xspan-3" build-fn="docs:'./modules/stream.js'"></div-->
-
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="stream">
-        <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2" style="font-size: 1.875rem;">Stream</h2>
-            <p>Import and create a stream:</p>
-            <pre><code class="language-js">import { Stream } from '/fn/module.js';
-const stream = Stream.of(1,2,3,4);</code></pre>
-        </header>
-
-        <div class="x-1 xspan-3 list-grid grid">
-            <template build-fn="docs:modules/stream.js filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
-            <template build-fn="docs:modules/fn.js filter-property each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
-
-        <div class="x-1 xspan-3 @1-x-4 list-grid grid">
-            <template build-fn="docs:modules/stream.js filter-method take:16 each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
-
-        <div class="x-1 xspan-3 @2-x-7 list-grid grid">
-            <template build-fn="docs:modules/stream.js filter-method rest:16 each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
     </section>
 
     <!-- Build document -->
@@ -206,10 +93,12 @@ const stream = Stream.of(1,2,3,4);</code></pre>
     <!-- Document interactivity -->
     <script type="module">
         import '../dom/js/device.js';
+        import '../dom/js/popable.js';
         import '../dom/js/toggleable.js';
         import '../dom/js/locateable.js';
-        import * as Fn from './module.js';
-
-        Object.assign(window, Fn);
+        import '../dom/js/switchable.js';
+        import '../dom/js/fullscreenable.js';
+        import * as sparky from './module.js';
+        window.$ = sparky;
     </script>
 </body>

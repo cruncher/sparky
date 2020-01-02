@@ -51,6 +51,65 @@ export { default as delegate } from './modules/delegate.js';
 export { default as ObserveFn } from './modules/fn-observe.js';
 
 
+/*
+template() is="sparky-template"
+
+The custom element `<template is="sparky-template">` is replaced
+with its rendered content:
+
+```html
+<template is="sparky-template">
+    Hello!
+</template>
+
+Hello!
+```
+
+By default the rendering scope is an empty object, but where a `fn` attribute
+is defined, the template is rendered only when a scope becomes available:
+
+```html
+<template is="sparky-template" fn="fetch:package.json">
+    I am { [title] }.
+</template>
+
+I am Sparky.
+```
+*/
+
+/*
+include()
+
+Templates may include other templates. Define the `include` attribute
+as an href to a template:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
+
+I am Sparky.
+```
+
+Templates may be composed of includes:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json">
+    <template include="#i-am-title"></template>
+    <template include="#i-am-title"></template>
+</template>
+
+I am Sparky.
+I am Sparky.
+```
+*/
+
 // Register customised built-in element <template is="sparky-template">
 //
 // While loading we must wait a tick for sparky functions to register before

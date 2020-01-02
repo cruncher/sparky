@@ -1,5 +1,15 @@
 /*
+each()
 
+```html
+<ul>
+    <li fn="get:keywords each">{ [.] }</li>
+</ul>
+```
+
+Where scope is an array or array-like, `each` clones the DOM node and
+renders a clone for each value in the array. (Where there are functions
+following `each` in the attribute, they are run on each clone.)
 */
 
 
@@ -18,7 +28,7 @@ const assign  = Object.assign;
 const $scope = Symbol('scope');
 
 
-/* Renderers */
+// Renderers
 
 function EachChild(scope, node, marker, sparkies, isOption, options) {
 	this.label    = 'EachChild';
@@ -100,7 +110,7 @@ assign(EachParent.prototype, {
 });
 
 
-/* Logic */
+// Logic
 
 function createEntry(master, options) {
 	const node = master.cloneNode(true);
