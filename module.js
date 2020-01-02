@@ -54,61 +54,44 @@ export { default as ObserveFn } from './modules/fn-observe.js';
 /*
 template() is="sparky-template"
 
-The custom element `<template is="sparky-template">` is replaced
-with its rendered content:
+
+Import Sparky to register the custom element `<template is="sparky-template">`:
+
+```
+import '/sparky/module.js';
+```
+
+These templates are replaced directly in the DOM with their own rendered content:
 
 ```html
 <template is="sparky-template">
     Hello!
 </template>
+```
 
+```html
 Hello!
 ```
 
-By default the rendering scope is an empty object, but where a `fn` attribute
-is defined, the template is rendered only when a scope becomes available:
+Sparky templates are given an empty object as a rendering scope unless
+a `fn` attribute is defined. The `fn` attribute defines one or more
+functions to run on the template. A function is expected to push an
+object to the template, which is then used to render template tags of
+the form `{ [...] }`:
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     I am { [title] }.
 </template>
-
-I am Sparky.
 ```
-*/
-
-/*
-include()
-
-Templates may include other templates. Define the `include` attribute
-as an href to a template:
 
 ```html
-<template id="i-am-title">
-    I am { [title] }.
-</template>
-
-<template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
-
 I am Sparky.
 ```
 
-Templates may be composed of includes:
-
-```html
-<template id="i-am-title">
-    I am { [title] }.
-</template>
-
-<template is="sparky-template" fn="fetch:package.json">
-    <template include="#i-am-title"></template>
-    <template include="#i-am-title"></template>
-</template>
-
-I am Sparky.
-I am Sparky.
-```
+The `fn` attribute may be declared on any element in a sparky template.
 */
+
 
 // Register customised built-in element <template is="sparky-template">
 //

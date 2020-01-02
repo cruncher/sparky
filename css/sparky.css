@@ -1,8 +1,0 @@
-/* No longer necessary now all Sparky roots are <template>s */
-/*.sparky {
-	visibility: hidden;
-}*/
-
-.sparky-hidden {
-	display: none !important;
-}

@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="../fn/css/tests.css" />
     <link rel="stylesheet" href="../fn/css/docs.css" />
     <link rel="stylesheet" href="../dom/css/theme.css" />
+    <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="../fn/css/respond.css" />
 </head>
 
@@ -48,20 +49,28 @@
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
         <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2">Sparky templates</h2>
+            <h2 class="text-2">Getting started</h2>
         </header>
 
         <div class="x-1 xspan-3 @2-xspan-4">
-            <p>Import Sparky to register the custom element:</p>
-            <pre><code class="language-js">import '/sparky/module.js';</code></pre></code></pre>
             <template build-fn="docs:
             module.js
+            each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @2-xspan-4">
+            <template build-fn="docs:
+            modules/parse.js?tags
             each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
 
         <div class="x-1 xspan-3 column-grid grid">
             <div class="x-1">
                 <h4 class="text-4">fn.</h4>
+
+                <p>Functions are responsible for listening to the DOM and supplying
+                objects to render. They are template controllers, if you like.</p>
+
                 <template build-fn="docs:
                 modules/fn-each.js,
                 modules/fn-entries.js,
@@ -73,7 +82,7 @@
             <div class="x-1">
                 <h4 class="text-4">include.</h4>
                 <template build-fn="docs:
-                modules/sparky.js
+                modules/sparky.js?Sparky
                 each" build-include="/fn/templates.html#{[type]}-template"></template>
             </div>
         </div>

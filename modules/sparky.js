@@ -387,7 +387,7 @@ function makeLabel(target, options) {
 /*
 Sparky(nodeOrSelector)
 
-Mounts a node as a template and returns a pushable stream. Push an object
+Mounts any element as a template and returns a pushable stream. Push an object
 to the stream to have it rendered by the template:
 
 ```html
@@ -411,6 +411,41 @@ Results in:
 <div id="title-div">
     I am rendered.
 </div>
+```
+*/
+
+
+
+/*
+include()
+
+Templates may include other templates. Define the `include` attribute
+as an href to a template:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
+
+I am Sparky.
+```
+
+Templates may be composed of includes:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json">
+    <template include="#i-am-title"></template>
+    <template include="#i-am-title"></template>
+</template>
+
+I am Sparky.
+I am Sparky.
 ```
 */
 
