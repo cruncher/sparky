@@ -1,677 +1,215 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="utf-8" />
-	<meta name="author" content="@stephband" />
-	<meta name="description" content="" />
-	<meta name="viewport" content="width=device-width" />
+<html lang="en" is="sparky">
+<head build-fn="fetch:package.json">
+    <meta charset="utf-8" />
 
-	<title>Sparky</title>
+    <meta name="author" content="@{[author.twitter]}" />
+    <meta name="description" content="Documentation for {[title]}. {[description]}" />
+    <meta name="viewport" content="width=device-width" />
+
+    <title>{[title]}</title>
 
     <script>
-    document.documentElement.className = 'js dom-loading loading';
-    window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.remove('dom-loading'));
-    window.addEventListener('load', () => document.documentElement.classList.remove('loading'));
-    window.DEBUG = true;
+    document.documentElement.className = 'js';
+    window.DEBUG = false;
     </script>
 
-	<link rel="icon" type="image/png" href="images/favicon.png" />
-	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="images/logo-64x64.ico" />
+    <link rel="icon" type="image/png" href="images/logo-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/logo-64x64.png" sizes="64x64">
+    <link rel="icon" type="image/png" href="images/logo-128x128.png" sizes="128x128">
 
-	<link rel="stylesheet" href="http://stephen.band/bolt/dist/bolt.min.css" />
-	<!--link rel="stylesheet" href="../fn/css/grid.css" /-->
-	<link rel="stylesheet" href="../fn/css/docs.css" />
-	<!--link rel="stylesheet" href="../fn/css/syntax-atom.css" /-->
-	<link rel="stylesheet" href="../fn/css/prism.cruncher.css" />
-	<link rel="stylesheet" href="../fn/css/tests.css" />
-	<link rel="stylesheet" href="../dom/css/dom.css" />
-	<link rel="stylesheet" href="css/docs.css" />
-	<link rel="stylesheet" href="css/test.css" />
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
 
-	<style>
-body{
-	color: #860048;
-	color: #960051;
-	color: #5d0d6f;
+    <link rel="stylesheet" href="../bolt/css/html.css" />
+    <link rel="stylesheet" href="../bolt/css/root.css" />
+    <link rel="stylesheet" href="../bolt/css/body.css" />
+    <link rel="stylesheet" href="../bolt/css/block.css" />
+    <link rel="stylesheet" href="../bolt/css/type.css" />
+    <link rel="stylesheet" href="../bolt/css/text.css" />
+    <link rel="stylesheet" href="../bolt/css/color.css" />
 
-	color: ;
-	background-color: #ddda27;
-/*
-	color: #bdbd9b;
-	background-color: #23231b;
-*/
-	color: black;
-	background-color: #d0cc25;
-
-	background-color: #a7d819;
-	background-color: #b2d01a;
-
-	color: #2d2d2d;
-	color: #272a2b;
-	background-color: #b9d819;
-
-	padding-top: 3.75rem;
-}
-
-.test-block {
-	color: #b9d819;
-	background-color: #272a2b;
-	min-height: 2000px;
-}
-
-code {
-	background-color: #cfe84a;
-}
-
-.toggle-block.active::before {
-	background-color: rgba(39, 42, 43, 0.5);
-}
-
-script[type="text"] {
-	white-space: pre;
-	border-width: 0;
-	padding: 0;
-	line-height: inherit;
-	tab-size: 2;
-	margin-left: -4.875rem;
-	margin-top: -1.5rem;
-	margin-bottom: -1.5rem;
-	background-color: transparent;
-}
-
-line { stroke-width: 1; stroke: inherit; }
-	</style>
+    <link rel="stylesheet" href="../dom/css/dom.css" />
+    <link rel="stylesheet" href="../fn/css/prism.cruncher.css" />
+    <link rel="stylesheet" href="../fn/css/tests.css" />
+    <link rel="stylesheet" href="css/docs.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/respond.css" />
 </head>
 
-<body>
-	<header class="grid-block block grid-1/1 @2-span-1/1" id="header">
-		<div class="block grid-1/1 @2-grid-7/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" sparky-fn="import:package.json">
-			<h1>{[title]}
-			<span class="text-6">{[version]}</span></h1>
-			<p class="text-8">{[description]}</p>
-		</div
-
-		><img class="block @2-grid-3/15 @2-grid-left-1/15 @3-grid-left-1/9 bottom-align" src="images/sparky-logo-dark.svg" />
-	</header>
-
-	<script type="text/html" code="html">
-		<pre sparky-fn="global:location">
-		href: {[href]}
-		</pre>
-	</script>
-
-	<div class="spaced-grid-block grid-block block grid-1/1 @2-span-1/1">
-		<article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
-			<h2 class="block">Sparky(selector)</h2>
-
-			<div class="block grid-1/1">
-				<pre class="text-5"><code>Sparky('#id');</code></pre>
-				<p>Mount selected element as a Sparky template.</p>
-				<pre class="text-5"><code>Sparky('#id', data);</code></pre>
-				<p>Mount selected element as a template and render it
-				immediately using <code>data</code> as scope.</p>
-				<!--pre>Sparky('#id', data, settings);</pre>
-				<p>Mount selected element as a template also passing in a
-				settings object. You will not normally require this.</p-->
-				<pre class="text-5"><code>var sparky = Sparky('#id');</code></pre>
-				<p>The constructor returns a <code>sparky</code> object that
-				is both an array-like object of DOM nodes and a pushable
-				stream of data.</p>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
-			<h3 class="block">methods.</h3>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-push">
-				<h4 class="text-5 dot-indent"><a href="#sparky-push"><code>.push(data)</code></a></h4>
-				<p>Push data into <code>sparky</code> to be rendered as template
-				scope on the next animation frame.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-stop">
-				<h4 class="text-5 dot-indent"><a href="#sparky-stop"><code>.stop()</code></a></h4>
-				<p>Unmount the template, disconnecting its tags from scope
-				updates. Tags and nodes are left in the DOM in their stopped state.</p>
-				<p class="tip-block block">Tip: you could remove them with <code>sparky.forEach(dom.remove)</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-then">
-				<h4 class="text-5 dot-indent"><a href="#sparky-then"><code>.then(fn)</code></a></h4>
-				<p>Call <code>fn</code> after <cade>sparky</cade> is stopped.</p>
-			</div>
-
-			<h3 class="block">properties.</h3>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="sparky-status">
-				<h4 class="text-5 dot-indent"><a href="#sparky-status"><code>.status</code></a></h4>
-				<p>Sparky is in one of two states:
-				<code>"active"</code> or <code>"done"</code>.</p>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9" style="display: block">
-			<h2 class="block">Sparky templates</h2>
-
-			<div class="block grid-1/1">
-				<p>Sparky templates are made of plain old HTML enhanced with
-				<strong>functions</strong> and <strong>tags</strong>.</p>
-
-				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:package.json">Latest: {[version|prepend:'v']}</p>
-				</script></code>
-				<svg viewbox="0 0 1 0.06" style="margin-top: 0.25rem;">
-					<line class="black-stroke" x1="0.24" y1="0" x2="0.15" y2="0.06"></line>
-					<line class="black-stroke" x1="0.40" y1="0" x2="0.37" y2="0.06"></line>
-					<line class="black-stroke" x1="0.78" y1="0" x2="0.79" y2="0.06"></line>
-					<line class="black-stroke" x1="0.92" y1="0" x2="0.95" y2="0.06"></line>
-				</svg>
-				<span>function</span><span>parameter</span><span>path</span><span>transform</span>
-			</p>
-
-				<p>The <strong>import</strong> function imports 'package.json' and
-				pushes it into scope, then Sparky takes the 'version' property,
-				prepends it with 'v' and replaces the tag with the text. The
-				result?</p>
-
-				<p sparky-fn="import:package.json" id="template-demo-1">
-					Latest: {[version|prepend:'v']}
-				</p>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
-			<h3 class="block">sparky-fn</h3>
-
-			<div class="block grid-1/1">
-				<p>Functions, declared in the <code>sparky-fn</code> attribute, are
-				run before the template is mounted. They have two parts, a
-				<strong>name</strong> followed by 0 or more
-				<strong>parameters</strong>.</p>
-
-				<p class="text-5"><code><script type="text">
-				sparky-fn="each"
-				sparky-fn="import:package.json"
-				</script></code></p>
-
-				<p>Functions are view-controllers with responsibility for
-				getting data and spitting out scopes, and can listen to and
-				mutate nodes. They're powerful. You're going to want to write
-				your own. But first, let's have a look at some built-ins.</p>
-
-				<h4>Getting scope</h4>
-				<p>We have already seen the <strong>import</strong> function in
-				action. <strong>load</strong> also loads data, but with a subtle
-				difference: where <strong>import</strong> makes a single request
-				and creates a single data object (per url), distributing it to
-				other imports, <strong>load</strong> makes makes a new request
-				and creates a new data object each time.</p>
-				<p>The <strong>find</strong> function takes a JS path (in dot
-				notation) and looks for data at that path in the global object
-				(<code>window</code>).</p>
-				<p>The <strong>get</strong> function takes a JS path and looks
-				for data at that path in the current scope.</p>
-
-				<!--, but the example has a problem: if package.json took a
-				long time to import – if the user has a dodgy connection or no JS
-				at all – we would see unrendered template before Sparky
-				updates the node. It would be nice to put something useful there
-				while waiting.</p-->
-
-				<h4>Composing templates</h4>
-				<p>Sparky has a function for cloning and inserting a template
-				into a node: the <strong>template</strong> function. It performs
-				the import only when the first scope is available, so it can be
-				used to provide initial content.</p>
-
-				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:package.json template:latest">
-					Version info at github.com/cruncher/sparky.
-				</p>
-
-				<template id="latest">
-				    Latest: {[version]}
-				</template>
-				</script></code></p>
-
-				<h4>Looping over arrays</h4>
-				<p>The third function worth a special mention is
-				<strong>each</strong>. It copies and remounts the node for each
-				object found in scope, where scope must be an array or array-like.
-				</p>
-
-				<p class="text-5"><code><script type="text">
-				<p sparky-fn="import:package.json get:keywords each">{[.]}</p>
-				</script></code></p>
-
-				<p>Result:</p>
-
-				<p sparky-fn="import:package.json get:keywords each" id="template-demo-2">{[.]}</p>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
-			<h3 class="block">functions.</h3>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-each">
-				<h3 class="text-5"><a href="#fn-each"><code class="js">each</code></a></h3>
-				<p>Where scope is an array or array-like, duplicates the element for each object in scope.</p>
-
-				<div code="html">
-				<ul sparky-fn="import:example.json">
-				    <li sparky-fn="get:path.to.array each">{[name]}</li>
-				</ul>
-				</div>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-global">
-				<h3 class="text-5"><a href="#fn-global"><code class="js">global:path</code></a></h3>
-				<p>Get an object from <code>path</code> in the global scope
-				(<code>window</code>) and push it to the template scope.</p>
-
-				<div code="html">
-					<pre sparky-fn="global:location">
-					href: {[href]}
-					</pre>
-				</div>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-get">
-				<h3 class="text-5"><a href="#fn-get"><code class="js">get:path</code></a></h3>
-				<p>Gets the value of <code>path</code> of the current scope.</p>
-
-				<div code="html">
-					<pre sparky-fn="import:example.json get:path.to.array[0]">
-					name: {[name]}
-					id:   {[id]}
-					</pre>
-				</div>
-			</div>
-
-
-
-
-
-
-
-
-
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-import">
-				<h3 class="text-5"><a href="#fn-import"><code class="js">import:url</code></a></h3>
-				<p>Looks in the object cache for data for that <code>url</code>,
-				or loads JSON data from the <code>url</code> and caches it,
-				pushing that data to the template scope.</p>
-			</div>
-
-			<!--div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-load">
-				<h3 class="text-5"><a href="#fn-load"><code class="js">load:url</code></a></h3>
-				<p>Loads JSON data from <code>url</code> and pushes it to the
-				template scope. A new data object is created per load request.</p>
-			</div-->
-
-			<!--div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-html">
-				<h3 class="text-5"><a href="#fn-html"><code class="js">html</code></a></h3>
-				<p>When scope is a string, replaces the content of the current element with scope by setting <code>.innerHTML</code>.</p>
-			</div-->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-template">
-				<h3 class="text-5"><a href="#fn-template"><code class="js">template:url</code></a></h3>
-				<p>Replaces the content of the element with the cloned,
-				mounted content of the template referenced by <code>url</code>.
-				Usually this is a hashref for a template in the same document:</p>
-
-				<div code="html">
-					<pre sparky-fn="import:package.json template:#example-template">
-					Loading...
-					</pre>
-
-					<template id="example-template">
-					My name is {[title]} and I'm {[version]}!
-					</template>
-				</div>
-
-				<p>Sparky will also import the contents of elements in
-				external documents. Note that the <i>initial</i> content of the
-				element is left untouched until the template has data and is
-				ready to render.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-log">
-				<h3 class="text-5"><a href="#fn-log"><code class="js">log</code></a></h3>
-				<p>For debugging. Logs node and scopes to the console.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-request-on-submit">
-				<h3 class="text-5"><a href="#fn-request-on-submit"><code class="js">request-on-submit</code></a></h3>
-				<p>Sends a request on form <code class="js">submit</code>, where the type of request is determined
-				by the current state of the <code class="js">method</code> attribute and the URL determined by the
-				<code class="js">action</code> attribute of the form. The JSON data payload is the current scope.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-prevent-on">
-				<h3 class="text-5"><a href="#fn-prevent-on"><code class="js">prevent-on:type</code></a></h3>
-				<p>Calls <code>.preventDefault()</code> on events of <code>type</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="fn-stop">
-				<h3 class="text-5"><a href="#fn-stop"><code class="js">stop</code></a></h3>
-				<p>Stops sparkifying the element. No more functions are run, and
-				the contents of the element are not parsed. Use <code>stop</code>
-				to ignore blocks of static HTML inside a Sparky template.</p>
-
-				<div code="html">
-					<pre sparky-fn="import:package.json stop">
-					This tag is not rendered – {[title]}.
-					</pre>
-				</div>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-7/15 @2-span-left-1/15 @3-span-3/9 @3-span-left-1/9">
-			<h3 class="block">{[tag]}</h3>
-
-			<div class="block grid-1/1">
-				<p>Tags, found in the attributes and content of the node and
-				its descendants, are rendered with values from the scope.</p>
-
-				<pre>{[name|truncate:6|uppercase]}</pre>
-
-				<p>A tag may have three parts. A <strong>path</strong>, followed
-				by any number of pipe-seperated <strong>transfoms</strong> and their
-				<strong>parameters</strong>.</p>
-			</div>
-		</article
-
-		><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
-			<h3 class="block">transforms.</h3>
-
-			<!-- Objects -->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-get">
-				<h3 class="text-5"><a href="#tn-get"><code class="js">get:name</code></a></h3>
-				<p>Get property <code>name</code> from value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-invoke">
-				<h3 class="text-5"><a href="#tn-invoke"><code class="js">invoke:name,params</code></a></h3>
-				<p>Returns the result of invoking method <code>name</code> with <code>params</code> on an object.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-is">
-				<h3 class="text-5"><a href="#tn-is"><code class="js">is:n</code></a></h3>
-				<p>Returns the (boolean) result of a strict equality check between <code>n</code> and value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-type">
-				<h3 class="text-5"><a href="#tn-type"><code class="js">type</code></a></h3>
-				<p>Returns <code>typeof value</code>.</p>
-			</div>
-
-			<!-- Arrays -->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-map">
-				<h3 class="text-5"><a href="#tn-map"><code class="js">map:name,arguments</code></a></h3>
-				<p>Maps array using transform <code>name</code> with <code>arguments</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-filter">
-				<h3 class="text-5"><a href="#tn-filter"><code class="js">filter:name,arguments</code></a></h3>
-				<p>Filters array using transform <code>name</code> with <code>arguments</code>.</p>
-			</div>
-
-			<!-- Strings -->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-append">
-				<h3 class="text-5"><a href="#tn-append"><code class="js">append:string</code></a></h3>
-				<p>Appends <code>string</code> to value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-lowercase">
-				<h3 class="text-5"><a href="#tn-lowercase"><code class="js">lowercase</code></a></h3>
-				<p>Converts value to lowercase.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-match">
-				<h3 class="text-5"><a href="#tn-match"><code class="js">match:regex</code></a></h3>
-				<p>Returns result of matching value against <code>regex</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-matches">
-				<h3 class="text-5"><a href="#tn-matches"><code class="js">matches:regex</code></a></h3>
-				<p>Tests value against <code>regex</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-postpad">
-				<h3 class="text-5"><a href="#tn-postpad"><code class="js">postpad:n,string</code></a></h3>
-				<p>Appends <code>string</code> to value to output a string of length <code>n</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-prepad">
-				<h3 class="text-5"><a href="#tn-prepad"><code class="js">prepad:n,string</code></a></h3>
-				<p>Prepends <code>string</code> to value to output a string of length <code>n</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-prepend">
-				<h3 class="text-5"><a href="#tn-prepend"><code class="js">prepend:string</code></a></h3>
-				<p>Prepends <code>string</code> to value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-slugify">
-				<h3 class="text-5"><a href="#tn-slugify"><code class="js">slugify</code></a></h3>
-				<p>Outputs slug of value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-translate">
-				<h3 class="text-5"><a href="#tn-translate"><code class="js">translate</code></a></h3>
-				<p>Looks up value in <code>Sparky.translations</code> and outputs it. If a translation does
-				not	exist, warns the console and outputs the original value.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-uppercase">
-				<h3 class="text-5"><a href="#tn-uppercase"><code class="js">uppercase</code></a></h3>
-				<p>Converts value to uppercase.</p>
-			</div>
-
-			<!-- Numbers -->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-decibels">
-				<h3 class="text-5"><a href="#tn-decibels"><code class="js">decibels</code></a></h3>
-				<p>Converts value to decibels.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-degrees">
-				<h3 class="text-5"><a href="#tn-degrees"><code class="js">degrees</code></a></h3>
-				<p>Converts a numeric value from radians to degrees.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-denormalise">
-				<h3 class="text-5"><a href="#tn-denormalise"><code class="js">denormalise:min,max</code></a></h3>
-				<p>Converts numeric values in the range <code>0-1</code> to
-				the range <code>min-max</code>.</p>
-				<p>See also <code><a href="#tn-normalise">normalise:min,max</a></code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-floatformat">
-				<h3 class="text-5"><a href="#tn-floatformat"><code class="js">floatformat:n</code></a></h3>
-				<p>Converts numeric values to strings with <code>n</code> decimal places.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-interpolate">
-				<h3 class="text-5"><a href="#tn-interpolate"><code class="js">interpolate:coord1,coord2,...</code></a></h3>
-				<p>Given a number of coordinates of the form <code>[x, y]</code>, performs linear interpolation
-				to transform input (x) values to output (y) values.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
-				<h3 class="text-5"><a href="#tn-add"><code class="js">localise:n</code></a></h3>
-				<p>Returns localised number string with <code>n</code> decimal places.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-normalise">
-				<h3 class="text-5"><a href="#tn-normalise"><code class="js">normalise:min,max</code></a></h3>
-				<p>Converts numeric values in the range <code>min-max</code> to
-				the range <code>0-1</code>.</p>
-				<p>See also <code><a href="#tn-denormalise">denormalise:min,max</a></code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
-				<h3 class="text-5"><a href="#tn-add"><code class="js">pluralise:str1,str2,lang</code></a></h3>
-				<p>Takes a number and outputs <code>str1</code> or <code>str2</code> depending on whether
-				that number is considered plural in <code>lang</code>. Currently there are 4 languages
-				supported out-of-the-box – EN, DE, FR, IT – but it is easy to add more.</p>
-			</div>
-
-			<!-- Dates and times -->
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-date">
-				<h3 class="text-5"><a href="#tn-date"><code class="js">date:format</code></a></h3>
-				<p>Maps either JSON date strings or JS date objects to
-				human-readable date strings in a format defined by
-				<code>format</code>, where format describes the output in
-				a Django/PHP-style date format strings.</p>
-				<p>Deprecated, will remain supported as an add-on.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-add">
-				<h3 class="text-5"><a href="#tn-add"><code class="js">dateformat:format</code></a></h3>
-				<p>Maps either JSON date strings or JS date objects to
-				human-readable date strings in a format defined by
-				<code>format</code></p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-formatdate">
-				<h3 class="text-5"><a href="#tn-formattime"><code class="js">formatdate:formattime,timeZone,locale</code></a></h3>
-				<p>Converts Date, ISO8601 date string or UNIX time (in seconds) to string in <code>format</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-formattime">
-				<h3 class="text-5"><a href="#tn-formattime"><code class="js">formatdate:format</code></a></h3>
-				<p>Converts ISO time string, a number (in seconds) or the UTC time values of a Date object to string in <code>format</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="tn-yesno">
-				<h3 class="text-5"><a href="#tn-yesno"><code class="js">yesno:value1,value2</code></a></h3>
-				<p>Returns <code>value1</code> where value is truthy, otherwise <code>value2</code>.</p>
-			</div>
-
-		</article><article class="grid-block block span-1/1 @2-span-4/15 @2-span-left-1/15 @3-span-2/9 @3-span-left-1/9">
-			<h2 class="block">Sparky options</h2>
-
-			<!-- Objects -->
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="options-attributeFn">
-				<h3 class="text-5"><a href="#options-attributeFn"><code class="js">Sparky.attributeFn</code></a></h3>
-				<p>A string that names the <code class="js-code">fn</code> attribute. The default is <code class="js-code">'sparky-fn'</code>.</p>
-			</div>
-
-			<div class="toggleable toggle-block block span-1/1 @1-span-1/1 @2-span-1/1 @3-span-1/1" id="options-attributePrefix">
-				<h3 class="text-5"><a href="#options-attributePrefix"><code class="js">Sparky.attributePrefix</code></a></h3>
-				<p>A string that prefixes attributes where Sparky looks for tags. The default is <code class="js-code">'sparky-'</code>.</p>
-				<p>Sparky looks for tags in prefixed attributes before trying unprefixed attributes. There are three main cases where this is useful:</p>
-				<ul>
-					<li>
-					In IE, where Sparky cannot mount the <code class="js-code">style</code> attribute
-					(because IE does not provide access to the original text of the attribute),
-					use <code class="js-code">sparky-style</code>.
-					</li>
-					<li>
-					For the <code class="js-code">value</code> attribute, where you don't want to interfere with the
-					browser's autocompletion or default values, use <code class="js-code">:value</code>.
-					</li>
-					<li>
-					Where you want to provide different html content to browsers that fail to run Sparky.
-					</li>
-				</ul>
-			</div>
-		</article>
-	</div>
-
-	<div class="test-block block">
-		<h1>Hello</h1>
-	</div>
-
-	<!-- Polyfills -->
-
-	<!--script src="../fn/polyfills/object.assign.js"></script>
-	<script src="../fn/polyfills/array.find.js"></script>
-	<script src="../fn/polyfills/array.from.js"></script>
-	<script src="../fn/polyfills/array.of.js"></script>
-	<script src="../fn/polyfills/number.isnan.js"></script>
-	<script src="../fn/polyfills/number.isfinite.js"></script>
-	<script src="../fn/polyfills/math.log10.js"></script>
-	<script src="../fn/polyfills/symbol.js"></script>
-	<script src="../fn/polyfills/promise.js"></script>
-	<script src="../dom/polyfills/requestanimationframe.js"></script>
-	<script src="../dom/polyfills/customevent.js"></script>
-	<script src="../dom/polyfills/performance.js"></script>
-	<script src="polyfills/console.js"></script-->
-
-	<!-- Dependencies -->
-
-	<!--script src="axios/dist/axios.js"></script-->
-
-	<!-- Debug -->
-	<script type="module">
-	import * as fn  from '../fn/module.js';
-	import * as dom from '../dom/module.js';
-	window.fn  = fn;
-	window.dom = dom;
-	</script>
-
-	<!-- Initialise -->
-
-	<script type="module">
-	var c = 0;
-	console.group('%c---------- Frame ' + ++c + ' ----------', 'color: #6783f3;');
-	requestAnimationFrame(function count() {
-		console.groupEnd();
-		if (c > 9) { return; }
-		console.group('%c---------- Frame ' + ++c + ' ----------', 'color: #6783f3;');
-		requestAnimationFrame(count);
-	});
-
-	import Sparky from './module.js';
-	import '../dom/js/dom-activate.js';
-	import '../dom/js/root.js';
-	import '../dom/js/switchable.js';
-	import '../dom/js/toggleable.js';
-
-	// Preprocess
-	import '../fn/libs/prism/prism.js';
-	import './libs/prism/prism.sparky.js';
-	//import '../dom/scripts/highlight.js';
-
-	// Prepare the page
-	Sparky(document.body);
-	</script>
-
-	<!-- Tests -->
-
-	<script type="module">
-	// Run tests
-	//import './test/sparky.test.js';
-	//import './test/sparky.parent-scope-test.js';
-	//import './test/token-parent-path.js';
-	//import './test/token-parent-each.js';
-	//import './test/sparky.stop-scopes.test.js';
-	//import './test/sparky.stop-mutations.test.js';
-	//import './test/input-text.js';
-	//import './test/input-range.js';
-	import './test/input-number.js';
-	//import './test/input-checkbox.js';
-	//import './test/textarea.js';
-	//import './test/select.test.js';
-	//import './test/sparky.fn-test.js';
-	//import './test/sparky.fn.each-test.js';
-	//import './test/fn-template.js';
-	//import './test/fn-template-url.js';
-
-	//import './test/sparky.fn.load-test.js';
-
-	//import './test/sparky.transforms-test.js';
-	//import './plugins/sparky.fn.clock.js';
-	//import './test/sparky.fn.clock-test.js';
-	</script>
+<body class="grid">
+    <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-11" id="header">
+        <template build-fn="fetch:package.json" build-include="/fn/templates.html#header-template"></template>
+    </header>
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
+        <header class="x-1 xspan-3 @1-xspan-4">
+            <h2 class="text-2">Functions</h2>
+            <p>Import functions from the Fn module:</p>
+            <pre><code class="language-js">import { get, matches } from '/fn/module.js';</code></pre>
+        </header>
+
+        <div class="x-1 xspan-3">
+            <h4 class="text-4">Functions</h4>
+            <template build-fn="docs:
+            modules/cache.js,
+            modules/compose.js,
+            modules/curry.js,
+            modules/choose.js,
+            modules/once.js,
+            modules/overload.js,
+            modules/pipe.js,
+            modules/weak-cache.js
+            filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @2-xspan-4">
+            <p>
+            The functions below are curried (where they take more than one
+            parameter), allowing them to be partially applied.
+            </p>
+        </div>
+
+        <div class="x-1 xspan-3 column-grid grid">
+            <div class="x-1">
+                <h4 class="text-4">Objects</h4>
+                <template build-fn="docs:
+                modules/argument.js,
+                modules/call.js,
+                modules/equals.js,
+                modules/get.js,
+                modules/has.js,
+                modules/id.js,
+                modules/invoke.js,
+                modules/is.js,
+                modules/is-defined.js,
+                modules/matches.js,
+                modules/noop.js,
+                modules/not.js,
+                modules/request-tick.js,
+                modules/self.js,
+                modules/set.js,
+                modules/to-array.js,
+                modules/to-class.js,
+                modules/to-fixed.js,
+                modules/to-string.js,
+                modules/to-type.js
+                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            </div>
+        </div>
+
+        <div class="x-1 xspan-3 @1-x-4 column-grid grid">
+            <div class="x-1">
+                <h4 class="text-4">Strings</h4>
+                <template build-fn="docs:
+                modules/capture.js,
+                modules/exec.js,
+                'modules/time.js?parseDate,parseTime',
+                modules/parse-int.js,
+                modules/parse-value.js
+                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            </div>
+
+            <div class="x-1">
+                <h4 class="text-4">Numbers</h4>
+                <template build-fn="docs:
+                modules/maths/core.js,
+                modules/maths/cubic-bezier.js,
+                modules/maths/to-cartesian.js,
+                modules/maths/to-polar.js
+                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            </div>
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-7 column-grid grid">
+            <div class="x-1">
+                <h4 class="text-4">Arrays</h4>
+                <template build-fn="docs:
+                modules/lists/core.js,
+                modules/lists/insert.js,
+                modules/lists/last.js,
+                modules/lists/remove.js,
+                modules/lists/rest.js,
+                modules/lists/take.js,
+                modules/lists/unique.js,
+                modules/lists/update.js
+                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            </div>
+
+            <div class="x-1">
+                <h4 class="text-4">Time</h4>
+                <template build-fn="docs:
+                modules/time.js
+                filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            </div>
+        </div>
+    </section>
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="observer">
+        <header class="x-1 xspan-3 @1-xspan-4">
+            <h2 class="text-2" style="font-size: 1.875rem;">Observer</h2>
+            <p>Import and create an observer:</p>
+            <pre><code class="language-js">import { Observer, observe } from '/fn/module.js';
+const data = Observer({ a: true });</code></pre>
+            <p>
+            An observer is an ES6 Proxy of an object that intercepts and reports
+            mutations. There is only ever one observer per object, ie, calling
+            <code>Observer(object)</code> multiple times with the same object
+            always returns the same observer. Observers can be observed for
+            mutations with the observe function:
+            </p>
+
+            <pre><code class="language-js">observe('a', (value) => {...}, data);</code></pre>
+        </header>
+
+        <div class="x-1 xspan-3 list-grid grid">
+            <template build-fn="docs:
+            modules/observer/observer.js,
+            modules/observer/observe.js
+            filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+    </section>
+
+    <!--div class="x-1 xspan-3 @2-x-2 @3-xspan-6 @4-xspan-5 @5-xspan-3">
+        <p>Text things</p>
+    </div-->
+
+    <!--div class="x-1 xspan-3 @2-x-2 @3-xspan-6 @4-xspan-5 @5-xspan-3" build-fn="docs:'./modules/stream.js'"></div-->
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="stream">
+        <header class="x-1 xspan-3 @1-xspan-4">
+            <h2 class="text-2" style="font-size: 1.875rem;">Stream</h2>
+            <p>Import and create a stream:</p>
+            <pre><code class="language-js">import { Stream } from '/fn/module.js';
+const stream = Stream.of(1,2,3,4);</code></pre>
+        </header>
+
+        <div class="x-1 xspan-3 list-grid grid">
+            <template build-fn="docs:modules/stream.js filter-function each" build-include="/fn/templates.html#{[type]}-template"></template>
+            <template build-fn="docs:modules/fn.js filter-property each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @1-x-4 list-grid grid">
+            <template build-fn="docs:modules/stream.js filter-method take:16 each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-7 list-grid grid">
+            <template build-fn="docs:modules/stream.js filter-method rest:16 each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+    </section>
+
+    <!-- Build document -->
+    <script type="module" build-remove>
+        import '../fn/docs-build.js';
+    </script>
+
+    <!-- Document interactivity -->
+    <script type="module">
+        import '../dom/js/device.js';
+        import '../dom/js/toggleable.js';
+        import '../dom/js/locateable.js';
+        import * as Fn from './module.js';
+
+        Object.assign(window, Fn);
+    </script>
 </body>
-</html>
