@@ -48,6 +48,7 @@ export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/functions.js';
 export { default as delegate } from './modules/delegate.js';
+export { default as ObserveFn } from './modules/fn-observe.js';
 
 
 // Register customised built-in element <template is="sparky-template">

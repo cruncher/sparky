@@ -2,28 +2,28 @@
 // Import uncurried functions from Fn library
 
 import { getPath } from '../../fn/modules/paths.js';
-import equals    from '../../fn/modules/equals.js';
-import get       from '../../fn/modules/get.js';
-import invoke    from '../../fn/modules/invoke.js';
-import is        from '../../fn/modules/is.js';
-import isDefined from '../../fn/modules/is-defined.js';
-import not       from '../../fn/modules/not.js';
-import toInt     from '../../fn/modules/parse-int.js';
-import toFixed   from '../../fn/modules/to-fixed.js';
-import toString  from '../../fn/modules/to-string.js';
-import toType    from '../../fn/modules/to-type.js';
+import equals      from '../../fn/modules/equals.js';
+import get         from '../../fn/modules/get.js';
+import invoke      from '../../fn/modules/invoke.js';
+import is          from '../../fn/modules/is.js';
+import isDefined   from '../../fn/modules/is-defined.js';
+import not         from '../../fn/modules/not.js';
+import toInt       from '../../fn/modules/parse-int.js';
+import toFixed     from '../../fn/modules/to-fixed.js';
+import toString    from '../../fn/modules/to-string.js';
+import toType      from '../../fn/modules/to-type.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
 import { add, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
 import toCartesian from '../../fn/modules/maths/to-cartesian.js';
-import toPolar   from '../../fn/modules/maths/to-polar.js';
+import toPolar     from '../../fn/modules/maths/to-polar.js';
 
-import append    from '../../fn/modules/strings/append.js';
-import prepend   from '../../fn/modules/strings/prepend.js';
-import prepad    from '../../fn/modules/strings/prepad.js';
-import postpad   from '../../fn/modules/strings/postpad.js';
-import slugify   from '../../fn/modules/strings/slugify.js';
+import append      from '../../fn/modules/strings/append.js';
+import prepend     from '../../fn/modules/strings/prepend.js';
+import prepad      from '../../fn/modules/strings/prepad.js';
+import postpad     from '../../fn/modules/strings/postpad.js';
+import slugify     from '../../fn/modules/strings/slugify.js';
 import toCamelCase from '../../fn/modules/strings/to-camel-case.js';
 
 import { contains } from '../../fn/modules/lists/core.js';

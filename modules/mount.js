@@ -234,7 +234,7 @@ function renderValue(name, node, value) {
 		value :
 		null ;
 
-	// Avoid updating with the same value. Support values that are any
+    // Avoid updating with the same value. Support values that are any
 	// type as well as values that are always strings
 	if (value === node.value || (value + '') === node.value) { return 0; }
 

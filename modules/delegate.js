@@ -1,12 +1,43 @@
 
 /*
-For creating event delegation controllers:
+delegate(types)
 
-register('events', Delegate({
-    'click': {
-        'button[name]': fn
+Create an event delegation controller fn, where `types` is an object of objects
+mapping event types and selectors to listener functions:
+
+register('fn-name', delegate({
+    type: {
+        selector: fn(node, e)
     )
 });
+
+A common pattern is to delegate clicks on buttons:
+
+register('fn-name', delegate({
+    'click': {
+        'button': function(button, e) {
+            // Button was clicked...
+        }
+    )
+});
+
+To further delegate by the name of the button you could use `get`
+and `overload` from Fn:
+
+import { get, overload } from './fn/module.js';
+
+register('fn-name', delegate({
+    'click': {
+        'button[name]': overload(get('name'), {
+            'button-name': function() {
+                // Button name="button-name" was clicked...
+            }
+        })
+    )
+});
+
+(This is a little more efficient than listing all possible button names as
+selectors).
 */
 
 import { events } from '../../dom/module.js';
