@@ -38,10 +38,6 @@ code {
 	background-color: #cfe84a;
 }
 
-.toggle-block.active::before {
-	background-color: rgba(39, 42, 43, 0.5);
-}
-
 script[type="text"] {
 	white-space: pre;
 	border-width: 0;

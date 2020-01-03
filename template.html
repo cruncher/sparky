@@ -44,6 +44,7 @@
 
 <body class="@3-grid-12 grid">
     <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-9" id="header">
+        <img class="block" style="width: 33.333333%" src="images/sparky-logo-dark.svg" />
         <template build-fn="fetch:package.json" build-include="/fn/templates.html#header-template"></template>
     </header>
 
@@ -52,16 +53,16 @@
             <h2 class="text-2">Sparky templates</h2>
         </header>
 
-        <div class="x-1 xspan-3 @2-xspan-4">
+        <div class="x-1 xspan-3">
             <template build-fn="docs:
             module.js
-            each" build-include="/fn/templates.html#{[type]}-template"></template>
+            each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-xspan-4">
+        <div class="x-1 xspan-3 @3-x-4">
             <template build-fn="docs:
             modules/parse.js?tags
-            each" build-include="/fn/templates.html#{[type]}-template"></template>
+            each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 column-grid grid">
