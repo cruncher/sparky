@@ -61,7 +61,7 @@ Import Sparky to register the custom element `<template is="sparky-template">`:
 import '/sparky/module.js';
 ```
 
-These templates are replaced directly in the DOM with their own rendered content:
+Sparky templates are replaced directly in the DOM with their own rendered content:
 
 ```html
 <template is="sparky-template">
@@ -69,15 +69,15 @@ These templates are replaced directly in the DOM with their own rendered content
 </template>
 ```
 
+<p class="thumb">Gives:</p>
+
 ```html
 Hello!
 ```
 
-Sparky templates are given an empty object as a rendering scope unless
-a `fn` attribute is defined. The `fn` attribute defines one or more
-functions to run on the template. A function is expected to push an
-object to the template, which is then used to render template tags of
-the form `{ [...] }`:
+A `fn` attribute defines one or more functions to run on the template.
+A function is expected to push an object to the template, which is then
+used as scope to render template tags:
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
@@ -90,6 +90,8 @@ I am Sparky.
 ```
 
 The `fn` attribute may be declared on any element in a sparky template.
+There are a number of built in functions besides `fetch`, and you may
+declare your own in JS.
 */
 
 

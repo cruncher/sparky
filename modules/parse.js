@@ -2,8 +2,28 @@
 /*
 tags()
 
-Tags are things.
+Sparky template tags are made of three parts:
 
+```html
+{ [ path|pipe:params ] }
+```
+
+Values are observed at `path` in the scope object, where a path is of
+the form `path.to.property-name` (paths are a superset of JS dot
+notation and `-` characters are allowed). They are then piped through
+any number of `pipe` transforms and rendered into the DOM on animation
+frames.
+
+```html
+{ [ repository.url|prepend:'Repo: ' ] }
+```
+
+```html
+Repo: https://github.com/cruncher/sparky.git
+```
+
+There are a number of built in pipe transforms besides `prepend`,
+and you may declare your own in JS.
 */
 
 import { capture, exec, id, noop, nothing } from '../../fn/module.js'

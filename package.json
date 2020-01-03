@@ -37,7 +37,7 @@
     "build": "npm run build-cjs && npm run build-esm",
     "build-cjs": "rollup module.js --o index.js --f cjs",
     "build-esm": "rollup module.js --o package.js --f esm",
-    "build-docs": "node render-html.js http://localhost/fn/template.html ./index.html 8 && git add index.html",
-    "sass": "node-sass --output-style compact --indent-type tab --indent-width 1 -o css css/respond.scss"
+        "build-docs": "node ../fn/render-html.js http://localhost/dom/template.html ./index.html 8 && git add index.html",
+        "sass": "node-sass --output-style compact --indent-type tab --indent-width 1 -o css css/respond.scss"
   }
 }

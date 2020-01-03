@@ -49,7 +49,7 @@
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
         <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2">Getting started</h2>
+            <h2 class="text-2">Sparky templates</h2>
         </header>
 
         <div class="x-1 xspan-3 @2-xspan-4">
@@ -68,13 +68,17 @@
             <div class="x-1">
                 <h4 class="text-4">fn.</h4>
 
-                <p>Functions are responsible for listening to the DOM and supplying
-                objects to render. They are template controllers, if you like.</p>
+                <p>Functions have access to the DOM element and the template lifecycle,
+                and are responsible for supplying objects to render. They are
+                view-controllers, if you like. In a moment we'll see how to declare
+                functions to define how your interface behaves, but let's look first at
+                the built-ins:</p>
 
                 <template build-fn="docs:
                 modules/fn-each.js,
                 modules/fn-entries.js,
                 modules/fn-fetch.js,
+                modules/fn-get.js,
                 modules/fn-take.js
                 each" build-include="/fn/templates.html#{[type]}-template"></template>
             </div>
