@@ -8,9 +8,8 @@ Sparky template tags are made of three parts:
 { [ path|pipe:params ] }
 ```
 
-Values are observed at `path` in the scope object, where a path is of
-the form `path.to.property-name` (paths are a superset of JS dot
-notation and `-` characters are allowed). They are then piped through
+Values are read from `path` in the scope object. A path is of
+the form `path.to.property-name`. Values are piped through
 any number of `pipe` transforms and rendered into the DOM on animation
 frames.
 

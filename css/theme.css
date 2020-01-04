@@ -51,3 +51,15 @@ script[type="text"] {
 }
 
 line { stroke-width: 1; stroke: inherit; }
+
+.text-5 + pre {
+	margin-top: 0.9375rem;
+}
+
+pre > code {
+	margin-top: 0;
+}
+
+pre + pre {
+	margin-top: 1px;
+}
