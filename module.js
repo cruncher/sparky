@@ -74,8 +74,8 @@ Hello!
 ```
 
 A `fn` attribute declares one or more functions to run on the template.
-A function is expected to push an object to the template to be used as
-scope to render tags:
+A function is expected to push an object to the template which is used as
+scope to render template tags:
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
