@@ -7,6 +7,8 @@ import { functions } from './functions.js';
 import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 import { logNode, nodeToString } from './log.js';
+import set from '../../fn/modules/set.js';
+import BooleanRenderer from './renderer-boolean.js';
 
 const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
