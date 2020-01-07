@@ -1,6 +1,6 @@
 
 /*
-Tags
+tags.
 
 Template tags are made of three parts:
 
