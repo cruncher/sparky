@@ -240,15 +240,7 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
 
         <div class="x-1 xspan-3 @1-x- @3-x-1">
             
-    <h3 class="text-4">Pipes</h3><p>Pipes are transform functions applied to values at render time:</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span>{[ date | dateformat:YYYY | prepend:'The year is ' ]}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
-<p>Many, but not all, pipes can be used in 2-way data binding tags - ie. those
-declared in input or select <code>value</code> attributes.</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>label</span><span class="token punctuation">&gt;</span></span>Date (earliest possible date is tomorrow)<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>label</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>date<span class="token punctuation">"</span></span> <span class="token attr-name">min</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{[ today|add-date:0000-00-01 ]}<span class="token punctuation">"</span></span> <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{[ date ]}<span class="token punctuation">"</span></span> <span class="token punctuation">/&gt;</span></span>
-
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>label</span><span class="token punctuation">&gt;</span></span>Percentage<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>label</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>input</span> <span class="token attr-name">type</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>number<span class="token punctuation">"</span></span> <span class="token attr-name">value</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{[ ratio|denormalise:linear,0,100 ]}<span class="token punctuation">"</span></span> <span class="token punctuation">/&gt;</span></span></code></pre>
+    <h3 class="text-4">Pipes</h3><p>Pipes are functions applied to tag values at render time.</p>
 
 
     <article class="toggle-block block" toggleable="" id="add">
@@ -476,6 +468,10 @@ declared in input or select <code>value</code> attributes.</p>
 
         <div class="x-1 xspan-3 @1-x-4 @3-x-4">
             
+    <h3 class="text-4">Functions</h3><p>Functions are view-controllers with access to the node where they are
+declared and control over the objects being sent to the renderer.</p>
+
+
     <article class="toggle-block block" toggleable="" id="each">
         <h3 class="text-5 ">
             <a href="#each">
