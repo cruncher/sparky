@@ -54,14 +54,14 @@ export { default as ObserveFn } from './modules/fn-observe.js';
 /*
 <template is="sparky-template">
 
+First, import Sparky:
 
-Import Sparky to register the custom element `<template is="sparky-template">`:
-
-```
+```js
 import '/sparky/module.js';
 ```
 
-Sparky templates are replaced directly in the DOM with their own rendered content:
+Sparky registers the `is="sparky-template"` custom element. Sparky templates
+in the DOM are automatically replaced with their own rendered content:
 
 ```html
 <template is="sparky-template">
@@ -73,23 +73,8 @@ Sparky templates are replaced directly in the DOM with their own rendered conten
 Hello!
 ```
 
-A `fn` attribute declares one or more functions to run on the template.
-A function is expected to push an object to the template which is used as
-scope to render template tags:
-
-```html
-<template is="sparky-template" fn="fetch:package.json">
-    I am { [title] }.
-</template>
-```
-
-```html
-I am Sparky.
-```
-
-The `fn` attribute may be declared on any element in a sparky template.
-There are a number of built in functions besides `fetch`, and you may
-declare your own in JS.
+Sparky templates extend HTML with 3 features: **template tags**, **functions**
+and **includes**.
 */
 
 

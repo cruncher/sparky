@@ -1,4 +1,25 @@
 
+/*
+Pipes
+
+Pipes are transform functions applied to values at render time:
+
+```html
+<p>{[ date | dateformat:YYYY | prepend:'The year is ' ]}</p>
+```
+
+Many, but not all, pipes can be used in 2-way data binding tags - ie. those
+declared in input or select `value` attributes.
+
+```html
+<label>Date (earliest possible date is tomorrow)</label>
+<input type="date" min="{[ today|add-date:0000-00-01 ]}" value="{[ date ]}" />
+
+<label>Percentage</label>
+<input type="number" value="{[ ratio|denormalise:linear,0,100 ]}" />
+```
+*/
+
 // Import uncurried functions from Fn library
 
 import { getPath } from '../../fn/modules/paths.js';
@@ -39,7 +60,7 @@ import {
 } from '../../fn/module.js';
 
 
-// Import uncurried functions from Dom library
+// Import uncurried functions from DOM library
 
 import escape from '../../dom/modules/escape.js';
 import { toPx, toRem, toVw, toVh } from '../../dom/modules/values.js';
@@ -83,15 +104,29 @@ function interpolateLinear(xs, ys, x) {
 }
 
 export const transformers = {
+
+	/* add: n
+	Adds `n` to value. */
 	add:         {
 		tx: function(a, b) { return b.add ? b.add(a) : b + a ; },
 		ix: function(a, c) { return c.add ? c.add(-a) : c - a ; }
 	},
 
+	/* add-date: yyyy-mm-dd
+	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
 	'add-date':  { tx: addDate,     ix: function(d, n) { return addDate('-' + d, n); } },
+
+	/* add-time: 'hh:mm:ss'
+	Adds an ISO time in the form `'hh:mm:ss'` to a time value. (Note this
+	string must be quoted because it contains ':' characters.) */
 	'add-time':  { tx: addTime,     ix: subTime },
+
+	/* to-db:
+	Converts value to dB scale. */
 	'to-db':     { tx: todB,        ix: toLevel },
 
+	/* to-precision: n
+	Converts number to string representing number to precision `n`. */
 	'to-precision': {
 		tx: function(n, value) {
 			return Number.isFinite(value) ?
@@ -138,6 +173,9 @@ export const transformers = {
             undefined ;
     }},
 
+	/* normalise: curve, min, max
+	Return a value in the nominal range `0-1` from a value between `min` and
+	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	normalise:   {
 		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
@@ -150,6 +188,9 @@ export const transformers = {
 		}
 	},
 
+	/* denormalise: curve, min, max
+	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
+	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	denormalise:   {
 		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
@@ -162,8 +203,16 @@ export const transformers = {
 		}
 	},
 
+	/* floatformat: n
+	Returns a number fixed to `n` decimal places from value. */
 	floatformat: { tx: toFixed,     ix: function(n, str) { return parseFloat(str); } },
+
+	/* float-string:
+	Converts float values to strings. */
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
+
+	/* int-string:
+	Converts int values to strings. */
 	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
 
 	interpolate: {
@@ -204,13 +253,29 @@ export const transforms = {
 	equals:       equals,
 	escape:       escape,
 	exp:          exp,
+
+	/* formatdate: format
+	Converts a date object, ISO date string or UNIX time number (in seconds) to
+	string in `format`.
+	*/
 	formatdate:   formatDate,
+
+	/* formattime: format
+	Converts ISO time string, a number (in seconds) or the UTC time values of
+	a date object to a string formatted to `format`.
+	*/
 	formattime:   formatTime,
+
 	formatfloat:  toFixed,
 	get:          getPath,
 	invoke:       invoke,
+
+	/* is:a
+	Returns `true` where value is strictly equal to `a`, otherwise `false`. */
 	is:           is,
 
+	/* has: property
+	Returns `true` where value is an object with the property `name`, otherwise `false`. */
 	has: function(name, object) {
 		return object && (name in object);
 	},
@@ -223,15 +288,27 @@ export const transforms = {
 	mod:          mod,
 
 	// Strings
+
+	/* append:string
+	Returns value + `string`. */
 	append:       append,
+
+	/* prepend:string
+	Returns `string` + value. */
 	prepend:      prepend,
 	prepad:       prepad,
 	postpad:      postpad,
+
+	/* slugify:
+	Returns the slug of value. */
 	slugify:      slugify,
 
-	// root(2) - square root
-	// root(3) - cubed root, etc.
+	/* root:n
+	Returns the `n`th root of value. */
 	root:         root,
+
+	/* type:
+	Returns the `typeof` value. */
 	type:         toType,
 
 	divide: function(n, value) {
@@ -245,6 +322,8 @@ export const transforms = {
 		return array && array.find(compose(is(id), get('id')));
 	},
 
+	/* floor:
+	Floors a numeric value. */
 	floor: Math.floor,
 
 	"greater-than": function(value2, value1) {
@@ -261,6 +340,8 @@ export const transforms = {
 		return value1 < value2 ;
 	},
 
+	/* localise:n
+	Localises a number to `n` digits. */
 	localise: function(digits, value) {
 		var locale = document.documentElement.lang;
 		var options = {};
@@ -274,23 +355,24 @@ export const transforms = {
 		return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
 	},
 
+
+	/* lowercase:
+	Returns the lowercase string of value. */
 	lowercase: function(value) {
 		if (typeof value !== 'string') { return; }
 		return String.prototype.toLowerCase.apply(value);
 	},
 
 	map: function(method, params, array) {
-		/*
-		var tokens;
-
-		if (params === undefined) {
-			tokens = parsePipe([], method);
-			fn     = createPipe(tokens, transforms);
-			return function(array) {
-				return array.map(fn);
-			};
-		}
-		*/
+		//var tokens;
+		//
+		//if (params === undefined) {
+		//	tokens = parsePipe([], method);
+		//	fn     = createPipe(tokens, transforms);
+		//	return function(array) {
+		//		return array.map(fn);
+		//	};
+		//}
 
 		var fn = (
 			(transformers[method] && transformers[method].tx) ||
@@ -319,6 +401,8 @@ export const transforms = {
 		return !!regex.test(string);
 	},
 
+	/* pluralise: str1, str2, lang
+	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
 	pluralise: function(str1, str2, lang, value) {
 		if (typeof value !== 'number') { return; }
 
@@ -399,6 +483,8 @@ export const transforms = {
 		return String.prototype.toUpperCase.apply(value);
 	},
 
+	/* yesno: a, b
+	Where value is truthy returns `a`, otherwise `b`. */
 	yesno: function(truthy, falsy, value) {
 		return value ? truthy : falsy ;
 	}

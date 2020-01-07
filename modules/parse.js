@@ -1,28 +1,78 @@
 
 /*
-tags()
+Tags
 
-Sparky template tags are made of three parts:
+Template tags are made of three parts:
 
 ```html
 { [ path|pipe:params ] }
 ```
 
-Values are read from `path` in the scope object. A path is of
-the form `path.to.property-name`. Values are piped through
-any number of `pipe` transforms and rendered into the DOM on animation
-frames.
+Values are read from `path` in the rendered object, piped through any number of
+`pipe` transforms and rendered into the DOM on animation frames.
 
 ```html
-{ [ repository.url|prepend:'Repo: ' ] }
+<template is="sparky-template" fn="fetch:package.json">
+    { [ repository.url|prepend:'Repo: ' ] }
+</template>
 ```
 
 ```html
 Repo: https://github.com/cruncher/sparky.git
 ```
+*/
 
-There are a number of built in pipe transforms besides `prepend`,
-and you may declare your own in JS.
+/*
+include=""
+
+A template may include another template by referring to it via the `include`
+attribute. The rendered content of the included template replaces the referring
+template:
+
+```html
+<template id="my-template">
+    <li fn="get:keywords each">{ [.] }</li>
+</template>
+
+<template is="sparky-template" fn="fetch:package.json" include="#my-template">
+</template>
+```
+
+```html
+<li>javascript</li>
+<li>browser</li>
+```
+
+Includes may be used inside templates, too:
+
+```html
+<template is="sparky-template" fn="fetch:package.json">
+    <ul>
+        <template include="#my-template"></template>
+    </ul>
+</template>
+```
+
+```html
+<ul>
+    <li>javascript</li>
+    <li>browser</li>
+</ul>
+```
+
+The `include` attribute may contain template tags, making the included template
+dependent on rendered data. This is how conditionals are written in Sparky.
+Here, where there is no `keywords` property in `package.json` the template
+with id `no-keywords` is rendered in place of `my-template`:
+
+```html
+<template is="sparky-template" fn="fetch:package.json">
+    <ul>
+        <template include="{ [.keywords|yesno:#my-template,#no-keywords]}">
+        </template>
+    </ul>
+</template>
+```
 */
 
 import { capture, exec, id, noop, nothing } from '../../fn/module.js'

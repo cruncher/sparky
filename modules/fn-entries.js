@@ -1,6 +1,6 @@
 
 /*
-entries()
+entries:
 
 Maps scope to an array of `[key, value]` arrays.
 

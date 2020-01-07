@@ -1,7 +1,7 @@
 {
   "name": "sparky",
   "title": "Sparky",
-  "description": "Sparky is a live data binding DOM templating engine that enhances HTML with declarative tags and composeable templates, and batches rendering changes to the browser frame rate.",
+  "description": "Sparky is a live data-binding controller who wires up the custom sparky-template element with template tags, composeable includes, functional views and DOM renders batched to the browser frame rate.",
   "version": "3.1.2",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
