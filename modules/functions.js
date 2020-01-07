@@ -37,6 +37,13 @@ array of keywords and generate a list:
 */
 
 /*
+Functions
+
+Functions are view-controllers with access to the node where they are
+declared and control over the objects being sent to the renderer.
+*/
+
+/*
 register(name, fn)
 
 ```

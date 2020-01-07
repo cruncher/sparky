@@ -2,22 +2,7 @@
 /*
 Pipes
 
-Pipes are transform functions applied to values at render time:
-
-```html
-<p>{[ date | dateformat:YYYY | prepend:'The year is ' ]}</p>
-```
-
-Many, but not all, pipes can be used in 2-way data binding tags - ie. those
-declared in input or select `value` attributes.
-
-```html
-<label>Date (earliest possible date is tomorrow)</label>
-<input type="date" min="{[ today|add-date:0000-00-01 ]}" value="{[ date ]}" />
-
-<label>Percentage</label>
-<input type="number" value="{[ ratio|denormalise:linear,0,100 ]}" />
-```
+Pipes are functions applied to tag values at render time.
 */
 
 // Import uncurried functions from Fn library
