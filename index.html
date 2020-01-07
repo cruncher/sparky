@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="../bolt/css/color.css">
 
     <link rel="stylesheet" href="../dom/css/dom.css">
-    <link rel="stylesheet" href="../fn/css/prism.cruncher.css">
+    <link rel="stylesheet" href="../fn/css/prism-cruncher.css">
     <link rel="stylesheet" href="../fn/css/tests.css">
     <link rel="stylesheet" href="../fn/css/docs.css">
     <link rel="stylesheet" href="../dom/css/theme.css">
@@ -49,7 +49,7 @@
             <li><strong>bugs:</strong> <a href="{[bugs.url]}">{[bugs.url]}</a></li>
         </ul>
 </template><template id="title-template" title="/fn/">
-    <h3 class="text-4">{[name]}</h3>
+    <h3 class="text-4" build-fn="after:body">{[name]}</h3>
 </template><template id="attribute-template" title="/fn/">
     <article build-fn="append:body" class="attribute-toggle-block toggle-block block" toggleable="" id="{[id]}">
         <h3 class="text-5">
@@ -82,6 +82,20 @@
             <a href="#{[id]}">
                 <code build-fn="append:title" class="function language-js"></code>
             </a>
+        </h3>
+    </article>
+</template><template id="fn-template" title="/fn/">
+    <article build-fn="append:body" class="toggle-block block" toggleable="" id="{[id]}">
+        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#{[id]}">
+                <code build-fn="append:title" class="language-js"></code>
+            </a>
+        </h3>
+    </article>
+</template><template id="section-template" title="/fn/">
+    <article build-fn="append:body" class="toggle-block block active" id="{[id]}">
+        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <code build-fn="append:title" class="function language-js"></code>
         </h3>
     </article>
 </template></head>
@@ -386,8 +400,7 @@ Additionally, <code>properties</code> are assigned to the event object.</p>
                 <code class="function language-js"><span class="token function">offset</span><span class="token punctuation">(</span>node1<span class="token punctuation">,</span> node2<span class="token punctuation">)</span></code>
             </a>
         </h3>
-    <p>`</p>
-<p>Returns array <code>[x, y]</code> representing the vector from <code>node1</code> to <code>node2</code>.</p>
+    <p>Returns array <code>[x, y]</code> representing the vector from <code>node1</code> to <code>node2</code>.</p>
 </article>
 
     <article class="toggle-block block" toggleable="" id="prefix-string">
@@ -562,9 +575,9 @@ the duration of the transition. Returns a function that cancels the transition.<
         <div class="x-1 y-2 xspan-3 @2-xspan-4">
             <h3 class="text-4">Navigate</h3>
             
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="locateableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="locateable">
         <h3 class="text-5">
-            <a href="#locateableundefined">
+            <a href="#locateable">
                 <code class="token language-js"><span>[</span><span>locateable</span><span>]</span></code>
             </a>
         </h3>
@@ -593,9 +606,9 @@ you have a scrolling navigation:</p>
 
             <h3 class="text-4">Hijack</h3>
             
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="fullscreenableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="fullscreenable">
         <h3 class="text-5">
-            <a href="#fullscreenableundefined">
+            <a href="#fullscreenable">
                 <code class="token language-js"><span>[</span><span>fullscreenable</span><span>]</span></code>
             </a>
         </h3>
@@ -606,9 +619,9 @@ fullscreen. Style things that depend on fullscreen support with the
 .fullscreen-support class found on the document root.</p>
 </article>
 
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="popableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="popable">
         <h3 class="text-5">
-            <a href="#popableundefined">
+            <a href="#popable">
                 <code class="token language-js"><span>[</span><span>popable</span><span>]</span></code>
             </a>
         </h3>
@@ -622,9 +635,9 @@ class <code>"on"</code>.</p>
 accordions and so on.</p>
 </article>
 
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="switchableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="switchable">
         <h3 class="text-5">
-            <a href="#switchableundefined">
+            <a href="#switchable">
                 <code class="token language-js"><span>[</span><span>switchable</span><span>]</span></code>
             </a>
         </h3>
@@ -653,9 +666,9 @@ it is clicked, and all links to it are given the class <code>"on"</code>.</p><p>
     Tab <span class="token number">3</span>
 <span class="token operator">&lt;</span><span class="token operator">/</span>section<span class="token operator">&gt;</span></code></pre></article>
 
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="toggleableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="toggleable">
         <h3 class="text-5">
-            <a href="#toggleableundefined">
+            <a href="#toggleable">
                 <code class="token language-js"><span>[</span><span>toggleable</span><span>]</span></code>
             </a>
         </h3>
@@ -674,9 +687,9 @@ accordions and so on.</p>
         <div class="x-1 y-2 xspan-3 @2-x-6 @2-xspan-4">
             <h3 class="text-4">Data</h3>
             
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="draggableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="draggable">
         <h3 class="text-5">
-            <a href="#draggableundefined">
+            <a href="#draggable">
                 <code class="token language-js"><span>[</span><span>draggable</span><span>]</span></code>
             </a>
         </h3>
@@ -690,9 +703,9 @@ attribute, which defines data to be carried by a drag action:</p>
 <span class="token operator">&lt;</span><span class="token operator">/</span>div<span class="token operator">&gt;</span></code></pre><p><small>* Note that <code>draggable</code> must be <code>"true"</code>. It is not a boolean attribute.</small></p>
 </article>
 
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="droppableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="droppable">
         <h3 class="text-5">
-            <a href="#droppableundefined">
+            <a href="#droppable">
                 <code class="token language-js"><span>[</span><span>droppable</span><span>]</span></code>
             </a>
         </h3>
@@ -714,9 +727,9 @@ attribute:</p>
 
             <h3 class="text-4">Forms</h3>
             
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="submittableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="submittable">
         <h3 class="text-5">
-            <a href="#submittableundefined">
+            <a href="#submittable">
                 <code class="token language-js"><span>[</span><span>submittable</span><span>]</span></code>
             </a>
         </h3>
@@ -728,9 +741,9 @@ it by permitting the value <code>"application/json"</code> as well as the standa
 <code>"application/x-www-form-urlencoded"</code> and <code>"multipart/form-data"</code>.</p>
 </article>
 
-    <article class="attribute-toggle-block toggle-block block" toggleable="" id="validateableundefined">
+    <article class="attribute-toggle-block toggle-block block" toggleable="" id="validateable">
         <h3 class="text-5">
-            <a href="#validateableundefined">
+            <a href="#validateable">
                 <code class="token language-js"><span>[</span><span>validateable</span><span>]</span></code>
             </a>
         </h3>
