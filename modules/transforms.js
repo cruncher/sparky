@@ -21,7 +21,7 @@ import toType      from '../../fn/modules/to-type.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
-import { add, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { sum, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
 import toCartesian from '../../fn/modules/maths/to-cartesian.js';
 import toPolar     from '../../fn/modules/maths/to-polar.js';
 
@@ -61,7 +61,7 @@ var A         = Array.prototype;
 var S         = String.prototype;
 
 const reducers = {
-	sum: add
+	sum: sum
 };
 
 function interpolateLinear(xs, ys, x) {
