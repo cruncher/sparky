@@ -46,40 +46,21 @@ function replace(target, content) {
     target.remove();
 }
 
-
-// PromiseSource()
-//
-// This is a little different from a Stream.fromPromise(promise), which
-// enters 'done' state as soon as it resolves. Here we want to leave
-// it running as we use its state to control rendering.
-
-function PromiseSource(notify, stop, promise) {
-    this.stop = stop;
-
-    promise
-    .then((object) => {
-        this.value = object;
-        notify();
-    })
-    .catch(stop);
-}
-
-PromiseSource.prototype.shift = function() {
-    const v = this.value;
-    this.value = undefined;
-    return v;
-};
-
 function prepareInput(input, output) {
     // Support promises and streams
-    output = output.then ?
-        new Stream(PromiseSource, output) :
+    const stream = output.then ?
+        new Stream(function(push, stop) {
+            output
+            .then(push)
+            .catch(stop);
+            return { stop };
+        }) :
         output ;
 
-    input.done(() => output.stop());
+    input.done(() => stream.stop());
 
     // Make sure the next fn gets an observable
-    return output.map(toObserverOrSelf);
+    return stream.map(toObserverOrSelf);
 }
 
 function run(context, node, input, options) {
