@@ -9,7 +9,8 @@ Template tags are made of three parts:
 ```
 
 Values are read from `path` in the rendered object, piped through any number of
-`pipe` transforms and rendered into the DOM on animation frames.
+`pipe` transforms (which, depending on the pipe, may require `params`) and
+rendered into the DOM on animation frames.
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
@@ -20,6 +21,24 @@ Values are read from `path` in the rendered object, piped through any number of
 ```html
 Repo: https://github.com/cruncher/sparky.git
 ```
+
+Paths are a superset of JS notation, where dashes and numbers are allowed in
+property names. These are valid:
+
+```html
+{ [ items.my-object ]}
+{ [ items.3 ]}
+```
+
+The root path renders the scope object itself:
+
+```html
+{ [ . ]}
+```
+
+Sparky renders `NaN`, `null` and `undefined` vsluers as empty strings, renders
+objects as JSON, functions as a `'name(params)'` shorthand, and converts
+`Infinity` to `'∞'`. Other values are rendered as their strings.
 */
 
 /*

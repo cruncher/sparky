@@ -1,15 +1,22 @@
 /*
 each:
 
+Clones the DOM node and renders a clone for each value in an array.
+
 ```html
 <ul>
     <li fn="get:keywords each">{ [.] }</li>
 </ul>
 ```
+```html
+<ul>
+    <li>javascript</li>
+	<li>browser</li>
+</ul>
+```
 
-Where scope is an array or array-like, `each` clones the DOM node and
-renders a clone for each value in the array. (Where there are functions
-following `each` in the attribute, they are run on each clone.)
+Where there are functions declared after `each` in the attribute, they are run
+on each clone.
 */
 
 

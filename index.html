@@ -104,7 +104,7 @@
 <body class="@3-grid-12 grid">
     <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg">
 
-    <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-4" id="header">
+    <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
         
         <h1>Sparky <span class="text-6">3.1.2</span></h1>
 
@@ -120,11 +120,11 @@
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="functions">
-        <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2">HTML Templates</h2>
+        <header class="x-1 xspan-3">
+            <h2 class="text-2">Sparky templates</h2>
         </header>
 
-        <div class="x-1 xspan-3 @1-xspan-4">
+        <div class="x-1 xspan-3">
             
     <article class="toggle-block block active" id="template-is-sparky-template">
         <h3 class="text-5 ">
@@ -153,16 +153,26 @@ and <strong>includes</strong>.</p>
     <p>Template tags are made of three parts:</p>
 <pre><code class="language-html">{ [ path|pipe:params ] }</code></pre>
 <p>Values are read from <code>path</code> in the rendered object, piped through any number of
-<code>pipe</code> transforms and rendered into the DOM on animation frames.</p>
+<code>pipe</code> transforms (which, depending on the pipe, may require <code>params</code>) and
+rendered into the DOM on animation frames.</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
     { [ repository.url|prepend:'Repo: ' ] }
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span></code></pre>
 <pre><code class="language-html">Repo: https://github.com/cruncher/sparky.git</code></pre>
+<p>Paths are a superset of JS notation, where dashes and numbers are allowed in
+property names. These are valid:</p>
+<pre><code class="language-html">{ [ items.my-object ]}
+{ [ items.3 ]}</code></pre>
+<p>The root path renders the scope object itself:</p>
+<pre><code class="language-html">{ [ . ]}</code></pre>
+<p>Sparky renders <code>NaN</code>, <code>null</code> and <code>undefined</code> vsluers as empty strings, renders
+objects as JSON, functions as a <code>'name(params)'</code> shorthand, and converts
+<code>Infinity</code> to <code>'∞'</code>. Other values are rendered as their strings.</p>
 </article>
 
         </div>
 
-        <div class="x-1 xspan-3 @3-x-4">
+        <div class="x-1 xspan-3 @2-x-4">
             
     <article class="toggle-block block active" id="fn">
         <h3 class="text-5 ">
@@ -191,7 +201,7 @@ array of keywords and generate a list:</p>
 
         </div>
 
-        <div class="x-1 xspan-3 @3-x-7">
+        <div class="x-1 xspan-3 @2-x-7">
             
     <article class="toggle-block block active" id="include">
         <h3 class="text-5 ">
@@ -233,12 +243,12 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable="" id="attributes">
-        <header class="x-1 xspan-3 @1-xspan-4 block">
-            <h2 class="text-2">Built-ins</h2>
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="attributes">
+        <header class="x-1 xspan-3">
+            <h2 class="text-2">Built-in pipes and functions</h2>
         </header>
 
-        <div class="x-1 xspan-3 @1-x- @3-x-1">
+        <div class="x-1 xspan-3">
             
     <h3 class="text-4">Pipes</h3><p>Pipes are functions applied to tag values at render time.</p>
 
@@ -466,7 +476,7 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
 
         </div>
 
-        <div class="x-1 xspan-3 @1-x-4 @3-x-4">
+        <div class="x-1 xspan-3 @2-x-4">
             
     <h3 class="text-4">Functions</h3>
 
@@ -476,12 +486,16 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
                 <code class="language-js">each</code>
             </a>
         </h3>
-    <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <p>Clones the DOM node and renders a clone for each value in an array.</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:keywords each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [.] }<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-<p>Where scope is an array or array-like, <code>each</code> clones the DOM node and
-renders a clone for each value in the array. (Where there are functions
-following <code>each</code> in the attribute, they are run on each clone.)</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>javascript<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>browser<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
+<p>Where there are functions declared after <code>each</code> in the attribute, they are run
+on each clone.</p>
 </article>
 
     <article class="toggle-block block" toggleable="" id="entries">
@@ -524,7 +538,7 @@ following <code>each</code> in the attribute, they are run on each clone.)</p>
 
         </div>
 
-        <div class="x-1 xspan-3 @1-x-4 @3-x-7">
+        <div class="x-1 xspan-3 @2-x-7">
             
     <h3 class="text-4">Register</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
 declared and control over the flow of objects being sent to the renderer. They

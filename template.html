@@ -45,16 +45,16 @@
 <body class="@3-grid-12 grid">
     <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg" />
 
-    <header class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 @3-xspan-4" id="header">
+    <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
         <template build-fn="fetch:package.json" build-include="/fn/templates.html#header-template"></template>
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
-        <header class="x-1 xspan-3 @1-xspan-4">
-            <h2 class="text-2">HTML Templates</h2>
+        <header class="x-1 xspan-3">
+            <h2 class="text-2">Sparky templates</h2>
         </header>
 
-        <div class="x-1 xspan-3 @1-xspan-4">
+        <div class="x-1 xspan-3">
             <template build-fn="docs:module.js each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
@@ -62,25 +62,25 @@
             <template build-fn="docs:modules/parse.js?tags each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @3-x-4">
+        <div class="x-1 xspan-3 @2-x-4">
             <template build-fn="docs:modules/functions.js?fn each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @3-x-7">
+        <div class="x-1 xspan-3 @2-x-7">
             <template build-fn="docs:modules/parse.js?include each" build-include="/fn/templates.html#section-template"></template>
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="attributes">
-        <header class="x-1 xspan-3 @1-xspan-4 block">
-            <h2 class="text-2">Built-ins</h2>
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="attributes">
+        <header class="x-1 xspan-3">
+            <h2 class="text-2">Built-in pipes and functions</h2>
         </header>
 
-        <div class="x-1 xspan-3 @1-x- @3-x-1">
+        <div class="x-1 xspan-3">
             <template build-fn="docs:modules/transforms.js each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @1-x-4 @3-x-4">
+        <div class="x-1 xspan-3 @2-x-4">
             <template build-fn="docs:
             modules/functions.js?Functions,
             modules/fn-each.js,
@@ -91,7 +91,7 @@
             each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @1-x-4 @3-x-7">
+        <div class="x-1 xspan-3 @2-x-7">
             <template build-fn="docs:
             modules/functions.js?Register
             each" build-include="/fn/templates.html#title-template"></template>
