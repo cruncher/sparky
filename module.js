@@ -38,6 +38,7 @@ import './modules/fn-take.js';
 
 // Export API
 export default Sparky;
+export { Stream } from '../fn/module.js';
 export { cue, uncue };
 //export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
 //export { events, trigger } from '../dom/module.js';

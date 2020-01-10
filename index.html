@@ -19,25 +19,25 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700">
 
-    <link rel="stylesheet" href="../bolt/css/html.css">
-    <link rel="stylesheet" href="../bolt/css/root.css">
-    <link rel="stylesheet" href="../bolt/css/body.css">
-    <link rel="stylesheet" href="../bolt/css/block.css">
-    <link rel="stylesheet" href="../bolt/css/bubble.css">
-    <link rel="stylesheet" href="../bolt/css/button.css">
-    <link rel="stylesheet" href="../bolt/css/dialog.css">
-    <link rel="stylesheet" href="../bolt/css/layer.css">
-    <link rel="stylesheet" href="../bolt/css/type.css">
-    <link rel="stylesheet" href="../bolt/css/text.css">
-    <link rel="stylesheet" href="../bolt/css/color.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/block.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/bubble.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/button.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/dialog.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/layer.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/type.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/text.css">
+    <link rel="stylesheet" href="https://stephen.band/bolt/css/color.css">
 
-    <link rel="stylesheet" href="../dom/css/dom.css">
-    <link rel="stylesheet" href="../fn/css/prism-cruncher.css">
-    <link rel="stylesheet" href="../fn/css/tests.css">
-    <link rel="stylesheet" href="../fn/css/docs.css">
-    <link rel="stylesheet" href="../dom/css/theme.css">
+    <link rel="stylesheet" href="https://stephen.band/dom/css/dom.css">
+    <link rel="stylesheet" href="https://stephen.band/fn/css/prism-cruncher.css">
+    <link rel="stylesheet" href="https://stephen.band/fn/css/tests.css">
+    <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css">
+    <link rel="stylesheet" href="https://stephen.band/dom/css/theme.css">
     <link rel="stylesheet" href="css/theme.css">
-    <link rel="stylesheet" href="../fn/css/respond.css">
+    <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css">
 <template id="header-template" title="/fn/">
         <h1>{[title]} <span class="text-6">{[version]}</span></h1>
 
@@ -468,9 +468,7 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
 
         <div class="x-1 xspan-3 @1-x-4 @3-x-4">
             
-    <h3 class="text-4">Functions</h3><p>Functions are view-controllers with access to the node where they are
-declared and control over the objects being sent to the renderer.</p>
-
+    <h3 class="text-4">Functions</h3>
 
     <article class="toggle-block block" toggleable="" id="each">
         <h3 class="text-5 ">
@@ -528,14 +526,63 @@ following <code>each</code> in the attribute, they are run on each clone.)</p>
 
         <div class="x-1 xspan-3 @1-x-4 @3-x-7">
             
-    <h3 class="text-4">register</h3><pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
+    <h3 class="text-4">Register</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
+declared and control over the flow of objects being sent to the renderer. They
+are registered and accessed by a string identifier.</p>
+<pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
 
 <span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-function'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
     <span class="token comment">// `this` is a stream of scope objects</span>
     <span class="token keyword">return</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>scope<span class="token punctuation">)</span> <span class="token punctuation">{</span>
         <span class="token comment">// Map scope...</span>
     <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p>Functions are called before a node is mounted. They receive a stream of scopes
+and the DOM node, and may return the same stream, or a new stream, or they may
+block mounting and rendering altogether. Types of return value are interpreted
+as follows:</p>
+<ul>
+<li><code>Promise</code> - automatically converted to a stream</li>
+<li><code>Stream</code> - a stream of scopes</li>
+<li><code>undefined</code> - equivalent to returning the input stream</li>
+<li><code>false</code> - cancels the mount process</li>
+</ul>
+<p>The stream returned by the last function declared in the <code>fn</code> attribute is
+piped to the renderer. Values in that stream are rendered, and the life
+of the renderer is controlled by the state of that stream. Here are a few
+examples.</p>
+<p>Push a single scope object to the renderer:</p>
+<pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register<span class="token punctuation">,</span> Stream <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
+
+<span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-scope'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Return a stream of one object</span>
+    <span class="token keyword">return</span> Stream<span class="token punctuation">.</span><span class="token keyword">of</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+        text<span class="token punctuation">:</span> <span class="token string">'Hello, Sparky!'</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p>Return a promise to push a scope when it is ready:</p>
+<pre><code><span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-package'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Return a promise</span>
+    <span class="token keyword">return</span> <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">'package.json'</span><span class="token punctuation">)</span>
+    <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span>response<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p>Push a new scope object to the renderer every second:</p>
+<pre><code><span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-clock'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> output <span class="token operator">=</span> Stream<span class="token punctuation">.</span><span class="token keyword">of</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Push a new scope to the renderer once per second</span>
+    <span class="token keyword">const</span> timer <span class="token operator">=</span> <span class="token function">setInterval</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        output<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            time<span class="token punctuation">:</span> window<span class="token punctuation">.</span>performance<span class="token punctuation">.</span><span class="token function">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">1000</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Listen to the input stream, stop the interval</span>
+    <span class="token comment">// timer when it is stopped</span>
+    <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">done</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">clearInterval</span><span class="token punctuation">(</span>timer<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token comment">// Return the stream</span>
+    <span class="token keyword">return</span> output<span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p>Sparky’s streams are imported from the Fn library. Read more about streams at
+<a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.</p>
+
 
         </div>
     </section>
@@ -583,12 +630,12 @@ sparky<span class="token punctuation">.</span><span class="token function">push<
 
     <!-- Document interactivity -->
     <script type="module">
-        import '../dom/js/device.js';
-        import '../dom/js/popable.js';
-        import '../dom/js/toggleable.js';
-        import '../dom/js/locateable.js';
-        import '../dom/js/switchable.js';
-        import '../dom/js/fullscreenable.js';
+        import 'https://stephen.band/dom/js/device.js';
+        import 'https://stephen.band/dom/js/popable.js';
+        import 'https://stephen.band/dom/js/toggleable.js';
+        import 'https://stephen.band/dom/js/locateable.js';
+        import 'https://stephen.band/dom/js/switchable.js';
+        import 'https://stephen.band/dom/js/fullscreenable.js';
         import * as sparky from './module.js';
         window.$ = sparky;
     </script>
