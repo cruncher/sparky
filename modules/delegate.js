@@ -5,13 +5,8 @@ delegate(types)
 Create an event delegation controller fn, where `types` is an object of objects
 mapping event types and selectors to listener functions:
 
-register('fn-name', delegate({
-    type: {
-        selector: fn(node, e)
-    )
-});
-
-A common pattern is to delegate clicks on buttons:
+```js
+import { delegate, register } from './sparky/module.js';
 
 register('fn-name', delegate({
     'click': {
@@ -20,10 +15,13 @@ register('fn-name', delegate({
         }
     )
 });
+```
 
 To further delegate by the name of the button you could use `get`
 and `overload` from Fn:
 
+```js
+import { delegate, register } from './sparky/module.js';
 import { get, overload } from './fn/module.js';
 
 register('fn-name', delegate({
@@ -35,6 +33,7 @@ register('fn-name', delegate({
         })
     )
 });
+```
 
 (This is a little more efficient than listing all possible button names as
 selectors).

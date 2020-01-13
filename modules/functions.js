@@ -70,8 +70,12 @@ as follows:
 
 The stream returned by the last function declared in the `fn` attribute is
 piped to the renderer. Values in that stream are rendered, and the life
-of the renderer is controlled by the state of that stream. Here are a few
-examples.
+of the renderer is controlled by the state of that stream. Sparky's streams
+come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
+*/
+
+/*
+Examples
 
 Push a single scope object to the renderer:
 
@@ -117,10 +121,8 @@ register('my-clock', function(node, params) {
     return output;
 });
 ```
-
-Sparky's streams are imported from the Fn library. Read more about streams at
-<a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
 */
+
 
 const DEBUG = window.DEBUG;
 

@@ -12,6 +12,9 @@
     <script>
     document.documentElement.className = 'js';
     window.DEBUG = false;
+    window.config = {
+        path: '../' // 'https://stephen.band/'
+    };
     </script>
 
     <link rel="shortcut icon" href="images/logo-64x64.ico" />
@@ -21,25 +24,25 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
 
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/block.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/bubble.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/button.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/dialog.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/layer.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/type.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/text.css" />
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/color.css" />
-
-    <link rel="stylesheet" href="https://stephen.band/dom/css/dom.css" />
-    <link rel="stylesheet" href="https://stephen.band/fn/css/prism-cruncher.css" />
-    <link rel="stylesheet" href="https://stephen.band/fn/css/tests.css" />
-    <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css" />
-    <link rel="stylesheet" href="https://stephen.band/dom/css/theme.css" />
-    <link rel="stylesheet" href="css/theme.css" />
-    <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css" />
+    <template build-fn="config">
+        <link rel="stylesheet" href="{[path]}bolt/css/html.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/root.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/body.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/block.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/bubble.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/button.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/dialog.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/layer.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/type.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/text.css" />
+        <link rel="stylesheet" href="{[path]}bolt/css/color.css" />
+        <link rel="stylesheet" href="{[path]}dom/css/dom.css" />
+        <link rel="stylesheet" href="{[path]}fn/css/prism-cruncher.css" />
+        <link rel="stylesheet" href="{[path]}fn/css/tests.css" />
+        <link rel="stylesheet" href="{[path]}fn/css/docs.css" />
+        <link rel="stylesheet" href="css/theme.css" />
+        <link rel="stylesheet" href="{[path]}fn/css/respond.css" />
+    </template>
 </head>
 
 <body class="@3-grid-12 grid">
@@ -71,18 +74,10 @@
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="attributes">
-        <header class="x-1 xspan-3">
-            <h2 class="text-2">Built-in pipes and functions</h2>
-        </header>
-
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="built-ins">
         <div class="x-1 xspan-3">
-            <template build-fn="docs:modules/transforms.js each" build-include="/fn/templates.html#{[type]}-template"></template>
-        </div>
-
-        <div class="x-1 xspan-3 @2-x-4">
+            <h2 class="text-2">Built-in functions</h2>
             <template build-fn="docs:
-            modules/functions.js?Functions,
             modules/fn-each.js,
             modules/fn-entries.js,
             modules/fn-fetch.js,
@@ -91,9 +86,50 @@
             each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-7">
+        <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
+            <h2 class="text-2">Built-in pipes</h2>
+            <template build-fn="docs:modules/transforms.js filter-fn each" build-include="/fn/templates.html#{[type]}-template"></template>
+        </div>
+    </section>
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="customise">
+        <div class="x-1 xspan-3 @2-xspan-5">
+            <h2 class="text-2">Write a function</h2>
+
             <template build-fn="docs:
             modules/functions.js?Register
+            each" build-include="/fn/templates.html#title-template"></template>
+
+            <h3 class="text-3">Examples</h3>
+
+            <template build-fn="docs:
+            modules/functions.js?Examples
+            each" build-include="/fn/templates.html#title-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+            <h3 class="text-3">Function helpers</h3>
+
+            <template build-fn="docs:
+            modules/delegate.js
+            each" build-include="/fn/templates.html#function-template"></template>
+        </div>
+    </section>
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="customise">
+        <div class="x-1 xspan-3 @2-xspan-5">
+            <h2 class="text-2">Write a pipe</h2>
+
+            <template build-fn="docs:
+            modules/pipes.js?Write
+            each" build-include="/fn/templates.html#title-template"></template>
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+            <h3 class="text-3">Examples</h3>
+
+            <template build-fn="docs:
+            modules/pipes.js?Examples
             each" build-include="/fn/templates.html#title-template"></template>
         </div>
     </section>

@@ -12,6 +12,10 @@ export default {
         booleans:   ['disabled', 'required'],
         attributes: ['name'],
         types: {
+
+            /* Todo: move `value` definition to internal logic (call it `type`
+               for gods sake), shouldnt be exposed to config. */
+
             button:   { attributes: ['value'] },
             checkbox: { attributes: [], booleans: ['checked'], value: 'checkbox' },
             date:     { attributes: ['min', 'max', 'step'], value: 'string' },
@@ -28,6 +32,7 @@ export default {
     },
     label:    { attributes: ['for'] },
     line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
+    link:     { attributes: ['href'] },
     meta:     { attributes: ['content'] },
     meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
     option:   { attributes: ['value'], booleans: ['disabled'] },

@@ -1,9 +1,5 @@
 
-/*
-Pipes
 
-Pipes are functions applied to tag values at render time.
-*/
 
 // Import uncurried functions from Fn library
 

@@ -36,9 +36,9 @@ The root path renders the scope object itself:
 { [ . ]}
 ```
 
-Sparky renders `NaN`, `null` and `undefined` vsluers as empty strings, renders
-objects as JSON, functions as a `'name(params)'` shorthand, and converts
-`Infinity` to `'∞'`. Other values are rendered as their strings.
+Sparky renders `NaN`, `null` and `undefined` as empty strings, objects as JSON,
+functions as a `name(params)` shorthand, and `Infinity` as `∞`. Other values
+are rendered as strings.
 */
 
 /*
