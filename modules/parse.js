@@ -3,8 +3,8 @@
 {[path|pipe:params]}
 
 Template tags are made of three parts. Values are read from `path` in the
-scope object, piped through any number of `pipe` functions, which,
-depending on the pipe, may require `params`, and rendered into the DOM.
+scope object, piped through any number of `pipe` functions, which
+(depending on the pipe) may require `params`, and rendered into the DOM.
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">

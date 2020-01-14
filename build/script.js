@@ -4671,6 +4671,12 @@ var Sparky = (function (exports) {
     	return typeof object;
     }
 
+    // #e2006f
+    // #332256
+
+    if (window.console && window.console.log) {
+        window.console.log('%cFn%c          - https://github.com/stephband/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
+    }
     const requestTime$1 = curry$1(requestTime, true, 2);
     const and     = curry$1(function and(a, b) { return !!(a && b); });
     const or      = curry$1(function or(a, b) { return a || b; });
@@ -6435,7 +6441,9 @@ var Sparky = (function (exports) {
     	return request('GET', 'application/json', url, {});
     }
 
-    //if (window.console && window.console.log) {
+    if (window.console && window.console.log) {
+        window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
+    }
     const parse$3 = curry$1(parse$2, true);
     const contains$3 = curry$1(contains$2, true);
     const attribute$1 = curry$1(attribute, true);
@@ -7056,7 +7064,7 @@ var Sparky = (function (exports) {
     };
 
     /*
-    fn=""
+    fn="name:params"
 
     A `fn` attribute declares one or more functions to run on a template.
     A **function** is expected to supply an object that Sparky uses to
@@ -7064,7 +7072,7 @@ var Sparky = (function (exports) {
 
     ```html
     <template is="sparky-template" fn="fetch:package.json">
-        I am { [title] }.
+        I am {[title]}.
     </template>
     ```
 
@@ -7079,7 +7087,7 @@ var Sparky = (function (exports) {
     ```html
     <template is="sparky-template" fn="fetch:package.json">
         <ul>
-            <li fn="get:keywords each">{ [.] }</li>
+            <li fn="get:keywords each">{[.]}</li>
         </ul>
     </template>
     ```
@@ -7185,10 +7193,7 @@ var Sparky = (function (exports) {
     const functions = Object.create(null);
 
     function register(name, fn) {
-        if (/^(?:function\s*)?\(node/.exec(fn.toString())) {
-            console.log(fn);
-            //throw new Error('First param is node. No no no.')
-        }
+        if (/^(?:function\s*)?\(node/.exec(fn.toString())) ;
 
         if (DEBUG$4 && functions[name]) {
             throw new Error('Sparky: fn already registered with name "' + name + '"');
@@ -9035,7 +9040,7 @@ var Sparky = (function (exports) {
 
     ```html
     <div id="title-div">
-        I am { [title] }.
+        I am {[title]}.
     </div>
     ```
     ```
@@ -9067,7 +9072,7 @@ var Sparky = (function (exports) {
 
     ```html
     <template id="i-am-title">
-        I am { [title] }.
+        I am {[title]}.
     </template>
 
     <template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
@@ -9079,7 +9084,7 @@ var Sparky = (function (exports) {
 
     ```html
     <template id="i-am-title">
-        I am { [title] }.
+        I am {[title]}.
     </template>
 
     <template is="sparky-template" fn="fetch:package.json">
@@ -9185,7 +9190,7 @@ var Sparky = (function (exports) {
 
     ```html
     <ul>
-        <li fn="get:keywords each">{ [.] }</li>
+        <li fn="get:keywords each">{[.]}</li>
     </ul>
     ```
     ```html
@@ -9465,7 +9470,7 @@ var Sparky = (function (exports) {
     Fetches and parses a JSON file and uses it as scope to render the node.
 
     ```html
-    <p fn="fetch:package.json">{ [title] }!</p>
+    <p fn="fetch:package.json">{[title]}!</p>
     ```
 
     ```html
@@ -9534,7 +9539,7 @@ var Sparky = (function (exports) {
     Maps scope to the value at `path` of the current scope:
 
     ```html
-    <a fn="get:repository" href="{ [ url ]}">{ [type|capitalise]} repository</a>
+    <a fn="get:repository" href="{[ url ]}">{[type|capitalise]} repository</a>
     ```
 
     ```html

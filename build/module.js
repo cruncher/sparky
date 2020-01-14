@@ -4668,6 +4668,12 @@ function toType$1(object) {
 	return typeof object;
 }
 
+// #e2006f
+// #332256
+
+if (window.console && window.console.log) {
+    window.console.log('%cFn%c          - https://github.com/stephband/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
+}
 const requestTime$1 = curry$1(requestTime, true, 2);
 const and     = curry$1(function and(a, b) { return !!(a && b); });
 const or      = curry$1(function or(a, b) { return a || b; });
@@ -6432,7 +6438,9 @@ function requestGet(url) {
 	return request('GET', 'application/json', url, {});
 }
 
-//if (window.console && window.console.log) {
+if (window.console && window.console.log) {
+    window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
+}
 const parse$3 = curry$1(parse$2, true);
 const contains$3 = curry$1(contains$2, true);
 const attribute$1 = curry$1(attribute, true);
@@ -7053,7 +7061,7 @@ var config$1 = {
 };
 
 /*
-fn=""
+fn="name:params"
 
 A `fn` attribute declares one or more functions to run on a template.
 A **function** is expected to supply an object that Sparky uses to
@@ -7061,7 +7069,7 @@ render template **tags**:
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 ```
 
@@ -7076,7 +7084,7 @@ array of keywords and generate a list:
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     <ul>
-        <li fn="get:keywords each">{ [.] }</li>
+        <li fn="get:keywords each">{[.]}</li>
     </ul>
 </template>
 ```
@@ -7182,10 +7190,7 @@ const DEBUG$4 = window.DEBUG;
 const functions = Object.create(null);
 
 function register(name, fn) {
-    if (/^(?:function\s*)?\(node/.exec(fn.toString())) {
-        console.log(fn);
-        //throw new Error('First param is node. No no no.')
-    }
+    if (/^(?:function\s*)?\(node/.exec(fn.toString())) ;
 
     if (DEBUG$4 && functions[name]) {
         throw new Error('Sparky: fn already registered with name "' + name + '"');
@@ -9032,7 +9037,7 @@ to the stream to have it rendered by the template:
 
 ```html
 <div id="title-div">
-    I am { [title] }.
+    I am {[title]}.
 </div>
 ```
 ```
@@ -9064,7 +9069,7 @@ as an href to a template:
 
 ```html
 <template id="i-am-title">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 
 <template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
@@ -9076,7 +9081,7 @@ Templates may be composed of includes:
 
 ```html
 <template id="i-am-title">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 
 <template is="sparky-template" fn="fetch:package.json">
@@ -9182,7 +9187,7 @@ Clones the DOM node and renders a clone for each value in an array.
 
 ```html
 <ul>
-    <li fn="get:keywords each">{ [.] }</li>
+    <li fn="get:keywords each">{[.]}</li>
 </ul>
 ```
 ```html
@@ -9462,7 +9467,7 @@ fetch: url
 Fetches and parses a JSON file and uses it as scope to render the node.
 
 ```html
-<p fn="fetch:package.json">{ [title] }!</p>
+<p fn="fetch:package.json">{[title]}!</p>
 ```
 
 ```html
@@ -9531,7 +9536,7 @@ get: path
 Maps scope to the value at `path` of the current scope:
 
 ```html
-<a fn="get:repository" href="{ [ url ]}">{ [type|capitalise]} repository</a>
+<a fn="get:repository" href="{[ url ]}">{[type|capitalise]} repository</a>
 ```
 
 ```html
