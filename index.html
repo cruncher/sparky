@@ -102,6 +102,8 @@
             <code build-fn="append:title" class="function language-js"></code>
         </h3>
     </article>
+</template><template id="body-template" title="/fn/">
+    <article build-fn="append:body" class="toggle-block block active" id="{[id]}"></article>
 </template></head>
 
 <body class="@3-grid-12 grid">
@@ -123,17 +125,10 @@
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="functions">
-        <header class="x-1 xspan-3">
-            <h2 class="text-2">Sparky templates</h2>
-        </header>
-
         <div class="x-1 xspan-3">
+            <h2 class="text-2">Sparky templates</h2>
             
-    <article class="toggle-block block active" id="template-is-sparky-template">
-        <h3 class="text-5 ">
-            <code class="function language-js"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span></code>
-        </h3>
-    <p>First, import Sparky:</p>
+    <article class="toggle-block block active" id="sparky-templates"><p>First, import Sparky:</p>
 <pre><code class="language-js"><span class="token keyword">import</span> <span class="token string">'/sparky/module.js'</span><span class="token punctuation">;</span></code></pre>
 <p>Sparky registers the <code>is="sparky-template"</code> custom element. Sparky templates
 in the DOM are automatically replaced with their own rendered content:</p>

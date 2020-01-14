@@ -9704,7 +9704,7 @@ if (window.console && window.console.log) {
 
 
 /*
-<template is="sparky-template">
+Sparky templates
 
 First, import Sparky:
 

@@ -53,7 +53,7 @@ export { default as ObserveFn } from './modules/fn-observe.js';
 
 
 /*
-<template is="sparky-template">
+Sparky templates
 
 First, import Sparky:
 

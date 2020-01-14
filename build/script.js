@@ -9707,7 +9707,7 @@ var Sparky = (function (exports) {
 
 
     /*
-    <template is="sparky-template">
+    Sparky templates
 
     First, import Sparky:
 

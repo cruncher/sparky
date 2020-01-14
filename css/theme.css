@@ -49,11 +49,11 @@ code .comment,
 code .string,
 code .function {
     color: #752704;
-    color: #630028;
+    color: #802902;
 }
 
 a:hover > code {
-	color: #FE267E;
+	color: #fc6827;
 }
 
 script[type="text"] {
