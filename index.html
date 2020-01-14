@@ -10,6 +10,9 @@
     <script>
     document.documentElement.className = 'js';
     window.DEBUG = false;
+    window.config = {
+        path: 'https://stephen.band/'
+    };
     </script>
 
     <link rel="shortcut icon" href="images/logo-64x64.ico">
@@ -19,25 +22,25 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700">
 
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/block.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/bubble.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/button.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/dialog.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/layer.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/type.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/text.css">
-    <link rel="stylesheet" href="https://stephen.band/bolt/css/color.css">
-
-    <link rel="stylesheet" href="https://stephen.band/dom/css/dom.css">
-    <link rel="stylesheet" href="https://stephen.band/fn/css/prism-cruncher.css">
-    <link rel="stylesheet" href="https://stephen.band/fn/css/tests.css">
-    <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css">
-    <link rel="stylesheet" href="https://stephen.band/dom/css/theme.css">
-    <link rel="stylesheet" href="css/theme.css">
-    <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css">
+    
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/block.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/bubble.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/button.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/dialog.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/layer.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/type.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/text.css">
+        <link rel="stylesheet" href="https://stephen.band/bolt/css/color.css">
+        <link rel="stylesheet" href="https://stephen.band/dom/css/dom.css">
+        <link rel="stylesheet" href="https://stephen.band/fn/css/prism-cruncher.css">
+        <link rel="stylesheet" href="https://stephen.band/fn/css/tests.css">
+        <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css">
+        <link rel="stylesheet" href="css/theme.css">
+        <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css">
+    
 <template id="header-template" title="/fn/">
         <h1>{[title]} <span class="text-6">{[version]}</span></h1>
 
@@ -165,9 +168,9 @@ property names. These are valid:</p>
 { [ items.3 ]}</code></pre>
 <p>The root path renders the scope object itself:</p>
 <pre><code class="language-html">{ [ . ]}</code></pre>
-<p>Sparky renders <code>NaN</code>, <code>null</code> and <code>undefined</code> vsluers as empty strings, renders
-objects as JSON, functions as a <code>'name(params)'</code> shorthand, and converts
-<code>Infinity</code> to <code>'∞'</code>. Other values are rendered as their strings.</p>
+<p>Sparky renders <code>NaN</code>, <code>null</code> and <code>undefined</code> as empty strings, objects as JSON,
+functions as a <code>name(params)</code> shorthand, and <code>Infinity</code> as <code>∞</code>. Other values
+are rendered as strings.</p>
 </article>
 
         </div>
@@ -243,16 +246,71 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="attributes">
-        <header class="x-1 xspan-3">
-            <h2 class="text-2">Built-in pipes and functions</h2>
-        </header>
-
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable="" id="built-ins">
         <div class="x-1 xspan-3">
+            <h2 class="text-2">Built-in functions</h2>
             
-    <h3 class="text-4">Pipes</h3><p>Pipes are functions applied to tag values at render time.</p>
+    <article class="toggle-block block" toggleable="" id="each">
+        <h3 class="text-5 ">
+            <a href="#each">
+                <code class="language-js">each</code>
+            </a>
+        </h3>
+    <p>Clones the DOM node and renders a clone for each value in an array.</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:keywords each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [.] }<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>javascript<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>browser<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
+<p>Where there are functions declared after <code>each</code> in the attribute, they are run
+on each clone.</p>
+</article>
 
+    <article class="toggle-block block" toggleable="" id="entries">
+        <h3 class="text-5 ">
+            <a href="#entries">
+                <code class="language-js">entries</code>
+            </a>
+        </h3>
+    <p>Maps scope to an array of <code>[key, value]</code> arrays.</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:repository entries each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [0]}: { [1]}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>type: git<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>url: https://github.com/cruncher/sparky.git<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
+</article>
 
+    <article class="toggle-block block" toggleable="" id="fetch">
+        <h3 class="text-5 ">
+            <a href="#fetch">
+                <code class="language-js">fetch: url</code>
+            </a>
+        </h3>
+    <p>Fetches and parses a JSON file and uses it as scope to render the node.</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [title] }!<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span>Sparky!<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
+</article>
+
+    <article class="toggle-block block" toggleable="" id="get">
+        <h3 class="text-5 ">
+            <a href="#get">
+                <code class="language-js">get: path</code>
+            </a>
+        </h3>
+    <p>Maps scope to the value at <code>path</code> of the current scope:</p>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:repository<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{ [ url ]}<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [type|capitalise]} repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
+<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>https://github.com/cruncher/sparky.git<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Git repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
+</article>
+
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
+            <h2 class="text-2">Built-in pipes</h2>
+            
     <article class="toggle-block block" toggleable="" id="add">
         <h3 class="text-5 ">
             <a href="#add">
@@ -475,70 +533,12 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
 </article>
 
         </div>
+    </section>
 
-        <div class="x-1 xspan-3 @2-x-4">
-            
-    <h3 class="text-4">Functions</h3>
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable="" id="customise">
+        <div class="x-1 xspan-3 @2-xspan-5">
+            <h2 class="text-2">Write a function</h2>
 
-    <article class="toggle-block block" toggleable="" id="each">
-        <h3 class="text-5 ">
-            <a href="#each">
-                <code class="language-js">each</code>
-            </a>
-        </h3>
-    <p>Clones the DOM node and renders a clone for each value in an array.</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:keywords each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [.] }<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>javascript<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>browser<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-<p>Where there are functions declared after <code>each</code> in the attribute, they are run
-on each clone.</p>
-</article>
-
-    <article class="toggle-block block" toggleable="" id="entries">
-        <h3 class="text-5 ">
-            <a href="#entries">
-                <code class="language-js">entries</code>
-            </a>
-        </h3>
-    <p>Maps scope to an array of <code>[key, value]</code> arrays.</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:repository entries each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [0]}: { [1]}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>type: git<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>url: https://github.com/cruncher/sparky.git<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-</article>
-
-    <article class="toggle-block block" toggleable="" id="fetch">
-        <h3 class="text-5 ">
-            <a href="#fetch">
-                <code class="language-js">fetch: url</code>
-            </a>
-        </h3>
-    <p>Fetches and parses a JSON file and uses it as scope to render the node.</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [title] }!<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span>Sparky!<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
-</article>
-
-    <article class="toggle-block block" toggleable="" id="get">
-        <h3 class="text-5 ">
-            <a href="#get">
-                <code class="language-js">get: path</code>
-            </a>
-        </h3>
-    <p>Maps scope to the value at <code>path</code> of the current scope:</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:repository<span class="token punctuation">"</span></span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{ [ url ]}<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{ [type|capitalise]} repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>https://github.com/cruncher/sparky.git<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Git repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
-</article>
-
-        </div>
-
-        <div class="x-1 xspan-3 @2-x-7">
             
     <h3 class="text-4">Register</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
 declared and control over the flow of objects being sent to the renderer. They
@@ -562,9 +562,15 @@ as follows:</p>
 </ul>
 <p>The stream returned by the last function declared in the <code>fn</code> attribute is
 piped to the renderer. Values in that stream are rendered, and the life
-of the renderer is controlled by the state of that stream. Here are a few
-examples.</p>
-<p>Push a single scope object to the renderer:</p>
+of the renderer is controlled by the state of that stream. Sparky’s streams
+come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.</p>
+
+
+
+            <h3 class="text-3">Examples</h3>
+
+            
+    <h3 class="text-4">Examples</h3><p>Push a single scope object to the renderer:</p>
 <pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register<span class="token punctuation">,</span> Stream <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
 
 <span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-scope'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
@@ -594,8 +600,67 @@ examples.</p>
 
     <span class="token comment">// Return the stream</span>
     <span class="token keyword">return</span> output<span class="token punctuation">;</span>
-<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre><p>Sparky’s streams are imported from the Fn library. Read more about streams at
-<a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.</p>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+            <h3 class="text-3">Function helpers</h3>
+
+            
+    <article class="toggle-block block" toggleable="" id="delegate-types">
+        <h3 class="text-5 ">
+            <a href="#delegate-types">
+                <code class="function language-js"><span class="token function">delegate</span><span class="token punctuation">(</span>types<span class="token punctuation">)</span></code>
+            </a>
+        </h3>
+    <p>Create an event delegation controller fn, where <code>types</code> is an object of objects
+mapping event types and selectors to listener functions:</p>
+<pre><code class="language-js"><span class="token keyword">import</span> <span class="token punctuation">{</span> delegate<span class="token punctuation">,</span> register <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
+
+<span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'fn-name'</span><span class="token punctuation">,</span> <span class="token function">delegate</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token string">'click'</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token string">'button'</span><span class="token punctuation">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span>button<span class="token punctuation">,</span> e<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            <span class="token comment">// Button was clicked...</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<p>To further delegate by the name of the button you could use <code>get</code>
+and <code>overload</code> from Fn:</p>
+<pre><code class="language-js"><span class="token keyword">import</span> <span class="token punctuation">{</span> delegate<span class="token punctuation">,</span> register <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> <span class="token keyword">get</span><span class="token punctuation">,</span> overload <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./fn/module.js'</span><span class="token punctuation">;</span>
+
+<span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'fn-name'</span><span class="token punctuation">,</span> <span class="token function">delegate</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token string">'click'</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token string">'button[name]'</span><span class="token punctuation">:</span> <span class="token function">overload</span><span class="token punctuation">(</span><span class="token keyword">get</span><span class="token punctuation">(</span><span class="token string">'name'</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            <span class="token string">'button-name'</span><span class="token punctuation">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                <span class="token comment">// Button name="button-name" was clicked...</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+<p>(This is a little more efficient than listing all possible button names as
+selectors).</p>
+</article>
+
+        </div>
+    </section>
+
+    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable="" id="customise">
+        <div class="x-1 xspan-3 @2-xspan-5">
+            <h2 class="text-2">Write a pipe</h2>
+
+            
+    <h3 class="text-4">Write</h3><p>Todo.</p>
+
+
+        </div>
+
+        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+            <h3 class="text-3">Examples</h3>
+
+            
+    <h3 class="text-4">Examples</h3><p>Todo.</p>
 
 
         </div>
