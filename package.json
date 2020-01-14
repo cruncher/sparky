@@ -34,9 +34,8 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint modules/*.js",
-    "build": "npm run build-cjs && npm run build-esm && npm run build-docs",
-    "build-cjs": "rollup module.js --o build/script.js --f cjs",
-    "build-esm": "rollup module.js --o build/module.js --f esm",
+    "build": "npm run rollup && npm run build-docs",
+    "rollup": "rollup --config rollup.config.js",
     "build-docs": "node ../fn/render-html.js http://localhost/sparky/template.html ./index.html 8 && git add index.html",
     "sass": "node-sass --output-style compact --indent-type tab --indent-width 1 -o css css/respond.scss"
   }

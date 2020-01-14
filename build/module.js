@@ -4668,12 +4668,6 @@ function toType$1(object) {
 	return typeof object;
 }
 
-// #e2006f
-// #332256
-
-if (window.console && window.console.log) {
-    window.console.log('%cFn%c          - https://github.com/stephband/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
-}
 const requestTime$1 = curry$1(requestTime, true, 2);
 const and     = curry$1(function and(a, b) { return !!(a && b); });
 const or      = curry$1(function or(a, b) { return a || b; });
@@ -6438,9 +6432,7 @@ function requestGet(url) {
 	return request('GET', 'application/json', url, {});
 }
 
-if (window.console && window.console.log) {
-    window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
-}
+//if (window.console && window.console.log) {
 const parse$3 = curry$1(parse$2, true);
 const contains$3 = curry$1(contains$2, true);
 const attribute$1 = curry$1(attribute, true);
