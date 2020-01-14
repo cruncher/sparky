@@ -34,7 +34,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint modules/*.js",
-    "build": "npm run build-cjs && npm run build-esm",
+    "build": "npm run build-cjs && npm run build-esm && npm run build-docs",
     "build-cjs": "rollup module.js --o build/script.js --f cjs",
     "build-esm": "rollup module.js --o build/module.js --f esm",
     "build-docs": "node ../fn/render-html.js http://localhost/sparky/template.html ./index.html 8 && git add index.html",
