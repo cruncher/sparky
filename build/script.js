@@ -2,8 +2,11 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-/* cache(fn)
-Returns a function that caches results of calling it.
+/*
+cache(fn)
+Returns a function that caches the output values of `fn(input)`
+against input values in a map, such that for each input value
+`fn` is only ever called once.
 */
 
 function cache(fn) {
@@ -21,6 +24,9 @@ function cache(fn) {
     };
 }
 
+/*
+curry(fn [, muteable, arity])
+*/
 const A     = Array.prototype;
 
 function applyFn(fn, args) {
@@ -56,16 +62,14 @@ function curry(fn, muteable, arity) {
     };
 }
 
-/*
-function curry(fn, muteable, arity) {
-    arity = arity || fn.length;
-    return function curried() {
-        return arguments.length >= arity ?
-            fn.apply(null, arguments) :
-            curried.bind(null, ...arguments) ;
-    };
-}
-*/
+//function curry(fn, muteable, arity) {
+//    arity = arity || fn.length;
+//    return function curried() {
+//        return arguments.length >= arity ?
+//            fn.apply(null, arguments) :
+//            curried.bind(null, ...arguments) ;
+//    };
+//}
 
 {
     const _curry = curry;
@@ -110,6 +114,10 @@ function curry(fn, muteable, arity) {
 
 var curry$1 = curry;
 
+/*
+rest(n, array)
+*/
+
 function rest(i, object) {
     if (object.slice) { return object.slice(i); }
     if (object.rest)  { return object.rest(i); }
@@ -120,6 +128,24 @@ function rest(i, object) {
     return a;
 }
 
+/*
+choose(fn, map)
+Returns a function that takes its first argument as a key and uses it
+to select a function in `map` which is invoked with the remaining arguments.
+
+Where `map` has a function `default`, that function is run when a key
+is not found, otherwise unfound keys will error.
+
+```
+var fn = choose({
+    'fish':  function fn1(a, b) {...},
+    'chips': function fn2(a, b) {...}
+});
+
+fn('fish', a, b);   // Calls fn1(a, b)
+```
+*/
+
 function choose(map) {
     return function choose(key) {
         var fn = map[key] || map.default;
@@ -127,7 +153,17 @@ function choose(map) {
     };
 }
 
+/*
+noop()
+Returns undefined.
+*/
+
 function noop() {}
+
+/*
+requestTick(fn)
+Call `fn` on the next tick.
+*/
 
 const resolved = Promise.resolve();
 
@@ -136,9 +172,11 @@ function requestTick(fn) {
     return fn;
 }
 
-// Throttle
+/*
+toArray(object)
+*/
 
-function toArray$1(object) {
+function toArray(object) {
     if (object.toArray) { return object.toArray(); }
 
     // Speed test for array conversion:
@@ -161,6 +199,16 @@ function toArray$1(object) {
 
 const A$1 = Array.prototype;
 const S = String.prototype;
+
+/*
+by(fn, a, b)
+Compares `fn(a)` against `fn(b)` and returns `-1`, `0` or `1`. Useful for sorting
+objects by property:
+
+```
+[{id: '2'}, {id: '1'}].sort(by(get('id')));  // [{id: '1'}, {id: '2'}]
+```
+*/
 
 function by(fn, a, b) {
     const fna = fn(a);
@@ -215,14 +263,15 @@ function concat(array2, array1) {
     // together.
     return Array.isArray(array1) ?
         // 1 is an array. Convert 2 to an array if necessary
-        array1.concat(Array.isArray(array2) ? array2 : toArray$1(array2)) :
+        array1.concat(Array.isArray(array2) ? array2 : toArray(array2)) :
 
     array1.concat ?
         // It has it's own concat method. Lets assume it's robust
         array1.concat(array2) :
     // 1 is not an array, but 2 is
-    toArray$1(array1).concat(Array.isArray(array2) ? array2 : toArray$1(array2)) ;
+    toArray(array1).concat(Array.isArray(array2) ? array2 : toArray(array2)) ;
 }
+
 function contains(value, object) {
     return object.includes ?
         object.includes(value) :
@@ -232,17 +281,11 @@ function contains(value, object) {
         A$1.includes.call(object, value) :
         A$1.indexOf.call(object, value) !== -1 ;
 }
+
 function find(fn, object) {
     return A$1.find.call(object, fn);
 }
 
-function insert(fn, array, object) {
-    var n = -1;
-    var l = array.length;
-    var value = fn(object);
-    while(++n < l && fn(array[n]) <= value);
-    A$1.splice.call(array, n, 0, object);
-}
 
 function slice(n, m, object) {
     return object.slice ?
@@ -251,21 +294,21 @@ function slice(n, m, object) {
 }
 
 /*
-args()
-
-Returns `arguments` object.
-
-```
-code(block)
-```
-
+call(fn)
+Returns a function that calls `fn()` with no arguments.
 */
 
-// choke
-//
-// Returns a function that waits for `time` seconds without being invoked
-// before calling `fn` using the context and arguments from the latest
-// invocation
+function call(fn) {
+    return fn();
+}
+
+/*
+choke(fn, time)
+
+Returns a function that waits for `time` seconds without being invoked
+before calling `fn` using the context and arguments from the latest
+invocation.
+*/
 
 function choke(fn, time) {
     var timer, context, args;
@@ -314,21 +357,30 @@ function choke(fn, time) {
 //		};
 //	}
 
+/*
+compose(fn2, fn1)
+Calls `fn1`, passes the result to `fn2`, and returns that result.
+*/
+
 function compose(fn2, fn1) {
     return function compose() {
         return fn2(fn1.apply(null, arguments));
     };
 }
 
-function deprecate(fn, message) {
-    // Recall any function and log a depreciation warning
-    return function deprecate() {
-        console.warn('Deprecation warning: ' + message);
-        return fn.apply(this, arguments);
-    };
-}
+/*
+id(value)
+Returns `value`.
+*/
 
-function id(object) { return object; }
+function id(value) { return value; }
+
+/*
+isDefined(value)
+Check for value – where `value` is `undefined`, `NaN` or `null`, returns
+`false`, otherwise `true`.
+*/
+
 
 function isDefined(value) {
     // !!value is a fast out for non-zero numbers, non-empty strings
@@ -341,11 +393,30 @@ function latest(source) {
     return value === undefined ? arguments[1] : latest(source, value) ;
 }
 
+/*
+not(value)
+Returns `!value`.
+*/
+
+function not(n) { return !n; }
+
+const done     = { done: true };
+const iterator = { next: () => done };
+
 var nothing = Object.freeze({
+    // Standard array methods
     shift: noop,
     push:  noop,
+
+    // Stream methods
+    start: noop,
     stop:  noop,
-    length: 0
+
+    // Make it look like an empty array
+    length: 0,
+
+    // Make it an iterable with nothing in it
+    [Symbol.iterator]: () => iterator
 });
 
 function now() {
@@ -353,13 +424,23 @@ function now() {
     return +new Date() / 1000;
 }
 
-function once(fn) {
-    return function once() {
-        var value = fn.apply(this, arguments);
-        fn = noop;
-        return value;
-    };
-}
+/*
+overload(fn, map)
+
+Returns a function that calls a function at the property of `object` that
+matches the result of calling `fn` with all arguments.</p>
+
+```
+var fn = overload(toType, {
+    string: function a(name, n) {...},
+    number: function b(n, m) {...}
+});
+
+fn('pie', 4); // Returns a('pie', 4)
+fn(1, 2);     // Returns b(1, 2)
+```
+*/
+
 
 function overload(fn, map) {
     return typeof map.get === 'function' ?
@@ -379,6 +460,12 @@ function apply(value, fn) {
     return fn(value);
 }
 
+/*
+pipe(fn1, fn2, ...)
+Returns a function that calls `fn1`, `fn2`, etc., passing the result of
+calling one function to the next and returning the the last result.
+*/
+
 const A$2 = Array.prototype;
 
 function pipe() {
@@ -388,21 +475,51 @@ function pipe() {
         id ;
 }
 
+const $private = Symbol('private');
+
+function privates(object) {
+    return object[$private] ?
+        object[$private] :
+        Object.defineProperty(object, $private, {
+            value: {}
+        })[$private] ;
+}
+
+/*
+toClass(object)
+*/
+
 const O = Object.prototype;
 
 function toClass(object) {
     return O.toString.apply(object).slice(8, -1);
 }
 
-function toInt(object) {
+/*
+parseInt(string)
+Parse to integer without having to worry about the radix parameter,
+making it suitable, for example, to use in `array.map(parseInt)`.
+*/
+
+function parseInteger(object) {
     return object === undefined ?
         undefined :
         parseInt(object, 10);
 }
 
+/*
+toString(object)
+Returns `object.toString()`.
+*/
+
 function toString(object) {
 	return object.toString();
 }
+
+/*
+toType(object)
+Returns `typeof object`.
+*/
 
 function toType(object) {
     return typeof object;
@@ -460,6 +577,14 @@ function sortIndex(array, fn) {
 
     return i;
 }
+
+/* Properties */
+
+/*
+.status
+Reflects the running status of the stream. When all values have been consumed
+status is `'done'`.
+*/
 
 function Fn(fn) {
     // Accept constructor without `new`
@@ -546,6 +671,22 @@ assign(Fn, {
     }
 });
 
+
+function scanChunks(data, value) {
+    data.accumulator.push(value);
+    ++data.count;
+
+    if (data.count % data.n === 0) {
+        data.value = data.accumulator;
+        data.accumulator = [];
+    }
+    else {
+        data.value = undefined;
+    }
+
+    return data;
+}
+
 assign(Fn.prototype, {
     shift: noop,
 
@@ -559,21 +700,22 @@ assign(Fn.prototype, {
     // Transform
 
     ap: function(object) {
-        var shift = this.shift;
+        var stream = this;
 
         return create(this, function ap() {
-            var fn = shift();
-            return fn === undefined ?
-                undefined :
-                object.map(fn) ;
+            var fn = stream.shift();
+            return fn && object.map(fn) ;
         });
     },
 
+    /*
+    .unshift(...values)
+    Creates a buffer of values at the end of the stream that are read first.
+    */
+
     unshift: function() {
-        // Create an unshift buffer, such that objects can be inserted
-        // back into the stream at will with stream.unshift(object).
         var source = this;
-        var buffer = toArray$1(arguments);
+        var buffer = toArray(arguments);
 
         return create(this, function() {
             return (buffer.length ? buffer : source).shift() ;
@@ -593,8 +735,34 @@ assign(Fn.prototype, {
         });
     },
 
-    chain: function(fn) {
-        return this.map(fn).join();
+    syphon: function(fn) {
+        var shift   = this.shift;
+        var buffer1 = [];
+        var buffer2 = [];
+
+        this.shift = function() {
+            if (buffer1.length) { return buffer1.shift(); }
+
+            var value;
+
+            while ((value = shift()) !== undefined && fn(value)) {
+                buffer2.push(value);
+            }
+
+            return value;
+        };
+
+        return create(this, function filter() {
+            if (buffer2.length) { return buffer2.shift(); }
+
+            var value;
+
+            while ((value = shift()) !== undefined && !fn(value)) {
+                buffer1.push(value);
+            }
+
+            return value;
+        });
     },
 
     clone: function() {
@@ -664,7 +832,7 @@ assign(Fn.prototype, {
     },
 
     concat: function() {
-        var sources = toArray$1(arguments);
+        var sources = toArray(arguments);
         var source  = this;
 
         var stream  = create(this, function concat() {
@@ -689,6 +857,12 @@ assign(Fn.prototype, {
         return stream;
     },
 
+    /*
+    .dedup()
+
+    Filters out consecutive equal values.
+    */
+
     dedup: function() {
         var v;
         return this.filter(function(value) {
@@ -697,6 +871,12 @@ assign(Fn.prototype, {
             return old !== value;
         });
     },
+
+    /*
+    .filter(fn)
+
+    Filter values according to the truthiness of `fn(value)`.
+    */
 
     filter: function(fn) {
         var source = this;
@@ -708,26 +888,54 @@ assign(Fn.prototype, {
         });
     },
 
-    first: function() {
-        var source = this;
-        return create(this, once(function first() {
-            source.status = 'done';
-            return source.shift();
-        }));
-    },
+    /*
+    .flat()
+    Flattens a list of lists into a single list.
+    */
 
     join: function() {
+        console.trace('Fn.join() is now Fn.flat() to mirror name of new Array method');
+        return this.flat();
+    },
+
+    flat: function() {
         var source = this;
         var buffer = nothing;
 
-        return create(this, function join() {
+        return create(this, function flat() {
             var value = buffer.shift();
             if (value !== undefined) { return value; }
-            buffer = source.shift();
-            if (buffer !== undefined) { return join(); }
-            buffer = nothing;
+            // Support array buffers and stream buffers
+            //if (buffer.length === 0 || buffer.status === 'done') {
+                buffer = source.shift();
+                if (buffer !== undefined) { return flat(); }
+                buffer = nothing;
+            //}
         });
     },
+
+    /*
+    .flatMap()
+    Maps values to lists – `fn(value)` must return an array, stream
+    or other type with a `.shift()` method – and flattens those lists into a
+    single stream.
+    */
+
+    flatMap: function(fn) {
+        return this.map(fn).flat();
+    },
+
+    chain: function(fn) {
+        console.trace('Stream.chain() is now Stream.flatMap()');
+        return this.map(fn).flat();
+    },
+
+    /*
+    .latest()
+
+    When the stream has a values buffered, passes the last value
+    in the buffer.
+    */
 
     latest: function() {
         var source = this;
@@ -736,58 +944,32 @@ assign(Fn.prototype, {
         });
     },
 
+    /*
+    .map(fn)
+    Maps values to the result of `fn(value)`.
+    */
+
     map: function(fn) {
         return create(this, compose(function map(object) {
             return object === undefined ? undefined : fn(object) ;
         }, this.shift));
     },
 
+    ///*
+    //.chunk(n)
+    //Batches values into arrays of length `n`.
+    //*/
+
     chunk: function(n) {
-        var source = this;
-        var buffer = [];
-
-        return create(this, n ?
-            // If n is defined batch into arrays of length n.
-            function shiftChunk() {
-                var value, _buffer;
-
-                while (buffer.length < n) {
-                    value = source.shift();
-                    if (value === undefined) { return; }
-                    buffer.push(value);
-                }
-
-                if (buffer.length >= n) {
-                    _buffer = buffer;
-                    buffer = [];
-                    return Fn.of.apply(Fn, _buffer);
-                }
-            } :
-
-            // If n is undefined or 0, batch all values into an array.
-            function shiftChunk() {
-                buffer = source.toArray();
-                // An empty array is equivalent to undefined
-                return buffer.length ? buffer : undefined ;
-            }
-        );
-    },
-
-    fold: function(fn, seed) {
-        var i = 0;
         return this
-        .map(function fold(value) {
-            seed = fn(seed, value, i++);
-            return seed;
+        .scan(scanChunks, {
+            n: n,
+            count: 0,
+            accumulator: []
+        })
+        .map(function(accumulator) {
+            return accumulator.value;
         });
-
-        // Why would we want this? To gaurantee a result? It's a bad idea
-        // when streaming, as you get an extra value in front...
-        //.unshift(seed);
-    },
-
-    scan: function(fn, seed) {
-        return this.map((value) => (seed = fn(seed, value)));
     },
 
     partition: function(fn) {
@@ -798,6 +980,7 @@ assign(Fn.prototype, {
         fn = fn || Fn.id;
 
         function createPart(key, value) {
+            // Todo: Nope, no pull
             var stream = Stream.of().on('pull', shiftPull);
             stream.key = key;
             streams.set(key, stream);
@@ -814,7 +997,7 @@ assign(Fn.prototype, {
             if (stream === pullStream) { return value; }
 
             if (stream === undefined) {
-                stream = createPart(key, value);
+                stream = createPart(key);
                 buffer.push(stream);
             }
 
@@ -832,7 +1015,7 @@ assign(Fn.prototype, {
             var stream = streams.get(key);
 
             if (stream === undefined) {
-                stream = createPart(key, value);
+                stream = createPart(key);
                 stream.push(value);
                 return stream;
             }
@@ -842,9 +1025,30 @@ assign(Fn.prototype, {
         });
     },
 
-    reduce: function reduce(fn, seed) {
-        return this.fold(fn, seed).latest().shift();
+    fold: function reduce(fn, seed) {
+        return this.scan(fn, seed).latest().shift();
     },
+
+    /*
+    .scan(fn, seed)
+
+    Calls `fn(accumulator, value)` and emits `accumulator` for each value
+    in the stream.
+    */
+
+    scan: function scan(fn, accumulator) {
+        return this.map(function scan(value) {
+            var acc = fn(accumulator, value);
+            accumulator = acc;
+            return accumulator;
+        });
+    },
+
+    /*
+    .take(n)
+
+    Filters the stream to the first `n` values.
+    */
 
     take: function(n) {
         var source = this;
@@ -857,7 +1061,11 @@ assign(Fn.prototype, {
                 value = source.shift();
                 // Only increment i where an actual value has been shifted
                 if (value === undefined) { return; }
-                if (++i === n) { source.status = 'done'; }
+                if (++i === n) {
+                    this.push = noop;
+                    this.stop = noop;
+                    this.status = 'done';
+                }
                 return value;
             }
         });
@@ -909,35 +1117,11 @@ assign(Fn.prototype, {
         });
     },
 
-    syphon: function(fn) {
-        var shift   = this.shift;
-        var buffer1 = [];
-        var buffer2 = [];
+    /*
+    .rest(n)
 
-        this.shift = function() {
-            if (buffer1.length) { return buffer1.shift(); }
-
-            var value;
-
-            while ((value = shift()) !== undefined && fn(value)) {
-                buffer2.push(value);
-            }
-
-            return value;
-        };
-
-        return create(this, function filter() {
-            if (buffer2.length) { return buffer2.shift(); }
-
-            var value;
-
-            while ((value = shift()) !== undefined && !fn(value)) {
-                buffer1.push(value);
-            }
-
-            return value;
-        });
-    },
+    Filters the stream to all values after the `n`th value.
+    */
 
     rest: function(i) {
         var source = this;
@@ -947,6 +1131,12 @@ assign(Fn.prototype, {
             return source.shift();
         });
     },
+
+    /*
+    .unique()
+
+    Filters the stream to remove any value already emitted.
+    */
 
     unique: function() {
         var source = this;
@@ -987,10 +1177,24 @@ assign(Fn.prototype, {
         };
     },
 
+    /*
+    .pipe(stream)
+
+    Pipes the current stream into `stream`.
+    */
+
     pipe: function(stream) {
         this.each(stream.push);
         return stream;
     },
+
+    /*
+    .tap(fn)
+
+    Calls `fn(value)` for each value in the stream without modifying
+    the stream. Note that values are only tapped when there is a
+    consumer attached to the end of the stream to suck them through.
+    */
 
     tap: function(fn) {
         // Overwrite shift to copy values to tap fn
@@ -999,26 +1203,14 @@ assign(Fn.prototype, {
     },
 
     toJSON: function() {
-        return this.reduce(arrayReducer, []);
+        const array = [];
+        this.scan(arrayReducer, array).each(noop);
+        return array;
     },
 
     toString: function() {
         return this.reduce(prepend, '');
-    },
-
-
-    // Deprecated
-
-    process: deprecate(function(fn) {
-        return fn(this);
-    }, '.process() is deprecated'),
-
-    last: deprecate(function() {
-        var source = this;
-        return create(this, function shiftLast() {
-            return latest(source);
-        });
-    }, '.last() is now .latest()'),
+    }
 });
 
 Fn.prototype.toArray = Fn.prototype.toJSON;
@@ -1052,13 +1244,24 @@ if (window.Symbol) {
     };
 }
 
+/*
+remove(array, value)
+Remove `value` from `array`. Where `value` is not in `array`, does nothing.
+*/
+
 function remove(array, value) {
     if (array.remove) { array.remove(value); }
     var i = array.indexOf(value);
     if (i !== -1) { array.splice(i, 1); }
+    return value;
 }
 
-// Timer
+/*
+Timer(duration, getTime)
+
+Create an object with a request/cancel pair of functions that
+fires request(fn) callbacks at a given duration.
+*/
 
 function Timer(duration, getTime) {
     if (typeof duration !== 'number') { throw new Error('Timer(duration) requires a duration in seconds (' + duration + ')'); }
@@ -1122,15 +1325,9 @@ function Timer(duration, getTime) {
     };
 }
 
+var DEBUG$1     = window.DEBUG !== false;
 var A$3         = Array.prototype;
 var assign$1    = Object.assign;
-
-
-// Functions
-
-function call(value, fn) {
-    return fn(value);
-}
 
 function isValue(n) { return n !== undefined; }
 
@@ -1138,222 +1335,598 @@ function isDone$1(stream) {
     return stream.status === 'done';
 }
 
-
-// Events
-
-var $events = Symbol('events');
-
-function notify(type, object) {
-    var events = object[$events];
-
+function notify(object) {
+    var events = privates(object).events;
     if (!events) { return; }
-    if (!events[type]) { return; }
 
     var n = -1;
-    var l = events[type].length;
+    var l = events.length;
     var value;
 
     while (++n < l) {
-        value = events[type][n](type, object);
-        if (value !== undefined) {
-            return value;
-        }
+        value = events[n](object);
+        if (value !== undefined) { return value; }
     }
 }
 
-function createNotify(stream) {
-    var _notify = notify;
-
-    return function trigger(type) {
-        // Prevent nested events, so a 'push' event triggered while
-        // the stream is 'pull'ing will do nothing. A bit of a fudge.
-        var notify = _notify;
-        _notify = noop;
-        var value = notify(type, stream);
-        _notify = notify;
-        return value;
-    };
+function done$1(stream, privates) {
+    stream.status = 'done';
+    privates.source = nothing;
+    privates.resolve();
 }
 
+function createSource(stream, privates, Source, buffer) {
+    buffer = buffer === undefined ? [] :
+        buffer.shift ? buffer :
+        Array.from(buffer) ;
 
-// Sources
-//
-// Sources that represent stopping and stopped states of a stream
+    // Flag to tell us whether we are using an internal buffer - which
+    // depends on the existence of source.shift
+    var buffered = true;
+    var initialised = false;
 
-var doneSource = {
-    shift: noop,
-    push:  noop,
-    start: noop,
-    stop:  noop
-};
+    function push() {
+        // Detect that buffer exists and is not an arguments object, if so
+        // we push to it
+        buffered && buffer.push.apply(buffer, arguments);
+        initialised && notify(stream);
+    }
 
-function StopSource(source, n, done) {
-    this.source = source;
-    this.n      = n;
-    this.done   = done;
+    function stop(n) {
+        // If stop count is not given, use buffer length (if buffer exists and
+        // is not arguments object) by default
+        n = n !== undefined ? n :
+            buffered ? buffer.length :
+            0 ;
+
+        // Neuter events
+        delete privates.events;
+
+        // If no n, shut the stream down
+        if (!n) {
+            privates.stops && privates.stops.forEach((fn) => fn());
+            privates.stops = undefined;
+            done$1(stream, privates);
+        }
+
+        // Schedule shutdown of stream after n values
+        else {
+            privates.source = new StopSource(stream, privates.source, privates, n, done$1);
+            privates.stops && privates.stops.forEach((fn) => fn());
+            privates.stops = undefined;
+        }
+    }
+
+    const source = Source.prototype ?
+        // Source is constructable
+        new Source(push, stop) :
+        // Source is an arrow function
+        Source(push, stop) ;
+
+    initialised = true;
+
+    // Where source has .shift() override the internal buffer
+    if (source.shift) {
+        buffered = false;
+        buffer = undefined;
+    }
+
+    // Otherwise give it a .shift() for the internal buffer
+    else {
+        source.shift = function () {
+            return buffer.shift();
+        };
+    }
+
+    // Gaurantee that source has a .stop() method
+    if (!source.stop) {
+        source.stop = noop;
+    }
+
+    return (privates.source = source);
 }
 
-assign$1(StopSource.prototype, doneSource, {
-    shift: function() {
-        if (--this.n < 1) { this.done(); }
-        return this.source.shift();
+function shiftBuffer(shift, state, one, two, buffer) {
+    if (buffer.length && state.buffered === one) {
+        return buffer.shift();
+    }
+
+    const value = shift();
+    if (value === undefined) { return; }
+
+    buffer.push(value);
+    state.buffered = two;
+    return value;
+}
+
+function flat(output, input) {
+    input.pipe ?
+        // Input is a stream
+        input.pipe(output) :
+        // Input is an array-like
+        output.push.apply(output, input) ;
+
+    return output;
+}
+
+// StartSource
+
+function StartSource(stream, privates, Source, buffer) {
+    this.stream   = stream;
+    this.privates = privates;
+    this.Source   = Source;
+    this.buffer   = buffer;
+}
+
+assign$1(StartSource.prototype, {
+    create: function() {
+        return createSource(this.stream, this.privates, this.Source, this.buffer);
+    },
+
+    shift: function shift() {
+        return this.create().shift();
+    },
+
+    push: function push() {
+        const source = this.create();
+        if (!source.push) { throw new Error('Attempt to .push() to unpushable stream'); }
+        source.push.apply(source, arguments);
+    },
+
+    start: function start() {
+        const source = this.create();
+        if (!source.start) { throw new Error('Attempt to .start() unstartable stream'); }
+        source.start.apply(source, arguments);
+    },
+
+    stop: function done() {
+        const source = this.create();
+
+        if (!source.stop) {
+            done(this.stream, this.privates);
+        }
+
+        source.stop.apply(source, arguments);
     }
 });
 
 
-// Stream
+// StopSource
 
-function Stream$1(Source, options) {
-    // Enable construction without the `new` keyword
-    if (!Stream$1.prototype.isPrototypeOf(this)) {
-        return new Stream$1(Source, options);
-    }
-
-    var stream  = this;
-    var resolve = noop;
-    var source;
-    var promise;
-
-    function done() {
-        stream.status = 'done';
-        source = doneSource;
-    }
-
-    function stop(n, value) {
-        // Neuter events and schedule shutdown of the stream
-        // after n values
-        delete stream[$events];
-
-        if (n) { source = new StopSource(source, n, done); }
-        else { done(); }
-
-        resolve(stream);
-    }
-
-    function getSource() {
-        var notify = createNotify(stream);
-        source = new Source(notify, stop, options);
-
-        // Gaurantee that source has a .stop() method
-        if (!source.stop) { source.stop = noop; }
-
-        getSource = function() { return source; };
-
-        return source;
-    }
-
-    // Properties and methods
-
-    this[$events] = {};
-
-    this.push = function push() {
-        var source = getSource();
-        source.push.apply(source, arguments);
-        return this;
-    };
-
-    this.shift = function shift() {
-        return getSource().shift();
-    };
-
-    this.start = function start() {
-        var source = getSource();
-        source.start.apply(source, arguments);
-        return this;
-    };
-
-    this.stop = function stop() {
-        var source = getSource();
-        source.stop.apply(source, arguments);
-        return this;
-    };
-
-    this.done = function done(fn) {
-        promise = promise || new Promise((res, rej) => {
-            resolve = res;
-        });
-
-        return promise.then(fn);
-    };
+function StopSource(stream, source, privates, n, done) {
+    this.stream   = stream;
+    this.source   = source;
+    this.privates = privates;
+    this.n        = n;
+    this.done     = done;
 }
 
-
-// Buffer Stream
-
-function BufferSource(notify, stop, list) {
-    const buffer = list === undefined ? [] :
-        Fn.prototype.isPrototypeOf(list) ? list :
-        Array.from(list).filter(isValue) ;
-
-    this._buffer = buffer;
-    this._notify = notify;
-    this._stop   = stop;
-}
-
-assign$1(BufferSource.prototype, {
+assign$1(StopSource.prototype, nothing, {
     shift: function() {
-        var buffer = this._buffer;
-        var notify = this._notify;
-        return buffer.length ? buffer.shift() : notify('pull') ;
+        const value = this.source.shift();
+        if (--this.n < 1) { this.done(this.stream, this.privates); }
+        return value;
+    },
+
+    start: function() {
+        throw new Error('Cannot .start() stopped stream');
     },
 
     push: function() {
-        var buffer = this._buffer;
-        var notify = this._notify;
-        buffer.push.apply(buffer, arguments);
-        notify('push');
-    },
-
-    stop: function() {
-        var buffer = this._buffer;
-        this._stop(buffer.length);
+        throw new Error('Cannot .push() to stopped stream');
     }
 });
 
-Stream$1.from = function BufferStream(list) {
-    return new Stream$1(BufferSource, list);
-};
 
-Stream$1.of = function ArgumentStream() {
-    return Stream$1.from(arguments);
-};
+/* Construct */
 
+/*
+Stream(fn)
 
-// Promise Stream
+Construct a new stream. `fn(push, stop)` is invoked when the stream is started,
+and it must return a 'producer' – an object with methods to control the flow of
+data:
 
-function PromiseSource(notify, stop, promise) {
-    const source = this;
+```js
+const stream = Stream(function(push, stop) {
+    return {
+        push:  fn,  // Optional. Makes the stream pushable.
+        start: fn,  // Optional. Makes the stream extarnally startable.
+        stop:  fn   // Optional. Makes the stream externally stoppable.
+        shift: fn,  // Optional. Overrides the stream's internal buffer.
+    };
+});
+```
+*/
 
-    promise
-    // Todo: Put some error handling into our streams
-    .catch(stop)
-    .then(function(value) {
-        source.value = value;
-        notify('push');
-        stop();
-    });
+function Stream$1(Source, buffer) {
+    if (DEBUG$1) {
+        if (arguments.length > 2) {
+            throw new Error('Stream(setup, buffer) takes 2 arguments. Recieved ' + arguments.length + '.');
+        }
+    }
+
+    // Enable construction without the `new` keyword
+    if (!Stream$1.prototype.isPrototypeOf(this)) {
+        return new Stream$1(Source, buffer);
+    }
+
+    // Privates
+
+    const privates$1 = privates(this);
+    privates$1.stream  = this;
+    privates$1.events  = [];
+    privates$1.resolve = noop;
+    privates$1.source  = new StartSource(this, privates$1, Source, buffer);
+
+    // Methods
+
+    this.shift = function shift() {
+        return privates$1.source.shift();
+    };
+
+    // Keep it as an instance method for just now
+    this.push = function push() {
+        const source = privates$1.source;
+        source.push.apply(source, arguments);
+        return this;
+    };
 }
 
-PromiseSource.prototype.shift = function() {
-    const value = this.value;
-    this.value = undefined;
-    return value;
+Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
+    constructor: Stream$1,
+
+    /* Write */
+
+    /*
+    .push(value)
+    Pushes a `value` (or multiple values) into the head of a writeable stream.
+    If the stream is not writeable, it does not have a `.push()` method.
+    */
+
+    /* Map */
+
+    ///*
+    //.chunk(n)
+    //Batches values into arrays of length `n`.
+    //*/
+
+    /*
+    .flat()
+    Flattens a stream of streams or arrays into a single stream.
+    */
+
+    flat: function() {
+        const output = this.constructor.of();
+
+        this
+        .scan(flat, output)
+        .each(noop);
+
+        return output;
+    },
+
+    /*
+    .flatMap(fn)
+    Maps values to lists – `fn(value)` must return an array, functor, stream
+    (or any other duck with a `.shift()` method) and flattens those lists into a
+    single stream.
+    */
+
+    /*
+    .map(fn)
+    Maps values to the result of `fn(value)`.
+    */
+
+    /*
+    .merge(stream)
+    Merges this stream with `stream`, which may be an array, array-like
+    or functor.
+    */
+
+    merge: function merge() {
+        var sources = toArray(arguments);
+        sources.unshift(this);
+        return Stream$1.Merge.apply(null, sources);
+    },
+
+    /*
+    .scan(fn, seed)
+    Calls `fn(accumulator, value)` and emits `accumulator` for each value
+    in the stream.
+    */
+
+
+    /* Filter */
+
+    /*
+    .dedup()
+    Filters out consecutive equal values.
+    */
+
+    /*
+    .filter(fn)
+    Filter values according to the truthiness of `fn(value)`.
+    */
+
+    /*
+    .latest()
+    When the stream has a values buffered, passes the last value
+    in the buffer.
+    */
+
+    /*
+    .rest(n)
+    Filters the stream to the `n`th value and above.
+    */
+
+    /*
+    .take(n)
+    Filters the stream to the first `n` values.
+    */
+
+    ///*
+    //.clock(timer)
+    //Emits values at the framerate of `timer`, one-per-frame. No values
+    //are discarded.
+    //*/
+    //
+    //clock: function clock(timer) {
+    //    return this.pipe(Stream.clock(timer));
+    //},
+
+    /*
+    .throttle(time)
+    Throttles values such that the latest value is emitted every `time` seconds.
+    Other values are discarded. The parameter `time` may also be a timer options
+    object, an object with `{ request, cancel, now }` functions,
+    allowing the creation of, say, and animation frame throttle.
+    */
+
+    throttle: function throttle(timer) {
+        return this.pipe(Stream$1.throttle(timer));
+    },
+
+    /*
+    .wait(time)
+    Emits the latest value only after `time` seconds of inactivity.
+    Other values are discarded.
+    */
+
+    wait: function wait(time) {
+        return this.pipe(Stream$1.Choke(time));
+    },
+
+    combine: function(fn, source) {
+        return Stream$1.Combine(fn, this, source);
+    },
+
+
+    /* Read */
+
+    /*
+    .clone()
+    Creates a read-only copy of the stream.
+    */
+
+    clone: function clone() {
+        const source = this;
+        const shift  = this.shift.bind(this);
+        const buffer = [];
+
+        const state = {
+            // Flag telling us which stream has been buffered,
+            // source (1) or copy (2)
+            buffered: 1
+        };
+
+        this.shift = function() {
+            return shiftBuffer(shift, state, 1, 2, buffer);
+        };
+
+        return new Stream$1(function(notify, stop) {
+            source.on(notify);
+            source.done(stop);
+
+            return {
+                shift: function() {
+                    return shiftBuffer(shift, state, 2, 1, buffer);
+                },
+
+                stop: function() {
+                    stop(0);
+                }
+            }
+        });
+    },
+
+    /*
+    .each(fn)
+    Thirstilly consumes the stream, calling `fn(value)` whenever
+    a value is available.
+    */
+
+    each: function each(fn) {
+        var args   = arguments;
+        var source = this;
+
+        // Flush and observe
+        Fn.prototype.each.apply(source, args);
+
+        // Delegate to Fn#each().
+        return this.on(() => Fn.prototype.each.apply(source, args));
+    },
+
+    /*
+    .last(fn)
+    Consumes the stream when stopped, calling `fn(value)` with the
+    last value read from the stream.
+    */
+
+    last: function last(fn) {
+        const privates$1 = privates(this);
+        privates$1.stops = privates$1.stops || [];
+        const value = this.latest().shift();
+        value !== undefined && privates$1.stops.push(() => fn(value));
+        return this;
+    },
+
+    /*
+    .fold(fn, accumulator)
+    Consumes the stream when stopped, calling `fn(accumulator, value)`
+    for each value in the stream. Returns a promise.
+    */
+
+    fold: function fold(fn, accumulator) {
+        // Fold to promise
+        return new Promise((resolve, reject) => {
+            this
+            .scan(fn, accumulator)
+            .last(resolve);
+        });
+    },
+
+    ///*
+    //.reduce(fn, accumulator)
+    //Consumes the stream when stopped, calling `fn(accumulator, value)`
+    //for each value in the stream. Returns a promise that resolves to
+    //the last value returned by `fn(accumulator, value)`.
+    //*/
+
+    reduce: function reduce(fn, accumulator) {
+        // Support array.reduce semantics with optional seed
+        return accumulator ?
+            this.fold(fn, accumulator) :
+            this.fold((acc, value) => (acc === undefined ? value : fn(acc, value)), this.shift()) ;
+    },
+
+    /*
+    .shift()
+    Reads a value from the stream. If no values are in the stream, returns
+    `undefined`. If this is the last value in the stream, `stream.status`
+    is `'done'`.
+    */
+
+    /* Lifecycle */
+
+    /*
+    .done(fn)
+    Calls `fn()` after the stream is stopped and all values have been drained.
+    */
+
+    done: function done(fn) {
+        const privates$1 = privates(this);
+        const promise = privates$1.promise || (
+            privates$1.promise = this.status === 'done' ?
+                Promise.resolve() :
+                new Promise((resolve, reject) => assign$1(privates$1, { resolve, reject }))
+        );
+
+        promise.then(fn);
+        return this;
+    },
+
+    /*
+    .start()
+    If the stream's producer is startable, starts the stream.
+    */
+
+    start: function start() {
+        const source = privates(this).source;
+        source.start.apply(source, arguments);
+        return this;
+    },
+
+    /*
+    .stop()
+    Stops the stream. No more values can be pushed to the stream and any
+    consumers added will do nothing. However, depending on the stream's source
+    the stream may yet drain any buffered values into an existing consumer
+    before entering `'done'` state. Once in `'done'` state a stream is
+    entirely inert.
+    */
+
+    stop: function stop() {
+        const source = privates(this).source;
+        source.stop.apply(source, arguments);
+        return this;
+    },
+
+    on: function on(fn) {
+        if (typeof fn === 'string') {
+            throw new Error('stream.on(fn) no longer takes type');
+        }
+
+        var events = privates(this).events;
+        if (!events) { return this; }
+
+        events.push(fn);
+        return this;
+    },
+
+    off: function off(fn) {
+        if (typeof fn === 'string') {
+            throw new Error('stream.off(fn) no longer takes type');
+        }
+
+        var events = privates(this).events;
+        if (!events) { return this; }
+
+        // Remove all handlers
+        if (!fn) {
+            events.length = 0;
+            return this;
+        }
+
+        // Remove handler fn for type
+        var n = events.length;
+        while (n--) {
+            if (events[n] === fn) { events.splice(n, 1); }
+        }
+
+        return this;
+    }
+});
+
+
+/*
+Stream.from(values)
+Returns a writeable stream that consumes the array or array-like `values` as
+its buffer.
+*/
+
+function Pushable(push, stop) {
+    return { push, stop };
+}
+
+Stream$1.from = function(values) {
+    return new Stream$1(Pushable, values);
 };
+
+
+/*
+Stream.fromPromise(promise)
+Returns a stream that uses the given promise as its source. When the promise
+resolves the stream is given its value and stopped. If the promise errors
+the stream is stopped without value. This stream is not pushable, but may
+be stopped before the promise resolves.
+*/
 
 Stream$1.fromPromise = function(promise) {
-    return new Stream$1(PromiseSource, promise);
+    return new Stream$1(function(push, stop) {
+        promise.then(push);
+        promise.finally(stop);
+        return { stop };
+    });
 };
 
+/*
+Stream.fromProperty(name, object)
+Returns a stream of mutations made to the `name` property of `object`,
+assuming those mutations are made to the Observer proxy of object - see
+[Observer](#observer).
+*/
 
-// Callback stream
-
-Stream$1.fromCallback = function(object, name) {
-    const stream = Stream$1.of();
-    const args = rest(2, arguments);
-    args.push(stream.push);
-    object[name].apply(object, args);
-    return stream;
-};
 
 // Clock Stream
 
@@ -1443,7 +2016,7 @@ assign$1(TimeSource.prototype, {
 
         if (time >= event.stopTime) {
             event.t2 = event.stopTime;
-            this.notify('push');
+            this.notify();
             this.end();
 
             // Release event
@@ -1452,26 +2025,56 @@ assign$1(TimeSource.prototype, {
         }
 
         event.t2 = time;
-        this.notify('push');
+        this.notify();
         // Todo: We need this? Test.
         this.value     = undefined;
         this.requestId = this.timer.request(this.frame);
     }
 });
 
+
+/*
+Stream.fromTimer(timer)
+Create a stream from a `timer` object. A `timer` is an object
+with the properties:
+
+```
+{
+    request:     fn(fn), calls fn on the next frame, returns an id
+    cancel:      fn(id), cancels request with id
+    now:         fn(), returns the time
+    currentTime: time at the start of the latest frame
+}
+```
+
+Here is how a stream of animation frames may be created:
+
+```
+const frames = Stream.fromTimer({
+    request: window.requestAnimationFrame,
+    cancel: window.cancelAnimationFrame,
+    now: () => window.performance.now()
+});
+```
+
+This stream is not pushable.
+*/
+
 Stream$1.fromTimer = function TimeStream(timer) {
-    return new Stream$1(TimeSource, timer);
-};
-
-Stream$1.fromDuration = function(duration) {
-    return Stream$1.fromTimer(new Timer(duration));
-};
-
-Stream$1.frames = function() {
-    return Stream$1.fromTimer(frameTimer);
+    return new Stream$1(function(push, stop) {
+        return new TimeSource(push, stop, timer);
+    });
 };
 
 
+/*
+Stream.of(...values)
+Returns a writeable stream that uses arguments as its source.
+*/
+
+Stream$1.of = function() {
+    return Stream$1.from(arguments);
+};
 
 
 // Stream.Combine
@@ -1503,8 +2106,8 @@ function CombineSource(notify, stop, fn, sources) {
             object._hot = true;
         }
 
-        source.on('push', listen);
-        source.on('push', notify);
+        source.on(listen);
+        source.on(notify);
         return data;
     });
 }
@@ -1528,8 +2131,8 @@ assign$1(CombineSource.prototype, {
         each(function(data) {
             var source = data.source;
             var listen = data.listen;
-            source.off('push', listen);
-            source.off('push', notify);
+            source.off(listen);
+            source.off(notify);
         }, this._store);
 
         this._stop(this._hot ? 1 : 0);
@@ -1553,72 +2156,47 @@ Stream$1.Combine = function(fn) {
 
 function MergeSource(notify, stop, sources) {
     var values = [];
-    var buffer = [];
 
-    function update(type, source) {
-        buffer.push(source);
+    function update(source) {
+        values.push.apply(values, toArray(source));
     }
 
-    this._notify  = notify;
-    this._stop    = stop;
-    this._sources = sources;
-    this._values  = values;
-    this._buffer  = buffer;
-    this._i       = 0;
-    this._update  = update;
+    this.values  = values;
+    this.notify  = notify;
+    this.sources = sources;
+    this.update  = update;
+    this.cueStop = stop;
 
     each(function(source) {
         // Flush the source
-        values.push.apply(values, toArray$1(source));
+        update(source);
 
         // Listen for incoming values
-        source.on('push', update);
-        source.on('push', notify);
+        source.on(update);
+        source.on(notify);
     }, sources);
 }
 
 assign$1(MergeSource.prototype, {
     shift: function() {
-        var sources = this._sources;
-        var values  = this._values;
-        var buffer  = this._buffer;
-        var stop    = this._stop;
+        if (this.sources.every(isDone$1)) {
+            this.stop();
+        }
 
-        if (values.length) { return values.shift(); }
-        var stream = buffer.shift();
-        if (!stream) { return; }
-        var value = stream.shift();
-        // When all the sources are empty, stop
-        if (stream.status === 'done' && ++this._i >= sources.length) { stop(0); }
-        return value;
+        return this.values.shift();
     },
 
     stop: function() {
-        var notify  = this._notify;
-        var sources = this._sources;
-        var stop    = this._stop;
-        var update  = this._update;
-
-        // Remove listeners
-        each(function(source) {
-            source.off('push', update);
-            source.off('push', notify);
-        }, sources);
-
-        stop(this._values.length + this._buffer.length);
+        this.cueStop(this.values.length);
     }
 });
 
 Stream$1.Merge = function(source1, source2) {
-    var args = arguments;
-
-    return new Stream$1(function setup(notify, stop) {
-        return new MergeSource(notify, stop, Array.from(args));
+    const sources = Array.from(arguments);
+    return new Stream$1(function(push, stop) {
+        return new MergeSource(push, stop, sources);
     });
 };
-
-
-
 
 
 // Stream Timers
@@ -1629,7 +2207,7 @@ Stream$1.Choke = function(time) {
         var update = choke(function() {
             // Get last value and stick it in buffer
             value = arguments[arguments.length - 1];
-            notify('push');
+            notify();
         }, time);
 
         return {
@@ -1650,7 +2228,6 @@ Stream$1.Choke = function(time) {
 };
 
 
-
 // Frame timer
 
 var frameTimer = {
@@ -1660,53 +2237,20 @@ var frameTimer = {
 };
 
 
-// Stream timer
-
-function StreamTimer(stream) {
-    var timer = this;
-    var fns0  = [];
-    var fns1  = [];
-    this.fns = fns0;
-
-    stream.each(function() {
-        timer.fns = fns1;
-        fns0.reduce(call, undefined);
-        fns0.length = 0;
-        fns1 = fns0;
-        fns0 = timer.fns;
-    });
-}
-
-assign$1(StreamTimer.prototype, {
-    request: function(fn) {
-        this.fns.push(fn);
-        return fn;
-    },
-
-    cancel: function(fn) {
-        remove(this.fns, fn);
-    }
-});
-
-
 // Stream.throttle
 
 function schedule() {
-    var timer   = this.timer;
-
     this.queue = noop;
-    this.ref   = timer.request(this.update);
+    this.ref   = this.timer.request(this.update);
 }
 
 function ThrottleSource(notify, stop, timer) {
-    var source   = this;
-
     this._stop   = stop;
     this.timer   = timer;
     this.queue   = schedule;
     this.update  = function update() {
-        source.queue = schedule;
-        notify('push');
+        this.queue = schedule;
+        notify();
     };
 }
 
@@ -1745,166 +2289,20 @@ assign$1(ThrottleSource.prototype, {
 });
 
 Stream$1.throttle = function(timer) {
-    if (typeof timer === 'function') {
-        throw new Error('Dont accept request and cancel functions anymore');
-    }
-
-    timer = typeof timer === 'number' ?
-        new Timer(timer) :
-    timer instanceof Stream$1 ?
-        new StreamTimer(timer) :
-    timer ? timer :
-        frameTimer ;
-
     return new Stream$1(function(notify, stop) {
+        timer = typeof timer === 'number' ? new Timer(timer) :
+            timer ? timer :
+            frameTimer;
+
         return new ThrottleSource(notify, stop, timer);
     });
 };
 
+/* Observer */
 
-// Stream Methods
-
-Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
-    constructor: Stream$1,
-
-    clone: function() {
-        var source  = this;
-        var shift   = this.shift;
-        var buffer1 = [];
-        var buffer2 = [];
-
-        var stream  = new Stream$1(function setup(notify, stop) {
-            var buffer = buffer2;
-
-            source.on('push', notify);
-
-            return {
-                shift: function() {
-                    if (buffer.length) { return buffer.shift(); }
-                    var value = shift();
-
-                    if (value !== undefined) { buffer1.push(value); }
-                    else if (source.status === 'done') {
-                        stop(0);
-                        source.off('push', notify);
-                    }
-
-                    return value;
-                },
-
-                stop: function() {
-                    var value;
-
-                    // Flush all available values into buffer
-                    while ((value = shift()) !== undefined) {
-                        buffer.push(value);
-                        buffer1.push(value);
-                    }
-
-                    stop(buffer.length);
-                    source.off('push', notify);
-                }
-            };
-        });
-
-        this.done(stream.stop);
-
-        this.shift = function() {
-            if (buffer1.length) { return buffer1.shift(); }
-            var value = shift();
-            if (value !== undefined && stream.status !== 'done') { buffer2.push(value); }
-            return value;
-        };
-
-        return stream;
-    },
-
-    combine: function(fn, source) {
-        return Stream$1.Combine(fn, this, source);
-    },
-
-    merge: function() {
-        var sources = toArray$1(arguments);
-        sources.unshift(this);
-        return Stream$1.Merge.apply(null, sources);
-    },
-
-    choke: function(time) {
-        return this.pipe(Stream$1.Choke(time));
-    },
-
-    throttle: function(timer) {
-        return this.pipe(Stream$1.throttle(timer));
-    },
-
-    clock: function(timer) {
-        return this.pipe(Stream$1.clock(timer));
-    },
-
-
-    // Consume
-
-    each: function(fn) {
-        var args   = arguments;
-        var source = this;
-
-        // Flush and observe
-        Fn.prototype.each.apply(source, args);
-
-        // Delegate to Fn#each().
-        return this.on('push', () => Fn.prototype.each.apply(source, args));
-    },
-
-    join: function() {
-        const output = this.constructor.of();
-        this.each((input) => input.pipe(output));
-        return output;
-    },
-
-    // Events
-
-    on: function(type, fn) {
-        var events = this[$events];
-        if (!events) { return this; }
-
-        var listeners = events[type] || (events[type] = []);
-        listeners.push(fn);
-        return this;
-    },
-
-    off: function off(type, fn) {
-        var events = this[$events];
-        if (!events) { return this; }
-
-        // Remove all handlers for all types
-        if (arguments.length === 0) {
-            Object.keys(events).forEach(off, this);
-            return this;
-        }
-
-        var listeners = events[type];
-        if (!listeners) { return; }
-
-        // Remove all handlers for type
-        if (!fn) {
-            delete events[type];
-            return this;
-        }
-
-        // Remove handler fn for type
-        var n = listeners.length;
-        while (n--) {
-            if (listeners[n] === fn) { listeners.splice(n, 1); }
-        }
-
-        return this;
-    }
-});
-
-const $observer = Symbol('Observer');
+const $observer = Symbol('observer');
 
 const A$4            = Array.prototype;
-const DOMPrototype = (window.EventTarget || window.Node).prototype;
 const nothing$1      = Object.freeze([]);
 const isExtensible = Object.isExtensible;
 
@@ -1973,7 +2371,7 @@ const arrayHandlers = {
 		if (name === 'length') {
 			if (value >= target.length) {
 				// Don't allow array length to grow like this
-				//target.length = value;
+				target.length = value;
 				return true;
 			}
 
@@ -2042,8 +2440,9 @@ const objectHandlers = {
 		// If we are setting the same value, we're not really setting at all
 		if (target[name] === value) { return true; }
 
-        // Set value on target
+        // Set value on target, then use that as value
 		target[name] = value;
+		value = target[name];
 
         // Notify the observer
         var properties = target[$observer].properties;
@@ -2109,9 +2508,10 @@ function isObservable(object) {
 		&& isExtensible(object)
 		// This is less safe but faster.
 		//&& typeof object === 'object'
-		// Reject DOM nodes, Web Audio context, MIDI inputs,
-		// XMLHttpRequests, which all inherit from EventTarget
-		&& !DOMPrototype.isPrototypeOf(object)
+		// Reject DOM nodes
+		&& !Node.prototype.isPrototypeOf(object)
+		// Reject WebAudio context
+		&& (typeof BaseAudioContext === 'undefined' || !BaseAudioContext.prototype.isPrototypeOf(object))
 		// Reject dates
 		&& !(object instanceof Date)
 		// Reject regex
@@ -2126,22 +2526,24 @@ function isObservable(object) {
 		&& !ArrayBuffer.isView(object) ;
 }
 
-function notify$1(object, path, value) {
-	const observer = object[$observer];
-	if (!observer) { return; }
-
-	const fns = observer.properties;
-	fire(fns[path], value === undefined ? object[path] : value);
-
-    const mutate = observer.mutate;
-	fire(mutate, object);
-}
+/*
+Observer(object)
+Create an Observer proxy around `object`. In order for `observe(...)` to detect
+mutations, changes must be made to this proxy rather than the original
+`object`.
+*/
 
 function Observer(object) {
 	return !object ? undefined :
 		object[$observer] ? object[$observer].observer :
-		isObservable(object) && createObserver(object) ;
+		isObservable(object) ?
+			createObserver(object) :
+			undefined ;
 }
+
+///*
+//Target(object)
+//*/
 
 function Target(object) {
 	return object
@@ -2229,6 +2631,8 @@ function parseSelector$1(path) {
     return parse(rselector, fselector, {}, path);
 }
 
+{ window.observeCount = 0; }
+
 const A$5       = Array.prototype;
 const nothing$2 = Object.freeze([]);
 
@@ -2253,6 +2657,8 @@ function observeMutable(object, data) {
 	var fns = object[$observer].mutate;
 	fns.push(data.fn);
 
+    { ++window.observeCount; }
+
 	if (object !== data.value) {
 		data.old   = data.value;
 		data.value = object;
@@ -2265,6 +2671,8 @@ function observeMutable(object, data) {
 
 	return () => {
 		remove(fns, data.fn);
+
+        { --window.observeCount; }
 	};
 }
 
@@ -2297,11 +2705,15 @@ function observeProperty(object, name, path, data) {
 	}
 
 	fns.push(update);
-	update(object[name]);
+    update(object[name]);
+
+    { ++window.observeCount; }
 
 	return () => {
 		unobserve();
 		remove(fns, update);
+
+        { --window.observeCount; }
 	};
 }
 
@@ -2360,26 +2772,20 @@ function observeUnknown(object, path, data) {
 }
 
 /*
-    observe(path, fn, object)
+observe(path, fn, object [, init])
 
-    path:
+Observe `path` in `object` and call `fn(value)` with the value at the
+end of that path when it mutates. Returns a function that destroys this
+observer.
 
-    fn:
+The callback `fn` is called immediately on initialisation if the value at
+the end of the path is not equal to `init`. In the default case where
+`init` is `undefined`, paths that end in `undefined` do not cause the
+callback to be called.
 
-    object:
-
-
-    observe(path, fn, object, initialValue)
-
-    initialValue: optional, defaults is undefined
-
-    Initial value of the path. When a path is observed the callback is called
-    immediately if the value of the path is not equal to the initialValue. In
-    the default case initialValue is undefined, so paths with a value of
-    undefined do not cause the callback to be called on setup.
-
-    If you want to force the callback to be called on setup, pass in null
-    as an initialValue. After all, in JS null is never equal to null.
+(To force the callback to always be called on setup, pass in `NaN` as an
+`init` value. In JS `NaN` is not equal to anything (even `NaN`), so it
+always initialises.)
 */
 
 function observe(path, fn, object, initialValue) {
@@ -2389,10 +2795,289 @@ function observe(path, fn, object, initialValue) {
     });
 }
 
+//import { setPath } from './paths.js';
+
+function ObserveSource(push, stop, args) {
+    const path   = args[0];
+    const object = args[1];
+
+	this.end = stop;
+	this.unobserve = observe(path, (value) => {
+		this.value = value === undefined ? null : value ;
+		push(this.value);
+	}, object);
+}
+
+ObserveSource.prototype = {
+	shift: function() {
+		var value = this.value;
+		this.value = undefined;
+		return value;
+	},
+
+	stop: function() {
+		this.unobserve();
+		this.end();
+	},
+
+	unobserve: noop
+};
+
+function mutations(path, object) {
+	const args = arguments;
+	return new Stream$1(function(push, stop) {
+		return new ObserveSource(push, stop, args);
+	});
+}
+
+function requestTime(s, fn) {
+    return setTimeout(fn, s * 1000);
+}
+
+/*
+equals(a, b)
+Perform a deep equality comparison of `a` and `b`. Returns `true` if
+they are equal.
+*/
+
+function equals(a, b) {
+    // Fast out if references are for the same object
+    if (a === b) { return true; }
+
+    // If either of the values is null, or not an object, we already know
+    // they're not equal so get out of here
+    if (a === null ||
+        b === null ||
+        typeof a !== 'object' ||
+        typeof b !== 'object') {
+        return false;
+    }
+
+    // Compare their enumerable keys
+    const akeys = Object.keys(a);
+    let n = akeys.length;
+
+    while (n--) {
+        // Has the property been set to undefined on a?
+        if (a[akeys[n]] === undefined) {
+            // We don't want to test if it is an own property of b, as
+            // undefined represents an absence of value
+            if (b[akeys[n]] === undefined) {
+                return true;
+            }
+        }
+        else {
+            //
+            if (b.hasOwnProperty(akeys[n]) && !equals(a[akeys[n]], b[akeys[n]])) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/*
+exec(regex, fn, string)
+*/
+
+function exec(regex, fn, string) {
+    let data;
+
+    // If string looks like a regex result, get rest of string
+    // from latest index
+    if (string.input !== undefined && string.index !== undefined) {
+        data   = string;
+        string = data.input.slice(
+            string.index
+            + string[0].length
+            + (string.consumed || 0)
+        );
+    }
+
+    // Look for tokens
+    const tokens = regex.exec(string);
+    if (!tokens) { return; }
+
+    const output = fn(tokens);
+
+    // If we have a parent tokens object update its consumed count
+    if (data) {
+        data.consumed = (data.consumed || 0)
+            + tokens.index
+            + tokens[0].length
+            + (tokens.consumed || 0) ;
+    }
+
+    return output;
+}
+
+/*
+get(name, object)
+Get property `name` of `object`.
+*/
+
+function get(key, object) {
+    // Todo? Support WeakMaps and Maps and other map-like objects with a
+    // get method - but not by detecting the get method
+    return object[key];
+
+    // Why are we protecting against null again? To innoculate ourselves
+    // against DOM nodes?
+    //return value === null ? undefined : value ;
+}
+
+/*
+has(key, value, object)
+Returns `true` if `object[key]` is strictly equal to `value`.
+*/
+
+function has(key, value, object) {
+    return object[key] === value;
+}
+
+/*
+is(a, b)
+Perform a strict equality check of `a === b`.
+*/
+
+
+var is = Object.is || function is(a, b) { return a === b; };
+
+/*
+invoke(name, parameters, object)
+Invokes `object.name()` with `parameters` as arguments. For example:
+
+```
+models.forEach(invoke('save', [version]));
+```
+*/
+
+function invoke(name, values, object) {
+    return object[name].apply(object, values);
+}
+
+/*
+matches(selector, object)
+Where `selector` is an object containing properties to be compared against
+properties of `object`. If they are all strictly equal, returns `true`,
+otherwise `false`.
+
+```
+const vegeFoods = menu.filter(matches({ vegetarian: true }));
+```
+*/
+
+function matches(object, item) {
+	let property;
+	for (property in object) {
+		if (object[property] !== item[property]) { return false; }
+	}
+	return true;
+}
+
+function error(regex, reducers, string) {
+    if (string.input !== undefined && string.index !== undefined) {
+        string = string.input;
+    }
+
+    throw new Error('Cannot capture() in invalid string "' + string + '"');
+}
+
+function reduce$1(reducers, acc, tokens) {
+    let n = -1;
+
+    while (++n < tokens.length) {
+        acc = (tokens[n] !== undefined && reducers[n]) ? reducers[n](acc, tokens) : acc ;
+    }
+
+    // Call the optional close fn
+    return reducers.close ?
+        reducers.close(acc, tokens) :
+        acc ;
+}
+
+/*
+capture(regex, reducers, accumulator, string)
+Parse `string` with `regex`, calling functions in `reducers` to modify
+and return `accumulator`.
+
+Reducers is an object of functions keyed by the index of their capturing
+group in the regexp result (`0` corresponding to the entire regex match,
+the first capturing group being at index `1`). Reducer functions are
+called in capture order for all capturing groups that captured something.
+Reducers may also define the function 'close', which is called at the end
+of every capture. All functions are passed the paremeters
+`(accumulator, tokens)`, where `tokens` is the regexp result. Functions
+must return an accumulator.
+
+Reducers may also define a function `'catch'`, which is called when a match
+has not been made (where `'catch'` is not defined an error is thrown).
+
+```
+const rvalue = /^\s*(-?\d*\.?\d+)(\w+)?\s*$/;
+const parseValue = capture(rvalue, {
+    // Create a new accumulator object each call
+    0: () => ({}),
+
+    1: (acc, tokens) => {
+        acc.number = parseFloat(tokens[1]);
+        return acc;
+    },
+
+    2: (acc, tokens) => {
+        acc.unit = tokens[2];
+        return acc;
+    }
+}, {});
+
+const value = parseValue('36rem');    // { value: 36, unit: 'rem' }
+```
+*/
+
+function capture(regex, reducers, acc, string) {
+    const output = exec(regex, (tokens) => reduce$1(reducers, acc, tokens), string);
+
+    // If tokens is undefined exec has failed apply regex to string
+    return output === undefined ?
+        // If there is a catch function, call it, otherwise error out
+        reducers.catch ?
+            reducers.catch(acc, string) :
+            error(regex, reducers, string) :
+
+        // Return the accumulator
+        output ;
+}
+
+/*
+set(key, object, value)
+
+```
+// Set `input.value` whenever a value is pushed into a stream:
+stream.scan(set('value'), input);
+```
+*/
+
 function set(key, object, value) {
     return typeof object.set === "function" ?
         object.set(key, value) :
         (object[key] = value) ;
+}
+
+/*
+toFixed(number)
+*/
+
+const N     = Number.prototype;
+const isNaN = Number.isNaN;
+
+function toFixed(n, value) {
+    if (isNaN(value)) {
+        return '';
+        // throw new Error('Fn.toFixed does not accept NaN.');
+    }
+
+    return N.toFixed.call(value, n);
 }
 
 var rpath$1  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
@@ -2499,197 +3184,6 @@ function setPath(path, object, value) {
     return setRegexPath(rpath$1, path, object, value);
 }
 
-function ObserveSource(end, object, path) {
-	this.observable = Observer(object);
-	this.path       = path;
-	this.end        = end;
-}
-
-ObserveSource.prototype = {
-	shift: function() {
-		var value = this.value;
-		this.value = undefined;
-		return value;
-	},
-
-	push: function() {
-		setPath(this.path, this.observable, arguments[arguments.length - 1]);
-	},
-
-	stop: function() {
-		this.unobserve();
-		this.end();
-	},
-
-	unobserve: noop
-};
-
-function Observable(path, object) {
-	return new Stream$1(function setup(notify, stop) {
-		var source = new ObserveSource(stop, object, path);
-
-		function update(v) {
-			source.value = v === undefined ? null : v ;
-			notify('push');
-		}
-
-		source.unobserve = observe(path, update, object);
-		return source;
-	});
-}
-
-function requestTime(s, fn) {
-    return setTimeout(fn, s * 1000);
-}
-
-function equals(a, b) {
-    // Fast out if references are for the same object
-    if (a === b) { return true; }
-
-    // If either of the values is null, or not an object, we already know
-    // they're not equal so get out of here
-    if (a === null ||
-        b === null ||
-        typeof a !== 'object' ||
-        typeof b !== 'object') {
-        return false;
-    }
-
-    // Compare their enumerable keys
-    const akeys = Object.keys(a);
-    let n = akeys.length;
-
-    while (n--) {
-        // Has the property been set to undefined on a?
-        if (a[akeys[n]] === undefined) {
-            // We don't want to test if it is an own property of b, as
-            // undefined represents an absence of value
-            if (b[akeys[n]] === undefined) {
-                return true;
-            }
-        }
-        else {
-            //
-            if (b.hasOwnProperty(akeys[n]) && !equals(a[akeys[n]], b[akeys[n]])) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-function exec(regex, fn, string) {
-    let data;
-
-    // If string looks like a regex result, get rest of string
-    // from latest index
-    if (string.input !== undefined && string.index !== undefined) {
-        data   = string;
-        string = data.input.slice(
-            string.index
-            + string[0].length
-            + (string.consumed || 0)
-        );
-    }
-
-    // Look for tokens
-    const tokens = regex.exec(string);
-    if (!tokens) { return; }
-
-    const output = fn(tokens);
-
-    // If we have a parent tokens object update its consumed count
-    if (data) {
-        data.consumed = (data.consumed || 0)
-            + tokens.index
-            + tokens[0].length
-            + (tokens.consumed || 0) ;
-    }
-
-    return output;
-}
-
-function get(key, object) {
-    // Todo? Support WeakMaps and Maps and other map-like objects with a
-    // get method - but not by detecting the get method
-    return object[key];
-
-    // Why are we protecting against null again? To innoculate ourselves
-    // against DOM nodes?
-    //return value === null ? undefined : value ;
-}
-
-/*
-has(key, value, object)
-
-Returns `true` if `object[key]` is strictly equal to `value`.
-*/
-
-function has(key, value, object) {
-    return object[key] === value;
-}
-
-var _is = Object.is || function is(a, b) { return a === b; };
-
-function invoke(name, values, object) {
-    return object[name].apply(object, values);
-}
-
-function matches(object, item) {
-	let property;
-	for (property in object) {
-		if (object[property] !== item[property]) { return false; }
-	}
-	return true;
-}
-
-function error(regex, reducers, string) {
-    if (string.input !== undefined && string.index !== undefined) {
-        string = string.input;
-    }
-
-    throw new Error('Cannot capture() in invalid string "' + string + '"');
-}
-
-function reduce$1(reducers, acc, tokens) {
-    let n = -1;
-
-    while (++n < tokens.length) {
-        acc = (tokens[n] !== undefined && reducers[n]) ? reducers[n](acc, tokens) : acc ;
-    }
-
-    // Call the optional close fn
-    return reducers.close ?
-        reducers.close(acc, tokens) :
-        acc ;
-}
-
-function capture(regex, reducers, acc, string) {
-    const output = exec(regex, (tokens) => reduce$1(reducers, acc, tokens), string);
-
-    // If tokens is undefined exec has failed apply regex to string
-    return output === undefined ?
-        // If there is a catch function, call it, otherwise error out
-        reducers.catch ?
-            reducers.catch(acc, string) :
-            error(regex, reducers, string) :
-
-        // Return the accumulator
-        output ;
-}
-
-const N     = Number.prototype;
-const isNaN = Number.isNaN;
-
-function toFixed(n, value) {
-    if (isNaN(value)) {
-        throw new Error('Fn.toFixed does not accept NaN.');
-    }
-
-    return N.toFixed.call(value, n);
-}
-
 function ap(data, fns) {
 	let n = -1;
 	let fn;
@@ -2697,6 +3191,27 @@ function ap(data, fns) {
 		fn(data);
 	}
 }
+
+/*
+insert(fn, array, object)
+Inserts `object` into `array` at the first index where the result of
+`fn(object)` is greater than `fn(array[index])`.
+*/
+
+const A$6 = Array.prototype;
+
+function insert(fn, array, object) {
+    var n = -1;
+    var l = array.length;
+    var value = fn(object);
+    while(++n < l && fn(array[n]) <= value);
+    A$6.splice.call(array, n, 0, object);
+    return object;
+}
+
+/*
+take(n, array)
+*/
 
 function take(i, object) {
     if (object.slice) { return object.slice(0, i); }
@@ -2710,21 +3225,28 @@ function take(i, object) {
 
 const assign$2 = Object.assign;
 
-function update(fn, target, array) {
-    return array.reduce(function(target, obj2) {
-        var obj1 = target.find(compose(is(fn(obj2)), fn));
-        if (obj1) {
-            assign$2(obj1, obj2);
-        }
-        else {
-            insert(fn, target, obj2);
-        }
-        return target;
-    }, target);
+/*
+update(fn, array, object)
+
+Compares the result of calling `fn` on `object` to the result of calling `fn`
+on each value in `array`. If a match is found, `object` has its properties
+assigned to that target, and if not the `object` is spliced into the
+array (preserving a sort order based on the result of `fn(object)`).
+
+Returns the updated object.
+*/
+
+function update(fn, construct, array, source) {
+    const id  = fn(source);
+    const obj = array.find((obj) => fn(obj) === id);
+
+    return obj ?
+        assign$2(obj, source) :
+        insert(fn, array, construct(source)) ;
 }
 
 function diff(array, object) {
-    var values = toArray$1(array);
+    var values = toArray(array);
 
     return filter(function(value) {
         var i = values.indexOf(value);
@@ -2736,7 +3258,7 @@ function diff(array, object) {
 }
 
 function intersect(array, object) {
-    var values = toArray$1(array);
+    var values = toArray(array);
 
     return filter(function(value) {
         var i = values.indexOf(value);
@@ -2757,6 +3279,11 @@ function unite(array, object) {
     .concat(values);
 }
 
+/*
+last(array)
+Gets the last value from an array.
+*/
+
 function last(array) {
     if (typeof array.length === 'number') {
         return array[array.length - 1];
@@ -2764,6 +3291,12 @@ function last(array) {
 
     // Todo: handle Fns and Streams
 }
+
+/*
+.append(str2, str1)
+
+Returns `str1 + str2` as string.
+*/
 
 function append$1(string1, string2) {
     return '' + string2 + string1;
@@ -2817,7 +3350,7 @@ function toCamelCase(string) {
     });
 }
 
-const DEBUG$1 = window.DEBUG === undefined || window.DEBUG;
+const DEBUG$2 = window.DEBUG === undefined || window.DEBUG;
 
 const defs = {
     // Primitive types
@@ -2919,7 +3452,7 @@ const defs = {
         value instanceof RegExp
 };
 
-const checkType = DEBUG$1 ? function checkType(type, value, file, line, message) {
+const checkType = DEBUG$2 ? function checkType(type, value, file, line, message) {
     if (!defs[type]) {
         throw new RangeError('Type "' + type + '" not recognised');
     }
@@ -2929,7 +3462,7 @@ const checkType = DEBUG$1 ? function checkType(type, value, file, line, message)
     }
 } : noop ;
 
-const checkTypes = DEBUG$1 ? function checkTypes(types, args, file, line) {
+const checkTypes = DEBUG$2 ? function checkTypes(types, args, file, line) {
     var n = types.length;
 
     while (n--) {
@@ -2945,7 +3478,7 @@ function def(notation, fn, file, line) {
     var types = parts[0].split(/\s*,\s*/);
     var returnType = parts[1];
 
-    return DEBUG$1 ? function() {
+    return DEBUG$2 ? function() {
         checkTypes(types, arguments, file, line);
         const output = fn.apply(this, arguments);
         checkType(returnType, output, file, line, 'return value not of type "' + returnType + '": ' + output);
@@ -2957,6 +3490,10 @@ function def(notation, fn, file, line) {
 // webkit source by Christian Effenberger):
 // http://www.netzgesta.de/dev/cubic-bezier-timing-function.html
 
+/*
+cubicBezier(point1, point2, duration, x)
+Where `point1` and `point2` are `[x, y]` arrays describing control points.
+*/
 
 function sampleCubicBezier(a, b, c, t) {
     // `ax t^3 + bx t^2 + cx t' expanded using Horner's rule.
@@ -3078,6 +3615,7 @@ const cubicBezier$1 = def(
 );
 
 var normalise = /*#__PURE__*/Object.freeze({
+    __proto__: null,
     linear: linear,
     quadratic: quadratic,
     cubic: cubic,
@@ -3136,6 +3674,7 @@ const cubicBezier$2 = def(
 );
 
 var denormalise = /*#__PURE__*/Object.freeze({
+    __proto__: null,
     linear: linear$1,
     quadratic: quadratic$1,
     cubic: cubic$1,
@@ -3147,7 +3686,7 @@ var denormalise = /*#__PURE__*/Object.freeze({
 // Constant for converting radians to degrees
 const angleFactor = 180 / Math.PI;
 
-function add(a, b)  { return b + a; }
+function sum(a, b)  { return b + a; }
 function multiply(a, b) { return b * a; }
 function min(a, b)  { return a > b ? b : a ; }
 function max(a, b)  { return a < b ? b : a ; }
@@ -3156,14 +3695,21 @@ function exp(n, x)  { return Math.pow(n, x); }
 function log(n, x)  { return Math.log(x) / Math.log(n); }
 function root(n, x) { return Math.pow(x, 1/n); }
 
+/*
+mod(divisor, n)
+JavaScript's modulu operator (`%`) uses Euclidean division, but for
+stuff that cycles through 0 the symmetrics of floored division are often
+are more useful.
+*/
+
 function mod(d, n) {
-    // JavaScript's modulu operator % uses Euclidean division, but for
-    // stuff that cycles through 0 the symmetrics of floored division
-    // are more useful.
-    // https://en.wikipedia.org/wiki/Modulo_operation
     var value = n % d;
     return value < 0 ? value + d : value ;
 }
+
+/*
+limit(min, max, n)
+*/
 
 function limit(min, max, n) {
     return n > max ? max : n < min ? min : n ;
@@ -3173,10 +3719,18 @@ function wrap(min, max, n) {
     return (n < min ? max : min) + (n - min) % (max - min);
 }
 
+/*
+gcd(a, b)
+*/
+
 function gcd(a, b) {
     // Greatest common divider
     return b ? gcd(b, a % b) : a ;
 }
+
+/*
+lcm(a, b)
+*/
 
 function lcm(a, b) {
     // Lowest common multiple.
@@ -3190,13 +3744,23 @@ function factorise(n, d) {
     return [n/f, d/f];
 }
 
+/*
+todB(level)
+*/
+
 // A bit disturbingly, a correction factor is needed to make todB() and
-// to toLevel() reciprocate more accurately. This is quite a lot to off
-// by... investigate?
+// to toLevel() reciprocate more accurately. This is quite a lot to be off
+// by... Todo: investigate?
 const dBCorrectionFactor = (60 / 60.205999132796244);
 
 function todB(n)    { return 20 * Math.log10(n) * dBCorrectionFactor; }
+
+/*
+toLevel(dB)
+*/
+
 function toLevel(n) { return Math.pow(2, n / 6); }
+
 function toRad(n)   { return n / angleFactor; }
 function toDeg(n)   { return n * angleFactor; }
 
@@ -3214,6 +3778,10 @@ function exponentialOut(e, x) {
     return 1 - Math.pow(1 - x, e);
 }
 
+/*
+toPolar(cartesian)
+*/
+
 function toPolar(cartesian) {
     var x = cartesian[0];
     var y = cartesian[1];
@@ -3229,6 +3797,10 @@ function toPolar(cartesian) {
         Math.atan2(x, y)
     ];
 }
+
+/*
+toCartesian(polar)
+*/
 
 function toCartesian(polar) {
     var d = polar[0];
@@ -3291,22 +3863,43 @@ var rdate     = /^(-?\d{4})(?:-(0[1-9]|1[012])(?:-(0[1-9]|[12]\d|3[01])(?:T([01]
 //                sign   year        month       day               T or -
 var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
 
-var parseDate = overload(toType, {
+/*
+parseDate(date)
+Parse a date, where, `date` may be:
+
+- a string in ISO date format
+- a number in seconds UNIX time
+- a date object
+
+Returns a date object, or *the* date object, if it validates.
+*/
+
+const parseDate = overload(toType, {
 	number:  secondsToDate,
 	string:  exec$1(rdate, createDate),
 	object:  function(date) {
 		return isValidDate(date) ? date : undefined ;
 	},
-	default: noop
+	default: function(date) {
+        throw new TypeError('parseDate(date) date is not of a supported type (' + (typeof date) + ')');
+    }
 });
 
-var parseDateLocal = overload(toType, {
+/*
+parseDateLocal(date)
+As `parseDate(date)`, but returns a date object with local time set to the
+result of the parse (or the original date object, if it validates).
+*/
+
+const parseDateLocal = overload(toType, {
 	number:  secondsToDate,
 	string:  exec$1(rdate, createDateLocal),
 	object:  function(date) {
-		return date instanceof Date ? date : undefined ;
+		return isValidDate(date) ? date : undefined ;
 	},
-	default: noop
+	default: function(date) {
+        throw new Error('parseDateLocal: date is not of a supported type (number, string, Date)');
+    }
 });
 
 function isValidDate(date) {
@@ -3443,7 +4036,7 @@ var componentKeys = {
 	default: ['weekday', 'day', 'month', 'year', 'hour', 'minute', 'second']
 };
 
-var options = {
+var options$1 = {
 	// Time zone
 	timeZone:      'UTC',
 	// Use specified locale matcher
@@ -3476,8 +4069,8 @@ function matchEach(regex, fn, text) {
 }
 
 function toLocaleString(timezone, locale, date) {
-	options.timeZone = timezone || 'UTC';
-	var string = date.toLocaleString(locale, options);
+	options$1.timeZone = timezone || 'UTC';
+	var string = date.toLocaleString(locale, options$1);
 	return string;
 }
 
@@ -3511,6 +4104,10 @@ function _formatDate(string, timezone, locale, date) {
 	});
 }
 
+/*
+formatDateLocal(format, locale, date)
+*/
+
 function formatDateLocal(string, locale, date) {
 	var formatters = dateFormatters;
 	var lang = locale.slice(0, 2);
@@ -3520,6 +4117,12 @@ function formatDateLocal(string, locale, date) {
 		return formatters[$0] ? formatters[$0](date, lang) : $0 ;
 	});
 }
+
+/*
+formatDateISO(date)
+Formats `date` (a string or a number or date accepted by `parseDate(date)`) as
+a string in the ISO date format.
+*/
 
 function formatDateISO(date) {
 	return rdatejson.exec(JSON.stringify(parseDate(date)))[1];
@@ -3534,9 +4137,19 @@ var days   = {
 
 var dayMap = [6,0,1,2,3,4,5];
 
+/*
+toDay(date)
+Returns day of week as a number, where monday is `0`.
+*/
+
 function toDay(date) {
 	return dayMap[date.getDay()];
 }
+
+/*
+cloneDate(date)
+Returns new date object set to same time.
+*/
 
 function cloneDate(date) {
 	return new Date(+date);
@@ -3682,16 +4295,21 @@ function floorDateByDay(day, date) {
 function _floorDate(grain, date) {
 	// Clone date before mutating it
 	date = cloneDate(date);
-
-	// Take a day string or number, find the last matching day
-	var day = typeof grain === 'number' ?
-		grain :
-		days[grain] ;
-
-	return isDefined(day) ?
-		floorDateByDay(day, date) :
-		floorDateByGrain(grain, date) ;
+	return typeof grain === 'number' ? floorDateByDay(grain, date) :
+        days[grain] ? floorDateByDay(days[grain], date) :
+	    floorDateByGrain(grain, date) ;
 }
+
+/*
+addDate(diff, date)
+Sums `diff` and `date`, where `diff` is a string in ISO date format. Returns
+a new date object.
+
+```
+const addWeek = addDate('0000-00-07');
+const sameTimeNextWeek = addWeek(new Date());
+```
+*/
 
 const addDate = curry$1(function(diff, date) {
 	return _addDate(diff, parseDate(date));
@@ -3699,9 +4317,56 @@ const addDate = curry$1(function(diff, date) {
 
 const diffDateDays = curry$1(_diffDateDays);
 
+/*
+floorDate(token, date)
+Floors date to the nearest `token`, where `token` is one of:
+`'year'`,
+`'month'`,
+`'week'`,
+`'day'`,
+`'hour'`,
+`'minute'`
+or `'second'`;
+`'mon'`,
+`'tue'`,
+`'wed'`,
+`'thu'`,
+`'fri'`,
+`'sat'`,
+`'sun'`;
+or a number representing a weekday.
+
+```
+const dayCounts = times.map(floorTime('days'));
+```
+*/
+
 const floorDate = curry$1(function(token, date) {
 	return _floorDate(token, parseDate(date));
 });
+
+/*
+formatDate(format, date)
+Formats `date` (a string or number or date accepted by `parseDate(date)`)
+to the format of the string `format`. The format string may contain the tokens:
+
+- `'YYYY'` years
+- `'YY'`   2-digit year
+- `'MM'`   month, 2-digit
+- `'MMM'`  month, 3-letter
+- `'MMMM'` month, full name
+- `'D'`    day of week
+- `'DD'`   day of week, two-digit
+- `'ddd'`  weekday, 3-letter
+- `'dddd'` weekday, full name
+- `'hh'`   hours
+- `'mm'`   minutes
+- `'ss'`   seconds
+
+```
+const time = formatTime('+-hh:mm:ss', 3600);   // 01:00:00
+```
+*/
 
 const formatDate = curry$1(function(string, timezone, locale, date) {
 	return string === 'ISO' ?
@@ -3738,7 +4403,26 @@ function prefix(n) {
 var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
 var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
 
-var parseTime = overload(toType, {
+/*
+parseTime(time)
+
+Where `time` is a string it is parsed as a time in ISO time format; as
+hours `'13'`, with minutes `'13:25'`, with seconds `'13:25:14'` or with
+decimal seconds `'13:25:14.001'`: it is returned as a number in seconds.
+
+```
+const time = parseTime('13:25:14.001');   // 48314.001
+```
+
+Where `time` is a number it is assumed to represent a time in seconds
+and is returned directly.
+
+```
+const time = parseTime(60);               // 60
+```
+*/
+
+const parseTime = overload(toType, {
 	number:  id,
 	string:  exec$1(rtime, createTime),
 	default: function(object) {
@@ -3819,11 +4503,10 @@ var timeFormatters = {
 };
 
 function createTime(match, sign, hh, mm, sss) {
-	var time = hoursToSeconds(parseInt(hh, 10)) + (
-		mm ? minutesToSeconds(parseInt(mm, 10)) + (
-			sss ? parseFloat(sss, 10) : 0
-		) : 0
-	);
+	var time = hoursToSeconds(parseInt(hh, 10))
+        + (mm ? minutesToSeconds(parseInt(mm, 10))
+            + (sss ? parseFloat(sss, 10) : 0)
+        : 0) ;
 
 	return sign === '-' ? -time : time ;
 }
@@ -3859,11 +4542,43 @@ function toMaxDecimals(precision, n) {
 	return n.toFixed(precision).replace(/\.?0+$/, '');
 }
 
+/*
+formatTime(format, time)
+Formats `time` (a string or a number) to the format of the `format` string.
+The format string may contain the tokens:
+
+- '+-'    sign
+- `'www'` weeks
+- `'dd'`  days
+- `'hhh'` duration hours, unlimited
+- `'hh'`  time hours, 24-hour cycle
+- `'mm'`  time minutes
+- `'ss'`  time seconds
+- `'sss'` time seconds with decimals
+- `'ms'`  time milliseconds
+
+```
+const time = formatTime('+-hh:mm:ss', 3600);   // 01:00:00
+```
+*/
+
 const formatTime = curry$1(function(string, time) {
 	return string === 'ISO' ?
 		_formatTimeISO(parseTime(time)) :
 		formatTimeString(string, parseTime(time)) ;
 });
+
+/*
+addTime(time1, time2)
+Sums `time2` and `time1`, returning UNIX time as a number in seconds.
+If `time1` is a string, it is parsed as a time diff, where numbers
+are accepted outside the bounds of 0-24 hours or 0-60 minutes or seconds.
+For example, to add 72 minutes to a list of times:
+
+```
+const laters = times.map(addTime('00:72'));
+```
+*/
 
 const addTime = curry$1(function(time1, time2) {
 	return parseTime(time2) + parseTimeDiff(time1);
@@ -3876,6 +4591,17 @@ const subTime = curry$1(function(time1, time2) {
 const diffTime = curry$1(function(time1, time2) {
 	return parseTime(time1) - parseTime(time2);
 });
+
+/*
+floorTime(token, time)
+Floors `time` to the nearest `token`, where `token` is one of: `'week'`, `'day'`,
+`'hour'`, `'minute'` or `'second'`. `time` may be an ISO time string or a time
+in seconds. Returns a time in seconds.
+
+```
+const hourCounts = times.map(floorTime('hour'));
+```
+*/
 
 const floorTime = curry$1(function(token, time) {
 	return _floorTime(token, parseTime(time));
@@ -3953,8 +4679,6 @@ if (window.console && window.console.log) {
     window.console.log('%cFn%c          - https://github.com/stephband/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
 }
 const requestTime$1 = curry$1(requestTime, true, 2);
-
-function not(a) { return !a; }const toFloat = parseFloat;
 const and     = curry$1(function and(a, b) { return !!(a && b); });
 const or      = curry$1(function or(a, b) { return a || b; });
 const xor     = curry$1(function xor(a, b) { return (a || b) && (!!a !== !!b); });
@@ -3966,7 +4690,7 @@ const equals$1      = curry$1(equals, true);
 const exec$2        = curry$1(exec);
 const get$1         = curry$1(get, true);
 const has$1         = curry$1(has, true);
-const is          = curry$1(_is, true);
+const is$1          = curry$1(is, true);
 const invoke$1      = curry$1(invoke, true);
 const matches$1     = curry$1(matches, true);
 const parse$1       = curry$1(capture);
@@ -3984,13 +4708,13 @@ const contains$1    = curry$1(contains, true);
 const each$1        = curry$1(each, true);
 const filter$1      = curry$1(filter, true);
 const find$1        = curry$1(find, true);
-const insert$1      = curry$1(insert, true);
 const map$1         = curry$1(map, true);
 const reduce$2      = curry$1(reduce, true);
 const remove$1      = curry$1(remove, true);
 const rest$1        = curry$1(rest, true);
 const slice$1       = curry$1(slice, true, 3);
 const sort$1        = curry$1(sort, true);
+const insert$1      = curry$1(insert, true);
 const take$1        = curry$1(take, true);
 const update$1      = curry$1(update, true);
 
@@ -4003,7 +4727,13 @@ const prepend$1     = curry$1(prepend);
 const prepad$1      = curry$1(prepad);
 const postpad$1     = curry$1(postpad);
 
-const add$1         = curry$1(add);
+const sum$1         = curry$1(sum);
+
+const add         = curry$1(function(a, b) {
+    console.trace('Fn module add() is now sum()');
+    return sum(a, b);
+});
+
 const multiply$1    = curry$1(multiply);
 const min$1         = curry$1(min);
 const max$1         = curry$1(max);
@@ -4022,11 +4752,17 @@ const normalise$1   = curry$1(choose(normalise), false, 4);
 const denormalise$1 = curry$1(choose(denormalise), false, 4);
 const exponentialOut$1 = curry$1(exponentialOut);
 
+/*
+ready(fn)
+Calls `fn` on DOM content load, or if later than content load, immediately
+(on the next tick).
+*/
+
 const ready = new Promise(function(accept, reject) {
-	function handle() {
+	function handle(e) {
 		document.removeEventListener('DOMContentLoaded', handle);
 		window.removeEventListener('load', handle);
-		accept();
+		accept(e);
 	}
 
 	document.addEventListener('DOMContentLoaded', handle);
@@ -4040,59 +4776,185 @@ function now$1() {
    return window.performance.now() / 1000;
 }
 
-const rules = [];
-const rem = /(\d*\.?\d+)r?em/;
-const rpercent = /(\d*\.?\d+)%/;
+/*
+style(property, node)
 
-const types = {
-    number: function(n) { return n; },
+Returns the computed style `property` of `node`.
 
-    function: function(fn) { return fn(); },
+    style('transform', node);            // returns transform
 
-    string: function(string) {
-        var data, n;
+If `property` is of the form `"property:name"`, a named aspect of the property
+is returned.
 
-        data = rem.exec(string);
-        if (data) {
-            n = parseFloat(data[1]);
-            return getFontSize() * n;
-        }
+    style('transform:rotate', node);     // returns rotation, as a number, in radians
+    style('transform:scale', node);      // returns scale, as a number
+    style('transform:translateX', node); // returns translation, as a number, in px
+    style('transform:translateY', node); // returns translation, as a number, in px
+*/
 
-        data = rpercent.exec(string);
-        if (data) {
-            n = parseFloat(data[1]) / 100;
-            return width * n;
-        }
+var rpx          = /px$/;
+var styleParsers = {
+	"transform:translateX": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		return parseFloat(values[4]);
+	},
 
-        throw new Error('[window.breakpoint] \'' + string + '\' cannot be parsed as rem, em or %.');
-    }
+	"transform:translateY": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		return parseFloat(values[5]);
+	},
+
+	"transform:scale": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		var a = parseFloat(values[0]);
+		var b = parseFloat(values[1]);
+		return Math.sqrt(a * a + b * b);
+	},
+
+	"transform:rotate": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		var a = parseFloat(values[0]);
+		var b = parseFloat(values[1]);
+		return Math.atan2(b, a);
+	}
 };
 
-const tests = {
-    minWidth: function(value)  { return width >= types[typeof value](value); },
-    maxWidth: function(value)  { return width <  types[typeof value](value); },
-    minHeight: function(value) { return height >= types[typeof value](value); },
-    maxHeight: function(value) { return height <  types[typeof value](value); },
-    minScrollTop: function(value) { return scrollTop >= types[typeof value](value); },
-    maxScrollTop: function(value) { return scrollTop <  types[typeof value](value); },
-    minScrollBottom: function(value) { return (scrollHeight - height - scrollTop) >= types[typeof value](value); },
-    maxScrollBottom: function(value) { return (scrollHeight - height - scrollTop) <  types[typeof value](value); }
-};
-
-let width, height, scrollTop, scrollHeight, fontSize;
-
-function getStyle(node, name) {
-    return window.getComputedStyle ?
-        window
-        .getComputedStyle(node, null)
-        .getPropertyValue(name) :
-        0 ;
+function valuesFromCssFn(string) {
+	return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
 }
+
+function computedStyle(name, node) {
+	return window.getComputedStyle ?
+		window
+		.getComputedStyle(node, null)
+		.getPropertyValue(name) :
+		0 ;
+}
+
+function style(name, node) {
+    // If name corresponds to a custom property name in styleParsers...
+    if (styleParsers[name]) { return styleParsers[name](node); }
+
+    var value = computedStyle(name, node);
+
+    // Pixel values are converted to number type
+    return typeof value === 'string' && rpx.test(value) ?
+        parseFloat(value) :
+        value ;
+}
+
+// Units
+
+const runit = /(\d*\.?\d+)(r?em|vw|vh)/;
+//var rpercent = /(\d*\.?\d+)%/;
+
+const units = {
+	em: function(n) {
+		return getFontSize() * n;
+	},
+
+	rem: function(n) {
+		return getFontSize() * n;
+	},
+
+	vw: function(n) {
+		return window.innerWidth * n / 100;
+	},
+
+	vh: function(n) {
+		return window.innerHeight * n / 100;
+	}
+};
+
+let fontSize;
 
 function getFontSize() {
-    return fontSize ||
-        (fontSize = parseFloat(getStyle(document.documentElement, "font-size"), 10));
+	return fontSize ||
+		(fontSize = style("font-size", document.documentElement), 10);
 }
+
+/*
+toPx(value)`
+
+Takes a string of the form '10rem', '100vw' or '100vh' and returns a number in pixels.
+*/
+
+const toPx = overload(toType, {
+	'number': id,
+
+	'string': function(string) {
+		var data = runit.exec(string);
+
+		if (data) {
+			return units[data[2]](parseFloat(data[1]));
+		}
+
+		throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
+	}
+});
+
+
+/*
+toRem(value)
+
+Takes number in pixels and returns a string of the form '10rem'.
+*/
+
+function toRem(n) {
+	return (toPx(n) / getFontSize()) + 'rem';
+}
+
+/*
+toVw(value)
+
+Takes number in pixels and returns a string of the form '10vw'.
+*/
+
+function toVw(n) {
+	return (100 * toPx(n) / window.innerWidth) + 'vw';
+}
+
+/*
+toVh(value)
+
+Takes number in pixels and returns a string of the form '10vh'.
+*/
+
+function toVh(n) {
+	return (100 * toPx(n) / window.innerHeight) + 'vh';
+}
+
+const rules = [];
+
+const types = overload(toType, {
+    'number':   id,
+    'string':   toPx,
+    'function': function(fn) { return fn(); }
+});
+
+const tests = {
+    minWidth: function(value)  { return width >= types(value); },
+    maxWidth: function(value)  { return width <  types(value); },
+    minHeight: function(value) { return height >= types(value); },
+    maxHeight: function(value) { return height <  types(value); },
+    minScrollTop: function(value) { return scrollTop >= types(value); },
+    maxScrollTop: function(value) { return scrollTop <  types(value); },
+    minScrollBottom: function(value) { return (scrollHeight - height - scrollTop) >= types(value); },
+    maxScrollBottom: function(value) { return (scrollHeight - height - scrollTop) <  types(value); }
+};
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+let scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
 
 function test(query) {
     var keys = Object.keys(query);
@@ -4109,7 +4971,7 @@ function test(query) {
     return true;
 }
 
-function update$2() {
+function update$2(e) {
     var l = rules.length;
     var rule;
 
@@ -4119,7 +4981,7 @@ function update$2() {
 
         if (rule.state && !test(rule.query)) {
             rule.state = false;
-            rule.exit && rule.exit();
+            rule.exit && rule.exit(e);
         }
     }
 
@@ -4131,21 +4993,21 @@ function update$2() {
 
         if (!rule.state && test(rule.query)) {
             rule.state = true;
-            rule.enter && rule.enter();
+            rule.enter && rule.enter(e);
         }
     }
 }
 
 function scroll(e) {
     scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-    update$2();
+    update$2(e);
 }
 
 function resize(e) {
     width = window.innerWidth;
     height = window.innerHeight;
     scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-    update$2();
+    update$2(e);
 }
 
 window.addEventListener('scroll', scroll);
@@ -4154,147 +5016,11 @@ window.addEventListener('resize', resize);
 ready$1(update$2);
 document.addEventListener('DOMContentLoaded', update$2);
 
-width = window.innerWidth;
-height = window.innerHeight;
-scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-
-var pre  = document.createElement('pre');
-var text = document.createTextNode('');
-
-pre.appendChild(text);
-
-function escape(value) {
-	text.textContent = value;
-	return pre.innerHTML;
-}
-
-var mimetypes = {
-	xml:  'application/xml',
-	html: 'text/html',
-	svg:  'image/svg+xml'
-};
-
-function parse$2(type, string) {
-	if (!string) { return; }
-
-	var mimetype = mimetypes[type];
-	var xml;
-
-	// From jQuery source...
-	try {
-		xml = (new window.DOMParser()).parseFromString(string, mimetype);
-	} catch (e) {
-		xml = undefined;
-	}
-
-	if (!xml || xml.getElementsByTagName("parsererror").length) {
-		throw new Error("dom: Invalid XML: " + string);
-	}
-
-	return xml;
-}
-
-// Types
-
-function isFragmentNode(node) {
-	return node.nodeType === 11;
-}
-
-function tag(node) {
-	return node.tagName && node.tagName.toLowerCase();
-}
-
-function contains$2(child, node) {
-	return node.contains ?
-		node.contains(child) :
-	child.parentNode ?
-		child.parentNode === node || contains$2(child.parentNode, node) :
-	false ;
-}
-
-function attribute(name, node) {
-	return node.getAttribute && node.getAttribute(name) || undefined ;
-}
-
-function find$2(selector, node) {
-	return node.querySelector(selector);
-}
-
-function matches$2(selector, node) {
-	return node.matches ? node.matches(selector) :
-		node.matchesSelector ? node.matchesSelector(selector) :
-		node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
-		node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
-		node.msMatchesSelector ? node.msMatchesSelector(selector) :
-		node.oMatchesSelector ? node.oMatchesSelector(selector) :
-		// Dumb fall back to simple tag name matching. Nigh-on useless.
-		tag(node) === selector ;
-}
-
-function closest(selector, node) {
-	var root = arguments[2];
-
-	if (!node || node === document || node === root || node.nodeType === 11) { return; }
-
-	// SVG <use> elements store their DOM reference in
-	// .correspondingUseElement.
-	node = node.correspondingUseElement || node ;
-
-	return matches$2(selector, node) ?
-		 node :
-		 closest(selector, node.parentNode, root) ;
-}
-
-function query(selector, node) {
-	return toArray$1(node.querySelectorAll(selector));
-}
-
-if (!Element.prototype.append) {
-    console.warn('A polyfill for Element.append() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/append)');
-}
-
-function append$3(target, node) {
-    target.append(node);
-    return node;
-}
-
-const setAttribute = overload(id, {
-	html: function(name, node, content) {
-		node.innerHTML = content;
-	},
-
-	children: function(name, node, content) {
-		content.forEach((child) => { node.appendChild(child); });
-	},
-
-	default: function(name, node, content) {
-		if (name in node) {
-			node[name] = content;
-		}
-		else {
-			node.setAttribute(name, content);
-		}
-	}
-});
-
-function assignAttributes(node, attributes) {
-	var names = Object.keys(attributes);
-	var n = names.length;
-
-	while (n--) {
-		setAttribute(names[n], node, attributes[names[n]]);
-	}
-}
-
-if (!Element.prototype.prepend) {
-    console.warn('A polyfill for Element.prepend() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/prepend)');
-}
-
-function prepend$2(target, node) {
-    target.prepend(node);
-    return node;
-}
+/*
+prefix(string)
+Returns a prefixed CSS property name where a prefix is required in the current
+browser.
+*/
 
 const prefixes = ['Khtml','O','Moz','Webkit','ms'];
 
@@ -4325,7 +5051,28 @@ function prefix$1(prop){
 
 const define$1 = Object.defineProperties;
 
-var features$1 = define$1({
+/*
+features
+
+An object of feature detection results.
+
+```
+{
+    inputEventsWhileDisabled: true, // false in FF, where disabled inputs don't trigger events
+    template: true,                 // false in old browsers where template.content not found
+    textareaPlaceholderSet: true,   // false in IE, where placeholder is also set on innerHTML
+    transition: true,               // false in older browsers where transitions not supported
+    fullscreen: true,               // false where fullscreen API not supported
+    scrollBehavior: true,           // Whether scroll behavior CSS is supported
+    events: {
+        fullscreenchange: 'fullscreenchange',
+        transitionend:    'transitionend'
+    }
+}
+```
+*/
+
+var features = define$1({
 	events: define$1({}, {
 		fullscreenchange: {
 			get: cache(function() {
@@ -4428,19 +5175,369 @@ var features$1 = define$1({
 		enumerable: true
 	},
 
-	// Deprecated
-
-	transitionend: {
-		get: function() {
-			console.warn('dom.features.transitionend deprecated in favour of dom.features.events.transitionend.');
-			return features.events.transitionend;
-		},
-
-		enumerable: true
+	scrollBehavior: {
+		get: cache(function() {
+			return 'scrollBehavior' in document.documentElement.style;
+		})
 	}
 });
 
-features$1.textareaPlaceholderSet ?
+const shadowOptions = { mode: 'open' };
+
+const constructors = {
+    'a':        HTMLAnchorElement,
+    'p':        HTMLParagraphElement,
+    'br':       HTMLBRElement,
+    'img':      HTMLImageElement,
+    'template': HTMLTemplateElement
+};
+
+function getElementConstructor(tag) {
+        // Return a constructor from the known list of tag names – not all tags
+        // have constructor names that match their tags
+    return constructors[tag]
+        // Or assemble the tag name in the form "HTMLTagElement" and return
+        // that property of the window object
+        || window['HTML' + tag[0].toUpperCase() + tag.slice(1) + 'Element']
+        || (() => {
+            throw new Error('Constructor not found for tag "' + tag + '"');
+        })();
+}
+
+function transferProperty(elem, key) {
+    if (elem.hasOwnProperty(key)) {
+        const value = elem[key];
+        delete elem[key];
+        elem[key] = value;
+    }
+
+    return elem;
+}
+
+function getTemplateById(id) {
+    const template = document.getElementById(options.shadow.slice(1));
+
+    if (!template || !template.content) {
+        throw new Error('Template "' + options.shadow + '" not found in document');
+    }
+
+    return template;
+}
+
+function createShadow(template, elem) {
+    if (!template) { return; }
+
+    // Create a shadow root if there is DOM content
+    const shadow = elem.attachShadow(shadowOptions) ;
+
+    // If template is a <template>
+    if (typeof template === 'string') {
+        shadow.innerHTML = template;
+    }
+    else {
+        shadow.appendChild(template.content.cloneNode(true));
+    }
+
+    return shadow;
+}
+
+function element(name, options) {
+    // Legacy...
+    // element() has changed signature from (name, template, attributes, properties, options) –
+    // support the old signature with a warning.
+    if (typeof options === 'string') {
+        throw new Error('dom element(): new signature element(name, options). Everything is an option.');
+    }
+
+    // Get the element constructor from options.tag, or the
+    // base HTMLElement constructor
+    const constructor = options.extends ?
+        getElementConstructor(options.extends) :
+        HTMLElement ;
+
+    const template = options && options.shadow && (
+        typeof options.shadow === 'string' ?
+            // If options.shadow is an #id, search for <template id="id">
+            options.shadow[0] === '#' ? getTemplateById(options.shadow.slice(1)) :
+            // It must be a string of HTML
+            options.shadow :
+        options.shadow.content ?
+            // It must be a template node
+            options.shadow :
+        // Whatever it is, we don't support it
+        function(){
+            throw new Error('element() options.shadow not recognised as template node, id or string');
+        }()
+    );
+
+    function Element() {
+        // Construct on instance of Constructor using the Element prototype
+        const elem   = Reflect.construct(constructor, arguments, Element);
+        const shadow = createShadow(template, elem);
+
+        options.construct
+        && options.construct.call(elem, shadow);
+
+        // At this point, if properties have already been set before the
+        // element was upgraded, they exist on the elem itself, where we have
+        // just upgraded it's protytype to define those properties those
+        // definitions will never be reached. Either:
+        //
+        // 1. Define properties on the instance instead of the prototype
+        //    Object.defineProperties(elem, properties);
+        //
+        // 2. Take a great deal of care not to set properties before an element
+        //    is upgraded. I can't impose a restriction like that.
+        //
+        // 3. Copy defined properties to their prototype handlers and delete
+        //    them on the instance.
+        //
+        // Let's go with 3. I'm not happy you have to do this, though.
+        options.properties
+        && Object.keys(options.properties).reduce(transferProperty, elem);
+
+        return elem;
+    }
+
+    // options.properties
+    //
+    // Map of getter/setters called when properties mutate.
+    //
+    // {
+    //     name: { get: fn, set: fn }
+    // }
+
+    Element.prototype = Object.create(constructor.prototype, options.properties || {}) ;
+
+    // options.attributes
+    //
+    // Map of functions called when named attributes change.
+    //
+    // {
+    //     name: fn
+    // }
+
+    if (options.attributes) {
+        Element.observedAttributes = Object.keys(options.attributes);
+
+        Element.prototype.attributeChangedCallback = function(name, old, value) {
+            options.attributes[name].call(this, value, name);
+        };
+    }
+
+    // options.connect
+
+    if (options.connect) {
+        Element.prototype.connectedCallback = options.connect;
+    }
+
+    // options.disconnect
+
+    if (options.disconnect) {
+        Element.prototype.disconnectedCallback = options.disconnect;
+    }
+
+    // options.extends
+
+    window.customElements.define(name, Element, options);
+
+    return Element;
+}
+
+/*
+escape(string)
+Escapes `string` for setting safely as HTML.
+*/
+
+var pre  = document.createElement('pre');
+var text = document.createTextNode('');
+
+pre.appendChild(text);
+
+function escape(value) {
+	text.textContent = value;
+	return pre.innerHTML;
+}
+
+var mimetypes = {
+	xml:  'application/xml',
+	html: 'text/html',
+	svg:  'image/svg+xml'
+};
+
+/*
+parse(type, string)
+
+Returns a document parsed from `string`, where `type` is one of `'xml'`,
+`'html'` or `'svg'`.
+*/
+
+function parse$2(type, string) {
+	if (!string) { return; }
+
+	var mimetype = mimetypes[type];
+	var xml;
+
+	// From jQuery source...
+	try {
+		xml = (new window.DOMParser()).parseFromString(string, mimetype);
+	} catch (e) {
+		xml = undefined;
+	}
+
+	if (!xml || xml.getElementsByTagName("parsererror").length) {
+		throw new Error("dom: Invalid XML: " + string);
+	}
+
+	return xml;
+}
+
+// Types
+
+/*
+isFragmentNode(node)
+
+Returns `true` if `node` is a fragment.
+*/
+
+function isFragmentNode(node) {
+	return node.nodeType === 11;
+}
+
+/*
+tag(node)
+
+Returns the tag name of `node`.
+
+```
+const li = create('li', 'Salt and vinegar');
+tag(li);   // 'li'
+```
+*/
+
+function tag(node) {
+	return node.tagName && node.tagName.toLowerCase();
+}
+
+function contains$2(child, node) {
+	return node.contains ?
+		node.contains(child) :
+	child.parentNode ?
+		child.parentNode === node || contains$2(child.parentNode, node) :
+	false ;
+}
+
+/*
+attribute(name, node)
+
+Returns the string contents of attribute `name`. If the attribute is not set,
+returns `undefined`.
+*/
+
+function attribute(name, node) {
+	return node.getAttribute && node.getAttribute(name) || undefined ;
+}
+
+function find$2(selector, node) {
+	return node.querySelector(selector);
+}
+
+function matches$2(selector, node) {
+	return node.matches ? node.matches(selector) :
+		node.matchesSelector ? node.matchesSelector(selector) :
+		node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
+		node.mozMatchesSelector ? node.mozMatchesSelector(selector) :
+		node.msMatchesSelector ? node.msMatchesSelector(selector) :
+		node.oMatchesSelector ? node.oMatchesSelector(selector) :
+		// Dumb fall back to simple tag name matching. Nigh-on useless.
+		tag(node) === selector ;
+}
+
+function closest(selector, node) {
+	var root = arguments[2];
+
+	if (!node || node === document || node === root || node.nodeType === 11) { return; }
+
+	// SVG <use> elements store their DOM reference in
+	// .correspondingUseElement.
+	node = node.correspondingUseElement || node ;
+
+	return matches$2(selector, node) ?
+		 node :
+		 closest(selector, node.parentNode, root) ;
+}
+
+function query(selector, node) {
+	return toArray(node.querySelectorAll(selector));
+}
+
+/*
+append(target, node)`
+
+Appends node to `target`.
+
+If `node` is a collection of nodes, appends each node to `target`.
+*/
+
+if (!Element.prototype.append) {
+    console.warn('A polyfill for Element.append() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/append)');
+}
+
+function append$3(target, node) {
+    target.append(node);
+    return node;
+}
+
+/*
+assign(node, attributes)
+
+Sets the key-value pairs of the object `attributes` as attributes on `node`.
+*/
+
+const setAttribute = overload(id, {
+	html: function(name, node, content) {
+		node.innerHTML = content;
+	},
+
+	children: function(name, node, content) {
+		content.forEach((child) => { node.appendChild(child); });
+	},
+
+	default: function(name, node, content) {
+		if (name in node) {
+			node[name] = content;
+		}
+		else {
+			node.setAttribute(name, content);
+		}
+	}
+});
+
+function assignAttributes(node, attributes) {
+	var names = Object.keys(attributes);
+	var n = names.length;
+
+	while (n--) {
+		setAttribute(names[n], node, attributes[names[n]]);
+	}
+}
+
+if (!Element.prototype.prepend) {
+    console.warn('A polyfill for Element.prepend() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/prepend)');
+}
+
+function prepend$2(target, node) {
+    target.prepend(node);
+    return node;
+}
+
+/*
+clone(node)`
+
+Returns a deep copy of `node`.
+*/
+
+features.textareaPlaceholderSet ?
 
 	function clone(node) {
 		return node.cloneNode(true);
@@ -4469,7 +5566,7 @@ features$1.textareaPlaceholderSet ?
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const testDiv      = document.createElement('div');
 
-const constructors = {
+const constructors$1 = {
 	text: function(text) {
 		return document.createTextNode(text || '');
 	},
@@ -4506,7 +5603,7 @@ var svgs = [
 ];
 
 svgs.forEach(function(tag) {
-	constructors[tag] = function(attributes) {
+	constructors$1[tag] = function(attributes) {
 		var node = document.createElementNS(svgNamespace, tag);
 		if (attributes) { setSVGAttributes(node, attributes); }
 		return node;
@@ -4522,6 +5619,18 @@ function setSVGAttributes(node, attributes) {
 	}
 }
 
+/*
+create(tag, text)`
+
+Returns a new DOM node.
+
+- If `tag` is `"text"` returns a text node with the content `text`.
+- If `tag` is `"fragment"` returns a document fragment.
+- If `tag` is `"comment"` returns a comment `<!-- text -->`.
+- Anything else returns an element `<tag>text</tag>`, where `text` is inserted
+  as inner html.
+*/
+
 function create$1(tag, attributes) {
 	// create(type)
 	// create(type, text)
@@ -4530,8 +5639,8 @@ function create$1(tag, attributes) {
 	let node;
 
 	if (typeof tag === 'string') {
-		if (constructors[tag]) {
-			return constructors[tag](attributes);
+		if (constructors$1[tag]) {
+			return constructors$1[tag](attributes);
 		}
 
 		node = document.createElement(tag);
@@ -4554,9 +5663,13 @@ function create$1(tag, attributes) {
 	return node;
 }
 
-// Returns a node's id, generating one if the node does not alreay have one
+/* DOM Mutation */
 
-// DOM Mutation
+/*
+remove(node)
+
+Removes `node` from the DOM.
+*/
 
 function remove$2(node) {
 	if (node.remove) {
@@ -4570,15 +5683,33 @@ function remove$2(node) {
 	return node;
 }
 
+/*
+before(target, node)
+
+Inserts `node` before target.
+*/
+
 function before(target, node) {
 	target.parentNode && target.parentNode.insertBefore(node, target);
 	return node;
 }
 
+/*
+after(target, node)
+
+Inserts `node` after `target`.
+*/
+
 function after(target, node) {
 	target.parentNode && target.parentNode.insertBefore(node, target.nextSibling);
 	return node;
 }
+
+/*
+replace(target, node)
+
+Swaps `target` for `node`.
+*/
 
 function replace(target, node) {
 	before(target, node);
@@ -4588,9 +5719,19 @@ function replace(target, node) {
 
 const classes = get$1('classList');
 
+/*
+addClass(class, node)
+Adds `'class'` to the classList of `node`.
+*/
+
 function addClass(string, node) {
 	classes(node).add(string);
 }
+
+/*
+removeClass(class, node)
+Removes `'class'` from the classList of `node`.
+*/
 
 function removeClass(string, node) {
 	classes(node).remove(string);
@@ -4613,6 +5754,13 @@ function frameClass(string, node) {
 	// change is painted so we have to wait for the second to undo
 	requestFrame(2, () => list.remove(string));
 }
+
+/*
+box(node)
+
+Returns a `DOMRect` object describing the draw box of `node`.
+(If `node` is `window` a plain object is returned).
+*/
 
 function windowBox() {
 	return {
@@ -4637,114 +5785,6 @@ function offset(node1, node2) {
 	return [box2.left - box1.left, box2.top - box1.top];
 }
 
-var rpx          = /px$/;
-var styleParsers = {
-	"transform:translateX": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		return parseFloat(values[4]);
-	},
-
-	"transform:translateY": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		return parseFloat(values[5]);
-	},
-
-	"transform:scale": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		var a = parseFloat(values[0]);
-		var b = parseFloat(values[1]);
-		return Math.sqrt(a * a + b * b);
-	},
-
-	"transform:rotate": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		var a = parseFloat(values[0]);
-		var b = parseFloat(values[1]);
-		return Math.atan2(b, a);
-	}
-};
-
-function valuesFromCssFn(string) {
-	return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
-}
-
-function computedStyle(name, node) {
-	return window.getComputedStyle ?
-		window
-		.getComputedStyle(node, null)
-		.getPropertyValue(name) :
-		0 ;
-}
-
-function style(name, node) {
-    // If name corresponds to a custom property name in styleParsers...
-    if (styleParsers[name]) { return styleParsers[name](node); }
-
-    var value = computedStyle(name, node);
-
-    // Pixel values are converted to number type
-    return typeof value === 'string' && rpx.test(value) ?
-        parseFloat(value) :
-        value ;
-}
-
-// Units
-
-const runit = /(\d*\.?\d+)(r?em|vw|vh)/;
-//var rpercent = /(\d*\.?\d+)%/;
-
-const units = {
-	em: function(n) {
-		return getFontSize$1() * n;
-	},
-
-	rem: function(n) {
-		return getFontSize$1() * n;
-	},
-
-	vw: function(n) {
-		return window.innerWidth * n / 100;
-	},
-
-	vh: function(n) {
-		return window.innerHeight * n / 100;
-	}
-};
-
-let fontSize$1;
-
-function getFontSize$1() {
-	return fontSize$1 ||
-		(fontSize$1 = parseFloat(style("font-size", document.documentElement), 10));
-}
-
-
-const toPx = overload(toType, {
-	'number': id,
-
-	'string': function(string) {
-		var data = runit.exec(string);
-
-		if (data) {
-			return units[data[2]](parseFloat(data[1]));
-		}
-
-		throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
-	}
-});
-
-function toRem(n) {
-	return (toPx(n) / getFontSize$1()) + 'rem';
-}
-
 if (!NodeList.prototype.forEach) {
     console.warn('A polyfill for NodeList.forEach() is needed (https://developer.mozilla.org/en-US/docs/Web/API/NodeList/forEach)');
 }
@@ -4761,11 +5801,9 @@ function fragmentFromChildren(node) {
 	return fragment;
 }
 
-// Event(type)
-// Event(settings, properties)
-
 const assign$4      = Object.assign;
 const CustomEvent = window.CustomEvent;
+
 const defaults    = {
 	// The event bubbles (false by default)
 	// https://developer.mozilla.org/en-US/docs/Web/API/Event/Event
@@ -4779,6 +5817,13 @@ const defaults    = {
 	// https://developer.mozilla.org/en-US/docs/Web/API/Event/composed
 	//composed: false
 };
+
+/*
+Event(type, properties)
+
+Creates a CustomEvent of type `type`.
+Additionally, `properties` are assigned to the event object.
+*/
 
 function Event$1(type, options) {
 	let settings;
@@ -4811,8 +5856,62 @@ const assign$5  = Object.assign;
 const rspaces = /\s+/;
 
 function prefixType(type) {
-	return features$1.events[type] || type ;
+	return features.events[type] || type ;
 }
+
+
+// Handle event types
+
+// DOM click events may be simulated on inputs when their labels are
+// clicked. The tell-tale is they have the same timeStamp. Track click
+// timeStamps.
+var clickTimeStamp = 0;
+
+window.addEventListener('click', function(e) {
+	clickTimeStamp = e.timeStamp;
+});
+
+function listen(source, type) {
+	if (type === 'click') {
+		source.clickUpdate = function click(e) {
+			// Ignore clicks with the same timeStamp as previous clicks –
+			// they are likely simulated by the browser.
+			if (e.timeStamp <= clickTimeStamp) { return; }
+			source.update(e);
+		};
+
+		source.node.addEventListener(type, source.clickUpdate, source.options);
+		return source;
+	}
+
+	source.node.addEventListener(type, source.update, source.options);
+	return source;
+}
+
+function unlisten(source, type) {
+	source.node.removeEventListener(type, type === 'click' ?
+		source.clickUpdate :
+		source.update
+	);
+
+	return source;
+}
+
+/*
+events(type, node)
+
+Returns a mappable stream of events heard on `node`:
+
+    var stream = events('click', document.body);
+    .map(get('target'))
+    .each(function(node) {
+        // Do something with nodes
+    });
+
+Stopping the stream removes the event listeners:
+
+    stream.stop();
+*/
 
 function Source(notify, stop, type, options, node) {
 	const types  = type.split(rspaces).map(prefixType);
@@ -4820,39 +5919,31 @@ function Source(notify, stop, type, options, node) {
 
 	function update(value) {
 		buffer.push(value);
-		notify('push');
+		notify();
 	}
 
-	this.stop   = stop;
-	this.types  = types;
-	this.node   = node;
-	this.buffer = buffer;
-	this.update = update;
+	this._stop   = stop;
+	this.types   = types;
+	this.node    = node;
+	this.buffer  = buffer;
+	this.update  = update;
+	this.options = options;
 
-	types.forEach(function(type) {
-		node.addEventListener(type, update, options);
-	});
+	// Potential hard-to-find error here if type has repeats, ie 'click click'.
+	// Lets assume nobody is dumb enough to do this, I dont want to have to
+	// check for that every time.
+	types.reduce(listen, this);
 }
 
 assign$5(Source.prototype, {
 	shift: function shiftEvent() {
 		const buffer = this.buffer;
-
 		return buffer.shift();
 	},
 
 	stop: function stopEvent() {
-		const stop   = this.stop;
-		const types  = this.types;
-		const node   = this.node;
-		const buffer = this.buffer;
-		const update = this.update;
-
-		types.forEach(function(type) {
-			node.removeEventListener(type, update);
-		});
-
-		stop(buffer.length);
+		this.types.reduce(unlisten, this);
+		this._stop(this.buffer.length);
 	}
 });
 
@@ -4864,37 +5955,25 @@ function events(type, node) {
 		type    = options.type;
 	}
 
-	return new Stream$1(function setup(notify, stop) {
-		return new Source(notify, stop, type, options, node);
+	return new Stream$1(function(notify, stop) {
+		return new Source(notify, stop, type, options, node)
 	});
 }
-
-function preventDefault(e) {
-	e.preventDefault();
-}
-
-function isTargetEvent(e) {
-	return e.target === e.currentTarget;
-}
-
 
 
 // -----------------
 
-const A$6 = Array.prototype;
+const A$7 = Array.prototype;
 const eventsSymbol = Symbol('events');
 
-function bindTail(fn) {
-	// Takes arguments 1 and up and appends them to arguments
-	// passed to fn.
-	var args = A$6.slice.call(arguments, 1);
+function applyTail(fn, args) {
 	return function() {
-		A$6.push.apply(arguments, args);
+		A$7.push.apply(arguments, args);
 		fn.apply(null, arguments);
 	};
 }
 
-function on(node, type, fn, data) {
+function on(node, type, fn) {
 	var options;
 
 	if (typeof type === 'object') {
@@ -4904,21 +5983,30 @@ function on(node, type, fn, data) {
 
 	var types   = type.split(rspaces);
 	var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-	var handler = data ? bindTail(fn, data) : fn ;
-	var handlers;
-
+	var handler = arguments.length > 3 ? applyTail(fn, A$7.slice.call(arguments, 3)) : fn ;
+	var handlers, listener;
 	var n = -1;
+
 	while (++n < types.length) {
 		type = types[n];
 		handlers = events[type] || (events[type] = []);
-		handlers.push([fn, handler]);
-		node.addEventListener(type, handler, options);
+		listener = type === 'click' ?
+			function(e) {
+				// Ignore clicks with the same timeStamp as previous clicks –
+				// they are likely simulated by the browser on inputs when
+				// their labels are clicked
+				if (e.timeStamp <= clickTimeStamp) { return; }
+				handler(e);
+			} :
+			handler ;
+		handlers.push([fn, listener]);
+		node.addEventListener(type, listener, options);
 	}
 
 	return node;
 }
 
-function once$1(node, types, fn, data) {
+function once(node, types, fn, data) {
 	on(node, types, function once() {
 		off(node, types, once);
 		fn.apply(null, arguments);
@@ -4955,6 +6043,16 @@ function off(node, type, fn) {
 
 	return node;
 }
+
+/*
+trigger(type, node)
+
+Triggers event of `type` on `node`.
+
+```
+trigger('dom-activate', node);
+```
+*/
 
 function trigger(node, type, properties) {
 	// Don't cache events. It prevents you from triggering an event of a
@@ -5069,13 +6167,19 @@ const keyCodes = Object.entries(keyStrings).reduce(function(object, entry) {
 	return object;
 }, {});
 
-// transition(duration, fn)
-//
-// duration  - duration seconds
-// fn        - callback that is called on animation frames with a float
-//             representing progress in the range 0-1
-//
-// Returns a function that cancels the transition.
+/*
+transition(duration, fn)
+
+Calls `fn` on each animation frame until `duration` seconds has elapsed. `fn`
+is passed a single argument `progress`, a number that ramps from `0` to `1` over
+the duration of the transition. Returns a function that cancels the transition.
+
+```
+transition(3, function(progress) {
+    // Called every frame for 3 seconds
+});
+```
+*/
 
 const performance           = window.performance;
 const requestAnimationFrame$1 = window.requestAnimationFrame;
@@ -5108,9 +6212,10 @@ function transition(duration, fn) {
 
 function animate(duration, transform, name, object, value) {
 	// denormaliseLinear is not curried! Wrap it.
+    const startValue = object[name];
 	return transition(
 		duration,
-		pipe(transform, (v) => linear$1(object[name], value, v), set$1(name, object))
+		pipe(transform, (v) => linear$1(startValue, value, v), set$1(name, object))
 	);
 }
 
@@ -5124,9 +6229,218 @@ define$2({
     bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
 });
 
-var view = document.scrollingElement;
+const assign$6 = Object.assign;
 
-// disableScroll(node)
+/*
+config
+
+```{
+	headers:    fn(data),    // Must return an object with properties to add to the header
+	body:       fn(data),    // Must return an object to send as data
+	onresponse: function(response)
+}```
+*/
+
+const config = {
+    // Takes data, returns headers
+	headers: function(data) { return {}; },
+
+	// Takes data (can be FormData object or plain object), returns data
+	body: id,
+
+	// Takes response, returns response
+	onresponse: function(response) {
+		// If redirected, navigate the browser away from here. Can get
+		// annoying when receiving 404s, maybe not a good default...
+		if (response.redirected) {
+			window.location = response.url;
+			return;
+		}
+
+		return response;
+	}
+};
+
+const createHeaders = choose({
+	'application/x-www-form-urlencoded': function(headers) {
+		return assign$6(headers, {
+			"Content-Type": 'application/x-www-form-urlencoded',
+			"X-Requested-With": "XMLHttpRequest"
+		});
+	},
+
+	'application/json': function(headers) {
+		return assign$6(headers, {
+			"Content-Type": "application/json; charset=utf-8",
+			"X-Requested-With": "XMLHttpRequest"
+		});
+	},
+
+	'multipart/form-data': function(headers) {
+		return assign$6(headers, {
+			"Content-Type": 'multipart/form-data',
+			"X-Requested-With": "XMLHttpRequest"
+		});
+	},
+
+	'audio/wav': function(headers) {
+		return assign$6(headers, {
+			"Content-Type": 'audio/wav',
+			"X-Requested-With": "XMLHttpRequest"
+		});
+	},
+
+	'default': function(headers) {
+		return assign$6(headers, {
+			"Content-Type": 'application/x-www-form-urlencoded',
+			"X-Requested-With": "XMLHttpRequest"
+		});
+	}
+});
+
+const createBody = choose({
+	'application/json': function(data) {
+		return data.get ?
+			formDataToJSON(data) :
+			JSON.stringify(data);
+	},
+
+	'application/x-www-form-urlencoded': function(data) {
+		return data.get ?
+			formDataToQuery(data) :
+			dataToQuery(data) ;
+	},
+
+	'multipart/form-data': function(data) {
+		// Mmmmmhmmm?
+		return data.get ?
+            data :
+            dataToFormData() ;
+	}
+});
+
+const responders = {
+	'text/html':           respondText,
+	'application/json':    respondJSON,
+	'multipart/form-data': respondForm,
+	'application/x-www-form-urlencoded': respondForm,
+	'audio':               respondBlob,
+	'audio/wav':           respondBlob,
+	'audio/m4a':           respondBlob
+};
+
+function formDataToJSON(formData) {
+	return JSON.stringify(
+		// formData.entries() is an iterator, not an array
+		Array
+		.from(formData.entries())
+		.reduce(function(output, entry) {
+			output[entry[0]] = entry[1];
+			return output;
+		}, {})
+	);
+}
+
+function formDataToQuery(data) {
+	return new URLSearchParams(data).toString();
+}
+
+function dataToQuery(data) {
+	return Object.keys(data).reduce((params, key) => {
+		params.append(key, data[key]);
+		return params;
+	}, new URLSearchParams());
+}
+
+function dataToFormData(data) {
+    throw new Error('TODO: dataToFormData(data)');
+}
+
+function urlFromData(url, data) {
+	// Form data
+	return data instanceof FormData ?
+		url + '?' + formDataToQuery(data) :
+		url + '?' + dataToQuery(data) ;
+}
+
+function createOptions(method, mimetype, data, controller) {
+	return method === 'GET' ? {
+		method:  method,
+		headers: createHeaders(mimetype, config.headers ? config.headers(data) : {}),
+		credentials: 'same-origin',
+		signal: controller && controller.signal
+	} : {
+		method:  method,
+		// Process headers before body, allowing us to read a CSRFToken,
+        // which may be in data, in createHeaders() before removing it
+        // from data in body().
+		headers: createHeaders(mimetype, config.headers ? config.headers(data) : {}),
+		body:    createBody(mimetype, config.body ? config.body(data) : data),
+		credentials: 'same-origin',
+		signal: controller && controller.signal
+	} ;
+}
+
+function respondBlob(response) {
+	return response.blob();
+}
+
+function respondJSON(response) {
+	return response.json();
+}
+
+function respondForm(response) {
+	return response.formData();
+}
+
+function respondText(response) {
+	return response.text();
+}
+
+function respond(response) {
+	if (config.onresponse) {
+		response = config.onresponse(response);
+	}
+
+	if (!response.ok) {
+		throw new Error(response.statusText + '');
+	}
+
+	// Get mimetype from Content-Type, remembering to hoik off any
+	// parameters first
+	const mimetype = response.headers
+		.get('Content-Type')
+		.replace(/\;.*$/, '');
+
+	return responders[mimetype](response);
+}
+
+
+/*
+request(type, mimetype, url, data)
+*/
+
+function request(type = 'GET', mimetype = 'application/json', url, data) {
+	const method = type.toUpperCase();
+
+	// If this is a GET and there is data, append data to the URL query string
+	if (method === 'GET' && data) {
+		url = urlFromData(url, data);
+	}
+
+	// param[4] is an optional abort controller
+	return fetch(url, createOptions(method, mimetype, data, arguments[4]))
+	.then(respond);
+}
+
+/*
+requestGet(url)
+A shortcut for `request('get', 'application/json', url)`
+*/
+
+function requestGet(url) {
+	return request('GET', 'application/json', url, {});
+}
 
 if (window.console && window.console.log) {
     window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
@@ -5138,7 +6452,7 @@ const find$3 = curry$1(find$2, true);
 const closest$1 = curry$1(closest, true);
 const matches$3 = curry$1(matches$2, true);
 const query$1 = curry$1(query, true);
-const assign$6  = curry$1(assignAttributes, true);
+const assign$7  = curry$1(assignAttributes, true);
 const append$4  = curry$1(append$3, true);
 const prepend$3 = curry$1(prepend$2, true);
 const before$1  = curry$1(before, true);
@@ -5155,7 +6469,7 @@ const events$1 = curry$1(events, true);
 
 Object.assign(events$1, {
     on:      on,
-    once:    once$1,
+    once:    once,
     off:     off,
     trigger: trigger
 });
@@ -5173,9 +6487,10 @@ const trigger$2 = curry$1(trigger$1, true);
 const delegate$1 = curry$1(delegate, true);
 const animate$1 = curry$1(animate, true);
 const transition$1 = curry$1(transition, true);
+const request$1 = curry$1(request, true, 4);
 
 // Debug mode on by default
-const DEBUG$2 = window.DEBUG === undefined || window.DEBUG;
+const DEBUG$3 = window.DEBUG === undefined || window.DEBUG;
 
 // Render queue
 const maxFrameDuration = 0.015;
@@ -5197,15 +6512,15 @@ function tokenOrLabel(token) {
 
 function tabulateRenderer(renderer) {
 	return {
-		'Label':  renderer.label,
-		'Source': renderer.tokens ?
+		'label':  renderer.label,
+		'source': renderer.tokens ?
 			renderer.tokens
 			.filter((token) => token.label !== 'Listener')
 			.map(tokenOrLabel)
 			.join('') :
 			renderer.path,
-		'Rendered': renderer.renderedValue,
-		'Total renders (accumulative)': renderer.renderCount
+		'rendered': renderer.renderedValue,
+		'DOM mutations (accumulative)': renderer.renderCount
 	};
 }
 
@@ -5214,7 +6529,7 @@ function filterListener(renderer) {
 }
 
 function logRenders(tStart, tStop) {
-	if (DEBUG$2) {
+	if (DEBUG$3) {
 		console.table(
 			Array.from(queue)
 			.concat(addons)
@@ -5245,7 +6560,7 @@ function fireEach(queue) {
 	var count, renderer;
 
 	for (renderer of queue) {
-		if (DEBUG$2) {
+		if (DEBUG$3) {
 			count = renderer.renderCount;
 
 			if (typeof count !== 'number') {
@@ -5255,15 +6570,15 @@ function fireEach(queue) {
 
 		renderer.fire();
 
-		if (DEBUG$2) {
+		if (DEBUG$3) {
 			renderCount += (renderer.renderCount - count);
 		}
 	}
 }
 
 function run(time) {
-	if (DEBUG$2) {
-		console.groupCollapsed('%cSparky %cframe ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+	if (DEBUG$3) {
+		window.console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
 	}
 
 	renderCount = 0;
@@ -5275,7 +6590,9 @@ function run(time) {
 	frame = undefined;
 	const tStop  = now$1();
 
-	logRenders(tStart, tStop);
+    // Closes console group, logs warning for frame overrun even
+    // when not in DEBUG mode
+    logRenders(tStart, tStop);
 	queue.clear();
 }
 
@@ -5285,7 +6602,7 @@ function cue(renderer) {
 	// Run functions cued during frame synchronously to preserve
 	// inner-DOM-first order of execution during setup
 	if (frame === true) {
-		if (DEBUG$2) {
+		if (DEBUG$3) {
 			if (typeof renderer.renderCount !== 'number') {
 				console.warn('Sparky renderer has no property renderCount', renderer);
 			}
@@ -5295,7 +6612,7 @@ function cue(renderer) {
 
 		renderer.fire();
 
-		if (DEBUG$2) {
+		if (DEBUG$3) {
 			addons.push(renderer);
 			renderCount += (renderer.renderCount - count);
 		}
@@ -5303,7 +6620,7 @@ function cue(renderer) {
 		return;
 	}
 
-	// Don't recue cued renderers.
+	// Don't recue cued renderers. This shouldn't happen much.
 	if (queue.has(renderer)) { return; }
 
 	queue.add(renderer);
@@ -5323,10 +6640,41 @@ function uncue(renderer) {
 	}
 }
 
-const fetchDocument = cache(function fetchDocument(path) {
-    return fetch(path)
-        .then((response) => response.text())
-        .then(parse$3('html'));
+function log$2(text) {
+    window.console.log('%cSparky%c ' + text,
+        'color: #858720; font-weight: 600;',
+        'color: #6894ab; font-weight: 400;'
+    );
+}
+
+function logNode(target, attrFn, attrInclude) {
+    const attrIs = target.getAttribute('is') || '';
+    window.console.log('%cSparky%c'
+        + ' ' + (window.performance.now() / 1000).toFixed(3)
+        + ' <'
+        + (target.tagName.toLowerCase())
+        + (attrIs ? ' is="' + attrIs + '"' : '')
+        + (attrFn ? ' fn="' + attrFn + '"' : '')
+        + (attrInclude ? ' include="' + attrInclude + '"' : '')
+        + '>',
+        'color: #858720; font-weight: 600;',
+        'color: #6894ab; font-weight: 400;'
+    );
+}
+
+function nodeToString(node) {
+    return '<' +
+    node.tagName.toLowerCase() +
+    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
+        const attr = node.getAttribute(name);
+        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
+    }, '')) +
+    '/>';
+}
+
+const requestDocument = cache(function requestDocument(path) {
+    return request$1('GET', 'text/html', path, null)
+    .then(parse$3('html'));
 });
 
 let scriptCount = 0;
@@ -5396,7 +6744,7 @@ function importTemplate(src) {
 
     return path ?
         id ?
-            fetchDocument(path)
+            requestDocument(path)
             .then((doc) => importDependencies(path, doc))
             .then((doc) => document.getElementById(id))
             .then((template) => {
@@ -5404,7 +6752,7 @@ function importTemplate(src) {
                 return template;
             }) :
 
-        fetchDocument(path)
+        requestDocument(path)
         .then((doc) => document.adoptNode(doc.body)) :
 
     id ?
@@ -5460,11 +6808,38 @@ var toText = overload(toType, {
 	'default': JSON.stringify
 });
 
-const assign$7          = Object.assign;
+const assign$8 = Object.assign;
+
+function Value(path) {
+    this.path = path;
+}
+
+function isValue$1(object) {
+    return Value.prototype.isPrototypeOf(object);
+}
+
+assign$8(Value.prototype, {
+    valueOf: function valueOf() {
+        return this.transform ?
+            this.value === undefined ?
+                undefined :
+            this.transform(this.value) :
+        this.value ;
+    },
+
+    toString: function toString() {
+        return toText(this.valueOf());
+    },
+});
+
 const parseArrayClose = capture$1(/^\]\s*/, nothing);
 
-//                                        number                                     "string"            'string'                    null   true   false  array function(args)   string      comma
-const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+/*
+parseParams(array, string)
+*/
+
+//                                        number                                     "string"            'string'                    null   true   false  array function(args)  dot  string           comma
+const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, tokens) {
         params.push(parseFloat(tokens[1]));
@@ -5524,13 +6899,18 @@ const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\
     //},
 
     // string
-    10: function(params, tokens) {
-        params.push(tokens[10]);
+    11: function(params, tokens) {
+        if (tokens[10]) {
+            params.push(new Value(tokens[11]));
+        }
+        else {
+            params.push(tokens[11]);
+        }
         return params;
     },
 
     // Comma terminator - more params to come
-    11: function(params, tokens) {
+    12: function(params, tokens) {
         return parseParams(params, tokens);
     },
 
@@ -5541,8 +6921,9 @@ const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\
     }
 });
 
-
-/* Parse function */
+/*
+parsePipe(array, string)
+*/
 
 const parsePipe = capture$1(/^\s*([\w-]+)\s*(:)?\s*/, {
     // Function name '...'
@@ -5571,41 +6952,22 @@ const parsePipe = capture$1(/^\s*([\w-]+)\s*(:)?\s*/, {
     catch: function(fns, string) {
         // string is either the input string or a tokens object
         // from a higher level of parsing
+        console.log(string.input, string);
         throw new SyntaxError('Invalid pipe "' + (string.input || string) + '"');
     }
 });
 
-function Tag() {}
-
-assign$7(Tag.prototype, {
-    transform: id,
-
-    // Tags are stored in arrays with any surrounding strings, and joined
-    // on render. Array.join() causes .toString() to be called.
-    toString: function toString() {
-        return toText(this.valueOf());
-    },
-
-    valueOf: function valueOf() {
-        // Don't pipe undefined
-        return this.value === undefined ?
-            undefined :
-            this.transform(this.value) ;
-    }
-});
+/*
+parseTag(string)
+*/
 
 const parseTag = capture$1(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     // Object path 'xxxx.xxx.xx-xxx'
-    1: (nothing, tokens) => {
-        const tag = new Tag();
-        tag.path = tokens[1];
-        return tag;
-    },
+    1: (nothing, tokens) => new Value(tokens[1]),
 
     // Pipe '|'
     2: function(tag, tokens) {
         tag.pipe = parsePipe([], tokens);
-        if (!tag.pipe) { return tag; }
         return tag;
     },
 
@@ -5620,12 +6982,16 @@ const parseTag = capture$1(/^\s*([\w.-]*)\s*(\|)?\s*/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseToken(string)
+*/
 
 const parseToken = capture$1(/^\s*(\{\[)/, {
     // Tag opener '{['
-    1: function(nothing, tokens) {
-        const tag = parseTag(null, tokens);
+    1: function(unused, tokens) {
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         return tag;
     },
@@ -5641,12 +7007,16 @@ const parseToken = capture$1(/^\s*(\{\[)/, {
 
     // Where nothing is found, don't complain
     catch: id
-});
+}, undefined);
+
+/*
+parseBoolean(array, string)
+*/
 
 const parseBoolean = capture$1(/^\s*(?:(\{\[)|$)/, {
     // Tag opener '{['
     1: function(array, tokens) {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseBoolean(array, tokens);
@@ -5655,6 +7025,10 @@ const parseBoolean = capture$1(/^\s*(?:(\{\[)|$)/, {
     // Where nothing is found, don't complain
     catch: id
 });
+
+/*
+parseText(array, string)
+*/
 
 const parseText = capture$1(/^([\S\s]*?)(?:(\{\[)|$)/, {
     // String of text, whitespace and newlines included
@@ -5674,7 +7048,7 @@ const parseText = capture$1(/^([\S\s]*?)(?:(\{\[)|$)/, {
 
     // Tag opener '{['
     2: (array, tokens) => {
-        const tag = parseTag(null, tokens);
+        const tag = parseTag(tokens);
         tag.label = tokens.input.slice(tokens.index + tokens[1].length, tokens.index + tokens[0].length + tokens.consumed);
         array.push(tag);
         return parseText(array, tokens);
@@ -5684,751 +7058,162 @@ const parseText = capture$1(/^([\S\s]*?)(?:(\{\[)|$)/, {
     catch: noop
 });
 
-var config = {
+var config$1 = {
 	attributeFn:      'fn',
 	attributeInclude: 'include',
 	attributePrefix:  ':'
 };
 
-function debug(node, scopes) {
-    debugger;
-
-    return scopes.tap((scope) => {
-        console.group('Sparky fn="debug"');
-        console.log('node ', node);
-        console.log('scope', scope);
-        debugger;
-        console.groupEnd();
-    });
-}
-
-const DEBUG$3 = window.DEBUG;
-
-function MarkerNode(node, options) {
-    // A text node, or comment node in DEBUG mode, for marking a
-    // position in the DOM tree so it can be swapped out with some
-    // content in the future.
-
-    if (!DEBUG$3) {
-        return create$1('text', '');
-    }
-
-    var attrFn      = node && node.getAttribute(options ? options.attributeFn : 'fn');
-    var attrInclude = node && node.getAttribute(options ? options.attributeInclude : 'include');
-
-    return create$1('comment',
-        tag(node) +
-        (attrFn ? ' ' + (options ? options.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
-        (attrInclude ? ' ' + (options ? options.attributeInclude : 'include') + '="' + attrInclude + '"' : '')
-    );
-}
-
 /*
+fn=""
 
+A `fn` attribute declares one or more functions to run on a template.
+A **function** is expected to supply an object that Sparky uses to
+render template **tags**:
+
+```html
+<template is="sparky-template" fn="fetch:package.json">
+    I am { [title] }.
+</template>
+```
+
+```html
+I am Sparky.
+```
+
+The `fn` attribute may be declared on any element in a sparky template.
+Here we use the built-in functions `fetch`, `get` and `each` to loop over an
+array of keywords and generate a list:
+
+```html
+<template is="sparky-template" fn="fetch:package.json">
+    <ul>
+        <li fn="get:keywords each">{ [.] }</li>
+    </ul>
+</template>
+```
+
+```html
+<ul>
+    <li>javascript</li>
+    <li>browser</li>
+</ul>
+```
 */
 
-const A$7       = Array.prototype;
+/*
+Functions
+*/
 
-const isArray = Array.isArray;
-const assign$8  = Object.assign;
+/*
+Register
 
-const $scope = Symbol('scope');
+Sparky 'functions' are view-controllers with access to the node where they are
+declared and control over the flow of objects being sent to the renderer. They
+are registered and accessed by a string identifier.
 
+```
+import { register } from './sparky/module.js';
 
-/* Renderers */
-
-function EachChild(scope, args) {
-	this.label    = 'EachChild';
-	this.scope    = scope;
-	this.node     = args[1];
-	this.marker   = args[2];
-	this.sparkies = args[3];
-	this.isOption = args[4];
-	this.options  = args[5];
-	this.renderCount = 0;
-}
-
-assign$8(EachChild.prototype, {
-	fire: function render(time) {
-		this.render(this.scope);
-		this.value = this.scope;
-	},
-
-	render: function render(array) {
-		const node     = this.node;
-		const marker   = this.marker;
-		const sparkies = this.sparkies;
-		const isOption = this.isOption;
-		const options  = this.options;
-
-		// Selects will lose their value if the selected option is removed
-		// from the DOM, even if there is another <option> of same value
-		// already in place. (Interestingly, value is not lost if the
-		// selected <option> is simply moved). Make an effort to have
-		// selects retain their value across scope changes.
-		//
-		// There is also code for something siimilar in render-token.js
-		// maybe have a look and decide on what's right
-//var value = isOption ? marker.parentNode.value : undefined ;
-
-		if (!isArray(array)) {
-			array = Object.entries(array).map(entryToKeyValue);
-		}
-
-		this.renderCount += reorderCache(node, array, sparkies, options);
-		this.renderCount += reorderNodes(marker, array, sparkies);
-
-		// A fudgy workaround because observe() callbacks (like this update
-		// function) are not batched to ticks.
-		// TODO: batch observe callbacks to ticks.
-//		if (isOption && value !== undefined) {
-//			marker.parentNode.value = value;
-//		}
-	},
-
-	renderCount: 0
-});
-
-function EachParent(input, node, marker, sparkies, isOption, options) {
-	this.label = 'EachParent';
-	this.input = input;
-	this.args  = arguments;
-}
-
-assign$8(EachParent.prototype, {
-	fire: function render(time) {
-		var scope = this.input.shift();
-		if (!scope) { return; }
-
-		const renderer = new EachChild(scope, this.args);
-
-		this.stop();
-		this.stop = observe('.', () => cue(renderer), scope);
-	},
-
-	stop: noop,
-
-	renderCount: 0
-});
-
-
-/* Logic */
-
-function createEntry(master, options) {
-	const node = master.cloneNode(true);
-	const fragment = document.createDocumentFragment();
-	fragment.appendChild(node);
-
-	// We treat the sparky object as a store for carrying internal data
-	// like fragment and nodes, because we can
-	const sparky = new Sparky(node, options);
-	sparky.fragment = fragment;
-	return sparky;
-}
-
-function reorderCache(master, array, sparkies, options) {
-	// Reorder sparkies
-	var n = -1;
-	var renderCount = 0;
-
-	while (++n < array.length) {
-		const object = array[n];
-		let sparky = sparkies[n];
-
-		if (sparky && object === sparky[$scope]) {
-			continue;
-		}
-
-		// Scan forward through sparkies to find the sparky that
-		// corresponds to the scope object
-		let i = n - 1;
-		while (sparkies[++i] && sparkies[i][$scope] !== object);
-
-		// Create a new one or splice the existing one out
-		sparky = i === sparkies.length ?
-			createEntry(master, options) :
-			sparkies.splice(i, 1)[0];
-
-		// Splice it into place
-		sparkies.splice(n, 0, sparky);
-	}
-
-	// Reordering has pushed unused sparkies to the end of
-	// sparkies collection. Go ahead and remove them.
-	while (sparkies.length > array.length) {
-		const sparky = sparkies.pop().stop();
-
-		// If sparky nodes are not yet in the DOM, sparky does not have a
-		// .nodes property and we may ignore it, otherwise go ahead
-		// and get rid of the nodes
-		if (sparky.nodes) {
-			A$7.forEach.call(sparky.nodes, (node) => node.remove());
-			renderCount += sparky.nodes.length;
-		}
-	}
-
-	return renderCount;
-}
-
-function reorderNodes(node, array, sparkies) {
-	// Reorder nodes in the DOM
-	const l = sparkies.length;
-	const parent = node.parentNode;
-
-	var renderCount = 0;
-	var n = -1;
-
-	while (n < l) {
-		// Note that node is null where nextSibling does not exist.
-		// Passing null to insertBefore appends to the end
-		node = node ? node.nextSibling : null ;
-
-		while (++n < l && (!sparkies[n].nodes || sparkies[n].nodes[0] !== node)) {
-			if (!sparkies[n][$scope]) {
-				sparkies[n].push(array[n]);
-				sparkies[n][$scope] = array[n];
-			}
-
-			if (sparkies[n].fragment) {
-				// Cache nodes in the fragment
-				sparkies[n].nodes = Array.from(sparkies[n].fragment.childNodes);
-
-				// Stick fragment in the DOM
-				parent.insertBefore(sparkies[n].fragment, node);
-				sparkies[n].fragment = undefined;
-
-				// Increment renderCount for logging
-				++renderCount;
-			}
-			else {
-				// Reorder exising nodes
-				let i = -1;
-				while (sparkies[n].nodes[++i]) {
-					parent.insertBefore(sparkies[n].nodes[i], node);
-
-					// Increment renderCount for logging
-					++renderCount;
-				}
-			}
-		}
-
-		if (!sparkies[n]) { break; }
-		node = last(sparkies[n].nodes);
-	}
-
-	return renderCount;
-}
-
-function entryToKeyValue(entry) {
-	return {
-		key:   entry[0],
-		value: entry[1]
-	};
-}
-
-function each$2(node, input, params, options) {
-	if (isFragmentNode(node)) {
-		throw new Error('Sparky.fn.each cannot be used on fragments. Yet.');
-	}
-
-	const sparkies = [];
-	const marker   = MarkerNode(node);
-	const isOption = tag(node) === 'option';
-
-	// Put the marker in place and remove the node
-	before$1(node, marker);
-
-	// The master node has it's fn attribute truncated to avoid setup
-	// functions being run again. Todo: This is a bit clunky - can we avoid
-	// doing this by passing in the fn string in options to the child instead
-	// of reparsing the fn attribute?
-	if (options.fn) { node.setAttribute(options.attributeFn, options.fn); }
-	else { node.removeAttribute(options.attributeFn); }
-
-	node.remove();
-
-	// Prevent further functions being run on current node
-	options.fn = '';
-
-	// Set up the parent renderer with a new stream
-	const output   = Stream$1.of();
-	const renderer = new EachParent(output, node, marker, sparkies, isOption, options);
-
-	input
-	.latest()
-	.dedup()
-	.each((scope) => {
-		output.push(scope);
-		cue(renderer);
-	})
-	.done(() => {
-		remove$2(marker);
-		renderer.stop();
-		uncue(renderer);
-		sparkies.forEach(function(sparky) {
-			sparky.stop();
-		});
-	});
-
-	// Return false to prevent further processing of this Sparky
-	return false;
-}
-
-function entries(node, input, params) {
-    return input.map(Object.entries);
-}
-
-function get$2(node, input, params) {
-    const path = params[0];
-    var observable = nothing;
-
-    return input.chain((object) => {
-        observable.stop();
-        observable = Observable(path, object);
-        return observable;
+register('my-function', function(node, params) {
+    // `this` is a stream of scope objects
+    return this.map(function(scope) {
+        // Map scope...
     });
-}
+});
+```
+
+Functions are called before a node is mounted. They receive a stream of scopes
+and the DOM node, and may return the same stream, or a new stream, or they may
+block mounting and rendering altogether. Types of return value are interpreted
+as follows:
+
+- `Promise` - automatically converted to a stream
+- `Stream` - a stream of scopes
+- `undefined` - equivalent to returning the input stream
+- `false` - cancels the mount process
+
+The stream returned by the last function declared in the `fn` attribute is
+piped to the renderer. Values in that stream are rendered, and the life
+of the renderer is controlled by the state of that stream. Sparky's streams
+come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
+*/
+
+/*
+Examples
+
+Push a single scope object to the renderer:
+
+```
+import { register, Stream } from './sparky/module.js';
+
+register('my-scope', function(node, params) {
+    // Return a stream of one object
+    return Stream.of({
+        text: 'Hello, Sparky!'
+    });
+});
+```
+
+Return a promise to push a scope when it is ready:
+
+```
+register('my-package', function(node, params) {
+    // Return a promise
+    return fetch('package.json')
+    .then((response) => response.json());
+});
+```
+
+Push a new scope object to the renderer every second:
+
+```
+register('my-clock', function(node, params) {
+    const output = Stream.of();
+
+    // Push a new scope to the renderer once per second
+    const timer = setInterval(() => {
+        output.push({
+            time: window.performance.now()
+        });
+    }, 1000);
+
+    // Listen to the input stream, stop the interval
+    // timer when it is stopped
+    this.done(() => clearInterval(timer));
+
+    // Return the stream
+    return output;
+});
+```
+*/
+
 
 const DEBUG$4 = window.DEBUG;
 
-function on$2(node, input, params) {
-    const type   = params[0];
-    const length = params.length - 1;
+const functions = Object.create(null);
 
-    let flag = false;
-    let i = -1;
-    let scope;
-
-    const listener = (e) => {
-        // Cycle through params[1] to params[-1]
-        i = (i + 1) % length;
-
-        const name = params[i + 1];
-
-        if (DEBUG$4 && (!scope || !scope[name])) {
-            console.error('Sparky scope', scope);
-            throw new Error('Sparky scope has no method "' + name + '"');
-        }
-
-        scope[name](e.target.value);
-    };
-
-    return input.tap(function(object) {
-        if (!flag) {
-            flag = true;
-
-            // Keep event binding out of the critical render path by
-            // delaying it
-            setTimeout(() => node.addEventListener(type, listener), 10);
-        }
-
-        scope = object;
-    });
-}
-
-function prevent(node, input, params) {
-    node.addEventListener(params[0], preventDefault);
-}
-
-function _if(node, input, params) {
-    const output  = Stream.of();
-    const name    = params[0];
-    const marker  = MarkerNode(node);
-
-    let visible   = false;
-    let unobserve = noop;
-
-    // Put the marker in place and remove the node
-    before$1(node, marker);
-    remove$2(node);
-
-    input.each(function(scope) {
-        unobserve();
-        unobserve = observe(name, (value) => {
-            var visibility = !!value;
-
-            if(visibility === visible) { return; }
-            visible = visibility;
-
-            if (visible) {
-                replace$1(marker, node);
-                output.push(scope);
-            }
-            else {
-                replace$1(node, marker);
-                output.push(null);
-            }
-        }, scope);
-    });
-
-    return output;
-}
-
-const DEBUG$5 = window.DEBUG;
-const fetch$1 = window.fetch;
-
-const fetchOptions = {
-    method: 'GET'
-};
-
-const cache$2     = {};
-
-function fetchJSON(url) {
-    return fetch$1(url, fetchOptions)
-    .then(invoke$1('json', nothing));
-}
-
-function importScope(url, scopes) {
-    fetchJSON(url)
-    .then(function(data) {
-        if (!data) { return; }
-        cache$2[url] = data;
-        scopes.push(data);
-    })
-    .catch(function(error) {
-        console.warn('Sparky: no data found at', url);
-        //throw error;
-    });
-}
-
-function _import(node, stream, params) {
-    var path = params[0];
-
-    if (DEBUG$5 && !path) {
-        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+function register(name, fn) {
+    if (/^(?:function\s*)?\(node/.exec(fn.toString())) {
+        console.log(fn);
+        //throw new Error('First param is node. No no no.')
     }
 
-    var scopes = Stream$1.of();
-
-    if (/\$\{(\w+)\}/.test(path)) {
-        stream.each(function(scope) {
-            var url = path.replace(/\$\{(\w+)\}/g, function($0, $1) {
-                return scope[$1];
-            });
-
-            // If the resource is cached...
-            if (cache$2[url]) {
-                scopes.push(cache$2[url]);
-            }
-            else {
-                importScope(url, scopes);
-            }
-        });
-
-        return scopes;
+    if (DEBUG$4 && functions[name]) {
+        throw new Error('Sparky: fn already registered with name "' + name + '"');
     }
 
-    // If the resource is cached, return it as a readable
-    if (cache$2[path]) {
-        return Fn.of(cache$2[path]);
-    }
-
-    importScope(path, scopes);
-    return scopes;
+    functions[name] = fn;
 }
 
-function startOn(node, scopes, params) {
-    const name = params[0];
+// Helper functions
 
-    events$1(name, node)
-    .filter(isTargetEvent)
-    .each(function(e) {
-        // Stop listening after first event
-        this.stop();
-    });
-}
-
-const map$2 = new WeakMap();
-
-function getScope(node) {
-    if (!map$2.has(node.correspondingUseElement || node)) {
-        throw new Error('Sparky scope is not set on node');
-        return;
-    }
-
-    return map$2.get(node);
-}
-
-function scope(node, input, params) {
-    input.done(() => map$2.delete(node));
-    return input.tap((scope) => {
-        return map$2.set(node.correspondingUseElement || node, scope);
-    });
-}
-
-var functions = {
-    'debug':     debug,
-    'each':      each$2,
-    'entries':   entries,
-    'get':       get$2,
-    'if':        _if,
-    'import':    _import,
-    'on':        on$2,
-    'prevent':   prevent,
-    'start-on':  startOn,
-    'scope':     scope
-};
-
-function Renderer() {
-    this.renderCount = 0;
-}
-
-Object.assign(Renderer.prototype, {
-    fire: function() {
-        this.cued = false;
-    },
-
-    push: function(scope) {
-        const tokens = this.tokens;
-        let n = tokens.length;
-
-        while (n--) {
-            const token = tokens[n];
-
-            // Ignore plain strings
-            if (typeof token === 'string') { continue; }
-
-            // Normally observe() does not fire on undefined initial values.
-            // Passing in NaN as an initial value to forces the callback to
-            // fire immediately whatever the initial value. It's a bit
-            // smelly, but this works because even NaN !== NaN.
-            token.unobserve && token.unobserve();
-            token.unobserve = observe(token.path, (value) => {
-                token.value = value;
-
-                // If activeElement, token is controlled by the user
-                //if (document.activeElement === this.node) { return; }
-                // (Why did we replace this with the noRender flag? Because
-                // we didn't know how focus on custom elements worked?)
-
-                // If token has noRender flag set, it is being updated from
-                // the input and does not need to be rendered back to the input
-                if (token.noRender) { return; }
-
-                if (this.cued) { return; }
-                this.cued = true;
-                cue(this);
-            }, scope, NaN);
-        }
-    },
-
-    stop: function stop() {
-        uncue(this);
-
-        const tokens = this.tokens;
-        let n = tokens.length;
-        while (n--) {
-            tokens[n].unobserve && tokens[n].unobserve();
-        }
-
-        this.stop = noop;
-    }
-});
-
-const assign$9 = Object.assign;
-
-function isTruthy(token) {
-	return !!token.valueOf();
-}
-
-function renderBooleanAttribute(name, node, value) {
-	if (value) {
-		node.setAttribute(name, name);
-	}
-	else {
-		node.removeAttribute(name);
-	}
-
-	// Return DOM mutation count
-	return 1;
-}
-
-function renderProperty(name, node, value) {
-	node[name] = value;
-
-	// Return DOM mutation count
-	return 1;
-}
-
-function BooleanRenderer(tokens, node, name) {
-    this.label  = 'BooleanRenderer';
-	this.node   = node;
-    this.name   = name;
-	this.tokens = tokens;
-	this.render = name in node ?
-		renderProperty :
-		renderBooleanAttribute ;
-	this.renderCount = 0;
-}
-
-assign$9(BooleanRenderer.prototype, Renderer.prototype, {
-    fire: function renderBoolean() {
-        Renderer.prototype.fire.apply(this, arguments);
-
-        const value = !!this.tokens.find(isTruthy);
-
-        // Avoid rendering the same value twice
-        if (this.renderedValue === value) { return 0; }
-
-		// Return DOM mutation count
-        this.renderCount += this.render(this.name, this.node, value);
-		this.renderedValue = value;
-    }
-});
-
-const assign$a = Object.assign;
-
-// Matches anything that contains a non-space character
-const rtext = /\S/;
-
-// Matches anything with a space
-const rspaces$1 = /\s+/;
-
-
-function addClasses(classList, text) {
-    var classes = text.trim().split(rspaces$1);
-    classList.add.apply(classList, classes);
-
-    // Return DOM mutation count
-    return 1;
-}
-
-function removeClasses(classList, text) {
-    var classes = text.trim().split(rspaces$1);
-    classList.remove.apply(classList, classes);
-
-    // Return DOM mutation count
-    return 1;
-}
-
-function partitionByType(data, token) {
-    data[typeof token].push(token);
-    return data;
-}
-
-function ClassRenderer(tokens, node) {
-    this.label  = 'ClassRenderer';
-    this.renderCount = 0;
-
-    const types = tokens.reduce(partitionByType, {
-        string: [],
-        object: []
-    });
-
-    this.tokens = types.object;
-    this.classList = classes(node);
-
-    // Overwrite the class with just the static text
-    node.setAttribute('class', types.string.join(' '));
-}
-
-assign$a(ClassRenderer.prototype, Renderer.prototype, {
-    fire: function renderBoolean() {
-        Renderer.prototype.fire.apply(this, arguments);
-
-        const list  = this.classList;
-        const value = this.tokens.join(' ');
-
-        // Avoid rendering the same value twice
-        if (this.renderedValue === value) {
-            return;
-        }
-
-        this.renderCount += this.renderedValue && rtext.test(this.renderedValue) ?
-            removeClasses(list, this.renderedValue) :
-            0 ;
-
-        this.renderCount += value && rtext.test(value) ?
-            addClasses(list, value) :
-            0 ;
-
-        this.renderedValue = value;
-    }
-});
-
-const assign$b = Object.assign;
-
-function StringRenderer(tokens, render, node, name) {
-    this.label  = 'StringRenderer';
-    this.render = render;
-    this.node   = node;
-    this.name   = name;
-    this.tokens = tokens;
-    this.renderCount = 0;
-}
-
-assign$b(StringRenderer.prototype, Renderer.prototype, {
-    fire: function renderString() {
-        Renderer.prototype.fire.apply(this, arguments);
-
-        // Causes token.toString() to be called
-        const value = this.tokens.join('');
-
-        // Avoid rendering the same value twice
-        if (this.renderedValue === value) { return; }
-
-        // Return DOM mutation count
-        this.renderCount += this.render(this.name, this.node, value);
-        this.renderedValue = value;
-    }
-});
-
-const assign$c = Object.assign;
-
-function observeMutations(node, fn) {
-    var observer = new MutationObserver(fn);
-    observer.observe(node, { childList: true });
-    return function unobserveMutations() {
-        observer.disconnect();
-    };
-}
-
-function TokenRenderer(token, render, node, name) {
-    this.label  = 'TokenRenderer';
-	this.renderCount = 0;
-    this.render = render;
-    this.node   = node;
-    this.name   = name;
-    this.tokens = [token];
-
-    // Observe mutations to select children, they alter the value of
-    // the select, and try to preserve the value if possible
-    if (node.tagName.toLowerCase() === 'select') {
-        this.unobserveMutations = observeMutations(node, () => {
-            if (node.value === this.renderedValue + '') { return; }
-            this.renderedValue = undefined;
-            cue(this);
-        });
-    }
-}
-
-assign$c(TokenRenderer.prototype, Renderer.prototype, {
-    fire: function renderValue() {
-        Renderer.prototype.fire.apply(this, arguments);
-
-        const token = this.tokens[0];
-        const value = token.valueOf();
-
-        // Avoid rendering the same value twice
-        if (this.renderedValue === value) {
-            return;
-        }
-
-        this.renderCount += this.render(this.name, this.node, value);
-        this.renderedValue = value;
-    },
-
-    stop: function stop() {
-        Renderer.prototype.stop.apply(this, arguments);
-        this.unobserveMutations && this.unobserveMutations();
-    }
-});
-
+const toFloat = parseFloat;
 var A$8         = Array.prototype;
 var S$1         = String.prototype;
 
 const reducers = {
-	sum: add$1
+	sum: sum
 };
 
 function interpolateLinear(xs, ys, x) {
@@ -6456,77 +7241,121 @@ function interpolateLinear(xs, ys, x) {
 }
 
 const transformers = {
+
+	/* add: n
+	Adds `n` to value. */
 	add:         {
-		tx: curry$1(function(a, b) { return b.add ? b.add(a) : b + a ; }),
-		ix: curry$1(function(a, c) { return c.add ? c.add(-a) : c - a ; })
+		tx: function(a, b) { return b.add ? b.add(a) : b + a ; },
+		ix: function(a, c) { return c.add ? c.add(-a) : c - a ; }
 	},
 
-	'add-date':  { tx: addDate,     ix: curry$1(function(d, n) { return addDate('-' + d, n); }) },
+	/* add-date: yyyy-mm-dd
+	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
+	'add-date':  { tx: addDate,     ix: function(d, n) { return addDate('-' + d, n); } },
+
+	/* add-time: 'hh:mm:ss'
+	Adds an ISO time in the form `'hh:mm:ss'` to a time value. (Note this
+	string must be quoted because it contains ':' characters.) */
 	'add-time':  { tx: addTime,     ix: subTime },
-	decibels:    { tx: todB,        ix: toLevel },
+
+	/* to-db:
+	Converts value to dB scale. */
+	'to-db':     { tx: todB,        ix: toLevel },
+
+	/* to-precision: n
+	Converts number to string representing number to precision `n`. */
+	'to-precision': {
+		tx: function(n, value) {
+			return Number.isFinite(value) ?
+				value.toPrecision(n) :
+				value ;
+		},
+
+		ix: parseFloat
+	},
 
 	join: {
-		tx: curry$1(function(string, value) {
+		tx: function(string, value) {
 			return A$8.join.call(value, string);
-		}),
+		},
 
-		ix: curry$1(function(string, value) {
+		ix: function(string, value) {
 			return S$1.split.call(value, string);
-		})
+		}
 	},
 
 	'numbers-string': {
-		tx: curry$1(function(string, value) {
+		tx: function(string, value) {
 			return A$8.join.call(value, string);
-		}),
+		},
 
-		ix: curry$1(function(string, value) {
+		ix: function(string, value) {
 			return S$1.split.call(value, string).map(parseFloat);
-		})
+		}
 	},
 
-	multiply:    { tx: multiply$1,    ix: curry$1(function(d, n) { return n / d; }) },
+	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
 	degrees:     { tx: toDeg,       ix: toRad },
 	radians:     { tx: toRad,       ix: toDeg },
-	pow:         { tx: pow$1,         ix: function(n) { return pow$1(1/n); } },
-	exp:         { tx: exp$1,         ix: log$1 },
-	log:         { tx: log$1,         ix: exp$1 },
-	int:         { tx: toFixed$1(0),  ix: toInt },
+	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
+	exp:         { tx: exp,         ix: log },
+	log:         { tx: log,         ix: exp },
+	int:         { tx: function(value) { return toFixed(0, value); }, ix: parseInteger },
 	float:       { tx: toFloat,     ix: toString },
 	boolean:     { tx: Boolean,     ix: toString },
 
+    'boolean-string': { tx: toString, ix: function(value) {
+        return value === 'true' ? true :
+            value === 'false' ? false :
+            undefined ;
+    }},
+
+	/* normalise: curve, min, max
+	Return a value in the nominal range `0-1` from a value between `min` and
+	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	normalise:   {
-		tx: curry$1(function(curve, min, max, number) {
+		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return normalise[name](min, max, number);
-		}),
+		},
 
-		ix: curry$1(function(curve, min, max, number) {
+		ix: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return denormalise[name](min, max, number);
-		})
+		}
 	},
 
+	/* denormalise: curve, min, max
+	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
+	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	denormalise:   {
-		tx: curry$1(function(curve, min, max, number) {
+		tx: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return denormalise[name](min, max, number);
-		}),
+		},
 
-		ix: curry$1(function(curve, min, max, number) {
+		ix: function(curve, min, max, number) {
 			const name = toCamelCase(curve);
 			return normalise[name](min, max, number);
-		})
+		}
 	},
 
-	floatformat: { tx: toFixed$1,     ix: curry$1(function(n, str) { return parseFloat(str); }) },
+	/* floatformat: n
+	Returns a number fixed to `n` decimal places from value. */
+	floatformat: { tx: toFixed,     ix: function(n, str) { return parseFloat(str); } },
+
+	/* float-string:
+	Converts float values to strings. */
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
-	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
+
+	/* int-string:
+	Converts int values to strings. */
+	'int-string':   { tx: (value) => value.toFixed(0), ix: parseInteger },
 
 	interpolate: {
 		tx: function(point) {
-			var xs = A$8.map.call(arguments, get$1('0'));
-			var ys = A$8.map.call(arguments, get$1('1'));
+			var xs = A$8.map.call(arguments, get('0'));
+			var ys = A$8.map.call(arguments, get('1'));
 
 			return function(value) {
 				return interpolateLinear(xs, ys, value);
@@ -6534,8 +7363,8 @@ const transformers = {
 		},
 
 		ix: function(point) {
-			var xs = A$8.map.call(arguments, get$1('0'));
-			var ys = A$8.map.call(arguments, get$1('1'));
+			var xs = A$8.map.call(arguments, get('0'));
+			var ys = A$8.map.call(arguments, get('1'));
 
 			return function(value) {
 				return interpolateLinear(ys, xs, value);
@@ -6548,81 +7377,95 @@ const transformers = {
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
 	level:     { tx: toLevel, ix: todB },
-	px:        { tx: toPx, ix: toRem },
-	rem:       { tx: toRem, ix: toPx }
+	px:        { tx: toPx,  ix: toRem },
+	rem:       { tx: toRem, ix: toPx },
+	vw:        { tx: toVw,  ix: toPx },
+	vh:        { tx: toVh,  ix: toPx },
+    not:       { tx: not,   ix: not }
 };
 
 const transforms = {
 
-	contains:     contains$1,
-	equals:       equals$1,
+	contains:     contains,
+	equals:       equals,
 	escape:       escape,
-	exp:          exp$1,
+	exp:          exp,
+
+	/* formatdate: format
+	Converts a date object, ISO date string or UNIX time number (in seconds) to
+	string in `format`.
+	*/
 	formatdate:   formatDate,
+
+	/* formattime: format
+	Converts ISO time string, a number (in seconds) or the UTC time values of
+	a date object to a string formatted to `format`.
+	*/
 	formattime:   formatTime,
-	formatfloat:  toFixed$1,
 
-	// formatfloat...
-	//curry(function(n, value) {
-	//	return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-	//		!isDefined(value) ? '' :
-	//		(Sparky.debug && console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-	//}),
+	formatfloat:  toFixed,
+	get:          getPath,
+	invoke:       invoke,
 
-	get:          getPath$1,
-	invoke:       invoke$1,
+	/* is:a
+	Returns `true` where value is strictly equal to `a`, otherwise `false`. */
 	is:           is,
+
+	/* has: property
+	Returns `true` where value is an object with the property `name`, otherwise `false`. */
+	has: function(name, object) {
+		return object && (name in object);
+	},
+
 	last:         last,
-	limit:        limit$1,
-	log:          log$1,
-	max:          max$1,
-	min:          min$1,
-	mod:          mod$1,
-	not:          not,
-	percent:      multiply$1(100),
+	limit:        limit,
+	log:          log,
+	max:          max,
+	min:          min,
+	mod:          mod,
 
 	// Strings
-	append:       append$2,
-	prepend:      prepend$1,
-	prepad:       prepad$1,
-	postpad:      postpad$1,
+
+	/* append:string
+	Returns value + `string`. */
+	append:       append$1,
+
+	/* prepend:string
+	Returns `string` + value. */
+	prepend:      prepend,
+	prepad:       prepad,
+	postpad:      postpad,
+
+	/* slugify:
+	Returns the slug of value. */
 	slugify:      slugify,
 
-	// root(2) - square root
-	// root(3) - cubed root, etc.
-	root:         root$1,
+	/* root:n
+	Returns the `n`th root of value. */
+	root:         root,
 
-	// slugify('Howdy, Michael')
-	// > 'howdy-michael'
-
+	/* type:
+	Returns the `typeof` value. */
 	type:         toType,
 
-	//toStringType: Fn.toStringType,
-
-	// Sparky transforms
-
-	divide: curry$1(function(n, value) {
+	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
 		return value / n;
-	}),
+	},
 
-	'find-in': curry$1(function(path, id) {
+	'find-in': function(path, id) {
 		if (!isDefined(id)) { return; }
-		var array = getPath$1(path, window);
-		return array && array.find(compose(is(id), get$1('id')));
-	}),
+		var array = getPath(path, window);
+		return array && array.find(compose(is(id), get('id')));
+	},
 
-	floatformat: curry$1(function(n, value) {
-		return typeof value === 'number' ? Number.prototype.toFixed.call(value, n) :
-			!isDefined(value) ? '' :
-			(console.warn('Sparky: filter floatformat: ' + n + ' called on non-number ' + value)) ;
-	}),
-
+	/* floor:
+	Floors a numeric value. */
 	floor: Math.floor,
 
-	"greater-than": curry$1(function(value2, value1) {
+	"greater-than": function(value2, value1) {
 		return value1 > value2;
-	}),
+	},
 
 	invert: function(value) {
 		return typeof value === 'number' ? 1 / value : !value ;
@@ -6630,11 +7473,13 @@ const transforms = {
 
 	json: JSON.stringify,
 
-	"less-than": curry$1(function(value2, value1) {
+	"less-than": function(value2, value1) {
 		return value1 < value2 ;
-	}),
+	},
 
-	localise: curry$1(function(digits, value) {
+	/* localise:n
+	Localises a number to `n` digits. */
+	localise: function(digits, value) {
 		var locale = document.documentElement.lang;
 		var options = {};
 
@@ -6645,46 +7490,57 @@ const transforms = {
 
 		// Todo: localise value where toLocaleString not supported
 		return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
-	}),
+	},
 
+
+	/* lowercase:
+	Returns the lowercase string of value. */
 	lowercase: function(value) {
 		if (typeof value !== 'string') { return; }
 		return String.prototype.toLowerCase.apply(value);
 	},
 
-	map: function(method, params) {
-		var fn;
+	map: function(method, params, array) {
+		//var tokens;
+		//
+		//if (params === undefined) {
+		//	tokens = parsePipe([], method);
+		//	fn     = createPipe(tokens, transforms);
+		//	return function(array) {
+		//		return array.map(fn);
+		//	};
+		//}
 
-		if (typeof params === undefined) {
-			fn = parse$3(method);
-			return function(array) {
-				return array.map(fn);
-			};
-		}
+		var fn = (
+			(transformers[method] && transformers[method].tx) ||
+			transforms[method]
+		);
 
-		fn = ((transformers[method] && transformers[method].tx)
-			|| transforms[method]).apply(null, params);
-
-		return function(array) {
-			return array && array.map(fn);
-		};
+		return array && array.map((value) => fn(...params, value));
 	},
 
-	filter: curry$1(function(method, args, array) {
-		return array && array.map(transforms[method].apply(null,args));
-	}, true),
+	filter: function(method, args, array) {
+		var fn = (
+			(transformers[method] && transformers[method].tx) ||
+			transforms[method]
+		);
 
-	match: curry$1(function(regex, string) {
+		return array && array.filter((value) => fn(...args, value));
+	},
+
+	match: function(regex, string) {
 		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 		return regex.exec(string);
-	}),
+	},
 
-	matches: curry$1(function(regex, string) {
+	matches: function(regex, string) {
 		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
 		return !!regex.test(string);
-	}),
+	},
 
-	pluralise: curry$1(function(str1, str2, lang, value) {
+	/* pluralise: str1, str2, lang
+	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
+	pluralise: function(str1, str2, lang, value) {
 		if (typeof value !== 'number') { return; }
 
 		str1 = str1 || '';
@@ -6695,26 +7551,26 @@ const transforms = {
 		return lang === 'fr' ?
 			(value < 2 && value >= 0) ? str1 : str2 :
 			value === 1 ? str1 : str2 ;
-	}),
+	},
 
-	reduce: curry$1(function(name, initialValue, array) {
+	reduce: function(name, initialValue, array) {
 		return array && array.reduce(reducers[name], initialValue || 0);
-	}, true),
+	},
 
-	replace: curry$1(function(str1, str2, value) {
+	replace: function(str1, str2, value) {
 		if (typeof value !== 'string') { return; }
 		return value.replace(RegExp(str1, 'g'), str2);
-	}),
+	},
 
-	round: curry$1(function round(n, value) {
+	round: function round(n, value) {
 		return Math.round(value / n) * n;
-	}),
+	},
 
-	slice: curry$1(function(i0, i1, value) {
+	slice: function(i0, i1, value) {
 		return typeof value === 'string' ?
 			value.slice(i0, i1) :
 			Array.prototype.slice.call(value, i0, i1) ;
-	}, true),
+	},
 
 	striptags: (function() {
 		var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
@@ -6723,13 +7579,6 @@ const transforms = {
 			return value.replace(rtag, '');
 		};
 	})(),
-
-	switch: function(value) {
-		if (typeof value === 'boolean') { value = Number(value); }
-		if (typeof value === 'string') { value = parseInt(value, 10); }
-		if (typeof value !== 'number' || Number.isNaN(value)) { return; }
-		return arguments[value + 1];
-	},
 
 	translate: (function() {
 		var warned = {};
@@ -6760,27 +7609,323 @@ const transforms = {
 		};
 	})(),
 
-	truncatechars: curry$1(function(n, value) {
+	truncatechars: function(n, value) {
 		return value.length > n ?
 			value.slice(0, n) + '…' :
 			value ;
-	}),
+	},
 
 	uppercase: function(value) {
 		if (typeof value !== 'string') { return; }
 		return String.prototype.toUpperCase.apply(value);
 	},
 
-	//urlencode
-	//urlize
-	//urlizetrunc
-	//wordcount
-	//wordwrap
-
-	yesno: curry$1(function(truthy, falsy, value) {
+	/* yesno: a, b
+	Where value is truthy returns `a`, otherwise `b`. */
+	yesno: function(truthy, falsy, value) {
 		return value ? truthy : falsy ;
-	})
+	}
 };
+
+const assign$9  = Object.assign;
+
+function call$1(fn) {
+    return fn();
+}
+
+function observeThing(renderer, token, object, scope, log) {
+    // Normally observe() does not fire on undefined initial values.
+    // Passing in NaN as an initial value to forces the callback to
+    // fire immediately whatever the initial value. It's a bit
+    // smelly, but this works because even NaN !== NaN.
+    token.unobservers.push(
+        observe(object.path, (value) => {
+            object.value = value;
+
+            // If token has noRender flag set, it is being updated from
+            // the input and does not need to be rendered back to the input
+            if (token.noRender) { return; }
+            renderer.cue();
+        }, scope, NaN)
+    );
+}
+
+function Renderer() {
+    this.renderCount = 0;
+}
+
+assign$9(Renderer.prototype, {
+    fire: function() {
+        this.cued = false;
+    },
+
+    cue: function() {
+        if (this.cued) { return; }
+        this.cued = true;
+        cue(this);
+    },
+
+    push: function(scope) {
+        const tokens = this.tokens;
+        let n = tokens.length;
+
+        // Todo: keep a renderer-level cache of paths to avoid creating duplicate observers??
+        //if (!renderer.paths) {
+        //    renderer.paths = {};
+        //}
+
+        while (n--) {
+            const token = tokens[n];
+
+            // Ignore plain strings
+            if (typeof token === 'string') { continue; }
+
+            // Empty or initialise unobservers
+            if (token.unobservers) {
+                token.unobservers.forEach(call$1);
+                token.unobservers.length = 0;
+            }
+            else {
+                token.unobservers = [];
+            }
+
+            observeThing(this, token, token, scope);
+
+            let p = token.pipe && token.pipe.length;
+            while (p--) {
+                let args = token.pipe[p].args;
+                if (!args.length) { continue; }
+
+                // Look for dynamic value objects
+                args = args.filter(isValue$1);
+                if (!args.length) { continue; }
+
+                args.forEach((param) => observeThing(this, token, param, scope));
+            }
+        }
+    },
+
+    stop: function stop() {
+        uncue(this);
+
+        const tokens = this.tokens;
+        let n = tokens.length;
+
+        while (n--) {
+            const token = tokens[n];
+
+            if (token.unobservers) {
+                token.unobservers.forEach(call$1);
+                token.unobservers.length = 0;
+            }
+        }
+
+        this.stop = noop;
+    }
+});
+
+const assign$a = Object.assign;
+
+function isTruthy(token) {
+	return !!token.valueOf();
+}
+
+function renderBooleanAttribute(name, node, value) {
+	if (value) {
+		node.setAttribute(name, name);
+	}
+	else {
+		node.removeAttribute(name);
+	}
+
+	// Return DOM mutation count
+	return 1;
+}
+
+function renderProperty(name, node, value) {
+	node[name] = value;
+
+	// Return DOM mutation count
+	return 1;
+}
+
+function BooleanRenderer(tokens, node, name) {
+    Renderer.call(this);
+
+    this.label  = 'Boolean';
+	this.node   = node;
+    this.name   = name;
+	this.tokens = tokens;
+	this.render = name in node ?
+		renderProperty :
+		renderBooleanAttribute ;
+}
+
+assign$a(BooleanRenderer.prototype, Renderer.prototype, {
+    fire: function renderBoolean() {
+        Renderer.prototype.fire.apply(this);
+
+        const value = !!this.tokens.find(isTruthy);
+
+        // Avoid rendering the same value twice
+        if (this.renderedValue === value) { return 0; }
+
+		// Return DOM mutation count
+        this.renderCount += this.render(this.name, this.node, value);
+		this.renderedValue = value;
+    }
+});
+
+const assign$b = Object.assign;
+
+// Matches anything that contains a non-space character
+const rtext = /\S/;
+
+// Matches anything with a space
+const rspaces$1 = /\s+/;
+
+
+function addClasses(classList, text) {
+    var classes = text.trim().split(rspaces$1);
+    classList.add.apply(classList, classes);
+
+    // Return DOM mutation count
+    return 1;
+}
+
+function removeClasses(classList, text) {
+    var classes = text.trim().split(rspaces$1);
+    classList.remove.apply(classList, classes);
+
+    // Return DOM mutation count
+    return 1;
+}
+
+function partitionByType(data, token) {
+    data[typeof token].push(token);
+    return data;
+}
+
+function ClassRenderer(tokens, node) {
+    Renderer.call(this);
+
+    this.label  = 'Class';
+
+    const types = tokens.reduce(partitionByType, {
+        string: [],
+        object: []
+    });
+
+    this.tokens = types.object;
+    this.classList = classes(node);
+
+    // Overwrite the class with just the static text
+    node.setAttribute('class', types.string.join(' '));
+}
+
+assign$b(ClassRenderer.prototype, Renderer.prototype, {
+    fire: function renderBoolean() {
+        Renderer.prototype.fire.apply(this);
+
+        const list  = this.classList;
+        const value = this.tokens.join(' ');
+
+        // Avoid rendering the same value twice
+        if (this.renderedValue === value) {
+            return;
+        }
+
+        this.renderCount += this.renderedValue && rtext.test(this.renderedValue) ?
+            removeClasses(list, this.renderedValue) :
+            0 ;
+
+        this.renderCount += value && rtext.test(value) ?
+            addClasses(list, value) :
+            0 ;
+
+        this.renderedValue = value;
+    }
+});
+
+const assign$c = Object.assign;
+
+function StringRenderer(tokens, render, node, name) {
+    Renderer.call(this);
+
+    this.label  = 'String';
+    this.render = render;
+    this.node   = node;
+    this.name   = name;
+    this.tokens = tokens;
+}
+
+assign$c(StringRenderer.prototype, Renderer.prototype, {
+    fire: function renderString() {
+        Renderer.prototype.fire.apply(this);
+
+        // Causes token.toString() to be called
+        const value = this.tokens.join('');
+
+        // Avoid rendering the same value twice
+        if (this.renderedValue === value) { return; }
+
+        // Return DOM mutation count
+        this.renderCount += this.render(this.name, this.node, value);
+        this.renderedValue = value;
+    }
+});
+
+const assign$d = Object.assign;
+
+function observeMutations(node, fn) {
+    var observer = new MutationObserver(fn);
+    observer.observe(node, { childList: true });
+    return function unobserveMutations() {
+        observer.disconnect();
+    };
+}
+
+function TokenRenderer(token, render, node, name) {
+    Renderer.call(this);
+
+    this.label  = 'Token';
+    this.render = render;
+    this.node   = node;
+    this.name   = name;
+    this.tokens = [token];
+
+    // Observe mutations to select children, they alter the value of
+    // the select, and try to preserve the value if possible
+    if (node.tagName.toLowerCase() === 'select') {
+        this.unobserveMutations = observeMutations(node, () => {
+            if (node.value === this.renderedValue + '') { return; }
+            this.renderedValue = undefined;
+            cue(this);
+        });
+    }
+}
+
+assign$d(TokenRenderer.prototype, Renderer.prototype, {
+    fire: function renderValue() {
+        Renderer.prototype.fire.apply(this);
+
+        const token = this.tokens[0];
+        const value = token.valueOf();
+
+        // Avoid rendering the same value twice
+        if (this.renderedValue === value) {
+            return;
+        }
+
+        this.renderCount += this.render(this.name, this.node, value);
+        this.renderedValue = value;
+    },
+
+    stop: function stop() {
+        Renderer.prototype.stop.apply(this, arguments);
+        this.unobserveMutations && this.unobserveMutations();
+    }
+});
 
 const inputMap  = new WeakMap();
 const changeMap = new WeakMap();
@@ -6902,39 +8047,39 @@ Object.assign(Listener.prototype, {
 
 
 // Delegate input and change handlers to the document at the cost of
-// one WeakMap lookup
+// one WeakMap lookup, and using the capture phase so that accompanying
+// scope is updated before any other handlers do anything
 
 document.addEventListener('input', function(e) {
     const fn = inputMap.get(e.target);
     if (!fn) { return; }
     fn(e.target.value);
-});
+}, { capture: true });
 
 document.addEventListener('change', function(e) {
     const fn = changeMap.get(e.target);
     if (!fn) { return; }
     fn(e.target.value);
-});
+}, { capture: true });
 
-document.addEventListener('focusout', function(e) {
-    // Todo: Changes are not rendered while node is focused,
-    // render them on blur
-});
-
-var config$1 = {
+var config$2 = {
     default:  { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
     a:        { attributes: ['href'] },
-    button:   { booleans:   ['disabled'] },
+    button:   { attributes: ['name', 'value'], booleans: ['disabled'] },
     circle:   { attributes: ['cx', 'cy', 'r', 'transform'] },
     ellipse:  { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
     form:     { attributes: ['method', 'action'] },
     fieldset: { booleans:   ['disabled'] },
     g:        { attributes: ['transform'] },
-    img:      { attributes: ['alt']	},
+    img:      { attributes: ['alt', 'src']	},
     input: {
         booleans:   ['disabled', 'required'],
         attributes: ['name'],
         types: {
+
+            /* Todo: move `value` definition to internal logic (call it `type`
+               for gods sake), shouldnt be exposed to config. */
+
             button:   { attributes: ['value'] },
             checkbox: { attributes: [], booleans: ['checked'], value: 'checkbox' },
             date:     { attributes: ['min', 'max', 'step'], value: 'string' },
@@ -6951,6 +8096,7 @@ var config$1 = {
     },
     label:    { attributes: ['for'] },
     line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
+    link:     { attributes: ['href'] },
     meta:     { attributes: ['content'] },
     meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
     option:   { attributes: ['value'], booleans: ['disabled'] },
@@ -6968,11 +8114,10 @@ var config$1 = {
     use:      { attributes: ['href', 'transform', 'x', 'y'] }
 };
 
-// Debug mode on by default
-const DEBUG$6 = window.DEBUG === undefined || window.DEBUG;
+const DEBUG$5 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const A$9      = Array.prototype;
-const assign$d = Object.assign;
+const assign$e = Object.assign;
 
 const $cache = Symbol('cache');
 
@@ -7005,7 +8150,6 @@ function stop(object) {
 
 // Pipes
 
-// Add a global cache to transforms, soon to be known as pipes
 const pipesCache = transforms[$cache] = {};
 
 function getTransform(name) {
@@ -7014,65 +8158,65 @@ function getTransform(name) {
         transforms[name] ;
 }
 
-function applyTransform(data, fn) {
-	return data.args && data.args.length ?
-		// fn is expected to return a fn
-		fn.apply(null, data.args) :
-		// fn is used directly
-		fn ;
-}
-
 function createPipe(array, pipes) {
-    // Cache is dependent on pipes object - a new pipes object
-    // results in a new cache
-    const localCache = pipes
+	// Cache is dependent on pipes object - a new pipes object
+	// results in a new cache
+	const localCache = pipes
 		&& (pipes[$cache] || (pipes[$cache] = {}));
 
-    // Cache pipes for reuse by other tokens
-    const key = JSON.stringify(array);
+	// Cache pipes for reuse by other tokens
+	const key = JSON.stringify(array);
 
-    // Check global and local pipes caches
-    if (pipesCache[key]) { return pipesCache[key]; }
-    if (localCache && localCache[key]) { return localCache[key]; }
+	// Check global and local pipes caches
+	if (pipesCache[key]) { return pipesCache[key]; }
+	if (localCache && localCache[key]) { return localCache[key]; }
 
 	// All a bit dodgy - we cycle over transforms and switch the cache to
 	// local cache if a global pipe is not found...
-    var cache = pipesCache;
-    const fns = array.map((data) => {
+	var cache = pipesCache;
+	const fns = array.map((data) => {
 		// Look in global pipes first
 		var fn = getTransform(data.name);
 
 		if (!fn) {
+			if (DEBUG$5 && !pipes) {
+				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
+			}
+
 			// Switch the cache, look in local pipes
 			cache = localCache;
 			fn = pipes[data.name];
 
-			if (DEBUG$6 && !fn) {
-				throw new Error('pipe ' + data.name + '() not found.');
+			if (DEBUG$5 && !fn) {
+				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
 			}
 		}
 
 		// Does the number of arguments supplied match the signature of the
 		// transform? If not, error of the form
 		// transform:arg,arg,arg takes 3 arguments, 2 given arg,arg
-		if (DEBUG$6 && data.args.length !== fn.length - 1) {
+		if (DEBUG$5 && data.args.length !== fn.length - 1) {
 			throw new Error(data.name + ':'
 				+ /\(((?:(?:,\s*)?\w*)*),/.exec(fn.toString())[1].replace(/\s*/g, '')
 				+ ' takes ' + (fn.length - 1) + ' arguments, '
 				+ data.args.length + ' given ' + data.args);
 		}
 
-		return applyTransform(data, fn);
+		// If there are arguments apply them to fn
+		return data.args && data.args.length ?
+			(value) => fn(...data.args, value) :
+			fn ;
 	});
 
 	// Cache the result
-    return (cache[key] = pipe.apply(null, fns));
+	return (cache[key] = pipe.apply(null, fns));
 }
 
 function assignTransform(pipes, token) {
 	if (token.pipe) {
 		token.transform = createPipe(token.pipe, pipes);
 	}
+
 	return pipes;
 }
 
@@ -7194,7 +8338,7 @@ function renderValue(name, node, value) {
 		value :
 		null ;
 
-	// Avoid updating with the same value. Support values that are any
+    // Avoid updating with the same value. Support values that are any
 	// type as well as values that are always strings
 	if (value === node.value || (value + '') === node.value) { return 0; }
 
@@ -7253,7 +8397,7 @@ function mountToken(source, render, renderers, options, node, name) {
 	// Shortcut empty string
 	if (!source) { return; }
 
-	const token = parseToken(options.pipes, source);
+	const token = parseToken(source);
 	if (!token) { return; }
 
 	// Create transform from pipe
@@ -7359,7 +8503,7 @@ function mountClass(node, renderers, options) {
 	renderers.push(renderer);
 }
 
-function mountValueProp(node, renderers, options, render, read, readAttribute, coerce) {
+function mountValueProp(node, renderers, options, render, eventType, read, readAttribute, coerce) {
 	const prefixed = node.getAttribute(options.attributePrefix + 'value');
 
 	if (prefixed) {
@@ -7367,16 +8511,12 @@ function mountValueProp(node, renderers, options, render, read, readAttribute, c
 	}
 
 	const source   = prefixed || node.getAttribute('value');
-	if (!source) { return; }
-
 	const renderer = mountToken(source, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, renderer.tokens[0], 'input', read, readAttribute, coerce);
-	if (!listener) { return; }
-
-	// Insert the listener ahead of the renderer so that on first
+    // Insert a new listener ahead of the renderer so that on first
 	// cue the listener populates scope from the input value first
+	const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
 	renderers.splice(renderers.length - 1, 0, listener);
 }
 
@@ -7388,21 +8528,19 @@ function mountValueChecked(node, renderers, options, render, read, readAttribute
 	const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
 	if (!renderer) { return; }
 
-	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
-	if (!listener) { return; }
-
-	// Insert the listener ahead of the renderer so that on first
+	// Insert a new listener ahead of the renderer so that on first
 	// cue the listener populates scope from the input value first
+	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
 	renderers.splice(renderers.length - 1, 0, listener);
 }
 
 const mountValue = choose({
 	number: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
 	},
 
 	range: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValueNumber, readValue, readAttributeValue, coerceNumber);
+		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
 	},
 
 	checkbox: function(node, renderers, options) {
@@ -7413,8 +8551,13 @@ const mountValue = choose({
 		return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
 	},
 
+    file: function(node, renderers, options) {
+        // Safari does not send input events on file inputs
+		return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
+	},
+
 	default: function(node, renderers, options) {
-		return mountValueProp(node, renderers, options, renderValue, readValue, readAttributeValue, coerceString);
+		return mountValueProp(node, renderers, options, renderValue, 'input', readValue, readAttributeValue, coerceString);
 	}
 });
 
@@ -7462,9 +8605,9 @@ const mountNode = overload(getNodeType, {
 		// inserted, so turn childNodes into an array first.
 		mountCollection(Array.from(node.childNodes), renderers, options);
 		mountClass(node, renderers, options);
-		mountBooleans(config$1.default.booleans, node, renderers, options);
-		mountAttributes(config$1.default.attributes, node, renderers, options);
-		mountTag(config$1, node, renderers, options);
+		mountBooleans(config$2.default.booleans, node, renderers, options);
+		mountAttributes(config$2.default.attributes, node, renderers, options);
+		mountTag(config$2, node, renderers, options);
 	},
 
 	// text
@@ -7488,26 +8631,35 @@ const mountNode = overload(getNodeType, {
 		mountCollection(A$9.slice.apply(node.childNodes), renderers, options);
 	},
 
-	// array or array-like
-	default: function mountArray(collection, renderers, options) {
-		if (typeof collection.length !== 'number') {
-			throw new Error('Cannot mount object. It is neither a node nor a collection.', collection);
-		}
-
-		mountCollection(collection, renderers, options);
-	}
+    default: function(node) {
+        throw new TypeError('mountNode(node) node is not a mountable Node');
+    }
 });
+
+
+/*
+Mount(node, options)
+
+`const mount = Mount(node, options);`
+
+A mount is a pushable stream. Push an object of data to render the templated
+node on the next animation frame.
+
+```
+mount.push(data);
+```
+*/
 
 function Mount(node, options) {
 	if (!Mount.prototype.isPrototypeOf(this)) {
         return new Mount(node, options);
     }
 
-	const renderers = this.renderers = [];
-	mountNode(node, renderers, options);
+	this.renderers = [];
+    mountNode(node, this.renderers, options);
 }
 
-assign$d(Mount.prototype, {
+assign$e(Mount.prototype, {
 	stop: function() {
 		this.renderers.forEach(stop);
 		return this;
@@ -7527,10 +8679,9 @@ assign$d(Mount.prototype, {
 	}
 });
 
-// Debug mode is on by default
-const DEBUG$7 = window.DEBUG === undefined || window.DEBUG;
+const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
-const assign$e = Object.assign;
+const assign$f = Object.assign;
 
 const captureFn = capture$1(/^\s*([\w-]+)\s*(:)?/, {
     1: function(output, tokens) {
@@ -7554,63 +8705,41 @@ function valueOf(object) {
     return object.valueOf();
 }
 
-function logSparky(attrIs, attrFn, attrInclude, target) {
-    console.log('%cSparky%c'
-        + (attrIs ? ' is="' + attrIs + '"' : '')
-        + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (attrInclude ? ' include="' + attrInclude + '"' : ''),
-        'color: #858720; font-weight: 600;',
-        'color: #6894ab; font-weight: 400;'
-        //target
-    );
-}
-
-function nodeToString(node) {
-    return '<' +
-    node.tagName.toLowerCase() +
-    (['fn', 'class', 'id', 'include'].reduce((string, name) => {
-        const attr = node.getAttribute(name);
-        return attr ? string + ' ' + name + '="' + attr + '"' : string ;
-    }, '')) +
-    '/>';
-}
-
 function toObserverOrSelf(object) {
     return Observer(object) || object;
 }
 
 function replace$2(target, content) {
-    target.before(content);
+    before$1(target, content);
+    //target.before(content);
     target.remove();
 }
 
 function prepareInput(input, output) {
-    const done = input.done;
-
-    // Support promises and functors
-    input = output.map ? output.map(toObserverOrSelf) :
-        output.then ? output.then(toObserverOrSelf) :
+    // Support promises and streams
+    const stream = output.then ?
+        new Stream$1(function(push, stop) {
+            output
+            .then(push)
+            .catch(stop);
+            return { stop };
+        }) :
         output ;
 
-    // Transfer done(fn) method if new input doesnt have one
-    // A bit dodge, this. Maybe we should insist that output
-    // type is a stream.
-    if (!input.done) {
-        input.done = done;
-    }
+    input.done(() => stream.stop());
 
-    return input;
+    // Make sure the next fn gets an observable
+    return stream.map(toObserverOrSelf);
 }
 
 function run$1(context, node, input, options) {
     var result;
 
     while(input && options.fn && (result = captureFn({}, options.fn))) {
-        // Find Sparky function by name, looking in global functions store
+        // Find Sparky function by name, looking in global functions
         // first, then local options. This order makes it impossible to
         // overwrite built-in fns.
-        const fn = functions[result.name]
-            || (options.functions && options.functions[result.name]);
+        const fn = functions[result.name] || (options.functions && options.functions[result.name]);
 
         if (!fn) {
             throw new Error(
@@ -7625,7 +8754,7 @@ function run$1(context, node, input, options) {
 
         if (fn.settings) {
             // Overwrite functions / pipes
-            assign$e(options, fn.settings);
+            assign$f(options, fn.settings);
         }
 
         // Return values from Sparky functions mean -
@@ -7633,13 +8762,14 @@ function run$1(context, node, input, options) {
         // promise   - use the promise
         // undefined - use the same input streeam
         // false     - stop processing this node
-        const output = fn.call(context, node, input, result.params, options);
+        const output = fn.call(input, node, result.params, options) ;
 
         // Output false means stop processing the node
         if (output === false) {
             return false;
         }
 
+        // If output is defined and different from input
         if (output && output !== input) {
             input = prepareInput(input, output);
         }
@@ -7660,34 +8790,39 @@ function mountContent(content, options) {
 
         if (!options.fn && !options.include) { return; }
 
-        // Return a writeable stream. A write stream
+        // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
-        // Sparky is a write stream.
+        // A Sparky() is a write stream.
         return Sparky(node, options);
     };
 
     // Launch rendering
-    return Mount(content, options);
+    return new Mount(content, options);
 }
 
-function setupTarget(string, input, render, options) {
+function setupTarget(input, render, options) {
+    const src = options.include;
+
     // If there are no dynamic tokens to render, return the include
-    if (!string) {
+    if (!src) {
         throw new Error('Sparky attribute include cannot be empty');
     }
 
-    const tokens = parseText([], string);
+    const tokens = parseText([], src);
+
+    // Reset options.include, it's done its job for now
+    options.include = '';
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
-        return setupSrc(string, input, render, options);
+        return setupSrc(src, input, render, options);
     }
 
     // Create transform from pipe
 	tokens.reduce(assignTransform, options.pipes);
 
     let output  = nothing;
-    let stop    = noop;
+    //let stop    = noop;
     let prevSrc = null;
 
     function update(scope) {
@@ -7723,7 +8858,7 @@ function setupTarget(string, input, render, options) {
 
         // Stop the previous
         output.stop();
-        stop();
+        //stop();
 
         // If include is empty string render nothing
         if (!src) {
@@ -7733,17 +8868,17 @@ function setupTarget(string, input, render, options) {
             }
 
             output = nothing;
-            stop = noop;
+            //stop = noop;
             return;
         }
 
         // Push scope to the template renderer
         output = Stream$1.of(scope);
-        stop = setupSrc(src, output, render, options);
+        setupSrc(src, output, render, options);
     }
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then'](function(scope) {
+    input
+    .each(function(scope) {
         let n = tokens.length;
 
         while (n--) {
@@ -7761,12 +8896,11 @@ function setupTarget(string, input, render, options) {
                 update(scope);
             }, scope, NaN);
         }
-    });
-
-    return () => {
+    })
+    .done(() => {
         output.stop();
-        stop();
-    };
+        //stop();
+    });
 }
 
 function setupSrc(src, input, firstRender, options) {
@@ -7781,14 +8915,9 @@ function setupSrc(src, input, firstRender, options) {
         return setupInclude(content, input, firstRender, options);
     }
 
-    let stopped;
-    let stop = noop;
-
     importTemplate(src)
     .then((node) => {
-        if (stopped) { return; }
-
-        const attrFn = node.getAttribute(options.attributeFn);
+        if (input.status === 'done') { return; }
 
         const content =
             // Support templates
@@ -7798,72 +8927,61 @@ function setupSrc(src, input, firstRender, options) {
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
-        stop = setupInclude(content, input, firstRender, options);
+        setupInclude(content, input, firstRender, options);
     })
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
     .catch((error) => {
         console.error(error.stack);
     });
-
-    return function() {
-        stopped = true;
-        stop();
-        stop = noop;
-    }
 }
 
 function setupInclude(content, input, firstRender, options) {
     var renderer;
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const first = !renderer;
-        renderer = renderer || (isFragmentNode(content) ?
-            mountContent(content, options) :
-            new Sparky(content, options)
-        );
-        renderer.push(scope);
-        if (first) {
-            firstRender(content);
-            input.done(() => renderer.stop());
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
         }
-    });
 
-    return function() {
-        renderer && renderer.stop();
-    };
+        renderer = isFragmentNode(content) ?
+            mountContent(content, options) :
+            new Sparky(content, options) ;
+
+        input.done(() => renderer.stop());
+        renderer.push(scope);
+        firstRender(content);
+    });
 }
 
 function setupElement(target, input, options, sparky) {
     const content = target.content;
     var renderer;
 
-    // Support streams and promises
-    input[input.each ? 'each' : 'then']((scope) => {
-        const init = !renderer;
+    input.each((scope) => {
+        if (renderer) {
+            return renderer.push(scope);
+        }
 
-        renderer = renderer || mountContent(content || target, options);
+        renderer = mountContent(content || target, options);
+        input.done(() => renderer.stop());
         renderer.push(scope);
 
         // If target is a template, replace it
-        if (content && init) {
+        if (content) {
             replace$2(target, content);
 
             // Increment mutations for logging
             ++sparky.renderCount;
         }
     });
-
-    return function stop() {
-        renderer && renderer.stop();
-    };
 }
 
-function setupTemplate(target, src, input, options, sparky) {
+function setupTemplate(target, input, options, sparky) {
+    const src   = options.include;
     const nodes = { 0: target };
 
-    return setupTarget(src, input, (content) => {
+    return setupTarget(input, (content) => {
         // Store node 0
         const node0 = nodes[0];
 
@@ -7879,13 +8997,13 @@ function setupTemplate(target, src, input, options, sparky) {
 
         // If there is content cache new nodes
         if (content && content.childNodes && content.childNodes.length) {
-            assign$e(nodes, content.childNodes);
+            assign$f(nodes, content.childNodes);
         }
 
         // Otherwise content is a placemarker text node
         else {
             content = nodes[0] = target.content ?
-                DEBUG$7 ?
+                DEBUG$6 ?
                     create$1('comment', ' include="' + src + '" ') :
                     create$1('text', '') :
                 target ;
@@ -7900,8 +9018,8 @@ function setupTemplate(target, src, input, options, sparky) {
     }, options);
 }
 
-function setupSVG(target, src, output, options, sparky) {
-    return setupTarget(src, output, (content) => {
+function setupSVG(target, input, options, sparky) {
+    return setupTarget(input, (content) => {
         content.removeAttribute('id');
 
         replace$2(target, content);
@@ -7912,57 +9030,663 @@ function setupSVG(target, src, output, options, sparky) {
     }, options);
 }
 
+function makeLabel(target, options) {
+    return '<'
+        + (target.tagName ? target.tagName.toLowerCase() : '')
+        + (options.fn ? ' fn="' + options.fn + '">' : '>');
+}
+
+/*
+Sparky(nodeOrSelector)
+
+Mounts any element as a template and returns a pushable stream. Push an object
+to the stream to have it rendered by the template:
+
+```html
+<div id="title-div">
+    I am { [title] }.
+</div>
+```
+```
+import Sparky from '/sparky/module.js';
+
+// Mount the <div>
+const sparky = Sparky('#title-div');
+
+// Render it by pushing in an object
+sparky.push({ title: 'rendered' });
+```
+
+Results in:
+
+```html
+<div id="title-div">
+    I am rendered.
+</div>
+```
+*/
+
+
+
+/*
+include()
+
+Templates may include other templates. Define the `include` attribute
+as an href to a template:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
+
+I am Sparky.
+```
+
+Templates may be composed of includes:
+
+```html
+<template id="i-am-title">
+    I am { [title] }.
+</template>
+
+<template is="sparky-template" fn="fetch:package.json">
+    <template include="#i-am-title"></template>
+    <template include="#i-am-title"></template>
+</template>
+
+I am Sparky.
+I am Sparky.
+```
+*/
+
 function Sparky(selector, settings) {
     if (!Sparky.prototype.isPrototypeOf(this)) {
         return new Sparky(selector, settings);
     }
 
-    const target  = typeof selector === 'string' ?
+    const target = typeof selector === 'string' ?
         document.querySelector(selector) :
         selector ;
 
-    const options = assign$e({}, config, settings);
-    const attrFn = options.fn = options.fn
+    const options = assign$f({}, config$1, settings);
+
+    // Todo: attrFn is just for logging later on... get rid of, maybe?
+    options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
+
+    // Keep hold of attrFn for debugging
+    //if (DEBUG) { var attrFn = options.fn; }
+
+    this.label = makeLabel(target, options);
+    this.renderCount = 0;
 
     const input = Stream$1.of().map(toObserverOrSelf);
     const output = run$1(null, target, input, options);
 
-    this.label = 'Sparky';
-    this.renderCount = 0;
-
-    this.push = input.push;
-    this.stop = input.stop;
-
-    // If output is false do not go on to parse and mount content
-    if (!output) { return; }
-
-    const attrInclude = options.include
-        || target.getAttribute(options.attributeInclude)
-        || '';
-
-    this.stop = function() {
-        input.stop();
-        output.stop();
-        stop();
+    this.push = function push() {
+        input.push(arguments[arguments.length - 1]);
         return this;
     };
 
-    if (DEBUG$7) { logSparky(options.is, attrFn, attrInclude, target); }
+    this.stop = function() {
+        input.stop();
+        return this;
+    };
 
-    // We have consumed fn and include now, we may blank them before
-    // passing them on to the mounter, to protect against them being
-    // used again.
-    options.is      = '';
-    options.fn      = '';
-    options.include = '';
+    // If output is false do not go on to parse and mount content,
+    // a fn is signalling that it will take over. fn="each" does this,
+    // for example, replacing the original node and Sparky with duplicates.
+    if (!output) { return; }
 
-    var stop = attrInclude ?
+    // We have consumed fn lets make sure it's really empty
+    options.fn = '';
+    options.include = options.include
+        || target.getAttribute(options.attributeInclude)
+        || '';
+
+    //if (DEBUG) { logNode(target, attrFn, options.include); }
+
+    options.include ?
         target.tagName === 'use' ?
-            setupSVG(target, attrInclude, output, options, this) :
-            setupTemplate(target, attrInclude, output, options, this) :
-        setupElement(target, output, options, this) ;
+            setupSVG(target, output, options, this) :
+        setupTemplate(target, output, options, this) :
+    setupElement(target, output, options, this) ;
+}
+
+const DEBUG$7 = window.DEBUG;
+
+register('debug', function(node) {
+    return DEBUG$7 ? this.tap((scope) => {
+        console.log('Sparky fn="debug" node:', node,'scope:', scope);
+        debugger;
+    }) :
+    this ;
+});
+
+const DEBUG$8 = window.DEBUG;
+
+function MarkerNode(node, options) {
+    // A text node, or comment node in DEBUG mode, for marking a
+    // position in the DOM tree so it can be swapped out with some
+    // content in the future.
+
+    if (!DEBUG$8) {
+        return create$1('text', '');
+    }
+
+    var attrFn      = node && node.getAttribute(options ? options.attributeFn : 'fn');
+    var attrInclude = node && node.getAttribute(options ? options.attributeInclude : 'include');
+
+    return create$1('comment',
+        tag(node) +
+        (attrFn ? ' ' + (options ? options.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
+        (attrInclude ? ' ' + (options ? options.attributeInclude : 'include') + '="' + attrInclude + '"' : '')
+    );
+}
+
+/*
+each:
+
+Clones the DOM node and renders a clone for each value in an array.
+
+```html
+<ul>
+    <li fn="get:keywords each">{ [.] }</li>
+</ul>
+```
+```html
+<ul>
+    <li>javascript</li>
+	<li>browser</li>
+</ul>
+```
+
+Where there are functions declared after `each` in the attribute, they are run
+on each clone.
+*/
+
+const A$a       = Array.prototype;
+
+const isArray = Array.isArray;
+const assign$g  = Object.assign;
+
+const $scope = Symbol('scope');
+
+
+// Renderers
+
+function EachChild(scope, node, marker, sparkies, isOption, options) {
+	this.label    = 'EachChild';
+	this.scope    = scope;
+	this.node     = node;
+	this.marker   = marker;
+	this.sparkies = sparkies;
+	this.isOption = isOption;
+	this.options  = options;
+	this.renderCount = 0;
+}
+
+assign$g(EachChild.prototype, {
+	fire: function render(time) {
+		this.render(this.scope);
+		this.value = this.scope;
+	},
+
+	render: function render(array) {
+		const node     = this.node;
+		const marker   = this.marker;
+		const sparkies = this.sparkies;
+//		const isOption = this.isOption;
+		const options  = this.options;
+
+		// Selects will lose their value if the selected option is removed
+		// from the DOM, even if there is another <option> of same value
+		// already in place. (Interestingly, value is not lost if the
+		// selected <option> is simply moved). Make an effort to have
+		// selects retain their value across scope changes.
+		//
+		// There is also code for something siimilar in render-token.js
+		// maybe have a look and decide on what's right
+//var value = isOption ? marker.parentNode.value : undefined ;
+
+		if (!isArray(array)) {
+			array = Object.entries(array).map(entryToKeyValue);
+		}
+
+		this.renderCount += reorderCache(node, array, sparkies, options);
+		this.renderCount += reorderNodes(marker, array, sparkies);
+
+		// A fudgy workaround because observe() callbacks (like this update
+		// function) are not batched to ticks.
+		// TODO: batch observe callbacks to ticks.
+//		if (isOption && value !== undefined) {
+//			marker.parentNode.value = value;
+//		}
+	},
+
+	renderCount: 0
+});
+
+function EachParent(input, node, marker, sparkies, isOption, options) {
+	this.label = 'EachParent';
+	this.input = input;
+	this.node = node;
+    this.marker = marker;
+    this.sparkies = sparkies;
+    this.isOption = isOption;
+    this.options = options;
+}
+
+assign$g(EachParent.prototype, {
+	fire: function render(time) {
+		var scope = this.input.shift();
+		if (!scope) { return; }
+
+        //scope, node, marker, sparkies, isOption, options
+		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
+
+		this.stop();
+		this.stop = observe('.', () => cue(renderer), scope);
+	},
+
+	stop: noop,
+
+	renderCount: 0
+});
+
+
+// Logic
+
+function createEntry(master, options) {
+	const node = master.cloneNode(true);
+	const fragment = document.createDocumentFragment();
+	fragment.appendChild(node);
+
+	// We treat the sparky object as a store for carrying internal data
+	// like fragment and nodes, because we can
+	const sparky = new Sparky(node, options);
+	sparky.fragment = fragment;
+	return sparky;
+}
+
+function reorderCache(master, array, sparkies, options) {
+	// Reorder sparkies
+	var n = -1;
+	var renderCount = 0;
+
+	while (++n < array.length) {
+		const object = array[n];
+		let sparky = sparkies[n];
+
+		if (sparky && object === sparky[$scope]) {
+			continue;
+		}
+
+		// Scan forward through sparkies to find the sparky that
+		// corresponds to the scope object
+		let i = n - 1;
+		while (sparkies[++i] && sparkies[i][$scope] !== object);
+
+		// Create a new one or splice the existing one out
+		sparky = i === sparkies.length ?
+			createEntry(master, options) :
+			sparkies.splice(i, 1)[0];
+
+		// Splice it into place
+		sparkies.splice(n, 0, sparky);
+	}
+
+	// Reordering has pushed unused sparkies to the end of
+	// sparkies collection. Go ahead and remove them.
+	while (sparkies.length > array.length) {
+		const sparky = sparkies.pop().stop();
+
+		// If sparky nodes are not yet in the DOM, sparky does not have a
+		// .nodes property and we may ignore it, otherwise go ahead
+		// and get rid of the nodes
+		if (sparky.nodes) {
+            renderCount += sparky.nodes.length;
+			A$a.forEach.call(sparky.nodes, (node) => node.remove());
+		}
+	}
+
+	return renderCount;
+}
+
+function reorderNodes(node, array, sparkies) {
+	// Reorder nodes in the DOM
+	const l = sparkies.length;
+	const parent = node.parentNode;
+
+	var renderCount = 0;
+	var n = -1;
+
+	while (n < l) {
+		// Note that node is null where nextSibling does not exist.
+		// Passing null to insertBefore appends to the end
+		node = node ? node.nextSibling : null ;
+
+		while (++n < l && (!sparkies[n].nodes || sparkies[n].nodes[0] !== node)) {
+			if (!sparkies[n][$scope]) {
+				sparkies[n].push(array[n]);
+				sparkies[n][$scope] = array[n];
+			}
+
+			if (sparkies[n].fragment) {
+				// Cache nodes in the fragment
+				sparkies[n].nodes = Array.from(sparkies[n].fragment.childNodes);
+
+				// Stick fragment in the DOM
+				parent.insertBefore(sparkies[n].fragment, node);
+				sparkies[n].fragment = undefined;
+
+				// Increment renderCount for logging
+				++renderCount;
+			}
+			else {
+				// Reorder exising nodes
+				let i = -1;
+				while (sparkies[n].nodes[++i]) {
+					parent.insertBefore(sparkies[n].nodes[i], node);
+
+					// Increment renderCount for logging
+					++renderCount;
+				}
+			}
+		}
+
+		if (!sparkies[n]) { break; }
+		node = last(sparkies[n].nodes);
+	}
+
+	return renderCount;
+}
+
+function eachFrame(stream, node, marker, sparkies, isOption, options) {
+	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
+
+	function push() {
+		cue(renderer);
+	}
+
+	// Support streams
+	stream
+    .on(push)
+    .done(function stop() {
+		renderer.stop();
+		//uncue(renderer);
+	});
+}
+
+function entryToKeyValue(entry) {
+	return {
+		key:   entry[0],
+		value: entry[1]
+	};
+}
+
+register('each', function(node, params, options) {
+	if (isFragmentNode(node)) {
+		throw new Error('Sparky.fn.each cannot be used on fragments.');
+	}
+
+	const sparkies = [];
+	const marker   = MarkerNode(node);
+	const isOption = tag(node) === 'option';
+
+	// Put the marker in place and remove the node
+	before$1(node, marker);
+
+	// The master node has it's fn attribute truncated to avoid setup
+	// functions being run again. Todo: This is a bit clunky - can we avoid
+	// doing this by passing in the fn string in options to the child instead
+	// of reparsing the fn attribute?
+	if (options.fn) { node.setAttribute(options.attributeFn, options.fn); }
+	else { node.removeAttribute(options.attributeFn); }
+
+	node.remove();
+
+	// Prevent further functions being run on current node
+	options.fn = '';
+
+	// Get the value of scopes in frames after it has changed
+	eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
+
+    this.done(() => {
+		remove$2(marker);
+		sparkies.forEach((sparky) => sparky.stop());
+	});
+
+	// Return false to prevent further processing of this Sparky
+	return false;
+});
+
+register('entries', function(node, params) {
+    return this.map(Object.entries);
+});
+
+/*
+fetch: url
+
+Fetches and parses a JSON file and uses it as scope to render the node.
+
+```html
+<p fn="fetch:package.json">{ [title] }!</p>
+```
+
+```html
+<p>Sparky!</p>
+```
+
+*/
+
+const DEBUG$9 = window.DEBUG;
+
+const cache$2 = {};
+
+function importScope(url, scopes) {
+    requestGet(url)
+    .then(function(data) {
+        if (!data) { return; }
+        cache$2[url] = data;
+        scopes.push(data);
+    })
+    .catch(function(error) {
+        console.warn('Sparky: no data found at', url);
+        //throw error;
+    });
+}
+
+register('fetch', function(node, params) {
+    var path = params[0];
+
+    if (DEBUG$9 && !path) {
+        throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
+    }
+
+    var scopes = Stream$1.of();
+
+    // Test for path template
+    if (/\$\{(\w+)\}/.test(path)) {
+        this.each(function(scope) {
+            var url = path.replace(/\$\{(\w+)\}/g, function($0, $1) {
+                return scope[$1];
+            });
+
+            // If the resource is cached...
+            if (cache$2[url]) {
+                scopes.push(cache$2[url]);
+            }
+            else {
+                importScope(url, scopes);
+            }
+        });
+
+        return scopes;
+    }
+
+    // If the resource is cached, return it as a readable
+    if (cache$2[path]) {
+        return Stream$1.of(cache$2[path]);
+    }
+
+    importScope(path, scopes);
+    return scopes;
+});
+
+/*
+get: path
+
+Maps scope to the value at `path` of the current scope:
+
+```html
+<a fn="get:repository" href="{ [ url ]}">{ [type|capitalise]} repository</a>
+```
+
+```html
+<a href="https://github.com/cruncher/sparky.git">Git repository</a>
+```
+*/
+
+register('get', function(node, params) {
+    return this
+    .scan((stream, object) => {
+        stream.stop();
+        return mutations(params[0], object);
+    }, nothing)
+    .flat();
+});
+
+const DEBUG$a = window.DEBUG;
+
+register('on', function(node, params) {
+    const type   = params[0];
+    const length = params.length - 1;
+
+    let flag = false;
+    let i = -1;
+    let scope;
+
+    const listener = (e) => {
+        // Cycle through params[1] to params[-1]
+        i = (i + 1) % length;
+
+        const name = params[i + 1];
+
+        if (DEBUG$a && (!scope || !scope[name])) {
+            console.error('Sparky scope', scope);
+            throw new Error('Sparky scope has no method "' + name + '"');
+        }
+
+        // Buttons have value...
+        scope[name](e.target.value);
+    };
+
+    return this.tap(function(object) {
+        if (!flag) {
+            flag = true;
+
+            // Keep event binding out of the critical render path by
+            // delaying it
+            setTimeout(() => node.addEventListener(type, listener), 10);
+        }
+
+        scope = object;
+    });
+});
+
+register('rest', function(node, params) {
+    return this.map(rest$1(params[0]));
+});
+
+const map$2 = new WeakMap();
+
+function getScope(node) {
+    if (!map$2.has(node.correspondingUseElement || node)) {
+        throw new Error('Sparky scope is not set on node');
+    }
+
+    return map$2.get(node);
+}
+
+register('scope', function(node, params) {
+    return this
+    .tap((scope) => map$2.set(node.correspondingUseElement || node, scope))
+    .done(() => map$2.delete(node));
+});
+
+register('take', function(node, params) {
+    return this.map(take$1(params[0]));
+});
+
+function createArgs(e, selector) {
+    const node = e.target.closest(selector);
+    // Default to undefined, the stream filters out undefined
+    return node ? [node, e] : undefined ;
+}
+
+function notDisabled(args) {
+    return !args[0].disabled;
+}
+
+function listen$1(scopes, type, selector, fn, node) {
+    var stream = events$1(type, node)
+    .map((e) => createArgs(e, selector))
+    // Don't listen to disabled nodes
+    .filter(notDisabled)
+    // Call fn(node, e)
+    .each((args) => fn.apply(null, args));
+
+    scopes.done(() => stream.stop());
+}
+
+function delegate$2(types, selector, fn) {
+    return typeof types === 'object' ?
+        function delegate(node) {
+            var type;
+            for (type in types) {
+                for (selector in types[type]) {
+                    listen$1(this, type, selector, types[type][selector], node);
+                }
+            }
+        } :
+        function delegate(node) {
+            listen$1(this, types, selector, fn, node);
+        } ;
+}
+
+/*
+Observe()
+*/
+
+function createObserver$1(path, fn, scope, node) {
+    return observe(path, function(value) {
+        return fn(scope, value, node);
+    }, scope);
+}
+
+function Observe(paths) {
+    return function observeFn(node) {
+        const unobservers = [];
+
+        function unobserve() {
+            unobservers.forEach(call);
+            unobservers.length = 0;
+        }
+
+        return this
+        .tap(function(scope) {
+            unobserve();
+            var path;
+            for (path in paths) {
+                unobservers.push(createObserver$1(path, paths[path], scope, node));
+            }
+        })
+        .done(unobserve);
+    };
 }
 
 // Sparky
@@ -7985,64 +9709,104 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
-function register(name, fn, options) {
-    functions[name] = fn;
-    functions[name].settings = options;
-}
 
-const options$1 = { is: 'sparky' };
+/*
+<template is="sparky-template">
 
-// Launch sparky on sparky templates. Ultimately this will be a web
-// component, I guess
+First, import Sparky:
 
-cue({
-    label: "IsRenderer",
+```js
+import '/sparky/module.js';
+```
 
-    fire: function() {
-        const renderer = this;
+Sparky registers the `is="sparky-template"` custom element. Sparky templates
+in the DOM are automatically replaced with their own rendered content:
+
+```html
+<template is="sparky-template">
+    Hello!
+</template>
+```
+
+```html
+Hello!
+```
+
+Sparky templates extend HTML with 3 features: **template tags**, **functions**
+and **includes**.
+*/
+
+
+// Register customised built-in element <template is="sparky-template">
+//
+// While loading we must wait a tick for sparky functions to register before
+// declaring the customised template element. This is a little pants, I admit.
+requestTick(function() {
+    var supportsCustomBuiltIn = false;
+
+    element('sparky-template', {
+        extends: 'template',
+
+        construct: function() {
+            const fn = this.getAttribute('fn');
+
+            if (DEBUG) { logNode(this, fn, this.getAttribute('include')); }
+
+            if (fn) {
+                Sparky(this, { fn: fn });
+            }
+            else {
+                // If there is no attribute fn, there is no way for this sparky
+                // to launch as it will never get scope. Enable sparky templates
+                // with just an include by passing in blank scope.
+                Sparky(this).push({});
+            }
+
+            // Flag
+            supportsCustomBuiltIn = true;
+        }
+    });
+
+    // If one has not been found already, test for customised built-in element
+    // support by force creating a <template is="sparky-template">
+    if (!supportsCustomBuiltIn) {
+        document.createElement('template', { is: 'sparky-template' });
+    }
+
+    // If still not supported, fallback to a dom query for [is="sparky-template"]
+    if (!supportsCustomBuiltIn) {
+        log$2("Browser does not support custom built-in elements. Doin' it oldskool selectin' stylee.");
 
         window.document
         .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
-            const attrFn = options$1.fn = template.getAttribute('fn');
-            const sparky = new Sparky(template, options$1);
+            const fn = template.getAttribute('fn');
 
-            // If there is no attribute fn, there is no way for this sparky
-            // to launch as it will never get scope. Enable sparky templates
-            // with just an include by passing in blank scope.
-            if (!attrFn) {
-                const blank = {};
-                sparky.push(blank);
-                renderer.renderedValue = blank;
+            if (fn) {
+                Sparky(template, { fn: fn });
+            }
+            else {
+                // If there is no attribute fn, there is no way for this sparky
+                // to launch as it will never get scope. Enable sparky templates
+                // with just an include by passing in blank scope.
+                Sparky(template).push({});
             }
         });
-    },
-
-    renderCount: 0
+    }
 });
 
-exports.Fn = Fn;
-exports.Observable = Observable;
+exports.ObserveFn = Observe;
 exports.Observer = Observer;
 exports.Stream = Stream$1;
-exports.Target = Target;
-exports.config = config;
+exports.config = config$1;
 exports.cue = cue;
 exports.default = Sparky;
-exports.events = events$1;
-exports.functions = functions;
-exports.get = get$1;
+exports.delegate = delegate$2;
 exports.getScope = getScope;
-exports.id = id;
 exports.mount = Mount;
-exports.mountConfig = config$1;
-exports.noop = noop;
-exports.nothing = nothing;
-exports.notify = notify$1;
+exports.mountConfig = config$2;
 exports.observe = observe;
 exports.register = register;
-exports.set = set$1;
 exports.transformers = transformers;
 exports.transforms = transforms;
-exports.trigger = trigger$2;
 exports.uncue = uncue;
