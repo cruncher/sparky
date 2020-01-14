@@ -6,7 +6,7 @@ Maps scope to an array of `[key, value]` arrays.
 
 ```html
 <ul>
-    <li fn="get:repository entries each">{ [0]}: { [1]}</li>
+    <li fn="get:repository entries each">{[0]}: {[1]}</li>
 </ul>
 ```
 

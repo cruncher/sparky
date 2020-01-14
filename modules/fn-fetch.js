@@ -4,7 +4,7 @@ fetch: url
 Fetches and parses a JSON file and uses it as scope to render the node.
 
 ```html
-<p fn="fetch:package.json">{ [title] }!</p>
+<p fn="fetch:package.json">{[title]}!</p>
 ```
 
 ```html

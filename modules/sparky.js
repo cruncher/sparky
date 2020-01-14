@@ -375,7 +375,7 @@ to the stream to have it rendered by the template:
 
 ```html
 <div id="title-div">
-    I am { [title] }.
+    I am {[title]}.
 </div>
 ```
 ```
@@ -407,7 +407,7 @@ as an href to a template:
 
 ```html
 <template id="i-am-title">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 
 <template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
@@ -419,7 +419,7 @@ Templates may be composed of includes:
 
 ```html
 <template id="i-am-title">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 
 <template is="sparky-template" fn="fetch:package.json">

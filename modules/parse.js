@@ -1,20 +1,14 @@
 
 /*
-tags
+{[path|pipe:params]}
 
-Template tags are made of three parts:
-
-```html
-{ [ path|pipe:params ] }
-```
-
-Values are read from `path` in the rendered object, piped through any number of
-`pipe` transforms (which, depending on the pipe, may require `params`) and
-rendered into the DOM on animation frames.
+Template tags are made of three parts. Values are read from `path` in the
+scope object, piped through any number of `pipe` functions, which,
+depending on the pipe, may require `params`, and rendered into the DOM.
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
-    { [ repository.url|prepend:'Repo: ' ] }
+    {[ repository.url|prepend:'Repo: ' ]}
 </template>
 ```
 
@@ -26,14 +20,14 @@ Paths are a superset of JS notation, where dashes and numbers are allowed in
 property names. These are valid:
 
 ```html
-{ [ items.my-object ]}
-{ [ items.3 ]}
+{[ items.my-object ]}
+{[ items.3 ]}
 ```
 
 The root path renders the scope object itself:
 
 ```html
-{ [ . ]}
+{[ . ]}
 ```
 
 Sparky renders `NaN`, `null` and `undefined` as empty strings, objects as JSON,
@@ -42,7 +36,7 @@ are rendered as strings.
 */
 
 /*
-include=""
+include="#id"
 
 A template may include another template by referring to it via the `include`
 attribute. The rendered content of the included template replaces the referring
@@ -50,7 +44,7 @@ template:
 
 ```html
 <template id="my-template">
-    <li fn="get:keywords each">{ [.] }</li>
+    <li fn="get:keywords each">{[.]}</li>
 </template>
 
 <template is="sparky-template" fn="fetch:package.json" include="#my-template">
@@ -87,7 +81,7 @@ with id `no-keywords` is rendered in place of `my-template`:
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     <ul>
-        <template include="{ [.keywords|yesno:#my-template,#no-keywords]}">
+        <template include="{[.keywords|yesno:#my-template,#no-keywords]}">
         </template>
     </ul>
 </template>

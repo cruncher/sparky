@@ -1,6 +1,6 @@
 
 /*
-fn=""
+fn="name:params"
 
 A `fn` attribute declares one or more functions to run on a template.
 A **function** is expected to supply an object that Sparky uses to
@@ -8,7 +8,7 @@ render template **tags**:
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
-    I am { [title] }.
+    I am {[title]}.
 </template>
 ```
 
@@ -23,7 +23,7 @@ array of keywords and generate a list:
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     <ul>
-        <li fn="get:keywords each">{ [.] }</li>
+        <li fn="get:keywords each">{[.]}</li>
     </ul>
 </template>
 ```
@@ -130,7 +130,7 @@ export const functions = Object.create(null);
 
 export function register(name, fn) {
     if (/^(?:function\s*)?\(node/.exec(fn.toString())) {
-        console.log(fn);
+        //console.log(fn);
         //throw new Error('First param is node. No no no.')
     }
 

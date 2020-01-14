@@ -13,7 +13,7 @@
     document.documentElement.className = 'js';
     window.DEBUG = false;
     window.config = {
-        path: 'https://stephen.band/'
+        path: '../'//'https://stephen.band/'
     };
     </script>
 
@@ -62,21 +62,24 @@
         </div>
 
         <div class="x-1 xspan-3">
-            <template build-fn="docs:modules/parse.js?tags each" build-include="/fn/templates.html#section-template"></template>
+            <h3 class="text-3">tags.</h3>
+            <template build-fn="docs:modules/parse.js?path-pipe-params each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-4">
+            <h3 class="text-3">functions.</h3>
             <template build-fn="docs:modules/functions.js?fn each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-7">
+            <h3 class="text-3">includes.</h3>
             <template build-fn="docs:modules/parse.js?include each" build-include="/fn/templates.html#section-template"></template>
         </div>
     </section>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="built-ins">
         <div class="x-1 xspan-3">
-            <h2 class="text-2">Built-in functions</h2>
+            <h2 class="text-3">built-in functions.</h2>
             <template build-fn="docs:
             modules/fn-each.js,
             modules/fn-entries.js,
@@ -87,7 +90,7 @@
         </div>
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
-            <h2 class="text-2">Built-in pipes</h2>
+            <h2 class="text-3">built-in pipes.</h2>
             <template build-fn="docs:modules/transforms.js filter-fn each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
@@ -162,7 +165,7 @@
         import 'https://stephen.band/dom/js/locateable.js';
         import 'https://stephen.band/dom/js/switchable.js';
         import 'https://stephen.band/dom/js/fullscreenable.js';
-        import * as sparky from './build/module.js';
-        window.$ = sparky;
+        //import * as sparky from './build/module.js';
+        //window.$ = sparky;
     </script>
 </body>

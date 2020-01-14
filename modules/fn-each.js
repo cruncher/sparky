@@ -5,7 +5,7 @@ Clones the DOM node and renders a clone for each value in an array.
 
 ```html
 <ul>
-    <li fn="get:keywords each">{ [.] }</li>
+    <li fn="get:keywords each">{[.]}</li>
 </ul>
 ```
 ```html
