@@ -13,7 +13,7 @@
     document.documentElement.className = 'js';
     window.DEBUG = false;
     window.config = {
-        path: 'https://stephen.band/'
+        path: '../'//'https://stephen.band/'
     };
     </script>
 
@@ -65,7 +65,7 @@
 
         <div class="x-1 xspan-3 @2-x-4">
             <h3 class="text-3">functions.</h3>
-            <template build-fn="docs:modules/functions.js?fn each" build-include="/fn/templates.html#section-template"></template>
+            <template build-fn="docs:modules/fn.js?fn each" build-include="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-7">
@@ -97,13 +97,13 @@
             <h2 class="text-2">Write a function</h2>
 
             <template build-fn="docs:
-            modules/functions.js?Register
+            modules/fn.js?sparky-fn-name-fn
             each" build-include="/fn/templates.html#title-template"></template>
 
             <h3 class="text-3">Examples</h3>
 
             <template build-fn="docs:
-            modules/functions.js?Examples
+            modules/fn.js?examples
             each" build-include="/fn/templates.html#title-template"></template>
         </div>
 
@@ -121,7 +121,7 @@
             <h2 class="text-2">Write a pipe</h2>
 
             <template build-fn="docs:
-            modules/pipes.js?Write
+            modules/pipe.js?sparky-pipe-name-fn
             each" build-include="/fn/templates.html#title-template"></template>
         </div>
 
@@ -129,7 +129,7 @@
             <h3 class="text-3">Examples</h3>
 
             <template build-fn="docs:
-            modules/pipes.js?Examples
+            modules/pipe.js?examples
             each" build-include="/fn/templates.html#title-template"></template>
         </div>
     </section>
@@ -155,14 +155,16 @@
     </script>
 
     <!-- Document interactivity -->
+    <template build-fn="config">
     <script type="module">
-        import 'https://stephen.band/dom/js/device.js';
-        import 'https://stephen.band/dom/js/popable.js';
-        import 'https://stephen.band/dom/js/toggleable.js';
-        import 'https://stephen.band/dom/js/locateable.js';
-        import 'https://stephen.band/dom/js/switchable.js';
-        import 'https://stephen.band/dom/js/fullscreenable.js';
+        import '{[path]}dom/js/device.js';
+        import '{[path]}dom/js/popable.js';
+        import '{[path]}dom/js/toggleable.js';
+        import '{[path]}dom/js/locateable.js';
+        import '{[path]}dom/js/switchable.js';
+        import '{[path]}dom/js/fullscreenable.js';
         //import * as sparky from './build/module.js';
         //window = sparky;
     </script>
+    </template>
 </body>

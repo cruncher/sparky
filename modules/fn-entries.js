@@ -18,7 +18,7 @@ Maps scope to an array of `[key, value]` arrays.
 ```
 */
 
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 register('entries', function(node, params) {
     return this.map(Object.entries);

@@ -4,7 +4,7 @@
 // Calls named method of current scope on events of type.
 // Multiple method names may be given, they are called in turn.
 
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 const DEBUG = window.DEBUG;
 

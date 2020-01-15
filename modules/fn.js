@@ -41,18 +41,19 @@ Functions
 */
 
 /*
-Register
+Sparky.fn(name, fn)
 
 Sparky 'functions' are view-controllers with access to the node where they are
-declared and control over the flow of objects being sent to the renderer. They
-are registered and accessed by a string identifier.
+declared and control over the flow of objects being sent to the renderer.
 
 ```
-import { register } from './sparky/module.js';
+import Sparky from './sparky/build/module.js';
 
-register('my-function', function(node, params) {
-    // `this` is a stream of scope objects
-    return this.map(function(scope) {
+// Define fn="my-function:params"
+Sparky.fn('my-function', function(input, node, params) {
+    // input is a mappable, filterable, consumable,
+    // stoppable stream of scope objects
+    return input.map(function(scope) {
         // Map scope...
     });
 });
@@ -140,3 +141,5 @@ export function register(name, fn) {
 
     functions[name] = fn;
 }
+
+export default register;

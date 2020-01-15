@@ -3,7 +3,7 @@ import { before, create, fragmentFromChildren, isFragmentNode } from '../../dom/
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config    from './config.js';
-import { functions } from './functions.js';
+import { functions } from './fn.js';
 import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 import { logNode, nodeToString } from './log.js';

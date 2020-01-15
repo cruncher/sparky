@@ -36,6 +36,12 @@ import './modules/fn-rest.js';
 import './modules/fn-scope.js';
 import './modules/fn-take.js';
 
+import fn from './modules/fn.js';
+import pipe from './modules/pipe.js';
+
+Sparky.fn = fn;
+Sparky.pipe = pipe;
+
 // Export API
 export default Sparky;
 export { Stream, Observer, observe } from '../fn/module.js';
@@ -47,7 +53,7 @@ export { default as mountConfig } from './modules/config-mount.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
-export { register } from './modules/functions.js';
+export { register } from './modules/fn.js';
 export { default as delegate } from './modules/delegate.js';
 export { default as ObserveFn } from './modules/fn-observe.js';
 

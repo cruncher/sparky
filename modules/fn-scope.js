@@ -1,5 +1,5 @@
 
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 const map = new WeakMap();
 

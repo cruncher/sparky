@@ -13,7 +13,7 @@ Maps scope to the value at `path` of the current scope:
 */
 
 import { Observable, nothing } from '../../fn/module.js';
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 register('get', function(node, params) {
     return this

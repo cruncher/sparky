@@ -25,7 +25,7 @@ import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 const A       = Array.prototype;
 

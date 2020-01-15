@@ -16,7 +16,7 @@ Fetches and parses a JSON file and uses it as scope to render the node.
 import { Stream } from '../../fn/module.js';
 import { requestGet } from '../../dom/module.js';
 import Sparky from './sparky.js';
-import { register } from './functions.js';
+import { register } from './fn.js';
 
 const DEBUG = window.DEBUG;
 
