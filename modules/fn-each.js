@@ -101,14 +101,17 @@ function EachParent(input, node, marker, sparkies, isOption, options) {
 
 assign(EachParent.prototype, {
 	fire: function render(time) {
-		var scope = this.input.shift();
+		var scope = this.value; //this.input.shift();
+		this.value = undefined;
 		if (!scope) { return; }
 
         //scope, node, marker, sparkies, isOption, options
 		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
 
 		this.stop();
-		this.stop = observe('.', () => cue(renderer), scope);
+		this.stop = observe('.', () => {
+			cue(renderer)
+		}, scope);
 	},
 
 	stop: noop,
@@ -227,13 +230,12 @@ function reorderNodes(node, array, sparkies) {
 function eachFrame(stream, node, marker, sparkies, isOption, options) {
 	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
 
-	function push() {
-		cue(renderer);
-	}
-
 	// Support streams
 	stream
-    .on(push)
+    .each(function(value) {
+		renderer.value = value;
+		cue(renderer);
+	})
     .done(function stop() {
 		renderer.stop();
 		//uncue(renderer);

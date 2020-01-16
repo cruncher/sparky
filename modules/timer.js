@@ -74,10 +74,6 @@ function fireEach(queue) {
 	for (renderer of queue) {
 		if (DEBUG) {
 			count = renderer.renderCount;
-
-			if (typeof count !== 'number') {
-				console.log('OIOIO', renderer);
-			}
 		}
 
 		renderer.fire();
@@ -89,18 +85,42 @@ function fireEach(queue) {
 }
 
 function run(time) {
+	var tStart;
+
 	if (DEBUG) {
 		window.console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+
+		try {
+			renderCount = 0;
+			addons.length = 0;
+
+			tStart = now();
+			frame = true;
+			fireEach(queue);
+			frame = undefined;
+		}
+		catch (e) {
+			const tStop = now();
+
+			// Closes console group, logs warning for frame overrun even
+			// when not in DEBUG mode
+			logRenders(tStart, tStop);
+			queue.clear();
+
+			throw e;
+		}
+	}
+	else {
+		renderCount = 0;
+		addons.length = 0;
+
+		tStart = now();
+		frame = true;
+		fireEach(queue);
+		frame = undefined;
 	}
 
-	renderCount = 0;
-	addons.length = 0;
-
-	const tStart = now();
-	frame = true;
-	fireEach(queue);
-	frame = undefined;
-	const tStop  = now();
+	const tStop = now();
 
     // Closes console group, logs warning for frame overrun even
     // when not in DEBUG mode

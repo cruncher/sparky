@@ -7,8 +7,6 @@ import { functions } from './fn.js';
 import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
 import { logNode, nodeToString } from './log.js';
-import set from '../../fn/modules/set.js';
-import BooleanRenderer from './renderer-boolean.js';
 
 const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
@@ -73,6 +71,7 @@ function run(context, node, input, options) {
         const fn = functions[result.name] || (options.functions && options.functions[result.name]);
 
         if (!fn) {
+            if (DEBUG) { console.groupEnd(); }
             throw new Error(
                 'Sparky function "'
                 + result.name
