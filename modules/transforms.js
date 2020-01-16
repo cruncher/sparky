@@ -321,7 +321,10 @@ export const transforms = {
 	}),
 
 	matches: curry(function(regex, string) {
-		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
+		// Slice the first and last off of a string regex - it has leading
+		// and trailing '/' wot we don't need
+		regex = typeof regex === 'string' ? RegExp(regex.slice(1,-1)) : regex ;
+		console.log(regex);
 		return !!regex.test(string);
 	}),
 
