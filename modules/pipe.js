@@ -20,16 +20,19 @@ after the value of a tag has changed. It is best not to do anything
 too expensive in a pipe to keep the render process fast.
 */
 
-import { transforms } from './transforms.js';
+import { transformers } from './transforms.js';
 
 const DEBUG = !!window.DEBUG;
 
-export default function pipe(name, fn) {
-    if (DEBUG && transforms[name]) {
+export default function pipe(name, fx, ix) {
+    if (DEBUG && transformers[name]) {
         throw new Error('Sparky pipe "' + name + '" already defined');
     }
 
-    transforms[name] = fn;
+    transformers[name] = {
+        tx: fx,
+        ix: ix
+    };
 }
 
 /*

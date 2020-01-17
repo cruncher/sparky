@@ -8,20 +8,20 @@ scope object, piped through any number of `pipe` functions, which
 
 ```html
 <template is="sparky-template" fn="fetch:package.json">
-    {[ repository.url|prepend:'Repo: ' ]}
+    {[ repository.url|prepend:'Repo: '|lowercase ]}
 </template>
 ```
 
 ```html
-Repo: https://github.com/cruncher/sparky.git
+repo: https://github.com/cruncher/sparky.git
 ```
 
-Paths are a superset of JS notation, where dashes and numbers are allowed in
-property names. These are valid:
+Paths are a sort-of superset of JS dot notation, where dashes and numbers are
+allowed in property names:
 
 ```html
-{[ items.my-object ]}
 {[ items.3 ]}
+{[ items.my-object ]}
 ```
 
 The root path renders the scope object itself:
@@ -30,9 +30,28 @@ The root path renders the scope object itself:
 {[ . ]}
 ```
 
+And a  trailing `.` also renders the tag when the object at the path mutates:
+
+```html
+{[ items.3. ]}
+{[ items.my-object. ]}
+```
+
 Sparky renders `NaN`, `null` and `undefined` as empty strings, objects as JSON,
-functions as a `name(params)` shorthand, and `Infinity` as `∞`. Other values
-are rendered as strings.
+functions as `'function(params)'`, and `Infinity` as `'∞'`. Other values
+are converted to strings in the normal way.
+
+Tags placed in an `<input :value="{[]}">` set up two-way data binding.
+Sparky is strict about input types. A number will not render into an
+input `type="text"`. A string will not render into an input `type="number"` or
+`type="range"`.
+
+More importantly, a number typed into an input `type="text"` will be set as
+a string in the data, while the same typed into a `type="number"` will be set
+as a number. Sparky gaurantees your data types.
+
+The built-in type converter pipes facilitate rendering values into inputs of
+an unmatched type.
 */
 
 /*
@@ -97,8 +116,8 @@ const parseArrayClose = capture(/^\]\s*/, nothing);
 parseParams(array, string)
 */
 
-//                                        number                                     "string"            'string'                    null   true   false  array function(args)  dot  string           comma
-export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+//                                        number                                     "string"            'string'                    null   true   false  array function(args)   /regex/             dot  string             comma
+export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, tokens) {
         params.push(parseFloat(tokens[1]));
@@ -157,19 +176,25 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     //    return params;
     //},
 
+    // /regexp/
+    10: function(params, tokens) {
+        const regex = RegExp(tokens[10]);
+        params.push(regex);
+    },
+
     // string
-    11: function(params, tokens) {
-        if (tokens[10]) {
-            params.push(new Value(tokens[11]));
+    12: function(params, tokens) {
+        if (tokens[11]) {
+            params.push(new Value(tokens[12]));
         }
         else {
-            params.push(tokens[11]);
+            params.push(tokens[12]);
         }
         return params;
     },
 
     // Comma terminator - more params to come
-    12: function(params, tokens) {
+    13: function(params, tokens) {
         return parseParams(params, tokens);
     },
 

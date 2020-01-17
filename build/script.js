@@ -1325,13 +1325,13 @@ var Sparky = (function (exports) {
     }
 
     var DEBUG$1     = window.DEBUG !== false;
-    var A$3         = Array.prototype;
     var assign$1    = Object.assign;
 
-    function isValue(n) { return n !== undefined; }
 
     function isDone$1(stream) {
         return stream.status === 'done';
+        // Accept arrays or streams
+        //return stream.length === 0 || stream.status === 'done';
     }
 
     function notify(object) {
@@ -1696,8 +1696,16 @@ var Sparky = (function (exports) {
             return this.pipe(Stream$1.Choke(time));
         },
 
-        combine: function(fn, source) {
-            return Stream$1.Combine(fn, this, source);
+        /*
+        .combine(fn, stream)
+        Combines the latest values from this stream and `stream` via the combinator
+        `fn` any time a new value is emitted by either stream.
+        */
+
+        combine: function(fn, stream) {
+            const streams = Array.from(arguments);
+            streams[0] = this;
+            return CombineStream(fn, streams);
         },
 
 
@@ -1852,7 +1860,7 @@ var Sparky = (function (exports) {
         },
 
         on: function on(fn) {
-            if (typeof fn === 'string') {
+            if (DEBUG$1 && typeof fn === 'string') {
                 throw new Error('stream.on(fn) no longer takes type');
             }
 
@@ -1864,7 +1872,7 @@ var Sparky = (function (exports) {
         },
 
         off: function off(fn) {
-            if (typeof fn === 'string') {
+            if (DEBUG$1 && typeof fn === 'string') {
                 throw new Error('stream.off(fn) no longer takes type');
             }
 
@@ -1884,6 +1892,14 @@ var Sparky = (function (exports) {
             }
 
             return this;
+        },
+
+        toPush: function() {
+            const stream = this;
+            const privates$1 = privates(this);
+            return privates$1.input || (privates$1.input = function() {
+                stream.push.apply(stream, arguments);
+            });
         }
     });
 
@@ -1895,7 +1911,8 @@ var Sparky = (function (exports) {
     */
 
     function Pushable(push, stop) {
-        return { push, stop };
+        this.push = push;
+        this.stop = stop;
     }
 
     Stream$1.from = function(values) {
@@ -1919,12 +1936,9 @@ var Sparky = (function (exports) {
         });
     };
 
-    /*
-    Stream.fromProperty(name, object)
-    Returns a stream of mutations made to the `name` property of `object`,
-    assuming those mutations are made to the Observer proxy of object - see
-    [Observer](#observer).
-    */
+
+
+
 
 
     // Clock Stream
@@ -2068,7 +2082,7 @@ var Sparky = (function (exports) {
 
     /*
     Stream.of(...values)
-    Returns a writeable stream that uses arguments as its source.
+    Returns a stream that consumes arguments as a buffer. The stream is pushable.
     */
 
     Stream$1.of = function() {
@@ -2076,79 +2090,55 @@ var Sparky = (function (exports) {
     };
 
 
-    // Stream.Combine
+    // CombineStream
 
-    function toValue(data) {
-        var source = data.source;
-        var value  = data.value;
-        return data.value = value === undefined ? latest(source) : value ;
-    }
+    function CombineProducer(push, stop, fn, streams) {
+        const values = {
+            length: streams.length,
+            count: 0,
+            doneCount: 0
+        };
 
-    function CombineSource(notify, stop, fn, sources) {
-        var object = this;
+        function done() {
+            ++values.doneCount;
 
-        this._notify  = notify;
-        this._stop    = stop;
-        this._fn      = fn;
-        this._sources = sources;
-        this._hot     = true;
-
-        this._store = sources.map(function(source) {
-            var data = {
-                source: source,
-                listen: listen
-            };
-
-            // Listen for incoming values and flag as hot
-            function listen() {
-                data.value = undefined;
-                object._hot = true;
+            // Are all the source streams finished?
+            if (values.doneCount === values.length) {
+                // Stop the stream
+                stop();
             }
+        }
 
-            source.on(listen);
-            source.on(notify);
-            return data;
+        streams.forEach(function(stream, i) {
+            stream
+            .map(function(value) {
+                // Is this the first value to come through the source stream?
+                if (values[i] === undefined) {
+                    ++values.count;
+                }
+
+                values[i] = value;
+
+                // Are all the source streams active?
+                if (values.count === values.length) {
+                    // Push the combined output into the stream's buffer
+                    return fn.apply(null, values);
+                }
+            })
+            .each(push)
+            .done(done);
         });
+
+        return { stop };
     }
 
-    assign$1(CombineSource.prototype, {
-        shift: function combine() {
-            // Prevent duplicate values going out the door
-            if (!this._hot) { return; }
-            this._hot = false;
-
-            var sources = this._sources;
-            var values  = this._store.map(toValue);
-            if (sources.every(isDone$1)) { this._stop(0); }
-            return values.every(isValue) && this._fn.apply(null, values) ;
-        },
-
-        stop: function stop() {
-            var notify = this._notify;
-
-            // Remove listeners
-            each(function(data) {
-                var source = data.source;
-                var listen = data.listen;
-                source.off(listen);
-                source.off(notify);
-            }, this._store);
-
-            this._stop(this._hot ? 1 : 0);
-        }
-    });
-
-    Stream$1.Combine = function(fn) {
-        var sources = A$3.slice.call(arguments, 1);
-
-        if (sources.length < 2) {
-            throw new Error('Stream: Combine requires more than ' + sources.length + ' source streams')
+    function CombineStream(fn, streams) {
+        if (DEBUG$1 && streams.length < 2) {
+            throw new Error('CombineStream(fn, streams) requires more than 1 stream')
         }
 
-        return new Stream$1(function setup(notify, stop) {
-            return new CombineSource(notify, stop, fn, sources);
-        });
-    };
+        return new Stream$1((push, stop) => CombineProducer(push, stop, fn, streams));
+    }
 
 
     // Stream.Merge
@@ -2301,7 +2291,7 @@ var Sparky = (function (exports) {
 
     const $observer = Symbol('observer');
 
-    const A$4            = Array.prototype;
+    const A$3            = Array.prototype;
     const nothing$1      = Object.freeze([]);
     const isExtensible = Object.isExtensible;
 
@@ -2376,7 +2366,7 @@ var Sparky = (function (exports) {
 
     			change = {
     				index:   value,
-    				removed: A$4.splice.call(target, value),
+    				removed: A$3.splice.call(target, value),
     				added:   nothing$1,
     			};
 
@@ -2393,7 +2383,7 @@ var Sparky = (function (exports) {
     				if (name < target.length) {
     					change = {
     						index:   name,
-    						removed: A$4.splice.call(target, name, 1),
+    						removed: A$3.splice.call(target, name, 1),
     						added:   nothing$1
     					};
 
@@ -2406,7 +2396,7 @@ var Sparky = (function (exports) {
     			else {
     				change = {
     					index:   name,
-    					removed: A$4.splice.call(target, name, 1, value),
+    					removed: A$3.splice.call(target, name, 1, value),
     					added:   [value]
     				};
     			}
@@ -2632,7 +2622,7 @@ var Sparky = (function (exports) {
 
     { window.observeCount = 0; }
 
-    const A$5       = Array.prototype;
+    const A$4       = Array.prototype;
     const nothing$2 = Object.freeze([]);
 
     //                   1 .name         [2 number  3 'quote' 4 "quote" ]
@@ -2679,7 +2669,7 @@ var Sparky = (function (exports) {
     	var unobserve = noop;
 
     	function update(array) {
-    		var value = array && A$5.find.call(array, isMatch);
+    		var value = array && A$4.find.call(array, isMatch);
     		unobserve();
     		unobserve = observeUnknown(value, path, data);
     	}
@@ -2717,7 +2707,7 @@ var Sparky = (function (exports) {
     }
 
     function readSelector(object, isMatch, path, data) {
-    	var value = object && A$5.find.call(object, isMatch);
+    	var value = object && A$4.find.call(object, isMatch);
     	return observeUnknown(Observer(value) || value, path, data);
     }
 
@@ -3197,14 +3187,14 @@ var Sparky = (function (exports) {
     `fn(object)` is greater than `fn(array[index])`.
     */
 
-    const A$6 = Array.prototype;
+    const A$5 = Array.prototype;
 
     function insert(fn, array, object) {
         var n = -1;
         var l = array.length;
         var value = fn(object);
         while(++n < l && fn(array[n]) <= value);
-        A$6.splice.call(array, n, 0, object);
+        A$5.splice.call(array, n, 0, object);
         return object;
     }
 
@@ -5962,12 +5952,12 @@ var Sparky = (function (exports) {
 
     // -----------------
 
-    const A$7 = Array.prototype;
+    const A$6 = Array.prototype;
     const eventsSymbol = Symbol('events');
 
     function applyTail(fn, args) {
     	return function() {
-    		A$7.push.apply(arguments, args);
+    		A$6.push.apply(arguments, args);
     		fn.apply(null, arguments);
     	};
     }
@@ -5982,7 +5972,7 @@ var Sparky = (function (exports) {
 
     	var types   = type.split(rspaces);
     	var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-    	var handler = arguments.length > 3 ? applyTail(fn, A$7.slice.call(arguments, 3)) : fn ;
+    	var handler = arguments.length > 3 ? applyTail(fn, A$6.slice.call(arguments, 3)) : fn ;
     	var handlers, listener;
     	var n = -1;
 
@@ -6561,10 +6551,6 @@ var Sparky = (function (exports) {
     	for (renderer of queue) {
     		if (DEBUG$3) {
     			count = renderer.renderCount;
-
-    			if (typeof count !== 'number') {
-    				console.log('OIOIO', renderer);
-    			}
     		}
 
     		renderer.fire();
@@ -6576,18 +6562,42 @@ var Sparky = (function (exports) {
     }
 
     function run(time) {
+    	var tStart;
+
     	if (DEBUG$3) {
     		window.console.groupCollapsed('%cSparky %c ' + (window.performance.now() / 1000).toFixed(3) + ' frame ' + (time / 1000).toFixed(3), 'color: #a3b31f; font-weight: 600;', 'color: #6894ab; font-weight: 400;');
+
+    		try {
+    			renderCount = 0;
+    			addons.length = 0;
+
+    			tStart = now$1();
+    			frame = true;
+    			fireEach(queue);
+    			frame = undefined;
+    		}
+    		catch (e) {
+    			const tStop = now$1();
+
+    			// Closes console group, logs warning for frame overrun even
+    			// when not in DEBUG mode
+    			logRenders(tStart, tStop);
+    			queue.clear();
+
+    			throw e;
+    		}
+    	}
+    	else {
+    		renderCount = 0;
+    		addons.length = 0;
+
+    		tStart = now$1();
+    		frame = true;
+    		fireEach(queue);
+    		frame = undefined;
     	}
 
-    	renderCount = 0;
-    	addons.length = 0;
-
-    	const tStart = now$1();
-    	frame = true;
-    	fireEach(queue);
-    	frame = undefined;
-    	const tStop  = now$1();
+    	const tStop = now$1();
 
         // Closes console group, logs warning for frame overrun even
         // when not in DEBUG mode
@@ -6813,7 +6823,7 @@ var Sparky = (function (exports) {
         this.path = path;
     }
 
-    function isValue$1(object) {
+    function isValue(object) {
         return Value.prototype.isPrototypeOf(object);
     }
 
@@ -6837,8 +6847,8 @@ var Sparky = (function (exports) {
     parseParams(array, string)
     */
 
-    //                                        number                                     "string"            'string'                    null   true   false  array function(args)  dot  string           comma
-    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+    //                                        number                                     "string"            'string'                    null   true   false  array function(args)   /regex/             dot  string             comma
+    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
         // number
         1: function(params, tokens) {
             params.push(parseFloat(tokens[1]));
@@ -6897,19 +6907,25 @@ var Sparky = (function (exports) {
         //    return params;
         //},
 
+        // /regexp/
+        10: function(params, tokens) {
+            const regex = RegExp(tokens[10]);
+            params.push(regex);
+        },
+
         // string
-        11: function(params, tokens) {
-            if (tokens[10]) {
-                params.push(new Value(tokens[11]));
+        12: function(params, tokens) {
+            if (tokens[11]) {
+                params.push(new Value(tokens[12]));
             }
             else {
-                params.push(tokens[11]);
+                params.push(tokens[12]);
             }
             return params;
         },
 
         // Comma terminator - more params to come
-        12: function(params, tokens) {
+        13: function(params, tokens) {
             return parseParams(params, tokens);
         },
 
@@ -7105,18 +7121,19 @@ var Sparky = (function (exports) {
     */
 
     /*
-    Register
+    Sparky.fn(name, fn)
 
     Sparky 'functions' are view-controllers with access to the node where they are
-    declared and control over the flow of objects being sent to the renderer. They
-    are registered and accessed by a string identifier.
+    declared and control over the flow of objects being sent to the renderer.
 
     ```
-    import { register } from './sparky/module.js';
+    import Sparky from './sparky/build/module.js';
 
-    register('my-function', function(node, params) {
-        // `this` is a stream of scope objects
-        return this.map(function(scope) {
+    // Define fn="my-function:params"
+    Sparky.fn('my-function', function(input, node, params) {
+        // input is a mappable, filterable, consumable,
+        // stoppable stream of scope objects
+        return input.map(function(scope) {
             // Map scope...
         });
     });
@@ -7202,10 +7219,8 @@ var Sparky = (function (exports) {
         functions[name] = fn;
     }
 
-    // Helper functions
-
-    const toFloat = parseFloat;
-    var A$8         = Array.prototype;
+    // Import uncurried functions from Fn library
+    var A$7         = Array.prototype;
     var S$1         = String.prototype;
 
     const reducers = {
@@ -7238,84 +7253,114 @@ var Sparky = (function (exports) {
 
     const transformers = {
 
+    	/* is: value
+    	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
+    	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
+
+    	/* has: property
+    	Returns `true` where value is an object with `property`, otherwise `false`. */
+    	has: { tx: function (name, object) { return object && (name in object); } },
+
+    /*
+    matches: selector
+
+    Returns `true` if value matches `selector`. Behaviour is overloaded to accept
+    different types of `selector`. Where `selector` is a RegExp, value is assumed
+    to be a string and tested against it.
+
+    ```html
+    {[ .|matches:/abc/ ]}     // `true` if value contains 'abc'
+    ```
+    */
+
+    //Where `selector` is an Object, value is assumed to be an object and its
+    //properties are matched against those of `selector`.
+    //
+    //```html
+    //{[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.
+    //```
+
+    	matches: {
+    		tx: overload(toClass, {
+    			RegExp: (selector, string) => selector.test(string),
+    			Object: matches
+    		})
+    	},
+
+    	/* class:
+    	Returns the Class of value. */
+    	'class': { tx: toClass },
+
+    	/* type:
+    	Returns the `typeof` value. */
+    	'type': { tx: toType },
+
+    	/* Booleans */
+
+    	/* yesno: a, b
+    	Where value is truthy returns `a`, otherwise `b`. */
+    	yesno: {
+    		tx: function (truthy, falsy, value) {
+    			return value ? truthy : falsy;
+    		}
+    	},
+
+    	/* Numbers */
+
     	/* add: n
     	Adds `n` to value. */
-    	add:         {
-    		tx: function(a, b) { return b.add ? b.add(a) : b + a ; },
-    		ix: function(a, c) { return c.add ? c.add(-a) : c - a ; }
+    	add: {
+    		tx: overload(function(n) {
+    			const type = typeof n;
+    			return type === 'string' ?
+    				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+    				/^\d\d(?:\:|$)/.text(n) ? 'time' :
+    				'string' :
+    			type ;
+    		}, {
+    			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
+    			date: addDate,
+    			time: addTime,
+    			default: function(n) {
+    				throw new Error('Sparky add:value does not like values of type ' + typeof n);
+    			}
+    		}),
+
+    		ix: overload(function (n) {
+    			const type = typeof n;
+    			return type === 'string' ?
+    				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+    					/^\d\d(?:\:|$)/.text(n) ? 'time' :
+    						'string' :
+    				type;
+    		}, {
+    			number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
+    			date: function (d, n) { return addDate('-' + d, n); },
+    			time: subTime,
+    			default: function (n) {
+    				throw new Error('Sparky add:value does not like values of type ' + typeof n);
+    			}
+    		})
     	},
 
-    	/* add-date: yyyy-mm-dd
-    	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
-    	'add-date':  { tx: addDate,     ix: function(d, n) { return addDate('-' + d, n); } },
+    	/* floor:
+    	Floors a number. */
+    	floor: { tx: Math.floor },
 
-    	/* add-time: 'hh:mm:ss'
-    	Adds an ISO time in the form `'hh:mm:ss'` to a time value. (Note this
-    	string must be quoted because it contains ':' characters.) */
-    	'add-time':  { tx: addTime,     ix: subTime },
-
-    	/* to-db:
-    	Converts value to dB scale. */
-    	'to-db':     { tx: todB,        ix: toLevel },
-
-    	/* to-precision: n
-    	Converts number to string representing number to precision `n`. */
-    	'to-precision': {
-    		tx: function(n, value) {
-    			return Number.isFinite(value) ?
-    				value.toPrecision(n) :
-    				value ;
-    		},
-
-    		ix: parseFloat
-    	},
-
-    	join: {
-    		tx: function(string, value) {
-    			return A$8.join.call(value, string);
-    		},
-
-    		ix: function(string, value) {
-    			return S$1.split.call(value, string);
-    		}
-    	},
-
-    	'numbers-string': {
-    		tx: function(string, value) {
-    			return A$8.join.call(value, string);
-    		},
-
-    		ix: function(string, value) {
-    			return S$1.split.call(value, string).map(parseFloat);
-    		}
-    	},
-
-    	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
-    	degrees:     { tx: toDeg,       ix: toRad },
-    	radians:     { tx: toRad,       ix: toDeg },
-    	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
-    	exp:         { tx: exp,         ix: log },
-    	log:         { tx: log,         ix: exp },
-    	int:         { tx: function(value) { return toFixed(0, value); }, ix: parseInteger },
-    	float:       { tx: toFloat,     ix: toString },
-    	boolean:     { tx: Boolean,     ix: toString },
-
-        'boolean-string': { tx: toString, ix: function(value) {
-            return value === 'true' ? true :
-                value === 'false' ? false :
-                undefined ;
-        }},
+    	/* root: n
+    	Returns the `n`th root of value. */
+    	root: { tx: root, ix: pow },
 
     	/* normalise: curve, min, max
     	Return a value in the nominal range `0-1` from a value between `min` and
     	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-    	normalise:   {
-    		tx: function(curve, min, max, number) {
+    	normalise: {
+    		tx: function (curve, min, max, number) {
     			const name = toCamelCase(curve);
     			return normalise[name](min, max, number);
     		},
 
-    		ix: function(curve, min, max, number) {
+    		ix: function (curve, min, max, number) {
     			const name = toCamelCase(curve);
     			return denormalise[name](min, max, number);
     		}
@@ -7324,34 +7369,161 @@ var Sparky = (function (exports) {
     	/* denormalise: curve, min, max
     	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
     	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-    	denormalise:   {
-    		tx: function(curve, min, max, number) {
+    	denormalise: {
+    		tx: function (curve, min, max, number) {
     			const name = toCamelCase(curve);
     			return denormalise[name](min, max, number);
     		},
 
-    		ix: function(curve, min, max, number) {
+    		ix: function (curve, min, max, number) {
     			const name = toCamelCase(curve);
     			return normalise[name](min, max, number);
     		}
     	},
 
+    	/* to-db:
+    	Transforms values in the nominal range `0-1` to dB scale, and, when used in
+    	two-way binding, transforms them back a number in nominal range. */
+    	'to-db': { tx: todB, ix: toLevel },
+
+    	/* to-cartesian:
+    	Transforms a polar coordinate array to cartesian coordinates. */
+    	'to-cartesian': { tx: toCartesian, ix: toPolar },
+
+    	/* to-polar:
+    	Transforms a polar coordinate array to cartesian coordinates. */
+    	'to-polar': { tx: toPolar, ix: toCartesian },
+
     	/* floatformat: n
-    	Returns a number fixed to `n` decimal places from value. */
-    	floatformat: { tx: toFixed,     ix: function(n, str) { return parseFloat(str); } },
+    	Transforms numbers to strings with `n` decimal places. Used for
+    	two-way binding, gaurantees numbers are set on scope. */
+    	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
+
+    	/* floatprecision: n
+    	Converts number to string representing number to precision `n`. */
+    	floatprecision: {
+    		tx: function (n, value) {
+    			return Number.isFinite(value) ?
+    				value.toPrecision(n) :
+    				value;
+    		},
+
+    		ix: parseFloat
+    	},
+
+    	/* Dates */
+
+    	/* add: yyyy-mm-dd
+    	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
+
+    	/* dateformat: yyyy-mm-dd
+    	Converts an ISO date string, a number (in seconds) or a Date object
+    	to a string in `yyyy-mm-dd`. */
+    	dateformat: { tx: formatDate },
+
+    	/* Times */
+
+    	/* add: 'hh:mm:ss'
+    	Adds an ISO time in the form `'hh:mm:ss'` to a time value. May be used
+    	for two-way binding. (Note the string must be quoted because it contains
+    	':' characters.) */
+
+    	/* timeformat: 'hh:mm:ss'
+    	Converts ISO time string, a number (in seconds) or the UTC time values of
+    	a Date object to a formatted string. */
+    	timeformat: { tx: formatTime },
+
+
+
+    	join: {
+    		tx: function(string, value) {
+    			return A$7.join.call(value, string);
+    		},
+
+    		ix: function(string, value) {
+    			return S$1.split.call(value, string);
+    		}
+    	},
+
+
+
+    	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
+    	degrees:     { tx: toDeg,       ix: toRad },
+    	radians:     { tx: toRad,       ix: toDeg },
+    	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
+    	exp:         { tx: exp,         ix: log },
+    	log:         { tx: log,         ix: exp },
+
+
+    	/* Type converters */
+
+    	/* boolean-string:
+    	Transforms booleans to strings and vice versa. May by used for two-way binding. */
+    	'boolean-string': {
+    		tx: toString,
+    		ix: function (value) {
+    			return value === 'true' ? true :
+    				value === 'false' ? false :
+    					undefined;
+    		}
+    	},
 
     	/* float-string:
-    	Converts float values to strings. */
+    	Transforms numbers to float strings, and, used for two-way binding,
+    	gaurantees numbers are set on scope. */
     	'float-string': { tx: (value) => value + '', ix: parseFloat },
 
+    	/* floats-string: separator
+    	Transforms an array of numbers to a string using `separator`, and,
+    	used for two-way binding, gaurantees an array of numbers is set on scope. */
+    	'floats-string': {
+    		tx: function (string, value) {
+    			return A$7.join.call(value, string);
+    		},
+
+    		ix: function (string, value) {
+    			return S$1.split.call(value, string).map(parseFloat);
+    		}
+    	},
+
     	/* int-string:
-    	Converts int values to strings. */
+    	Transforms numbers to integer strings, and, used for two-way binding,
+    	gaurantees integer numbers are set on scope. */
     	'int-string':   { tx: (value) => value.toFixed(0), ix: parseInteger },
+
+    	/* ints-string: separator
+    	Transforms an array of numbers to a string of integers seperated with
+    	`separator`, and, used for two-way binding, gaurantees an array of integer
+    	numbers is set on scope. */
+    	'ints-string': {
+    		tx: function (string, value) {
+    			return A$7.join.call(A$7.map.call(value, (value) => value.toFixed(0)), string);
+    		},
+
+    		ix: function (string, value) {
+    			return S$1.split.call(value, string).map(parseInteger);
+    		}
+    	},
+
+    	/* string-float:
+    	Transforms strings to numbers, and, used for two-way binding,
+    	gaurantees float strings are set on scope. */
+    	'string-float': { tx: parseFloat, ix: toString },
+
+    	/* string-int:
+    	Transforms strings to integer numbers, and, used for two-way binding,
+    	gaurantees integer strings are set on scope. */
+    	'string-int': { tx: parseInteger, ix: (value) => value.toFixed(0) },
+
+    	/* json:
+    	Transforms objects to json, and used in two-way binding, sets parsed
+    	objects on scope. */
+    	json: { tx: JSON.stringify, ix: JSON.parse },
 
     	interpolate: {
     		tx: function(point) {
-    			var xs = A$8.map.call(arguments, get('0'));
-    			var ys = A$8.map.call(arguments, get('1'));
+    			var xs = A$7.map.call(arguments, get('0'));
+    			var ys = A$7.map.call(arguments, get('1'));
 
     			return function(value) {
     				return interpolateLinear(xs, ys, value);
@@ -7359,8 +7531,8 @@ var Sparky = (function (exports) {
     		},
 
     		ix: function(point) {
-    			var xs = A$8.map.call(arguments, get('0'));
-    			var ys = A$8.map.call(arguments, get('1'));
+    			var xs = A$7.map.call(arguments, get('0'));
+    			var ys = A$7.map.call(arguments, get('1'));
 
     			return function(value) {
     				return interpolateLinear(ys, xs, value);
@@ -7368,8 +7540,7 @@ var Sparky = (function (exports) {
     		}
     	},
 
-    	cartesian: { tx: toCartesian, ix: toPolar },
-    	polar:     { tx: toPolar, ix: toCartesian },
+
     	deg:       { tx: toDeg, ix: toRad },
     	rad:       { tx: toRad, ix: toDeg },
     	level:     { tx: toLevel, ix: todB },
@@ -7387,31 +7558,8 @@ var Sparky = (function (exports) {
     	escape:       escape,
     	exp:          exp,
 
-    	/* formatdate: format
-    	Converts a date object, ISO date string or UNIX time number (in seconds) to
-    	string in `format`.
-    	*/
-    	formatdate:   formatDate,
-
-    	/* formattime: format
-    	Converts ISO time string, a number (in seconds) or the UTC time values of
-    	a date object to a string formatted to `format`.
-    	*/
-    	formattime:   formatTime,
-
-    	formatfloat:  toFixed,
     	get:          getPath,
     	invoke:       invoke,
-
-    	/* is:a
-    	Returns `true` where value is strictly equal to `a`, otherwise `false`. */
-    	is:           is,
-
-    	/* has: property
-    	Returns `true` where value is an object with the property `name`, otherwise `false`. */
-    	has: function(name, object) {
-    		return object && (name in object);
-    	},
 
     	last:         last,
     	limit:        limit,
@@ -7420,29 +7568,27 @@ var Sparky = (function (exports) {
     	min:          min,
     	mod:          mod,
 
-    	// Strings
+    	/* Strings */
 
-    	/* append:string
+    	/* append: string
     	Returns value + `string`. */
     	append:       append$1,
 
-    	/* prepend:string
+    	/* prepend: string
     	Returns `string` + value. */
     	prepend:      prepend,
+
+    	/* prepad: string, n
+    	Prepends value with `string` until the output is `n` characters long. */
     	prepad:       prepad,
+
+    	/* postpad: string, n
+    	Appends value with `string` until the output is `n` characters long. */
     	postpad:      postpad,
 
     	/* slugify:
     	Returns the slug of value. */
     	slugify:      slugify,
-
-    	/* root:n
-    	Returns the `n`th root of value. */
-    	root:         root,
-
-    	/* type:
-    	Returns the `typeof` value. */
-    	type:         toType,
 
     	divide: function(n, value) {
     		if (typeof value !== 'number') { return; }
@@ -7455,10 +7601,6 @@ var Sparky = (function (exports) {
     		return array && array.find(compose(is(id), get('id')));
     	},
 
-    	/* floor:
-    	Floors a numeric value. */
-    	floor: Math.floor,
-
     	"greater-than": function(value2, value1) {
     		return value1 > value2;
     	},
@@ -7466,8 +7608,6 @@ var Sparky = (function (exports) {
     	invert: function(value) {
     		return typeof value === 'number' ? 1 / value : !value ;
     	},
-
-    	json: JSON.stringify,
 
     	"less-than": function(value2, value1) {
     		return value1 < value2 ;
@@ -7522,16 +7662,6 @@ var Sparky = (function (exports) {
     		);
 
     		return array && array.filter((value) => fn(...args, value));
-    	},
-
-    	match: function(regex, string) {
-    		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-    		return regex.exec(string);
-    	},
-
-    	matches: function(regex, string) {
-    		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-    		return !!regex.test(string);
     	},
 
     	/* pluralise: str1, str2, lang
@@ -7614,12 +7744,6 @@ var Sparky = (function (exports) {
     	uppercase: function(value) {
     		if (typeof value !== 'string') { return; }
     		return String.prototype.toUpperCase.apply(value);
-    	},
-
-    	/* yesno: a, b
-    	Where value is truthy returns `a`, otherwise `b`. */
-    	yesno: function(truthy, falsy, value) {
-    		return value ? truthy : falsy ;
     	}
     };
 
@@ -7693,7 +7817,7 @@ var Sparky = (function (exports) {
                     if (!args.length) { continue; }
 
                     // Look for dynamic value objects
-                    args = args.filter(isValue$1);
+                    args = args.filter(isValue);
                     if (!args.length) { continue; }
 
                     args.forEach((param) => observeThing(this, token, param, scope));
@@ -8112,7 +8236,7 @@ var Sparky = (function (exports) {
 
     const DEBUG$5 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
-    const A$9      = Array.prototype;
+    const A$8      = Array.prototype;
     const assign$e = Object.assign;
 
     const $cache = Symbol('cache');
@@ -8616,7 +8740,7 @@ var Sparky = (function (exports) {
 
     	// document
     	9: function mountDocument(node, renderers, options) {
-    		mountCollection(A$9.slice.apply(node.childNodes), renderers, options);
+    		mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
     	},
 
     	// doctype
@@ -8624,7 +8748,7 @@ var Sparky = (function (exports) {
 
     	// fragment
     	11: function mountFragment(node, renderers, options) {
-    		mountCollection(A$9.slice.apply(node.childNodes), renderers, options);
+    		mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
     	},
 
         default: function(node) {
@@ -8738,6 +8862,7 @@ var Sparky = (function (exports) {
             const fn = functions[result.name] || (options.functions && options.functions[result.name]);
 
             if (!fn) {
+                if (DEBUG$6) { console.groupEnd(); }
                 throw new Error(
                     'Sparky function "'
                     + result.name
@@ -9204,7 +9329,7 @@ var Sparky = (function (exports) {
     on each clone.
     */
 
-    const A$a       = Array.prototype;
+    const A$9       = Array.prototype;
 
     const isArray = Array.isArray;
     const assign$g  = Object.assign;
@@ -9278,14 +9403,17 @@ var Sparky = (function (exports) {
 
     assign$g(EachParent.prototype, {
     	fire: function render(time) {
-    		var scope = this.input.shift();
+    		var scope = this.value; //this.input.shift();
+    		this.value = undefined;
     		if (!scope) { return; }
 
             //scope, node, marker, sparkies, isOption, options
     		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
 
     		this.stop();
-    		this.stop = observe('.', () => cue(renderer), scope);
+    		this.stop = observe('.', () => {
+    			cue(renderer);
+    		}, scope);
     	},
 
     	stop: noop,
@@ -9345,7 +9473,7 @@ var Sparky = (function (exports) {
     		// and get rid of the nodes
     		if (sparky.nodes) {
                 renderCount += sparky.nodes.length;
-    			A$a.forEach.call(sparky.nodes, (node) => node.remove());
+    			A$9.forEach.call(sparky.nodes, (node) => node.remove());
     		}
     	}
 
@@ -9404,13 +9532,12 @@ var Sparky = (function (exports) {
     function eachFrame(stream, node, marker, sparkies, isOption, options) {
     	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
 
-    	function push() {
-    		cue(renderer);
-    	}
-
     	// Support streams
     	stream
-        .on(push)
+        .each(function(value) {
+    		renderer.value = value;
+    		cue(renderer);
+    	})
         .done(function stop() {
     		renderer.stop();
     		//uncue(renderer);
@@ -9618,6 +9745,55 @@ var Sparky = (function (exports) {
         return this.map(take$1(params[0]));
     });
 
+    /*
+    Sparky.pipe(name, fn)
+
+    Define a pipe using `Sparky.pipe(name, fn)`.
+
+    ```js
+    import Sparky from './sparky/build/module.js';
+
+    // Define {[.|my-pipe:param]}
+    Sparky.pipe('my-pipe', function(param, value) {
+        // return something from param and value
+    });
+    ```
+
+    A pipe may take any number of params; the final parameter is the
+    value being piped frmo the tag scope.
+
+    Pipes are called during the render process on the next animation frame
+    after the value of a tag has changed. It is best not to do anything
+    too expensive in a pipe to keep the render process fast.
+    */
+
+    const DEBUG$b = !!window.DEBUG;
+
+    function pipe$1(name, fx, ix) {
+        if (DEBUG$b && transformers[name]) {
+            throw new Error('Sparky pipe "' + name + '" already defined');
+        }
+
+        transformers[name] = {
+            tx: fx,
+            ix: ix
+        };
+    }
+
+    /*
+    Examples
+
+    ```js
+    import Sparky from './sparky/build/module.js';
+    const tax = 1.175;
+
+    // Define {[number|add-tax]}
+    Sparky.pipe('add-tax', function(value) {
+        return value * tax;
+    });
+    ```
+    */
+
     function createArgs(e, selector) {
         const node = e.target.closest(selector);
         // Default to undefined, the stream filters out undefined
@@ -9704,6 +9880,9 @@ var Sparky = (function (exports) {
     if (window.console && window.console.log) {
         console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
     }
+
+    Sparky.fn = register;
+    Sparky.pipe = pipe$1;
 
 
     /*

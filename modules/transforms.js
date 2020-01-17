@@ -1,6 +1,3 @@
-
-
-
 // Import uncurried functions from Fn library
 
 import { getPath } from '../../fn/modules/paths.js';
@@ -9,11 +6,13 @@ import get         from '../../fn/modules/get.js';
 import invoke      from '../../fn/modules/invoke.js';
 import is          from '../../fn/modules/is.js';
 import isDefined   from '../../fn/modules/is-defined.js';
+import matches     from '../../fn/modules/matches.js';
 import not         from '../../fn/modules/not.js';
 import toInt       from '../../fn/modules/parse-int.js';
 import toFixed     from '../../fn/modules/to-fixed.js';
 import toString    from '../../fn/modules/to-string.js';
 import toType      from '../../fn/modules/to-type.js';
+import toClass     from '../../fn/modules/to-class.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
@@ -33,6 +32,7 @@ import last from '../../fn/modules/lists/last.js';
 
 import {
 	compose,
+	overload,
 	formatDate,
 	formatTime,
 	addDate,
@@ -45,12 +45,6 @@ import {
 
 import escape from '../../dom/modules/escape.js';
 import { toPx, toRem, toVw, toVh } from '../../dom/modules/values.js';
-
-
-// Helper functions
-
-const toFloat = parseFloat;
-
 
 var DEBUG     = window.DEBUG === true || window.DEBUG === 'Sparky';
 var A         = Array.prototype;
@@ -86,37 +80,187 @@ function interpolateLinear(xs, ys, x) {
 
 export const transformers = {
 
-	/* add: n
-	Adds `n` to value. */
-	add:         {
-		tx: function(a, b) { return b.add ? b.add(a) : b + a ; },
-		ix: function(a, c) { return c.add ? c.add(-a) : c - a ; }
+	/* is: value
+	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
+	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
+
+	/* has: property
+	Returns `true` where value is an object with `property`, otherwise `false`. */
+	has: { tx: function (name, object) { return object && (name in object); } },
+
+/*
+matches: selector
+
+Returns `true` if value matches `selector`. Behaviour is overloaded to accept
+different types of `selector`. Where `selector` is a RegExp, value is assumed
+to be a string and tested against it.
+
+```html
+{[ .|matches:/abc/ ]}     // `true` if value contains 'abc'
+```
+*/
+
+//Where `selector` is an Object, value is assumed to be an object and its
+//properties are matched against those of `selector`.
+//
+//```html
+//{[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.
+//```
+
+	matches: {
+		tx: overload(toClass, {
+			RegExp: (selector, string) => selector.test(string),
+			Object: matches
+		})
 	},
 
-	/* add-date: yyyy-mm-dd
-	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
-	'add-date':  { tx: addDate,     ix: function(d, n) { return addDate('-' + d, n); } },
+	/* class:
+	Returns the Class of value. */
+	'class': { tx: toClass },
 
-	/* add-time: 'hh:mm:ss'
-	Adds an ISO time in the form `'hh:mm:ss'` to a time value. (Note this
-	string must be quoted because it contains ':' characters.) */
-	'add-time':  { tx: addTime,     ix: subTime },
+	/* type:
+	Returns the `typeof` value. */
+	'type': { tx: toType },
+
+	/* Booleans */
+
+	/* yesno: a, b
+	Where value is truthy returns `a`, otherwise `b`. */
+	yesno: {
+		tx: function (truthy, falsy, value) {
+			return value ? truthy : falsy;
+		}
+	},
+
+	/* Numbers */
+
+	/* add: n
+	Adds `n` to value. */
+	add: {
+		tx: overload(function(n) {
+			const type = typeof n;
+			return type === 'string' ?
+				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+				/^\d\d(?:\:|$)/.text(n) ? 'time' :
+				'string' :
+			type ;
+		}, {
+			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
+			date: addDate,
+			time: addTime,
+			default: function(n) {
+				throw new Error('Sparky add:value does not like values of type ' + typeof n);
+			}
+		}),
+
+		ix: overload(function (n) {
+			const type = typeof n;
+			return type === 'string' ?
+				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+					/^\d\d(?:\:|$)/.text(n) ? 'time' :
+						'string' :
+				type;
+		}, {
+			number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
+			date: function (d, n) { return addDate('-' + d, n); },
+			time: subTime,
+			default: function (n) {
+				throw new Error('Sparky add:value does not like values of type ' + typeof n);
+			}
+		})
+	},
+
+	/* floor:
+	Floors a number. */
+	floor: { tx: Math.floor },
+
+	/* root: n
+	Returns the `n`th root of value. */
+	root: { tx: root, ix: pow },
+
+	/* normalise: curve, min, max
+	Return a value in the nominal range `0-1` from a value between `min` and
+	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+	normalise: {
+		tx: function (curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		},
+
+		ix: function (curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		}
+	},
+
+	/* denormalise: curve, min, max
+	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
+	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+	denormalise: {
+		tx: function (curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return denormalise[name](min, max, number);
+		},
+
+		ix: function (curve, min, max, number) {
+			const name = toCamelCase(curve);
+			return normalise[name](min, max, number);
+		}
+	},
 
 	/* to-db:
-	Converts value to dB scale. */
-	'to-db':     { tx: todB,        ix: toLevel },
+	Transforms values in the nominal range `0-1` to dB scale, and, when used in
+	two-way binding, transforms them back a number in nominal range. */
+	'to-db': { tx: todB, ix: toLevel },
 
-	/* to-precision: n
+	/* to-cartesian:
+	Transforms a polar coordinate array to cartesian coordinates. */
+	'to-cartesian': { tx: toCartesian, ix: toPolar },
+
+	/* to-polar:
+	Transforms a polar coordinate array to cartesian coordinates. */
+	'to-polar': { tx: toPolar, ix: toCartesian },
+
+	/* floatformat: n
+	Transforms numbers to strings with `n` decimal places. Used for
+	two-way binding, gaurantees numbers are set on scope. */
+	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
+
+	/* floatprecision: n
 	Converts number to string representing number to precision `n`. */
-	'to-precision': {
-		tx: function(n, value) {
+	floatprecision: {
+		tx: function (n, value) {
 			return Number.isFinite(value) ?
 				value.toPrecision(n) :
-				value ;
+				value;
 		},
 
 		ix: parseFloat
 	},
+
+	/* Dates */
+
+	/* add: yyyy-mm-dd
+	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
+
+	/* dateformat: yyyy-mm-dd
+	Converts an ISO date string, a number (in seconds) or a Date object
+	to a string in `yyyy-mm-dd`. */
+	dateformat: { tx: formatDate },
+
+	/* Times */
+
+	/* add: 'hh:mm:ss'
+	Adds an ISO time in the form `'hh:mm:ss'` to a time value. May be used
+	for two-way binding. (Note the string must be quoted because it contains
+	':' characters.) */
+
+	/* timeformat: 'hh:mm:ss'
+	Converts ISO time string, a number (in seconds) or the UTC time values of
+	a Date object to a formatted string. */
+	timeformat: { tx: formatTime },
+
+
 
 	join: {
 		tx: function(string, value) {
@@ -128,15 +272,7 @@ export const transformers = {
 		}
 	},
 
-	'numbers-string': {
-		tx: function(string, value) {
-			return A.join.call(value, string);
-		},
 
-		ix: function(string, value) {
-			return S.split.call(value, string).map(parseFloat);
-		}
-	},
 
 	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
 	degrees:     { tx: toDeg,       ix: toRad },
@@ -144,57 +280,72 @@ export const transformers = {
 	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
 	exp:         { tx: exp,         ix: log },
 	log:         { tx: log,         ix: exp },
-	int:         { tx: function(value) { return toFixed(0, value); }, ix: toInt },
-	float:       { tx: toFloat,     ix: toString },
-	boolean:     { tx: Boolean,     ix: toString },
 
-    'boolean-string': { tx: toString, ix: function(value) {
-        return value === 'true' ? true :
-            value === 'false' ? false :
-            undefined ;
-    }},
 
-	/* normalise: curve, min, max
-	Return a value in the nominal range `0-1` from a value between `min` and
-	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	normalise:   {
-		tx: function(curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return normalise[name](min, max, number);
-		},
+	/* Type converters */
 
-		ix: function(curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
+	/* boolean-string:
+	Transforms booleans to strings and vice versa. May by used for two-way binding. */
+	'boolean-string': {
+		tx: toString,
+		ix: function (value) {
+			return value === 'true' ? true :
+				value === 'false' ? false :
+					undefined;
 		}
 	},
-
-	/* denormalise: curve, min, max
-	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
-	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	denormalise:   {
-		tx: function(curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
-		},
-
-		ix: function(curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return normalise[name](min, max, number);
-		}
-	},
-
-	/* floatformat: n
-	Returns a number fixed to `n` decimal places from value. */
-	floatformat: { tx: toFixed,     ix: function(n, str) { return parseFloat(str); } },
 
 	/* float-string:
-	Converts float values to strings. */
+	Transforms numbers to float strings, and, used for two-way binding,
+	gaurantees numbers are set on scope. */
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
 
+	/* floats-string: separator
+	Transforms an array of numbers to a string using `separator`, and,
+	used for two-way binding, gaurantees an array of numbers is set on scope. */
+	'floats-string': {
+		tx: function (string, value) {
+			return A.join.call(value, string);
+		},
+
+		ix: function (string, value) {
+			return S.split.call(value, string).map(parseFloat);
+		}
+	},
+
 	/* int-string:
-	Converts int values to strings. */
+	Transforms numbers to integer strings, and, used for two-way binding,
+	gaurantees integer numbers are set on scope. */
 	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
+
+	/* ints-string: separator
+	Transforms an array of numbers to a string of integers seperated with
+	`separator`, and, used for two-way binding, gaurantees an array of integer
+	numbers is set on scope. */
+	'ints-string': {
+		tx: function (string, value) {
+			return A.join.call(A.map.call(value, (value) => value.toFixed(0)), string);
+		},
+
+		ix: function (string, value) {
+			return S.split.call(value, string).map(toInt);
+		}
+	},
+
+	/* string-float:
+	Transforms strings to numbers, and, used for two-way binding,
+	gaurantees float strings are set on scope. */
+	'string-float': { tx: parseFloat, ix: toString },
+
+	/* string-int:
+	Transforms strings to integer numbers, and, used for two-way binding,
+	gaurantees integer strings are set on scope. */
+	'string-int': { tx: toInt, ix: (value) => value.toFixed(0) },
+
+	/* json:
+	Transforms objects to json, and used in two-way binding, sets parsed
+	objects on scope. */
+	json: { tx: JSON.stringify, ix: JSON.parse },
 
 	interpolate: {
 		tx: function(point) {
@@ -216,8 +367,7 @@ export const transformers = {
 		}
 	},
 
-	cartesian: { tx: toCartesian, ix: toPolar },
-	polar:     { tx: toPolar, ix: toCartesian },
+
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
 	level:     { tx: toLevel, ix: todB },
@@ -235,31 +385,8 @@ export const transforms = {
 	escape:       escape,
 	exp:          exp,
 
-	/* formatdate: format
-	Converts a date object, ISO date string or UNIX time number (in seconds) to
-	string in `format`.
-	*/
-	formatdate:   formatDate,
-
-	/* formattime: format
-	Converts ISO time string, a number (in seconds) or the UTC time values of
-	a date object to a string formatted to `format`.
-	*/
-	formattime:   formatTime,
-
-	formatfloat:  toFixed,
 	get:          getPath,
 	invoke:       invoke,
-
-	/* is:a
-	Returns `true` where value is strictly equal to `a`, otherwise `false`. */
-	is:           is,
-
-	/* has: property
-	Returns `true` where value is an object with the property `name`, otherwise `false`. */
-	has: function(name, object) {
-		return object && (name in object);
-	},
 
 	last:         last,
 	limit:        limit,
@@ -268,29 +395,27 @@ export const transforms = {
 	min:          min,
 	mod:          mod,
 
-	// Strings
+	/* Strings */
 
-	/* append:string
+	/* append: string
 	Returns value + `string`. */
 	append:       append,
 
-	/* prepend:string
+	/* prepend: string
 	Returns `string` + value. */
 	prepend:      prepend,
+
+	/* prepad: string, n
+	Prepends value with `string` until the output is `n` characters long. */
 	prepad:       prepad,
+
+	/* postpad: string, n
+	Appends value with `string` until the output is `n` characters long. */
 	postpad:      postpad,
 
 	/* slugify:
 	Returns the slug of value. */
 	slugify:      slugify,
-
-	/* root:n
-	Returns the `n`th root of value. */
-	root:         root,
-
-	/* type:
-	Returns the `typeof` value. */
-	type:         toType,
 
 	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
@@ -303,10 +428,6 @@ export const transforms = {
 		return array && array.find(compose(is(id), get('id')));
 	},
 
-	/* floor:
-	Floors a numeric value. */
-	floor: Math.floor,
-
 	"greater-than": function(value2, value1) {
 		return value1 > value2;
 	},
@@ -314,8 +435,6 @@ export const transforms = {
 	invert: function(value) {
 		return typeof value === 'number' ? 1 / value : !value ;
 	},
-
-	json: JSON.stringify,
 
 	"less-than": function(value2, value1) {
 		return value1 < value2 ;
@@ -370,16 +489,6 @@ export const transforms = {
 		);
 
 		return array && array.filter((value) => fn(...args, value));
-	},
-
-	match: function(regex, string) {
-		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-		return regex.exec(string);
-	},
-
-	matches: function(regex, string) {
-		regex = typeof regex === 'string' ? RegExp(regex) : regex ;
-		return !!regex.test(string);
 	},
 
 	/* pluralise: str1, str2, lang
@@ -462,12 +571,6 @@ export const transforms = {
 	uppercase: function(value) {
 		if (typeof value !== 'string') { return; }
 		return String.prototype.toUpperCase.apply(value);
-	},
-
-	/* yesno: a, b
-	Where value is truthy returns `a`, otherwise `b`. */
-	yesno: function(truthy, falsy, value) {
-		return value ? truthy : falsy ;
 	}
 };
 

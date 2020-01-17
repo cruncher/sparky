@@ -88,7 +88,7 @@
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
             <h2 class="text-3">built-in pipes.</h2>
-            <template build-fn="docs:modules/transforms.js filter-fn each" build-include="/fn/templates.html#{[type]}-template"></template>
+            <template build-fn="docs:modules/transforms.js each" build-include="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 
@@ -155,16 +155,14 @@
     </script>
 
     <!-- Document interactivity -->
-    <template build-fn="config">
     <script type="module">
-        import '{[path]}dom/js/device.js';
-        import '{[path]}dom/js/popable.js';
-        import '{[path]}dom/js/toggleable.js';
-        import '{[path]}dom/js/locateable.js';
-        import '{[path]}dom/js/switchable.js';
-        import '{[path]}dom/js/fullscreenable.js';
+        import '../dom/js/device.js';
+        import '../dom/js/popable.js';
+        import '../dom/js/toggleable.js';
+        import '../dom/js/locateable.js';
+        import '../dom/js/switchable.js';
+        import '../dom/js/fullscreenable.js';
         //import * as sparky from './build/module.js';
         //window = sparky;
     </script>
-    </template>
 </body>
