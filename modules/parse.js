@@ -116,8 +116,8 @@ const parseArrayClose = capture(/^\]\s*/, nothing);
 parseParams(array, string)
 */
 
-//                                        number                                     "string"            'string'                    null   true   false  array function(args)   /regex/             dot  string             comma
-export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+//                                        number                                     "string"            'string'                    null   true   false    [array] or {object}   function(args)   /regex/             dot  string             comma
+export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\]|\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
     // number
     1: function(params, tokens) {
         params.push(parseFloat(tokens[1]));
@@ -154,16 +154,9 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
         return params;
     },
 
-    // array
+    // flat [array] or {object}
     7: function(params, tokens) {
-        if (tokens.input[1] === ']') {
-            params.push([]);
-        }
-        else {
-            params.push(parseParams([], tokens));
-        }
-
-        parseArrayClose(null, tokens);
+        params.push(JSON.parse(tokens[7]));
         return params;
     },
 

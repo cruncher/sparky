@@ -314,6 +314,17 @@ on each clone.</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>https://github.com/cruncher/sparky.git<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Git repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
 </article>
 
+    <article class="toggle-block block" toggleable="" id="stop">
+        <h3 class="text-5 ">
+            <a href="#stop">
+                <code class="language-js">stop</code>
+            </a>
+        </h3>
+    <p>Stops sparkifying the element. No more functions are run, and
+the contents of the element are not parsed. Use <code>stop</code>
+to ignore blocks of static HTML inside a Sparky template.</p>
+</article>
+
         </div>
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
@@ -347,6 +358,9 @@ on each clone.</p>
 different types of <code>selector</code>. Where <code>selector</code> is a RegExp, value is assumed
 to be a string and tested against it.</p>
 <pre><code class="language-html">{[ .|matches:/abc/ ]}     // `true` if value contains 'abc'</code></pre>
+<p>Where <code>selector</code> is an Object, value is assumed to be an object and its
+properties are matched against those of <code>selector</code>.</p>
+<pre><code class="language-html">{[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.</code></pre>
 </article>
 
     <article class="toggle-block block" toggleable="" id="class">

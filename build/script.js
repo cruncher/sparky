@@ -6847,8 +6847,8 @@ var Sparky = (function (exports) {
     parseParams(array, string)
     */
 
-    //                                        number                                     "string"            'string'                    null   true   false  array function(args)   /regex/             dot  string             comma
-    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[)|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+    //                                        number                                     "string"            'string'                    null   true   false    [array] or {object}   function(args)   /regex/             dot  string             comma
+    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\]|\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
         // number
         1: function(params, tokens) {
             params.push(parseFloat(tokens[1]));
@@ -6885,16 +6885,9 @@ var Sparky = (function (exports) {
             return params;
         },
 
-        // array
+        // flat [array] or {object}
         7: function(params, tokens) {
-            if (tokens.input[1] === ']') {
-                params.push([]);
-            }
-            else {
-                params.push(parseParams([], tokens));
-            }
-
-            parseArrayClose(null, tokens);
+            params.push(JSON.parse(tokens[7]));
             return params;
         },
 
@@ -7227,6 +7220,15 @@ var Sparky = (function (exports) {
     	sum: sum
     };
 
+    function addType(n) {
+    	const type = typeof n;
+    	return type === 'string' ?
+    		/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+    		/^\d\d(?::|$)/.text(n) ? 'time' :
+    		'string' :
+    	type;
+    }
+
     function interpolateLinear(xs, ys, x) {
     	var n = -1;
     	while (++n < xs.length && xs[n] < x);
@@ -7251,6 +7253,8 @@ var Sparky = (function (exports) {
     	return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
     }
 
+
+
     const transformers = {
 
     	/* is: value
@@ -7271,14 +7275,14 @@ var Sparky = (function (exports) {
     ```html
     {[ .|matches:/abc/ ]}     // `true` if value contains 'abc'
     ```
-    */
 
-    //Where `selector` is an Object, value is assumed to be an object and its
-    //properties are matched against those of `selector`.
-    //
-    //```html
-    //{[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.
-    //```
+    Where `selector` is an Object, value is assumed to be an object and its
+    properties are matched against those of `selector`.
+
+    ```html
+    {[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.
+    ```
+    */
 
     	matches: {
     		tx: overload(toClass, {
@@ -7310,14 +7314,7 @@ var Sparky = (function (exports) {
     	/* add: n
     	Adds `n` to value. */
     	add: {
-    		tx: overload(function(n) {
-    			const type = typeof n;
-    			return type === 'string' ?
-    				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-    				/^\d\d(?:\:|$)/.text(n) ? 'time' :
-    				'string' :
-    			type ;
-    		}, {
+    		tx: overload(addType, {
     			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
     			date: addDate,
     			time: addTime,
@@ -7326,14 +7323,7 @@ var Sparky = (function (exports) {
     			}
     		}),
 
-    		ix: overload(function (n) {
-    			const type = typeof n;
-    			return type === 'string' ?
-    				/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-    					/^\d\d(?:\:|$)/.text(n) ? 'time' :
-    						'string' :
-    				type;
-    		}, {
+    		ix: overload(addType, {
     			number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
     			date: function (d, n) { return addDate('-' + d, n); },
     			time: subTime,
