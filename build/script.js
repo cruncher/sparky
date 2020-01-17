@@ -7066,10 +7066,66 @@ var Sparky = (function (exports) {
         catch: noop
     });
 
+    /* config.
+
+    ```js
+    import { config } from './sparky/module.js'
+
+    config.attributeFn = 'data-fn';
+    config.attributeInclude = 'data-src';
+    ```
+    */
+
     var config$1 = {
-    	attributeFn:      'fn',
-    	attributeInclude: 'include',
-    	attributePrefix:  ':'
+        attributeFn: 'fn',
+        attributeInclude: 'src',
+        attributePrefix: ':',
+        elements: {
+            default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
+            a: { attributes: ['href'] },
+            button: { attributes: ['name', 'value'], booleans: ['disabled'] },
+            circle: { attributes: ['cx', 'cy', 'r', 'transform'] },
+            ellipse: { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
+            form: { attributes: ['method', 'action'] },
+            fieldset: { booleans: ['disabled'] },
+            g: { attributes: ['transform'] },
+            img: { attributes: ['alt', 'src'] },
+            input: {
+                booleans: ['disabled', 'required'],
+                attributes: ['name'],
+                types: {
+                    button: { attributes: ['value'] },
+                    checkbox: { attributes: [], booleans: ['checked'] },
+                    date: { attributes: ['min', 'max', 'step'] },
+                    hidden: { attributes: ['value'] },
+                    image: { attributes: ['src'] },
+                    number: { attributes: ['min', 'max', 'step'] },
+                    radio: { attributes: [], booleans: ['checked'] },
+                    range: { attributes: ['min', 'max', 'step'] },
+                    reset: { attributes: ['value'] },
+                    submit: { attributes: ['value'] },
+                    time: { attributes: ['min', 'max', 'step'] }
+                }
+            },
+            label: { attributes: ['for'] },
+            line: { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
+            link: { attributes: ['href'] },
+            meta: { attributes: ['content'] },
+            meter: { attributes: ['min', 'max', 'low', 'high', 'value'] },
+            option: { attributes: ['value'], booleans: ['disabled'] },
+            output: { attributes: ['for'] },
+            path: { attributes: ['d', 'transform'] },
+            polygon: { attributes: ['points', 'transform'] },
+            polyline: { attributes: ['points', 'transform'] },
+            progress: { attributes: ['max', 'value'] },
+            rect: { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
+            select: { attributes: ['name'], booleans: ['disabled', 'required'] },
+            svg: { attributes: ['viewbox'] },
+            text: { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
+            textarea: { attributes: ['name'], booleans: ['disabled', 'required'] },
+            time: { attributes: ['datetime'] },
+            use: { attributes: ['href', 'transform', 'x', 'y'] }
+        }
     };
 
     /*
@@ -8172,58 +8228,6 @@ var Sparky = (function (exports) {
         fn(e.target.value);
     }, { capture: true });
 
-    var config$2 = {
-        default:  { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
-        a:        { attributes: ['href'] },
-        button:   { attributes: ['name', 'value'], booleans: ['disabled'] },
-        circle:   { attributes: ['cx', 'cy', 'r', 'transform'] },
-        ellipse:  { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
-        form:     { attributes: ['method', 'action'] },
-        fieldset: { booleans:   ['disabled'] },
-        g:        { attributes: ['transform'] },
-        img:      { attributes: ['alt', 'src']	},
-        input: {
-            booleans:   ['disabled', 'required'],
-            attributes: ['name'],
-            types: {
-
-                /* Todo: move `value` definition to internal logic (call it `type`
-                   for gods sake), shouldnt be exposed to config. */
-
-                button:   { attributes: ['value'] },
-                checkbox: { attributes: [], booleans: ['checked'], value: 'checkbox' },
-                date:     { attributes: ['min', 'max', 'step'], value: 'string' },
-                hidden:   { attributes: ['value'] },
-                image:    { attributes: ['src'] },
-                number:   { attributes: ['min', 'max', 'step'], value: 'number' },
-                radio:    { attributes: [], booleans: ['checked'], value: 'radio' },
-                range:    { attributes: ['min', 'max', 'step'], value: 'number' },
-                reset:    { attributes: ['value'] },
-                submit:   { attributes: ['value'] },
-                time:     { attributes: ['min', 'max', 'step'], value: 'string' },
-                default:  { value: 'string' }
-            }
-        },
-        label:    { attributes: ['for'] },
-        line:     { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
-        link:     { attributes: ['href'] },
-        meta:     { attributes: ['content'] },
-        meter:    { attributes: ['min', 'max', 'low', 'high', 'value'] },
-        option:   { attributes: ['value'], booleans: ['disabled'] },
-        output:   { attributes: ['for'] },
-        path:     { attributes: ['d', 'transform'] },
-        polygon:  { attributes: ['points', 'transform'] },
-        polyline: { attributes: ['points', 'transform'] },
-        progress: { attributes: ['max', 'value'] },
-        rect:     { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-        select:   { attributes: ['name'], booleans: ['disabled', 'required'], types: { default: { value: 'string' }}},
-        svg:      { attributes: ['viewbox'] },
-        text:     { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
-        textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
-        time:     { attributes: ['datetime'] },
-        use:      { attributes: ['href', 'transform', 'x', 'y'] }
-    };
-
     const DEBUG$5 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
     const A$8      = Array.prototype;
@@ -8661,8 +8665,8 @@ var Sparky = (function (exports) {
     		return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
     	},
 
-        file: function(node, renderers, options) {
-            // Safari does not send input events on file inputs
+    	file: function(node, renderers, options) {
+    		// Safari does not send input events on file inputs
     		return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
     	},
 
@@ -8671,25 +8675,36 @@ var Sparky = (function (exports) {
     	}
     });
 
-    function mountInput(types, node, renderers, options) {
-    	var type    = getType(node);
-    	var setting = types[type] || types.default;
-
-    	if (!setting) { return; }
-    	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
-    	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
-    	if (setting.value)      { mountValue(type, node, renderers, options); }
-    }
+    const kinds = {
+    	text: 'string',
+    	checkbox: 'checkbox',
+    	date: 'string',
+    	number: 'number',
+    	radio: 'radio',
+    	range: 'number',
+    	time: 'string',
+    	'select-one': 'string',
+    	'select-multiple': 'array',
+    	textarea: 'string'
+    };
 
     function mountTag(settings, node, renderers, options) {
     	var name    = tag(node);
     	var setting = settings[name];
-
     	if (!setting) { return; }
     	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
     	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
-    	if (setting.types)      { mountInput(setting.types, node, renderers, options); }
-    	if (setting.value)      { mountValue(setting.value, node, renderers, options); }
+
+    	var type = getType(node);
+    	if (!type) { return; }
+
+    	var typeSetting = setting.types && setting.types[type];
+    	if (typeSetting) {
+    		if (typeSetting.booleans) { mountBooleans(typeSetting.booleans, node, renderers, options); }
+    		if (typeSetting.attributes) { mountAttributes(typeSetting.attributes, node, renderers, options); }
+    	}
+
+    	if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
     }
 
     function mountCollection(children, renderers, options) {
@@ -8715,9 +8730,9 @@ var Sparky = (function (exports) {
     		// inserted, so turn childNodes into an array first.
     		mountCollection(Array.from(node.childNodes), renderers, options);
     		mountClass(node, renderers, options);
-    		mountBooleans(config$2.default.booleans, node, renderers, options);
-    		mountAttributes(config$2.default.attributes, node, renderers, options);
-    		mountTag(config$2, node, renderers, options);
+    		mountBooleans(options.elements.default.booleans, node, renderers, options);
+    		mountAttributes(options.elements.default.attributes, node, renderers, options);
+    		mountTag(options.elements, node, renderers, options);
     	},
 
     	// text
@@ -8784,7 +8799,6 @@ var Sparky = (function (exports) {
     		// Set new scope
     		this.scope = scope;
     		this.renderers.reduce(push, scope);
-
     		return this;
     	}
     });
@@ -9254,14 +9268,18 @@ var Sparky = (function (exports) {
 
         // We have consumed fn lets make sure it's really empty
         options.fn = '';
-        options.include = options.include
-            || target.getAttribute(options.attributeInclude)
-            || '';
+
+        const tag = target.tagName.toLowerCase();
+        const src = options.include || (
+            tag === 'use' ? target.getAttribute(options.attributeInclude) :
+            tag === 'template' ? target.getAttribute(options.attributeInclude) :
+            ''
+        );
 
         //if (DEBUG) { logNode(target, attrFn, options.include); }
 
-        options.include ?
-            target.tagName === 'use' ?
+        src ?
+            tag === 'use' ?
                 setupSVG(target, output, options, this) :
             setupTemplate(target, output, options, this) :
         setupElement(target, output, options, this) ;
@@ -9969,7 +9987,6 @@ var Sparky = (function (exports) {
     exports.delegate = delegate$2;
     exports.getScope = getScope;
     exports.mount = Mount;
-    exports.mountConfig = config$2;
     exports.observe = observe;
     exports.register = register;
     exports.transformers = transformers;

@@ -22,7 +22,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700">
 
-
+    
         <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css">
         <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css">
         <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css">
@@ -40,7 +40,7 @@
         <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css">
         <link rel="stylesheet" href="css/theme.css">
         <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css">
-
+    
 <template id="header-template" title="/fn/">
         <h1>{[title]} <span class="text-6">{[version]}</span></h1>
 
@@ -110,7 +110,7 @@
     <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg">
 
     <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
-
+        
         <h1>Sparky <span class="text-6">3.1.2</span></h1>
 
         <p class="text-8">
@@ -127,7 +127,7 @@
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="functions">
         <div class="x-1 xspan-3">
             <h2 class="text-2">Sparky templates</h2>
-
+            
     <article class="toggle-block block active" id="sparky-templates"><p>First, import Sparky:</p>
 <pre><code class="language-js"><span class="token keyword">import</span> <span class="token string">'/sparky/module.js'</span><span class="token punctuation">;</span></code></pre>
 <p>Sparky registers the <code>is="sparky-template"</code> custom element. Sparky templates
@@ -144,7 +144,7 @@ and <strong>includes</strong>.</p>
 
         <div class="x-1 xspan-3">
             <h3 class="text-3">tags.</h3>
-
+            
     <article class="toggle-block block active" id="path-pipe-params">
         <h3 class="text-5 ">
             <code class="function language-js">{[path|pipe:params]}</code>
@@ -183,7 +183,7 @@ an unmatched type.</p>
 
         <div class="x-1 xspan-3 @2-x-4">
             <h3 class="text-3">functions.</h3>
-
+            
     <article class="toggle-block block active" id="fn">
         <h3 class="text-5 ">
             <code class="function language-js">fn="name:params"</code>
@@ -213,39 +213,40 @@ array of keywords and generate a list:</p>
 
         <div class="x-1 xspan-3 @2-x-7">
             <h3 class="text-3">includes.</h3>
-
-    <article class="toggle-block block active" id="include">
+            
+    <article class="toggle-block block active" id="src">
         <h3 class="text-5 ">
             <code class="function language-js">src="#id"</code>
         </h3>
-    <p>A template may include another template by referring to it via the <code>include</code>
-attribute. The rendered content of the included template replaces the referring
-template:</p>
+    <p>Sparky extends <code>&lt;template&gt;</code> elements (and <code>&lt;use&gt;</code> elements in SVG) with a <code>src</code>
+attribute, turning them into includes. The <code>src</code> attribute must reference
+another template (or sn SVG element). Its rendered content replaces the
+referring template:</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">id</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>my-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>get:keywords each<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>{[.]}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span>
 
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span> <span class="token attr-name">include</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>#my-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>#my-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span></code></pre>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>javascript<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>browser<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span></code></pre>
 <p>Includes may be used inside templates, too:</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">include</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>#my-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>#my-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span></code></pre>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>javascript<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>li</span><span class="token punctuation">&gt;</span></span>browser<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>li</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
-<p>The <code>include</code> attribute may contain template tags, making the included template
+<p>The <code>src</code> attribute may contain template tags, making the included template
 dependent on rendered data. This is how conditionals are written in Sparky.
 Here, where there is no <code>keywords</code> property in <code>package.json</code> the template
 with id <code>no-keywords</code> is rendered in place of <code>my-template</code>:</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span> <span class="token attr-name">fn</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>fetch:package.json<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ul</span><span class="token punctuation">&gt;</span></span>
-        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">include</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{[.keywords|yesno:#my-template,#no-keywords]}<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
+        <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>{[.keywords|yesno:#my-template,#no-keywords]}<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
         <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span>
     <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span></code></pre>
@@ -257,7 +258,7 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable="" id="built-ins">
         <div class="x-1 xspan-3">
             <h2 class="text-3">built-in functions.</h2>
-
+            
     <article class="toggle-block block" toggleable="" id="each">
         <h3 class="text-5 ">
             <a href="#each">
@@ -329,7 +330,7 @@ to ignore blocks of static HTML inside a Sparky template.</p>
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
             <h2 class="text-3">built-in pipes.</h2>
-
+            
     <article class="toggle-block block" toggleable="" id="is">
         <h3 class="text-5 ">
             <a href="#is">
@@ -695,7 +696,7 @@ properties are matched against those of <code>selector</code>.</p>
         <div class="x-1 xspan-3 @2-xspan-5">
             <h2 class="text-2">Write a function</h2>
 
-
+            
     <h3 class="text-4">Sparky.fn</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
 declared and control over the flow of objects being sent to the renderer.</p>
 <pre><code><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
@@ -726,7 +727,7 @@ come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
 
             <h3 class="text-3">Examples</h3>
 
-
+            
     <h3 class="text-4">Examples</h3><p>Push a single scope object to the renderer:</p>
 <pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register<span class="token punctuation">,</span> Stream <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
 
@@ -764,7 +765,7 @@ come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
             <h3 class="text-3">Function helpers</h3>
 
-
+            
     <article class="toggle-block block" toggleable="" id="delegate-types">
         <h3 class="text-5 ">
             <a href="#delegate-types">
@@ -807,7 +808,7 @@ selectors).</p>
         <div class="x-1 xspan-3 @2-xspan-5">
             <h2 class="text-2">Write a pipe</h2>
 
-
+            
     <h3 class="text-4">Sparky.pipe</h3><p>Define a pipe using <code>Sparky.pipe(name, fn)</code>.</p>
 <pre><code class="language-js"><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
 
@@ -827,7 +828,7 @@ too expensive in a pipe to keep the render process fast.</p>
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
             <h3 class="text-3">Examples</h3>
 
-
+            
     <h3 class="text-4">Examples</h3><pre><code class="language-js"><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
 <span class="token keyword">const</span> tax <span class="token operator">=</span> <span class="token number">1.175</span><span class="token punctuation">;</span>
 
@@ -846,7 +847,7 @@ Sparky<span class="token punctuation">.</span><span class="token function">pipe<
         </header>
 
         <div class="x-1 xspan-3">
-
+            
         </div>
     </section>
 
@@ -856,7 +857,7 @@ Sparky<span class="token punctuation">.</span><span class="token function">pipe<
     </aside>
 
     <!-- Build document -->
-
+    
 
     <!-- Document interactivity -->
     <script type="module">
