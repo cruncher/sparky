@@ -1,10 +1,18 @@
-/* Config */
+/* config.
+
+```js
+import { config } from './sparky/module.js'
+
+config.attributeFn = 'data-fn';
+config.attributeInclude = 'data-src';
+```
+*/
 
 export default {
     attributeFn: 'fn',
     attributeInclude: 'src',
     attributePrefix: ':',
-    mount: {
+    elements: {
         default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
         a: { attributes: ['href'] },
         button: { attributes: ['name', 'value'], booleans: ['disabled'] },
@@ -48,7 +56,13 @@ export default {
         polyline: { attributes: ['points', 'transform'] },
         progress: { attributes: ['max', 'value'] },
         rect: { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-        select: { attributes: ['name'], booleans: ['disabled', 'required'], types: { default: { value: 'string' } } },
+        select: {
+            booleans: ['disabled', 'required'],
+            attributes: ['name'],
+            types: {
+                default: { value: 'string' }
+            }
+        },
         svg: { attributes: ['viewbox'] },
         text: { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
         textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },

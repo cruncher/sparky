@@ -57,9 +57,10 @@ an unmatched type.
 /*
 src="#id"
 
-Sparky extends templates with a `src` attribute, turning them into includes.
-The `src` attribute points to another template, and the rendered content of the
-included template replaces the referring template:
+Sparky extends `<template>` elements (and `<use>` elements in SVG) with a `src`
+attribute, turning them into includes. The `src` attribute must reference
+another template (or sn SVG element). Its rendered content replaces the
+referring template:
 
 ```html
 <template id="my-template">

@@ -473,16 +473,18 @@ export default function Sparky(selector, settings) {
 
     // We have consumed fn lets make sure it's really empty
     options.fn = '';
-    options.include = options.include || (
-        target.tagName.toLowerCase() === 'template' ?
-            target.getAttribute(options.attributeInclude) :
-            ''
+
+    const tag = target.tagName.toLowerCase();
+    const src = options.include || (
+        tag === 'use' ? target.getAttribute(options.attributeInclude) :
+        tag === 'template' ? target.getAttribute(options.attributeInclude) :
+        ''
     );
 
     //if (DEBUG) { logNode(target, attrFn, options.include); }
 
-    options.include ?
-        target.tagName === 'use' ?
+    src ?
+        tag === 'use' ?
             setupSVG(target, output, options, this) :
         setupTemplate(target, output, options, this) :
     setupElement(target, output, options, this) ;

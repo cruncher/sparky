@@ -8,7 +8,6 @@ import ClassRenderer   from './renderer-class.js';
 import StringRenderer  from './renderer-string.js';
 import TokenRenderer   from './renderer-token.js';
 import Listener        from './listener.js';
-import config          from '../config.js';
 
 const DEBUG = window.DEBUG === true || window.DEBUG === 'Sparky';
 
@@ -501,9 +500,9 @@ const mountNode = overload(getNodeType, {
 		// inserted, so turn childNodes into an array first.
 		mountCollection(Array.from(node.childNodes), renderers, options);
 		mountClass(node, renderers, options);
-		mountBooleans(config.mount.default.booleans, node, renderers, options);
-		mountAttributes(config.mount.default.attributes, node, renderers, options);
-		mountTag(config.mount, node, renderers, options);
+		mountBooleans(options.elements.default.booleans, node, renderers, options);
+		mountAttributes(options.elements.default.attributes, node, renderers, options);
+		mountTag(options.elements, node, renderers, options);
 	},
 
 	// text
@@ -570,7 +569,6 @@ assign(Mount.prototype, {
 		// Set new scope
 		this.scope = scope;
 		this.renderers.reduce(push, scope);
-
 		return this;
 	}
 });
