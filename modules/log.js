@@ -13,7 +13,7 @@ export function logNode(target, attrFn, attrInclude) {
         + (target.tagName.toLowerCase())
         + (attrIs ? ' is="' + attrIs + '"' : '')
         + (attrFn ? ' fn="' + attrFn + '"' : '')
-        + (attrInclude ? ' include="' + attrInclude + '"' : '')
+        + (attrInclude ? ' src="' + attrInclude + '"' : '')
         + '>',
         'color: #858720; font-weight: 600;',
         'color: #6894ab; font-weight: 400;'

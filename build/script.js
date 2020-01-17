@@ -6664,7 +6664,7 @@ var Sparky = (function (exports) {
             + (target.tagName.toLowerCase())
             + (attrIs ? ' is="' + attrIs + '"' : '')
             + (attrFn ? ' fn="' + attrFn + '"' : '')
-            + (attrInclude ? ' include="' + attrInclude + '"' : '')
+            + (attrInclude ? ' src="' + attrInclude + '"' : '')
             + '>',
             'color: #858720; font-weight: 600;',
             'color: #6894ab; font-weight: 400;'
@@ -9115,7 +9115,7 @@ var Sparky = (function (exports) {
             else {
                 content = nodes[0] = target.content ?
                     DEBUG$6 ?
-                        create$1('comment', ' include="' + src + '" ') :
+                        create$1('comment', ' src="' + src + '" ') :
                         create$1('text', '') :
                     target ;
             }
@@ -9182,7 +9182,7 @@ var Sparky = (function (exports) {
     /*
     include()
 
-    Templates may include other templates. Define the `include` attribute
+    Templates may include other templates. Define the `src` attribute
     as an href to a template:
 
     ```html
@@ -9190,7 +9190,7 @@ var Sparky = (function (exports) {
         I am {[title]}.
     </template>
 
-    <template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
+    <template is="sparky-template" fn="fetch:package.json" src="#i-am-title"></template>
 
     I am Sparky.
     ```
@@ -9203,8 +9203,8 @@ var Sparky = (function (exports) {
     </template>
 
     <template is="sparky-template" fn="fetch:package.json">
-        <template include="#i-am-title"></template>
-        <template include="#i-am-title"></template>
+        <template src="#i-am-title"></template>
+        <template src="#i-am-title"></template>
     </template>
 
     I am Sparky.

@@ -148,7 +148,7 @@ group('select > async options', function(test, log, fixture) {
 		});
 	}, 3);
 }, function() {/*
-	<form include="#address-editor">HEY</form>
+	<form src="#address-editor">HEY</form>
 
 	<template id="address-editor">
 	    <label class="country-select-button select-button button">

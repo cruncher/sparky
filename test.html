@@ -76,22 +76,22 @@
         <p fn="test">p[fn] 0.2 <span>{[]}</span> - <span class="leading-class {[0.value]} trailing-class">{[.]}</span><span hidden="{[0.value|not]}"> - value: {[0.value]}</span></p>
     </template>
 
-    <template is="sparky-template" fn="data" include="#template-1">
+    <template is="sparky-template" fn="data" src="#template-1">
         <p>template[fn][include] Waiting for data...</p>
     </template>
 
-    <template is="sparky-template" fn="data" include="#template-2">
+    <template is="sparky-template" fn="data" src="#template-2">
         <p>template[fn][include] Waiting for data...</p>
     </template>
 
     <template is="sparky-template" fn="data">
-        <div include="#template-1">div[include="#template-1"] Waiting for data...</div>
-        <div include="#template-2">div[include="#template-1"] Waiting for data...</div>
+        <div src="#template-1">div[src="#template-1"] Waiting for data...</div>
+        <div src="#template-2">div[src="#template-1"] Waiting for data...</div>
     </template>
 
     <template is="sparky-template" fn="data">
-        <template include="#template-1">template[include="#template-1"] Waiting for data...</template>
-        <template include="#template-2">template[include="#template-1"] Waiting for data...</template>
+        <template src="#template-1">template[src="#template-1"] Waiting for data...</template>
+        <template src="#template-2">template[src="#template-1"] Waiting for data...</template>
     </template>
 
     <template is="sparky-template" fn="data">
@@ -110,13 +110,13 @@
 
     <template is="sparky-template" fn="data">
         <h2>template[include]</h2>
-        <template include="#template-{[0.id]}"></template>
+        <template src="#template-{[0.id]}"></template>
     </template>
 
     <template is="sparky-template" fn="data">
         <h2>External templates</h2>
-        <template include="test-template.html#test-template-1"></template>
-        <template fn="get:0" include="test-template.html#test-template-2"></template>
+        <template src="test-template.html#test-template-1"></template>
+        <template fn="get:0" src="test-template.html#test-template-2"></template>
     </template>
 
     <template is="sparky-template" fn="data">
@@ -124,7 +124,7 @@
         <p>{[POO]}</p>
         <p fn="test">{[POO]}</p>
         <p fn="test each">{[POO]}</p>
-        <p fn="test each" include="#template-6"></p>
+        <p fn="test each" src="#template-6"></p>
     </template>
 
     <div class="test-block block">

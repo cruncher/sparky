@@ -55,18 +55,18 @@ an unmatched type.
 */
 
 /*
-include="#id"
+src="#id"
 
-A template may include another template by referring to it via the `include`
-attribute. The rendered content of the included template replaces the referring
-template:
+Sparky extends templates with a `src` attribute, turning them into includes.
+The `src` attribute points to another template, and the rendered content of the
+included template replaces the referring template:
 
 ```html
 <template id="my-template">
     <li fn="get:keywords each">{[.]}</li>
 </template>
 
-<template is="sparky-template" fn="fetch:package.json" include="#my-template">
+<template is="sparky-template" fn="fetch:package.json" src="#my-template">
 </template>
 ```
 
@@ -80,7 +80,7 @@ Includes may be used inside templates, too:
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     <ul>
-        <template include="#my-template"></template>
+        <template src="#my-template"></template>
     </ul>
 </template>
 ```
@@ -92,7 +92,7 @@ Includes may be used inside templates, too:
 </ul>
 ```
 
-The `include` attribute may contain template tags, making the included template
+The `src` attribute may contain template tags, making the included template
 dependent on rendered data. This is how conditionals are written in Sparky.
 Here, where there is no `keywords` property in `package.json` the template
 with id `no-keywords` is rendered in place of `my-template`:
@@ -100,7 +100,7 @@ with id `no-keywords` is rendered in place of `my-template`:
 ```html
 <template is="sparky-template" fn="fetch:package.json">
     <ul>
-        <template include="{[.keywords|yesno:#my-template,#no-keywords]}">
+        <template src="{[.keywords|yesno:#my-template,#no-keywords]}">
         </template>
     </ul>
 </template>

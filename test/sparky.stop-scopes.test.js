@@ -156,7 +156,7 @@ group('.stop() scopes to templated child', function(test, log, fixture) {
 	}, 3);
 }, function() {/*
 
-<div include="#stop-test-1">
+<div src="#stop-test-1">
 	Unrendered
 </div>
 

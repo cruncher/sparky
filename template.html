@@ -49,28 +49,28 @@
     <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg" />
 
     <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
-        <template build-fn="fetch:package.json" build-include="/fn/templates.html#header-template"></template>
+        <template build-fn="fetch:package.json" build-src="/fn/templates.html#header-template"></template>
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
         <div class="x-1 xspan-3">
             <h2 class="text-2">Sparky templates</h2>
-            <template build-fn="docs:module.js each" build-include="/fn/templates.html#body-template"></template>
+            <template build-fn="docs:module.js each" build-src="/fn/templates.html#body-template"></template>
         </div>
 
         <div class="x-1 xspan-3">
             <h3 class="text-3">tags.</h3>
-            <template build-fn="docs:modules/parse.js?path-pipe-params each" build-include="/fn/templates.html#section-template"></template>
+            <template build-fn="docs:modules/parse.js?path-pipe-params each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-4">
             <h3 class="text-3">functions.</h3>
-            <template build-fn="docs:modules/fn.js?fn each" build-include="/fn/templates.html#section-template"></template>
+            <template build-fn="docs:modules/fn.js?fn each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-7">
             <h3 class="text-3">includes.</h3>
-            <template build-fn="docs:modules/parse.js?include each" build-include="/fn/templates.html#section-template"></template>
+            <template build-fn="docs:modules/parse.js?src each" build-src="/fn/templates.html#section-template"></template>
         </div>
     </section>
 
@@ -83,12 +83,12 @@
             modules/fn-fetch.js,
             modules/fn-get.js,
             modules/fn-stop.js
-            each" build-include="/fn/templates.html#{[type]}-template"></template>
+            each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
             <h2 class="text-3">built-in pipes.</h2>
-            <template build-fn="docs:modules/transforms.js each" build-include="/fn/templates.html#{[type]}-template"></template>
+            <template build-fn="docs:modules/transforms.js each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 
@@ -98,13 +98,13 @@
 
             <template build-fn="docs:
             modules/fn.js?sparky-fn-name-fn
-            each" build-include="/fn/templates.html#title-template"></template>
+            each" build-src="/fn/templates.html#title-template"></template>
 
             <h3 class="text-3">Examples</h3>
 
             <template build-fn="docs:
             modules/fn.js?examples
-            each" build-include="/fn/templates.html#title-template"></template>
+            each" build-src="/fn/templates.html#title-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
@@ -112,7 +112,7 @@
 
             <template build-fn="docs:
             modules/delegate.js
-            each" build-include="/fn/templates.html#function-template"></template>
+            each" build-src="/fn/templates.html#function-template"></template>
         </div>
     </section>
 
@@ -122,7 +122,7 @@
 
             <template build-fn="docs:
             modules/pipe.js?sparky-pipe-name-fn
-            each" build-include="/fn/templates.html#title-template"></template>
+            each" build-src="/fn/templates.html#title-template"></template>
         </div>
 
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
@@ -130,7 +130,7 @@
 
             <template build-fn="docs:
             modules/pipe.js?examples
-            each" build-include="/fn/templates.html#title-template"></template>
+            each" build-src="/fn/templates.html#title-template"></template>
         </div>
     </section>
 
@@ -140,7 +140,7 @@
         </header>
 
         <div class="x-1 xspan-3">
-            <template build-fn="docs:modules/sparky.js?Sparky each" build-include="/fn/templates.html#{[type]}-template"></template>
+            <template build-fn="docs:modules/sparky.js?Sparky each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 

@@ -2,7 +2,7 @@ import { Observer, observe, Stream, capture, nothing } from '../../fn/module.js'
 import { before, create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
-import config    from './config.js';
+import config from '../config.js';
 import { functions } from './fn.js';
 import Mount, { assignTransform } from './mount.js';
 import toText from './to-text.js';
@@ -334,7 +334,7 @@ function setupTemplate(target, input, options, sparky) {
         else {
             content = nodes[0] = target.content ?
                 DEBUG ?
-                    create('comment', ' include="' + src + '" ') :
+                    create('comment', ' src="' + src + '" ') :
                     create('text', '') :
                 target ;
         }
@@ -401,7 +401,7 @@ Results in:
 /*
 include()
 
-Templates may include other templates. Define the `include` attribute
+Templates may include other templates. Define the `src` attribute
 as an href to a template:
 
 ```html
@@ -409,7 +409,7 @@ as an href to a template:
     I am {[title]}.
 </template>
 
-<template is="sparky-template" fn="fetch:package.json" include="#i-am-title"></template>
+<template is="sparky-template" fn="fetch:package.json" src="#i-am-title"></template>
 
 I am Sparky.
 ```
@@ -422,8 +422,8 @@ Templates may be composed of includes:
 </template>
 
 <template is="sparky-template" fn="fetch:package.json">
-    <template include="#i-am-title"></template>
-    <template include="#i-am-title"></template>
+    <template src="#i-am-title"></template>
+    <template src="#i-am-title"></template>
 </template>
 
 I am Sparky.
@@ -473,9 +473,11 @@ export default function Sparky(selector, settings) {
 
     // We have consumed fn lets make sure it's really empty
     options.fn = '';
-    options.include = options.include
-        || target.getAttribute(options.attributeInclude)
-        || '';
+    options.include = options.include || (
+        target.tagName.toLowerCase() === 'template' ?
+            target.getAttribute(options.attributeInclude) :
+            ''
+    );
 
     //if (DEBUG) { logNode(target, attrFn, options.include); }
 
