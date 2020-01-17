@@ -26,22 +26,17 @@ export default {
             booleans: ['disabled', 'required'],
             attributes: ['name'],
             types: {
-
-                /* Todo: move `value` definition to internal logic (call it `type`
-                   for gods sake), shouldnt be exposed to config. */
-
                 button: { attributes: ['value'] },
-                checkbox: { attributes: [], booleans: ['checked'], value: 'checkbox' },
-                date: { attributes: ['min', 'max', 'step'], value: 'string' },
+                checkbox: { attributes: [], booleans: ['checked'] },
+                date: { attributes: ['min', 'max', 'step'] },
                 hidden: { attributes: ['value'] },
                 image: { attributes: ['src'] },
-                number: { attributes: ['min', 'max', 'step'], value: 'number' },
-                radio: { attributes: [], booleans: ['checked'], value: 'radio' },
-                range: { attributes: ['min', 'max', 'step'], value: 'number' },
+                number: { attributes: ['min', 'max', 'step'] },
+                radio: { attributes: [], booleans: ['checked'] },
+                range: { attributes: ['min', 'max', 'step'] },
                 reset: { attributes: ['value'] },
                 submit: { attributes: ['value'] },
-                time: { attributes: ['min', 'max', 'step'], value: 'string' },
-                default: { value: 'string' }
+                time: { attributes: ['min', 'max', 'step'] }
             }
         },
         label: { attributes: ['for'] },
@@ -56,16 +51,10 @@ export default {
         polyline: { attributes: ['points', 'transform'] },
         progress: { attributes: ['max', 'value'] },
         rect: { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-        select: {
-            booleans: ['disabled', 'required'],
-            attributes: ['name'],
-            types: {
-                default: { value: 'string' }
-            }
-        },
+        select: { attributes: ['name'], booleans: ['disabled', 'required'] },
         svg: { attributes: ['viewbox'] },
         text: { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
-        textarea: { attributes: ['name'], booleans: ['disabled', 'required'], value: 'string' },
+        textarea: { attributes: ['name'], booleans: ['disabled', 'required'] },
         time: { attributes: ['datetime'] },
         use: { attributes: ['href', 'transform', 'x', 'y'] }
     }

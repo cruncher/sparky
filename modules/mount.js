@@ -446,8 +446,8 @@ const mountValue = choose({
 		return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
 	},
 
-    file: function(node, renderers, options) {
-        // Safari does not send input events on file inputs
+	file: function(node, renderers, options) {
+		// Safari does not send input events on file inputs
 		return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
 	},
 
@@ -456,25 +456,36 @@ const mountValue = choose({
 	}
 });
 
-function mountInput(types, node, renderers, options) {
-	var type    = getType(node);
-	var setting = types[type] || types.default;
-
-	if (!setting) { return; }
-	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
-	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
-	if (setting.value)      { mountValue(type, node, renderers, options); }
-}
+const kinds = {
+	text: 'string',
+	checkbox: 'checkbox',
+	date: 'string',
+	number: 'number',
+	radio: 'radio',
+	range: 'number',
+	time: 'string',
+	'select-one': 'string',
+	'select-multiple': 'array',
+	textarea: 'string'
+};
 
 function mountTag(settings, node, renderers, options) {
 	var name    = tag(node);
 	var setting = settings[name];
-
 	if (!setting) { return; }
 	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
 	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
-	if (setting.types)      { mountInput(setting.types, node, renderers, options); }
-	if (setting.value)      { mountValue(setting.value, node, renderers, options); }
+
+	var type = getType(node);
+	if (!type) { return; }
+
+	var typeSetting = setting.types && setting.types[type];
+	if (typeSetting) {
+		if (typeSetting.booleans) { mountBooleans(typeSetting.booleans, node, renderers, options); }
+		if (typeSetting.attributes) { mountAttributes(typeSetting.attributes, node, renderers, options); }
+	}
+
+	if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
 }
 
 function mountCollection(children, renderers, options) {
