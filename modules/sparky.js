@@ -45,7 +45,7 @@ function replace(target, content) {
 }
 
 function prepareInput(input, output) {
-    // Support promises and streams
+    // Support promises and streams P
     const stream = output.then ?
         new Stream(function(push, stop) {
             output
@@ -115,10 +115,10 @@ function mountContent(content, options) {
         if (node === content) { return; }
 
         // Does the node have Sparkyfiable attributes?
-        options.fn      = node.getAttribute(options.attributeFn) || '';
-        options.include = node.getAttribute(options.attributeInclude) || '';
+        options.fn  = node.getAttribute(options.attributeFn) || '';
+        options.src = node.getAttribute(options.attributeSrc) || '';
 
-        if (!options.fn && !options.include) { return; }
+        if (!options.fn && !options.src) { return; }
 
         // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
@@ -131,17 +131,17 @@ function mountContent(content, options) {
 }
 
 function setupTarget(input, render, options) {
-    const src = options.include;
+    const src = options.src;
 
     // If there are no dynamic tokens to render, return the include
     if (!src) {
-        throw new Error('Sparky attribute include cannot be empty');
+        throw new Error('Sparky attribute src cannot be empty');
     }
 
     const tokens = parseText([], src);
 
-    // Reset options.include, it's done its job for now
-    options.include = '';
+    // Reset options.src, it's done its job for now
+    options.src = '';
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
@@ -158,7 +158,7 @@ function setupTarget(input, render, options) {
     function update(scope) {
         const values = tokens.map(valueOf);
 
-        // Tokens in the include tag MUST evaluate in order that a template
+        // Tokens in the src tag MUST evaluate in order that a template
         // may be rendered.
         //
         // If any tokens evaluated to undefined (which can happen frequently
@@ -190,7 +190,7 @@ function setupTarget(input, render, options) {
         output.stop();
         //stop();
 
-        // If include is empty string render nothing
+        // If src is empty string render nothing
         if (!src) {
             if (prevSrc !== null) {
                 render(null);
@@ -308,7 +308,7 @@ function setupElement(target, input, options, sparky) {
 }
 
 function setupTemplate(target, input, options, sparky) {
-    const src   = options.include;
+    const src   = options.src;
     const nodes = { 0: target };
 
     return setupTarget(input, (content) => {
@@ -340,7 +340,7 @@ function setupTemplate(target, input, options, sparky) {
         }
 
         // Replace child 0, which we avoided doing above to keep it as a
-        // position marker in the DOM for exactly this reason this...
+        // position marker in the DOM for exactly this reason...
         replace(node0, content);
 
         // Update count for logging
@@ -399,7 +399,7 @@ Results in:
 
 
 /*
-include()
+src=""
 
 Templates may include other templates. Define the `src` attribute
 as an href to a template:
@@ -471,19 +471,20 @@ export default function Sparky(selector, settings) {
     // for example, replacing the original node and Sparky with duplicates.
     if (!output) { return; }
 
+    const tag = target.tagName.toLowerCase();
+
     // We have consumed fn lets make sure it's really empty
     options.fn = '';
 
-    const tag = target.tagName.toLowerCase();
-    const src = options.include || (
-        tag === 'use' ? target.getAttribute(options.attributeInclude) :
-        tag === 'template' ? target.getAttribute(options.attributeInclude) :
+    options.src = options.src || (
+        tag === 'use' ? target.getAttribute(options.attributeSrc) :
+        tag === 'template' ? target.getAttribute(options.attributeSrc) :
         ''
     );
 
-    //if (DEBUG) { logNode(target, attrFn, options.include); }
+    //if (DEBUG) { logNode(tag, attrFn, options.src); }
 
-    src ?
+    options.src ?
         tag === 'use' ?
             setupSVG(target, output, options, this) :
         setupTemplate(target, output, options, this) :

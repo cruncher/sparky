@@ -23,6 +23,7 @@ import { requestTick } from '../fn/module.js';
 import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
 import { log, logNode } from './modules/log.js';
+import config from './config.js';
 import Sparky from './modules/sparky.js';
 
 // Register base set of Sparky functions
@@ -44,18 +45,16 @@ Sparky.pipe = pipe;
 
 // Export API
 export default Sparky;
+export { config, cue, uncue };
 export { Stream, Observer, observe } from '../fn/module.js';
-export { cue, uncue };
 //export { Fn, get, id, noop, nothing, notify, Observer, Observable, observe, set, Stream, Target } from '../fn/module.js';
 //export { events, trigger } from '../dom/module.js';
-export { default as config } from './config.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
 export { transforms, transformers } from './modules/transforms.js';
 export { register } from './modules/fn.js';
 export { default as delegate } from './modules/delegate.js';
 export { default as ObserveFn } from './modules/fn-observe.js';
-
 
 /*
 Sparky templates
@@ -95,9 +94,9 @@ requestTick(function() {
         extends: 'template',
 
         construct: function() {
-            const fn = this.getAttribute('fn');
+            const fn = this.getAttribute(config.attributeFn);
 
-            if (DEBUG) { logNode(this, fn, this.getAttribute('include')); }
+            if (DEBUG) { logNode(this, fn, this.getAttribute(config.attributeSrc)); }
 
             if (fn) {
                 Sparky(this, { fn: fn });
@@ -122,12 +121,12 @@ requestTick(function() {
 
     // If still not supported, fallback to a dom query for [is="sparky-template"]
     if (!supportsCustomBuiltIn) {
-        log("Browser does not support custom built-in elements. Doin' it oldskool selectin' stylee.");
+        log("Browser does not support custom built-in elements so we're doin' it oldskool selector stylee.");
 
         window.document
         .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
-            const fn = template.getAttribute('fn');
+            const fn = template.getAttribute(config.attributeFn);
 
             if (fn) {
                 Sparky(template, { fn: fn });

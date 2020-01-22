@@ -4,13 +4,13 @@
 import { config } from './sparky/module.js'
 
 config.attributeFn = 'data-fn';
-config.attributeInclude = 'data-src';
+config.attributeSrc = 'data-src';
 ```
 */
 
 export default {
     attributeFn: 'fn',
-    attributeInclude: 'src',
+    attributeSrc: 'src',
     attributePrefix: ':',
     elements: {
         default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
