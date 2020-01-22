@@ -115,34 +115,35 @@ function mountContent(content, options) {
         if (node === content) { return; }
 
         // Does the node have Sparkyfiable attributes?
-        if (!(options.fn = node.getAttribute(options.attributeFn) || '') && !(
+        if (!(options.fn = node.getAttribute(options.attributeFn)) && !(
                 tag(node) === 'template' &&
-                (options.src = node.getAttribute(options.attributeSrc) || '')
+                (options.src = node.getAttribute(options.attributeSrc))
             )
         ) { return; }
 
         // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
         // A Sparky() is a write stream.
-        return Sparky(node, options);
+        var sparky =  Sparky(node, options);
+
+        // Options object is still used by the mounter, reset it
+        options.fn  = null;
+        options.src = null;
+
+        return sparky;
     };
 
     // Launch rendering
     return new Mount(content, options);
 }
 
-function setupTarget(input, render, options) {
-    const src = options.src;
-
+function setupTarget(src, input, render, options) {
     // If there are no dynamic tokens to render, return the include
     if (!src) {
         throw new Error('Sparky attribute src cannot be empty');
     }
 
     const tokens = parseText([], src);
-
-    // Reset options.src, it's done its job for now
-    options.src = '';
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
@@ -308,11 +309,10 @@ function setupElement(target, input, options, sparky) {
     });
 }
 
-function setupTemplate(target, input, options, sparky) {
-    const src   = options.src;
+function setupTemplate(target, src, input, options, sparky) {
     const nodes = { 0: target };
 
-    return setupTarget(input, (content) => {
+    return setupTarget(src, input, (content) => {
         // Store node 0
         const node0 = nodes[0];
 
@@ -349,8 +349,8 @@ function setupTemplate(target, input, options, sparky) {
     }, options);
 }
 
-function setupSVG(target, input, options, sparky) {
-    return setupTarget(input, (content) => {
+function setupSVG(target, src, input, options, sparky) {
+    return setupTarget(src, input, (content) => {
         content.removeAttribute('id');
 
         replace(target, content);
@@ -472,22 +472,23 @@ export default function Sparky(selector, settings) {
     // for example, replacing the original node and Sparky with duplicates.
     if (!output) { return; }
 
-    const tag = target.tagName.toLowerCase();
-
-    // We have consumed fn lets make sure it's really empty
-    options.fn = '';
-
-    options.src = options.src || (
-        tag === 'use' ? target.getAttribute(options.attributeSrc) :
-        tag === 'template' ? target.getAttribute(options.attributeSrc) :
-        ''
+    const name = tag(target);
+    const src = options.src || (
+        name === 'use' ? target.getAttribute(options.attributeSrc) :
+        name === 'template' ? target.getAttribute(options.attributeSrc) :
+        null
     );
 
-    //if (DEBUG) { logNode(tag, attrFn, options.src); }
+    // We have consumed fn and src lets make sure they are not read again...
+    // Todo: This shouldn't be needed if we program properly
+    options.fn = null;
+    options.src = null;
 
-    options.src ?
-        tag === 'use' ?
-            setupSVG(target, output, options, this) :
-        setupTemplate(target, output, options, this) :
+    //if (DEBUG) { logNode(name, attrFn, options.src); }
+
+    src ?
+        name === 'use' ?
+            setupSVG(target, src, output, options, this) :
+        setupTemplate(target, src, output, options, this) :
     setupElement(target, output, options, this) ;
 }

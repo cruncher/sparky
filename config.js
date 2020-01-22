@@ -59,3 +59,5 @@ export default {
         use: { attributes: ['href', 'transform', 'x', 'y'] }
     }
 }
+
+export const translations = {};

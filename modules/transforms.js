@@ -1,5 +1,7 @@
-// Import uncurried functions from Fn library
+//
+import { translations } from '../config.js';
 
+// Uncurried functions from Fn library
 import { getPath } from '../../fn/modules/paths.js';
 import equals      from '../../fn/modules/equals.js';
 import get         from '../../fn/modules/get.js';
@@ -534,16 +536,6 @@ export const transforms = {
 		var warned = {};
 
 		return function(value) {
-			var translations = translations;
-
-			if (!translations) {
-				if (!warned.missingTranslations) {
-					console.warn('Sparky: Missing lookup object Sparky.translations');
-					warned.missingTranslations = true;
-				}
-				return value;
-			}
-
 			var text = translations[value] ;
 
 			if (!text) {
