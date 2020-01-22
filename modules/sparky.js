@@ -1,5 +1,5 @@
 import { Observer, observe, Stream, capture, nothing } from '../../fn/module.js';
-import { before, create, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
+import { before, create, tag, fragmentFromChildren, isFragmentNode } from '../../dom/module.js';
 import importTemplate from './import-template.js';
 import { parseParams, parseText } from './parse.js';
 import config from '../config.js';
@@ -111,14 +111,15 @@ function run(context, node, input, options) {
 function mountContent(content, options) {
     options.mount = function(node, options) {
         // This is a half-assed way of preventing the root node of this
-        // sparky from being remounted. Still needed?
+        // sparky from being remounted. But, Todo, is it still needed?
         if (node === content) { return; }
 
         // Does the node have Sparkyfiable attributes?
-        options.fn  = node.getAttribute(options.attributeFn) || '';
-        options.src = node.getAttribute(options.attributeSrc) || '';
-
-        if (!options.fn && !options.src) { return; }
+        if (!(options.fn = node.getAttribute(options.attributeFn) || '') && !(
+                tag(node) === 'template' &&
+                (options.src = node.getAttribute(options.attributeSrc) || '')
+            )
+        ) { return; }
 
         // Return a writeable stream. A writeable stream
         // must have the methods .push() and .stop().
