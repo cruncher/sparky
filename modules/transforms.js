@@ -424,7 +424,6 @@ export const transforms = {
 	},
 
 	'is-in': function(array, value) {
-		console.log('IS-IN', array, value, array.includes(value));
 		return array.includes(value);
 	},
 
