@@ -315,7 +315,10 @@ properties are matched against those of `selector`.
 	/* int-string:
 	Transforms numbers to integer strings, and, used for two-way binding,
 	gaurantees integer numbers are set on scope. */
-	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
+	'int-string':   {
+		tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
+		ix: toInt
+	},
 
 	/* ints-string: separator
 	Transforms an array of numbers to a string of integers seperated with
@@ -378,7 +381,6 @@ properties are matched against those of `selector`.
 };
 
 export const transforms = {
-
 	contains:     contains,
 	equals:       equals,
 	escape:       escape,
@@ -419,6 +421,11 @@ export const transforms = {
 	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
 		return value / n;
+	},
+
+	'is-in': function(array, value) {
+		console.log('IS-IN', array, value, array.includes(value));
+		return array.includes(value);
 	},
 
 	'find-in': function(path, id) {
