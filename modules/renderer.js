@@ -9,21 +9,21 @@ function call(fn) {
     return fn();
 }
 
-function observeThing(renderer, token, object, scope, log) {
+function observeThing(renderer, token, object, scope) {
     // Normally observe() does not fire on undefined initial values.
     // Passing in NaN as an initial value to forces the callback to
     // fire immediately whatever the initial value. It's a bit
     // smelly, but this works because even NaN !== NaN.
-    token.unobservers.push(
-        observe(object.path, (value) => {
-            object.value = value;
+    const unobserve = observe(object.path, (value) => {
+        object.value = value;
 
-            // If token has noRender flag set, it is being updated from
-            // the input and does not need to be rendered back to the input
-            if (token.noRender) { return; }
-            renderer.cue();
-        }, scope, NaN)
-    );
+        // If token has noRender flag set, it is being updated from
+        // the input and does not need to be rendered back to the input
+        if (token.noRender) { return; }
+        renderer.cue();
+    }, scope, NaN);
+
+    token.unobservers.push(unobserve);
 }
 
 export default function Renderer() {
