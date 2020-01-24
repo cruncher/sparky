@@ -7503,7 +7503,12 @@ properties are matched against those of `selector`.
 	/* boolean-string:
 	Transforms booleans to strings and vice versa. May by used for two-way binding. */
 	'boolean-string': {
-		tx: toString,
+		tx: function(value) {
+            return value === true ? 'true' :
+                value === false ? 'false' :
+                undefined ;
+        },
+
 		ix: function (value) {
 			return value === 'true' ? true :
 				value === 'false' ? false :

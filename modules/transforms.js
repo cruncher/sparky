@@ -286,11 +286,16 @@ properties are matched against those of `selector`.
 	/* boolean-string:
 	Transforms booleans to strings and vice versa. May by used for two-way binding. */
 	'boolean-string': {
-		tx: toString,
+		tx: function(value) {
+			return value === true ? 'true' :
+				value === false ? 'false' :
+				undefined;
+		},
+
 		ix: function (value) {
 			return value === 'true' ? true :
 				value === 'false' ? false :
-					undefined;
+				undefined;
 		}
 	},
 
@@ -423,6 +428,14 @@ export const transforms = {
 		return value / n;
 	},
 
+
+	/* is-in: array
+	Returns `true` if value is contained in `array`, otherwise `false`.
+
+	```html
+	{[ path|is-in:[0,1] ]}
+	```
+	*/
 	'is-in': function(array, value) {
 		return array.includes(value);
 	},
