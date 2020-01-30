@@ -47,12 +47,19 @@ body > .messages-block {
 }
 
 .info-message-block {
-	color: black;
-	background-color: #00cdff;
+	color: white;
+	background-color: var(--choco);
 }
 
+.info-message-block .close-thumb::before,
+.info-message-block .close-thumb::after {
+	border-top-color: white;
+	border-bottom-color: white;
+}
+
+
 .success-message-block {
-	color: #fbffed;
+	color: black;
 	background-color: #8BA91D;
 }
 
@@ -70,7 +77,7 @@ body > .messages-block {
 	margin-left: 0;
 	margin-right: auto;
 	width: 80%;
-	max-width: 37.5rem;
+	/*max-width: 37.5rem;*/
 }
 
 .message-close-thumb {
