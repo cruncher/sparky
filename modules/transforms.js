@@ -1,15 +1,15 @@
-// Import uncurried functions from Fn library
-
-import { getPath } from '../../fn/modules/paths.js';
-import equals      from '../../fn/modules/equals.js';
-import get         from '../../fn/modules/get.js';
-import invoke      from '../../fn/modules/invoke.js';
-import is          from '../../fn/modules/is.js';
+// Import uncurried functions from Fn library modules
+import { getPath } from '../../fn/modules/get-path.js';
+import { equals }  from '../../fn/modules/equals.js';
+import { get }     from '../../fn/modules/get.js';
+import { has }     from '../../fn/modules/has.js';
+import { invoke }  from '../../fn/modules/invoke.js';
+import { is }      from '../../fn/modules/is.js';
 import isDefined   from '../../fn/modules/is-defined.js';
-import matches     from '../../fn/modules/matches.js';
+import { matches } from '../../fn/modules/matches.js';
 import not         from '../../fn/modules/not.js';
 import toInt       from '../../fn/modules/parse-int.js';
-import toFixed     from '../../fn/modules/to-fixed.js';
+import { toFixed } from '../../fn/modules/to-fixed.js';
 import toString    from '../../fn/modules/to-string.js';
 import toType      from '../../fn/modules/to-type.js';
 import toClass     from '../../fn/modules/to-class.js';
@@ -20,10 +20,10 @@ import { sum, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel
 import toCartesian from '../../fn/modules/maths/to-cartesian.js';
 import toPolar     from '../../fn/modules/maths/to-polar.js';
 
-import append      from '../../fn/modules/strings/append.js';
-import prepend     from '../../fn/modules/strings/prepend.js';
-import prepad      from '../../fn/modules/strings/prepad.js';
-import postpad     from '../../fn/modules/strings/postpad.js';
+import { append }  from '../../fn/modules/strings/append.js';
+import { prepend } from '../../fn/modules/strings/prepend.js';
+import { prepad }  from '../../fn/modules/strings/prepad.js';
+import { postpad } from '../../fn/modules/strings/postpad.js';
 import slugify     from '../../fn/modules/strings/slugify.js';
 import toCamelCase from '../../fn/modules/strings/to-camel-case.js';
 
@@ -97,7 +97,7 @@ export const transformers = {
 
 	/* has: property
 	Returns `true` where value is an object with `property`, otherwise `false`. */
-	has: { tx: function (name, object) { return object && (name in object); } },
+	has: { tx: has },
 
 /*
 matches: selector
@@ -242,19 +242,85 @@ properties are matched against those of `selector`.
 
 	/* dateformat: yyyy-mm-dd
 	Converts an ISO date string, a number (in seconds) or a Date object
-	to a string in `yyyy-mm-dd`. */
+	to a string date formatted with the symbols:
+
+	- `'YYYY'` years
+	- `'YY'`   2-digit year
+	- `'MM'`   month, 2-digit
+	- `'MMM'`  month, 3-letter
+	- `'MMMM'` month, full name
+	- `'D'`    day of week
+	- `'DD'`   day of week, two-digit
+	- `'ddd'`  weekday, 3-letter
+	- `'dddd'` weekday, full name
+	- `'hh'`   hours
+	- `'mm'`   minutes
+	- `'ss'`   seconds
+	- `'sss'`  seconds with decimals
+	*/
 	dateformat: { tx: formatDate },
 
 	/* Times */
 
-	/* add: 'hh:mm:ss'
-	Adds an ISO time in the form `'hh:mm:ss'` to a time value. May be used
-	for two-way binding. (Note the string must be quoted because it contains
-	':' characters.) */
+	/* add: duration
+	Adds `duration`, an ISO-like time string, to a time value, and
+	returns a number in seconds.
 
-	/* timeformat: 'hh:mm:ss'
-	Converts ISO time string, a number (in seconds) or the UTC time values of
-	a Date object to a formatted string. */
+	Add 12 hours:
+
+	```html
+	{[ time|add:'12:00' ]}
+	```
+
+	Durations may be negative. Subtract an hour and a half:
+
+	```html
+	{[ time|add:'-01:30' ]}
+	```
+
+	Numbers in a `duration` string are not limited by the cycles of the clock.
+	Add 212 seconds:
+
+	```html
+	{[ time|add:'00:00:212' ]}
+	```
+
+	Use `timeformat` to transform the result to a readable format:
+
+	```html
+	{[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
+	```
+
+	Not that `duration` must be quoted because it contains ':' characters.
+	May be used for two-way binding.
+	*/
+
+	/* timeformat: format
+	Formats value, which must be an ISO time string or a number in seconds, to
+	match `format`, a string that may contain the tokens:
+
+	- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+	- `'Y'`   Years, approx.
+	- `'M'`   Months, approx.
+	- `'MM'`  Months, remainder from years (max 12), approx.
+	- `'w'`   Weeks
+	- `'ww'`  Weeks, remainder from months (max 4)
+	- `'d'`   Days
+	- `'dd'`  Days, remainder from weeks (max 7)
+	- `'h'`   Hours
+	- `'hh'`  Hours, remainder from days (max 24), 2-digit format
+	- `'m'`   Minutes
+	- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+	- `'s'`   Seconds
+	- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+	- `'sss'` Seconds, remainder from minutes (max 60), fractional
+	- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
+
+	```html
+	{[ .|timeformat:'±hh:mm' ]}
+	-13:57
+	```
+	*/
 	timeformat: { tx: formatTime },
 
 

@@ -12,14 +12,14 @@ Maps scope to the value at `path` of the current scope:
 ```
 */
 
-import { Observable, nothing } from '../../fn/module.js';
+import { mutations, nothing } from '../../fn/module.js';
 import { register } from './fn.js';
 
 register('get', function(node, params) {
     return this
     .scan((stream, object) => {
         stream.stop();
-        return Observable(params[0], object);
+        return mutations(params[0], object);
     }, nothing)
     .flat();
 });

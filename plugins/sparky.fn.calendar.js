@@ -56,7 +56,7 @@ Sparky.fn.calendar = function(node, scopes, params) {
         var month = calendar.date && formatDate('YYYY-MM', 'UTC', undefined, calendar.date);
         calendar.dates.forEach(function(dateScope) {
             dateScope.selectedMonth = month
-            && formatDate('YYYY-MM', 'UTC', undefined, dateScope.date) === month;
+                && formatDate('UTC', undefined, 'YYYY-MM', dateScope.date) === month;
         });
     }
 

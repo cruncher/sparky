@@ -111,14 +111,12 @@ with id `no-keywords` is rendered in place of `my-template`:
 import { capture, exec, id, noop, nothing } from '../../fn/module.js'
 import Value from './value.js';
 
-const parseArrayClose = capture(/^\]\s*/, nothing);
-
 /*
 parseParams(array, string)
 */
 
-//                                        number                                     "string"            'string'                    null   true   false    [array] or {object}   function(args)   /regex/             dot  string             comma
-export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\]|\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+//                                        number                                     "string"            'string'                    null   true   false    [array]      {object}   function(args)   /regex/             dot  string             comma
+export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\])|(\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))/, {
     // number
     1: function(params, tokens) {
         params.push(parseFloat(tokens[1]));
@@ -155,9 +153,15 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
         return params;
     },
 
-    // flat [array] or {object}
+    // [array]
     7: function(params, tokens) {
         params.push(JSON.parse(tokens[7]));
+        return params;
+    },
+
+    // flat {object}
+    8: function (params, tokens) {
+        params.push(JSON.parse(tokens[8]));
         return params;
     },
 
@@ -171,26 +175,30 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     //},
 
     // /regexp/
-    10: function(params, tokens) {
-        const regex = RegExp(tokens[10]);
+    11: function(params, tokens) {
+        const regex = RegExp(tokens[11]);
         params.push(regex);
     },
 
     // string
-    12: function(params, tokens) {
-        if (tokens[11]) {
-            params.push(new Value(tokens[12]));
+    13: function(params, tokens) {
+        if (tokens[12]) {
+            params.push(new Value(tokens[13]));
         }
         else {
-            params.push(tokens[12]);
+            params.push(tokens[13]);
         }
         return params;
     },
 
     // Comma terminator - more params to come
-    13: function(params, tokens) {
-        return parseParams(params, tokens);
-    },
+    close: capture(/^\s*(,)/, {
+        1: function(params, tokens) {
+            parseParams(params, tokens);
+        },
+
+        catch: id
+    }),
 
     catch: function(params, string) {
         // string is either the input string or a tokens object
