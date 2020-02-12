@@ -507,31 +507,88 @@ properties are matched against those of <code>selector</code>.</p>
             </a>
         </h3>
     <p>Converts an ISO date string, a number (in seconds) or a Date object
-    to a string in <code>yyyy-mm-dd</code>. </p>
-</article>
+    to a string date formatted with the symbols:</p>
+<pre><code><span class="token operator">-</span> <span class="token template-string"><span class="token string">`'YYYY'`</span></span> years
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'YY'`</span></span>   <span class="token number">2</span><span class="token operator">-</span>digit year
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'MM'`</span></span>   month<span class="token punctuation">,</span> <span class="token number">2</span><span class="token operator">-</span>digit
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'MMM'`</span></span>  month<span class="token punctuation">,</span> <span class="token number">3</span><span class="token operator">-</span>letter
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'MMMM'`</span></span> month<span class="token punctuation">,</span> full name
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'D'`</span></span>    day <span class="token keyword">of</span> week
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'DD'`</span></span>   day <span class="token keyword">of</span> week<span class="token punctuation">,</span> two<span class="token operator">-</span>digit
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ddd'`</span></span>  weekday<span class="token punctuation">,</span> <span class="token number">3</span><span class="token operator">-</span>letter
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'dddd'`</span></span> weekday<span class="token punctuation">,</span> full name
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'hh'`</span></span>   hours
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'mm'`</span></span>   minutes
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ss'`</span></span>   seconds
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'sss'`</span></span>  seconds <span class="token keyword">with</span> decimals</code></pre></article>
 
     <h3 class="text-4">Times </h3>
 
     <article class="toggle-block block" toggleable="" id="add">
         <h3 class="text-5 ">
             <a href="#add">
-                <code class="language-js">add: 'hh:mm:ss'</code>
+                <code class="language-js">add: duration</code>
             </a>
         </h3>
-    <p>Adds an ISO time in the form <code>'hh:mm:ss'</code> to a time value. May be used
-    for two-way binding. (Note the string must be quoted because it contains
-    ‘:’ characters.) </p>
-</article>
+    <p>Adds <code>duration</code>, an ISO-like time string, to a time value, and
+    returns a number in seconds.</p>
+<pre><code>Add <span class="token number">12</span> hours<span class="token punctuation">:</span>
+
+<span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ time|add:'12:00' ]}
+`</span></span><span class="token template-string"><span class="token string">``</span></span>
+
+Durations may be negative<span class="token punctuation">.</span> Subtract an hour and a half<span class="token punctuation">:</span>
+
+<span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ time|add:'-01:30' ]}
+`</span></span><span class="token template-string"><span class="token string">``</span></span>
+
+Numbers <span class="token keyword">in</span> a <span class="token template-string"><span class="token string">`duration`</span></span> string are not limited by the cycles <span class="token keyword">of</span> the clock<span class="token punctuation">.</span>
+Add <span class="token number">212</span> seconds<span class="token punctuation">:</span>
+
+<span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ time|add:'00:00:212' ]}
+`</span></span><span class="token template-string"><span class="token string">``</span></span>
+
+Use <span class="token template-string"><span class="token string">`timeformat`</span></span> to transform the result to a readable format<span class="token punctuation">:</span>
+
+<span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
+`</span></span><span class="token template-string"><span class="token string">``</span></span>
+
+Not that <span class="token template-string"><span class="token string">`duration`</span></span> must be quoted because it contains <span class="token string">':'</span> characters<span class="token punctuation">.</span>
+May be used <span class="token keyword">for</span> two<span class="token operator">-</span>way binding<span class="token punctuation">.</span></code></pre></article>
 
     <article class="toggle-block block" toggleable="" id="timeformat">
         <h3 class="text-5 ">
             <a href="#timeformat">
-                <code class="language-js">timeformat: 'hh:mm:ss'</code>
+                <code class="language-js">timeformat: format</code>
             </a>
         </h3>
-    <p>Converts ISO time string, a number (in seconds) or the UTC time values of
-    a Date object to a formatted string. </p>
-</article>
+    <p>Formats value, which must be an ISO time string or a number in seconds, to
+    match <code>format</code>, a string that may contain the tokens:</p>
+<pre><code><span class="token operator">-</span> <span class="token template-string"><span class="token string">`'±'`</span></span>   Sign<span class="token punctuation">,</span> renders <span class="token string">'-'</span> <span class="token keyword">if</span> time is negative<span class="token punctuation">,</span> otherwise nothing
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'Y'`</span></span>   Years<span class="token punctuation">,</span> approx<span class="token punctuation">.</span>
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'M'`</span></span>   Months<span class="token punctuation">,</span> approx<span class="token punctuation">.</span>
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'MM'`</span></span>  Months<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">years</span> <span class="token punctuation">(</span>max <span class="token number">12</span><span class="token punctuation">)</span><span class="token punctuation">,</span> approx<span class="token punctuation">.</span>
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'w'`</span></span>   Weeks
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ww'`</span></span>  Weeks<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">months</span> <span class="token punctuation">(</span>max <span class="token number">4</span><span class="token punctuation">)</span>
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'d'`</span></span>   Days
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'dd'`</span></span>  Days<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">weeks</span> <span class="token punctuation">(</span>max <span class="token number">7</span><span class="token punctuation">)</span>
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'h'`</span></span>   Hours
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'hh'`</span></span>  Hours<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">days</span> <span class="token punctuation">(</span>max <span class="token number">24</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token operator">-</span>digit format
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'m'`</span></span>   Minutes
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'mm'`</span></span>  Minutes<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">hours</span> <span class="token punctuation">(</span>max <span class="token number">60</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token operator">-</span>digit format
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'s'`</span></span>   Seconds
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ss'`</span></span>  Seconds<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">minutes</span> <span class="token punctuation">(</span>max <span class="token number">60</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token operator">-</span>digit format
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'sss'`</span></span> Seconds<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">minutes</span> <span class="token punctuation">(</span>max <span class="token number">60</span><span class="token punctuation">)</span><span class="token punctuation">,</span> fractional
+<span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ms'`</span></span>  Milliseconds<span class="token punctuation">,</span> remainder <span class="token keyword">from</span> <span class="token function">seconds</span> <span class="token punctuation">(</span>max <span class="token number">1000</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token operator">-</span>digit format
+
+<span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ .|timeformat:'±hh:mm' ]}
+-13:57
+`</span></span><span class="token template-string"><span class="token string">``</span></span></code></pre></article>
 
     <h3 class="text-4">Type converters </h3>
 
@@ -661,6 +718,17 @@ properties are matched against those of <code>selector</code>.</p>
         </h3>
     <p>Returns the slug of value. </p>
 </article>
+
+    <article class="toggle-block block" toggleable="" id="is-in">
+        <h3 class="text-5 ">
+            <a href="#is-in">
+                <code class="language-js">is-in: array</code>
+            </a>
+        </h3>
+    <p>Returns <code>true</code> if value is contained in <code>array</code>, otherwise <code>false</code>.</p>
+<pre><code><span class="token template-string"><span class="token string">``</span></span><span class="token template-string"><span class="token string">`html
+{[ path|is-in:[0,1] ]}
+`</span></span><span class="token template-string"><span class="token string">``</span></span></code></pre></article>
 
     <article class="toggle-block block" toggleable="" id="localise">
         <h3 class="text-5 ">

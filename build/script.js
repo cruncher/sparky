@@ -302,6 +302,120 @@ var Sparky = (function (exports) {
     }
 
     /*
+    exec(regex, fn, string)
+
+    Calls `fn` with the result of `regex.exec(string)` if that result is not null,
+    and returns the resulting value.
+    */
+
+    function exec(regex, fn, string) {
+        let data;
+
+        // If string looks like a regex result, get rest of string
+        // from latest index
+        if (string.input !== undefined && string.index !== undefined) {
+            data   = string;
+            string = data.input.slice(
+                string.index
+                + string[0].length
+                + (string.consumed || 0)
+            );
+        }
+
+        // Look for tokens
+        const tokens = regex.exec(string);
+        if (!tokens) { return; }
+
+        const output = fn(tokens);
+
+        // If we have a parent tokens object update its consumed count
+        if (data) {
+            data.consumed = (data.consumed || 0)
+                + tokens.index
+                + tokens[0].length
+                + (tokens.consumed || 0) ;
+        }
+
+        return output;
+    }
+
+    var exec$1 = curry$1(exec, true);
+
+    function error(regex, reducers, string) {
+        if (string.input !== undefined && string.index !== undefined) {
+            string = string.input;
+        }
+
+        throw new Error('Cannot parse invalid string "' + string + '"');
+    }
+
+    function reduce$1(reducers, acc, tokens) {
+        let n = -1;
+
+        while (++n < tokens.length) {
+            acc = (tokens[n] !== undefined && reducers[n]) ? reducers[n](acc, tokens) : acc ;
+        }
+
+        // Call the optional close fn
+        return reducers.close ?
+            reducers.close(acc, tokens) :
+            acc ;
+    }
+
+    /*
+    capture(regex, reducers, accumulator, string)
+    Parse `string` with `regex`, calling functions in `reducers` to modify
+    and return `accumulator`.
+
+    Reducers is an object of functions keyed by the index of their capturing
+    group in the regexp result (`0` corresponding to the entire regex match,
+    the first capturing group being at index `1`). Reducer functions are
+    called in capture order for all capturing groups that captured something.
+    Reducers may also define the function 'close', which is called at the end
+    of every capture. All reducer functions are passed the paremeters
+    `(accumulator, tokens)`, where `tokens` is the regexp result, and are expected
+    to return a value that is passed as an accumulator to the next reducer function.
+
+    Reducers may also define a function `'catch'`, which is called when a match
+    has not been made (where `'catch'` is not defined an error is thrown).
+
+    ```js
+    const parseValue = capture(/^\s*(-?\d*\.?\d+)(\w+)?\s*$/, {
+        // Create a new accumulator object each call
+        0: () => ({}),
+
+        1: (acc, tokens) => {
+            acc.number = parseFloat(tokens[1]);
+            return acc;
+        },
+
+        2: (acc, tokens) => {
+            acc.unit = tokens[2];
+            return acc;
+        }
+    }, null);
+
+    const value = parseValue('36rem');    // { number: 36, unit: 'rem' }
+    ```
+    */
+
+    function capture(regex, reducers, acc, string) {
+        const output = exec(regex, (tokens) => reduce$1(reducers, acc, tokens), string);
+
+        // If tokens is undefined exec has failed apply regex to string
+        return output === undefined ?
+            // If there is a catch function, call it, otherwise error out
+            reducers.catch ?
+                reducers.catch(acc, string) :
+                error(regex, reducers, string) :
+
+            // Return the accumulator
+            output ;
+    }
+
+    var capture$1 = curry$1(capture, true);
+
+    /*
     choke(fn, time)
 
     Returns a function that waits for `time` seconds without being invoked
@@ -367,12 +481,139 @@ var Sparky = (function (exports) {
         };
     }
 
+    function equals(a, b) {
+        // Fast out if references are for the same object
+        if (a === b) { return true; }
+
+        // If either of the values is null, or not an object, we already know
+        // they're not equal so get out of here
+        if (a === null ||
+            b === null ||
+            typeof a !== 'object' ||
+            typeof b !== 'object') {
+            return false;
+        }
+
+        // Compare their enumerable keys
+        const akeys = Object.keys(a);
+        let n = akeys.length;
+
+        while (n--) {
+            // Has the property been set to undefined on a?
+            if (a[akeys[n]] === undefined) {
+                // We don't want to test if it is an own property of b, as
+                // undefined represents an absence of value
+                if (b[akeys[n]] === undefined) {
+                    return true;
+                }
+            }
+            else {
+                //
+                if (b.hasOwnProperty(akeys[n]) && !equals(a[akeys[n]], b[akeys[n]])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    curry$1(equals, true);
+
+    function get(key, object) {
+        // Todo? Support WeakMaps and Maps and other map-like objects with a
+        // get method - but not by detecting the get method
+        return object[key];
+    }
+
+    var get$1 = curry$1(get, true);
+
+    var rpath  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
+
+    function findByProperty(key, value, array) {
+        var l = array.length;
+        var n = -1;
+
+        while (++n < l) {
+            if (array[n][key] === value) {
+                return array[n];
+            }
+        }
+    }
+
+
+    /* Get path */
+
+    function getRegexPathThing(regex, path, object, fn) {
+        var tokens = regex.exec(path);
+
+        if (!tokens) {
+            throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
+        }
+
+        var key      = tokens[1];
+        var property = tokens[3] ?
+            findByProperty(key,
+                tokens[2] ? tokens[3] :
+                tokens[4] ? Boolean(tokens[4]) :
+                parseFloat(tokens[5]),
+            object) :
+            object[key] ;
+
+        return fn(regex, path, property);
+    }
+
+    function getRegexPath(regex, path, object) {
+        return regex.lastIndex === path.length ?
+            object :
+        !(object && typeof object === 'object') ?
+            undefined :
+        getRegexPathThing(regex, path, object, getRegexPath) ;
+    }
+
+    function getPath(path, object) {
+        rpath.lastIndex = 0;
+        return getRegexPath(rpath, path, object) ;
+    }
+
+    var getPath$1 = curry$1(getPath, true);
+
+    /*
+    has(key, value, object)
+    Returns `true` if `object[key]` is strictly equal to `value`.
+    */
+
+    function has(key, value, object) {
+        return object[key] === value;
+    }
+
+    curry$1(has, true);
+
     /*
     id(value)
     Returns `value`.
     */
 
     function id(value) { return value; }
+
+    /*
+    invoke(name, parameters, object)
+    Invokes `object.name()` with `parameters` as arguments. For example:
+
+    ```
+    models.forEach(invoke('save', [version]));
+    ```
+    */
+
+    function invoke(name, values, object) {
+        return object[name].apply(object, values);
+    }
+
+    curry$1(invoke, true);
+
+    const is = Object.is || function is(a, b) { return a === b; };
+
+    curry$1(is, true);
 
     /*
     isDefined(value)
@@ -391,6 +632,27 @@ var Sparky = (function (exports) {
         var value = source.shift();
         return value === undefined ? arguments[1] : latest(source, value) ;
     }
+
+    /*
+    matches(selector, object)
+    Where `selector` is an object containing properties to be compared against
+    properties of `object`. If they are all strictly equal, returns `true`,
+    otherwise `false`.
+
+    ```
+    const vegeFoods = menu.filter(matches({ vegetarian: true }));
+    ```
+    */
+
+    function matches(object, item) {
+    	let property;
+    	for (property in object) {
+    		if (object[property] !== item[property]) { return false; }
+    	}
+    	return true;
+    }
+
+    curry$1(matches, true);
 
     /*
     not(value)
@@ -455,6 +717,18 @@ var Sparky = (function (exports) {
             } ;
     }
 
+    /*
+    parseInt(string)
+    Parse to integer without having to worry about the radix parameter,
+    making it suitable, for example, to use in `array.map(parseInt)`.
+    */
+
+    function parseInteger(object) {
+        return object === undefined ?
+            undefined :
+            parseInt(object, 10);
+    }
+
     function apply(value, fn) {
         return fn(value);
     }
@@ -485,6 +759,93 @@ var Sparky = (function (exports) {
     }
 
     /*
+    set(key, object, value)
+
+    ```
+    // Set `input.value` whenever a value is pushed into a stream:
+    stream.scan(set('value'), input);
+    ```
+    */
+
+    function set(key, object, value) {
+        return typeof object.set === "function" ?
+            object.set(key, value) :
+            (object[key] = value) ;
+    }
+
+    var set$1 = curry$1(set, true);
+
+    var rpath$1  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
+
+    function findByProperty$1(key, value, array) {
+        var l = array.length;
+        var n = -1;
+
+        while (++n < l) {
+            if (array[n][key] === value) {
+                return array[n];
+            }
+        }
+    }
+
+    /* Set path */
+
+    function setRegexPath(regex, path, object, thing) {
+        var tokens = regex.exec(path);
+
+        if (!tokens) {
+            throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
+        }
+
+        var key = tokens[1];
+
+        if (regex.lastIndex === path.length) {
+            // Cannot set to [prop=value] selector
+            if (tokens[3]) {
+                throw new Error('Fn.setPath(path, object): invalid path "' + path + '"');
+            }
+
+            return object[key] = thing;
+        }
+
+        var value = tokens[3] ?
+            findByProperty$1(key,
+                tokens[2] ? tokens[3] :
+                tokens[4] ? Boolean(tokens[4]) :
+                parseFloat(tokens[5])
+            ) :
+            object[key] ;
+
+        if (!(value && typeof value === 'object')) {
+            value = {};
+
+            if (tokens[3]) {
+                if (object.push) {
+                    value[key] = tokens[2] ?
+                        tokens[3] :
+                        parseFloat(tokens[3]) ;
+
+                    object.push(value);
+                }
+                else {
+                    throw new Error('Not supported');
+                }
+            }
+
+            set(key, object, value);
+        }
+
+        return setRegexPath(regex, path, value, thing);
+    }
+
+    function setPath(path, object, value) {
+        rpath$1.lastIndex = 0;
+        return setRegexPath(rpath$1, path, object, value);
+    }
+
+    var setPath$1 = curry$1(setPath, true);
+
+    /*
     toClass(object)
     */
 
@@ -495,16 +856,22 @@ var Sparky = (function (exports) {
     }
 
     /*
-    parseInt(string)
-    Parse to integer without having to worry about the radix parameter,
-    making it suitable, for example, to use in `array.map(parseInt)`.
+    toFixed(number)
     */
 
-    function parseInteger(object) {
-        return object === undefined ?
-            undefined :
-            parseInt(object, 10);
+    const N     = Number.prototype;
+    const isNaN = Number.isNaN;
+
+    function toFixed(n, value) {
+        if (isNaN(value)) {
+            return '';
+            // throw new Error('Fn.toFixed does not accept NaN.');
+        }
+
+        return N.toFixed.call(value, n);
     }
+
+    curry$1(toFixed, true);
 
     /*
     toString(object)
@@ -527,6 +894,8 @@ var Sparky = (function (exports) {
     function prepend(string1, string2) {
         return '' + string1 + string2;
     }
+
+    var prepend$1 = curry$1(prepend);
 
     const assign = Object.assign;
 
@@ -1208,7 +1577,7 @@ var Sparky = (function (exports) {
         },
 
         toString: function() {
-            return this.reduce(prepend, '');
+            return this.reduce(prepend$1, '');
         }
     });
 
@@ -2626,7 +2995,7 @@ var Sparky = (function (exports) {
     const nothing$2 = Object.freeze([]);
 
     //                   1 .name         [2 number  3 'quote' 4 "quote" ]
-    const rpath   = /^\.?([^.[\s]+)\s*|^\[(?:(\d+)|'([^']*)'|"([^"]*)")\]\s*|^\[\s*/;
+    const rpath$2   = /^\.?([^.[\s]+)\s*|^\[(?:(\d+)|'([^']*)'|"([^"]*)")\]\s*|^\[\s*/;
 
     function isPrimitive(object) {
         return !(object && typeof object === 'object');
@@ -2735,7 +3104,7 @@ var Sparky = (function (exports) {
     		return observePrimitive(undefined, data);
     	}
 
-        const tokens = rpath.exec(path);
+        const tokens = rpath$2.exec(path);
 
         if (!tokens) {
             throw new Error('Observer: Invalid path: ' + path + ' : ' + path.length);
@@ -2784,8 +3153,6 @@ var Sparky = (function (exports) {
         });
     }
 
-    //import { setPath } from './paths.js';
-
     function ObserveSource(push, stop, args) {
         const path   = args[0];
         const object = args[1];
@@ -2819,358 +3186,72 @@ var Sparky = (function (exports) {
     	});
     }
 
+    /*
+    .append(str2, str1)
+
+    Returns `str1 + str2` as string.
+    */
+
+    function append$1(string1, string2) {
+        return '' + string2 + string1;
+    }
+
+    curry$1(append$1);
+
+    function prepad(chars, n, value) {
+        var string = value + '';
+        var i = -1;
+        var pre = '';
+
+        while (pre.length < n - string.length) {
+            pre += chars[++i % chars.length];
+        }
+
+        string = pre + string;
+        return string.slice(string.length - n);
+    }
+
+    curry$1(prepad);
+
+    function postpad(chars, n, value) {
+        var string = value + '';
+
+        while (string.length < n) {
+            string = string + chars;
+        }
+
+        return string.slice(0, n);
+    }
+
+    curry$1(postpad);
+
+    /*
+    slugify(string)
+
+    Replaces any series of non-word characters with a `'-'` and lowercases the rest.
+
+        slugify('Party on #mydudes!') // 'party-on-mydudes'
+    */
+
+    function slugify(string) {
+        if (typeof string !== 'string') { return; }
+        return string
+        .trim()
+        .toLowerCase()
+        .replace(/^[\W_]+/, '')
+        .replace(/[\W_]+$/, '')
+        .replace(/[\W_]+/g, '-');
+    }
+
+    function toCamelCase(string) {
+        // Be gracious in what we accept as input
+        return string.replace(/-(\w)?/g, function($0, letter) {
+            return letter ? letter.toUpperCase() : '';
+        });
+    }
+
     function requestTime(s, fn) {
         return setTimeout(fn, s * 1000);
-    }
-
-    /*
-    equals(a, b)
-    Perform a deep equality comparison of `a` and `b`. Returns `true` if
-    they are equal.
-    */
-
-    function equals(a, b) {
-        // Fast out if references are for the same object
-        if (a === b) { return true; }
-
-        // If either of the values is null, or not an object, we already know
-        // they're not equal so get out of here
-        if (a === null ||
-            b === null ||
-            typeof a !== 'object' ||
-            typeof b !== 'object') {
-            return false;
-        }
-
-        // Compare their enumerable keys
-        const akeys = Object.keys(a);
-        let n = akeys.length;
-
-        while (n--) {
-            // Has the property been set to undefined on a?
-            if (a[akeys[n]] === undefined) {
-                // We don't want to test if it is an own property of b, as
-                // undefined represents an absence of value
-                if (b[akeys[n]] === undefined) {
-                    return true;
-                }
-            }
-            else {
-                //
-                if (b.hasOwnProperty(akeys[n]) && !equals(a[akeys[n]], b[akeys[n]])) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /*
-    exec(regex, fn, string)
-    */
-
-    function exec(regex, fn, string) {
-        let data;
-
-        // If string looks like a regex result, get rest of string
-        // from latest index
-        if (string.input !== undefined && string.index !== undefined) {
-            data   = string;
-            string = data.input.slice(
-                string.index
-                + string[0].length
-                + (string.consumed || 0)
-            );
-        }
-
-        // Look for tokens
-        const tokens = regex.exec(string);
-        if (!tokens) { return; }
-
-        const output = fn(tokens);
-
-        // If we have a parent tokens object update its consumed count
-        if (data) {
-            data.consumed = (data.consumed || 0)
-                + tokens.index
-                + tokens[0].length
-                + (tokens.consumed || 0) ;
-        }
-
-        return output;
-    }
-
-    /*
-    get(name, object)
-    Get property `name` of `object`.
-    */
-
-    function get(key, object) {
-        // Todo? Support WeakMaps and Maps and other map-like objects with a
-        // get method - but not by detecting the get method
-        return object[key];
-
-        // Why are we protecting against null again? To innoculate ourselves
-        // against DOM nodes?
-        //return value === null ? undefined : value ;
-    }
-
-    /*
-    has(key, value, object)
-    Returns `true` if `object[key]` is strictly equal to `value`.
-    */
-
-    function has(key, value, object) {
-        return object[key] === value;
-    }
-
-    /*
-    is(a, b)
-    Perform a strict equality check of `a === b`.
-    */
-
-
-    var is = Object.is || function is(a, b) { return a === b; };
-
-    /*
-    invoke(name, parameters, object)
-    Invokes `object.name()` with `parameters` as arguments. For example:
-
-    ```
-    models.forEach(invoke('save', [version]));
-    ```
-    */
-
-    function invoke(name, values, object) {
-        return object[name].apply(object, values);
-    }
-
-    /*
-    matches(selector, object)
-    Where `selector` is an object containing properties to be compared against
-    properties of `object`. If they are all strictly equal, returns `true`,
-    otherwise `false`.
-
-    ```
-    const vegeFoods = menu.filter(matches({ vegetarian: true }));
-    ```
-    */
-
-    function matches(object, item) {
-    	let property;
-    	for (property in object) {
-    		if (object[property] !== item[property]) { return false; }
-    	}
-    	return true;
-    }
-
-    function error(regex, reducers, string) {
-        if (string.input !== undefined && string.index !== undefined) {
-            string = string.input;
-        }
-
-        throw new Error('Cannot capture() in invalid string "' + string + '"');
-    }
-
-    function reduce$1(reducers, acc, tokens) {
-        let n = -1;
-
-        while (++n < tokens.length) {
-            acc = (tokens[n] !== undefined && reducers[n]) ? reducers[n](acc, tokens) : acc ;
-        }
-
-        // Call the optional close fn
-        return reducers.close ?
-            reducers.close(acc, tokens) :
-            acc ;
-    }
-
-    /*
-    capture(regex, reducers, accumulator, string)
-    Parse `string` with `regex`, calling functions in `reducers` to modify
-    and return `accumulator`.
-
-    Reducers is an object of functions keyed by the index of their capturing
-    group in the regexp result (`0` corresponding to the entire regex match,
-    the first capturing group being at index `1`). Reducer functions are
-    called in capture order for all capturing groups that captured something.
-    Reducers may also define the function 'close', which is called at the end
-    of every capture. All functions are passed the paremeters
-    `(accumulator, tokens)`, where `tokens` is the regexp result. Functions
-    must return an accumulator.
-
-    Reducers may also define a function `'catch'`, which is called when a match
-    has not been made (where `'catch'` is not defined an error is thrown).
-
-    ```
-    const rvalue = /^\s*(-?\d*\.?\d+)(\w+)?\s*$/;
-    const parseValue = capture(rvalue, {
-        // Create a new accumulator object each call
-        0: () => ({}),
-
-        1: (acc, tokens) => {
-            acc.number = parseFloat(tokens[1]);
-            return acc;
-        },
-
-        2: (acc, tokens) => {
-            acc.unit = tokens[2];
-            return acc;
-        }
-    }, {});
-
-    const value = parseValue('36rem');    // { value: 36, unit: 'rem' }
-    ```
-    */
-
-    function capture(regex, reducers, acc, string) {
-        const output = exec(regex, (tokens) => reduce$1(reducers, acc, tokens), string);
-
-        // If tokens is undefined exec has failed apply regex to string
-        return output === undefined ?
-            // If there is a catch function, call it, otherwise error out
-            reducers.catch ?
-                reducers.catch(acc, string) :
-                error(regex, reducers, string) :
-
-            // Return the accumulator
-            output ;
-    }
-
-    /*
-    set(key, object, value)
-
-    ```
-    // Set `input.value` whenever a value is pushed into a stream:
-    stream.scan(set('value'), input);
-    ```
-    */
-
-    function set(key, object, value) {
-        return typeof object.set === "function" ?
-            object.set(key, value) :
-            (object[key] = value) ;
-    }
-
-    /*
-    toFixed(number)
-    */
-
-    const N     = Number.prototype;
-    const isNaN = Number.isNaN;
-
-    function toFixed(n, value) {
-        if (isNaN(value)) {
-            return '';
-            // throw new Error('Fn.toFixed does not accept NaN.');
-        }
-
-        return N.toFixed.call(value, n);
-    }
-
-    var rpath$1  = /\[?([-\w]+)(?:=(['"])([^\2]+)\2|(true|false)|((?:\d*\.)?\d+))?\]?\.?/g;
-
-    function findByProperty(key, value, array) {
-        var l = array.length;
-        var n = -1;
-
-        while (++n < l) {
-            if (array[n][key] === value) {
-                return array[n];
-            }
-        }
-    }
-
-
-    /* Get path */
-
-    function getRegexPathThing(regex, path, object, fn) {
-        var tokens = regex.exec(path);
-
-        if (!tokens) {
-            throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
-        }
-
-        var key      = tokens[1];
-        var property = tokens[3] ?
-            findByProperty(key,
-                tokens[2] ? tokens[3] :
-                tokens[4] ? Boolean(tokens[4]) :
-                parseFloat(tokens[5]),
-            object) :
-            object[key] ;
-
-        return fn(regex, path, property);
-    }
-
-    function getRegexPath(regex, path, object) {
-        return regex.lastIndex === path.length ?
-            object :
-        !(object && typeof object === 'object') ?
-            undefined :
-        getRegexPathThing(regex, path, object, getRegexPath) ;
-    }
-
-    function getPath(path, object) {
-        rpath$1.lastIndex = 0;
-        return getRegexPath(rpath$1, path, object) ;
-    }
-
-
-    /* Set path */
-
-    function setRegexPath(regex, path, object, thing) {
-        var tokens = regex.exec(path);
-
-        if (!tokens) {
-            throw new Error('Fn.getPath(path, object): invalid path "' + path + '"');
-        }
-
-        var key = tokens[1];
-
-        if (regex.lastIndex === path.length) {
-            // Cannot set to [prop=value] selector
-            if (tokens[3]) {
-                throw new Error('Fn.setPath(path, object): invalid path "' + path + '"');
-            }
-
-            return object[key] = thing;
-        }
-
-        var value = tokens[3] ?
-            findByProperty(key,
-                tokens[2] ? tokens[3] :
-                tokens[4] ? Boolean(tokens[4]) :
-                parseFloat(tokens[5])
-            ) :
-            object[key] ;
-
-        if (!(value && typeof value === 'object')) {
-            value = {};
-
-            if (tokens[3]) {
-                if (object.push) {
-                    value[key] = tokens[2] ?
-                        tokens[3] :
-                        parseFloat(tokens[3]) ;
-
-                    object.push(value);
-                }
-                else {
-                    throw new Error('Not supported');
-                }
-            }
-
-            set(key, object, value);
-        }
-
-        return setRegexPath(regex, path, value, thing);
-    }
-
-    function setPath(path, object, value) {
-        rpath$1.lastIndex = 0;
-        return setRegexPath(rpath$1, path, object, value);
     }
 
     function ap(data, fns) {
@@ -3212,26 +3293,47 @@ var Sparky = (function (exports) {
         return a;
     }
 
-    const assign$2 = Object.assign;
-
     /*
-    update(fn, array, object)
+    update(create, destroy, fn, target, source)
 
-    Compares the result of calling `fn` on `object` to the result of calling `fn`
-    on each value in `array`. If a match is found, `object` has its properties
-    assigned to that target, and if not the `object` is spliced into the
-    array (preserving a sort order based on the result of `fn(object)`).
-
-    Returns the updated object.
+    Returns a new array containing items that are either matched objects from
+    `target` assigned new data from `source` objects or, where no match is found,
+    new objects created by calling `create` on a `source` object. Any objects
+    in `target` that are not matched to `source` objects are destroyed by calling
+    `destroy` on them.
     */
 
-    function update(fn, construct, array, source) {
-        const id  = fn(source);
-        const obj = array.find((obj) => fn(obj) === id);
+    const assign$2 = Object.assign;
 
-        return obj ?
-            assign$2(obj, source) :
-            insert(fn, array, construct(source)) ;
+    function update(create, destroy, fn, target, source) {
+        const ids     = target.map(fn);
+        const indexes = {};
+        const output  = source.map(function(data) {
+            const id = fn(data);
+            const i  = ids.indexOf(id);
+
+            if (i < 0) {
+                return create.prototype ?
+                    new create(data) :
+                    create(data);
+            }
+
+            // Has it already been processed? Oops.
+            if (indexes[i]) {
+                throw new Error('Failed to update target array, source data contains duplicates');
+            }
+
+            indexes[i] = true;
+            return assign$2(target[i], data);
+        });
+
+        target.forEach(function(object) {
+            if (!output.includes(object)) {
+                destroy(object);
+            }
+        });
+
+        return output;
     }
 
     function diff(array, object) {
@@ -3279,64 +3381,6 @@ var Sparky = (function (exports) {
         }
 
         // Todo: handle Fns and Streams
-    }
-
-    /*
-    .append(str2, str1)
-
-    Returns `str1 + str2` as string.
-    */
-
-    function append$1(string1, string2) {
-        return '' + string2 + string1;
-    }
-
-    function prepad(chars, n, value) {
-        var string = value + '';
-        var i = -1;
-        var pre = '';
-
-        while (pre.length < n - string.length) {
-            pre += chars[++i % chars.length];
-        }
-
-        string = pre + string;
-        return string.slice(string.length - n);
-    }
-
-    function postpad(chars, n, value) {
-        var string = value + '';
-
-        while (string.length < n) {
-            string = string + chars;
-        }
-
-        return string.slice(0, n);
-    }
-
-    /*
-    slugify(string)
-
-    Replaces any series of non-word characters with a `'-'` and lowercases the rest.
-
-        slugify('Party on #mydudes!') // 'party-on-mydudes'
-    */
-
-    function slugify(string) {
-        if (typeof string !== 'string') { return; }
-        return string
-        .trim()
-        .toLowerCase()
-        .replace(/^[\W_]+/, '')
-        .replace(/[\W_]+$/, '')
-        .replace(/[\W_]+/g, '-');
-    }
-
-    function toCamelCase(string) {
-        // Be gracious in what we accept as input
-        return string.replace(/-(\w)?/g, function($0, letter) {
-            return letter ? letter.toUpperCase() : '';
-        });
     }
 
     const DEBUG$2 = window.DEBUG === undefined || window.DEBUG;
@@ -3865,7 +3909,7 @@ var Sparky = (function (exports) {
 
     const parseDate = overload(toType, {
     	number:  secondsToDate,
-    	string:  exec$1(rdate, createDate),
+    	string:  exec$2(rdate, createDate),
     	object:  function(date) {
     		return isValidDate(date) ? date : undefined ;
     	},
@@ -3882,12 +3926,12 @@ var Sparky = (function (exports) {
 
     const parseDateLocal = overload(toType, {
     	number:  secondsToDate,
-    	string:  exec$1(rdate, createDateLocal),
+    	string:  exec$2(rdate, createDateLocal),
     	object:  function(date) {
     		return isValidDate(date) ? date : undefined ;
     	},
     	default: function(date) {
-            throw new Error('parseDateLocal: date is not of a supported type (number, string, Date)');
+            throw new TypeError('parseDateLocal: date is not of a supported type (number, string, Date)');
         }
     });
 
@@ -3918,7 +3962,7 @@ var Sparky = (function (exports) {
 
     function createDateLocal(year, month, day, hour, minute, second, ms, zone) {
     	if (zone) {
-    		throw new Error('Time.parseDateLocal() will not parse a string with a time zone "' + zone + '".');
+    		throw new Error('createDateLocal() will not parse a string with a time zone "' + zone + '".');
     	}
 
     	// Month must be 0-indexed for the Date constructor
@@ -3933,7 +3977,7 @@ var Sparky = (function (exports) {
     		new Date(year) ;
     }
 
-    function exec$1(regex, fn, error) {
+    function exec$2(regex, fn, error) {
     	return function exec(string) {
     		var parts = regex.exec(string);
     		if (!parts && error) { throw error; }
@@ -4007,8 +4051,8 @@ var Sparky = (function (exports) {
     	MMMM: function(data, lang) { return langs[lang].months[data.month - 1]; },
     	D:    function(data)       { return parseInt(data.day, 10) + ''; },
     	DD:   function(data)       { return data.day; },
-    	ddd:  function(data)       { return data.weekday.slice(0,3); },
-    	dddd: function(data, lang) { return data.weekday; },
+    	DDD:  function(data)       { return data.weekday.slice(0,3); },
+    	DDDD: function(data, lang) { return data.weekday; },
     	hh:   function(data)       { return data.hour; },
     	//hh:   function(data)       { return ('0' + data.hour % 12).slice(-2); },
     	mm:   function(data)       { return data.minute; },
@@ -4049,12 +4093,9 @@ var Sparky = (function (exports) {
 
     function matchEach(regex, fn, text) {
     	var match = regex.exec(text);
-
-    	return match ? (
-    		fn.apply(null, match),
-    		matchEach(regex, fn, text)
-    	) :
-    	undefined ;
+    	if (!match) { return; }
+    	fn.apply(null, match);
+    	matchEach(regex, fn, text);
     }
 
     function toLocaleString(timezone, locale, date) {
@@ -4073,6 +4114,7 @@ var Sparky = (function (exports) {
     		components[keys[i++]] = value;
     	}, localedate);
 
+    	components.milliseconds = +date % 1000;
     	return components;
     }
 
@@ -4089,7 +4131,9 @@ var Sparky = (function (exports) {
     	var formats = componentFormatters;
 
     	return string.replace(rtoken, function($0) {
-    		return formats[$0] ? formats[$0](data, lang) : $0 ;
+    		return formats[$0] ?
+    			formats[$0](data, lang) :
+    			$0 ;
     	});
     }
 
@@ -4231,29 +4275,29 @@ var Sparky = (function (exports) {
     		diff$1(0, d2, d1 === date1 || d2 === d1 ? cloneDate(d1) : d1) * -1 ;
     }
 
-    function floorDateByGrain(grain, date) {
+    function floorDateByGrain(token, date) {
     	var diff, week;
 
-    	if (grain === 'ms') { return date; }
+    	if (token === 'ms') { return date; }
 
     	date.setUTCMilliseconds(0);
-    	if (grain === 'second') { return date; }
+    	if (token === 's') { return date; }
 
     	date.setUTCSeconds(0);
-    	if (grain === 'minute') { return date; }
+    	if (token === 'm') { return date; }
 
     	date.setUTCMinutes(0);
-    	if (grain === 'hour') { return date; }
+    	if (token === 'h') { return date; }
 
     	date.setUTCHours(0);
-    	if (grain === 'day') { return date; }
+    	if (token === 'd') { return date; }
 
-    	if (grain === 'week') {
+    	if (token === 'w') {
     		date.setDate(date.getDate() - toDay(date));
     		return date;
     	}
 
-    	if (grain === 'fortnight') {
+    	if (token === 'fortnight') {
     		week = floorDateByDay(1, new Date());
     		diff = mod(14, _diffDateDays(week, date));
     		date.setUTCDate(date.getUTCDate() - diff);
@@ -4261,10 +4305,10 @@ var Sparky = (function (exports) {
     	}
 
     	date.setUTCDate(1);
-    	if (grain === 'month') { return date; }
+    	if (token === 'M') { return date; }
 
     	date.setUTCMonth(0);
-    	if (grain === 'year') { return date; }
+    	if (token === 'Y') { return date; }
 
     	date.setUTCFullYear(0);
     	return date;
@@ -4281,12 +4325,12 @@ var Sparky = (function (exports) {
     	return _addDate('-0000-00-0' + diff, date);
     }
 
-    function _floorDate(grain, date) {
+    function _floorDate(token, date) {
     	// Clone date before mutating it
     	date = cloneDate(date);
-    	return typeof grain === 'number' ? floorDateByDay(grain, date) :
-            days[grain] ? floorDateByDay(days[grain], date) :
-    	    floorDateByGrain(grain, date) ;
+    	return typeof token === 'number' ? floorDateByDay(token, date) :
+            days[token] ? floorDateByDay(days[token], date) :
+    	    floorDateByGrain(token, date) ;
     }
 
     /*
@@ -4308,22 +4352,22 @@ var Sparky = (function (exports) {
 
     /*
     floorDate(token, date)
-    Floors date to the nearest `token`, where `token` is one of:
-    `'year'`,
-    `'month'`,
-    `'week'`,
-    `'day'`,
-    `'hour'`,
-    `'minute'`
-    or `'second'`;
-    `'mon'`,
-    `'tue'`,
-    `'wed'`,
-    `'thu'`,
-    `'fri'`,
-    `'sat'`,
-    `'sun'`;
-    or a number representing a weekday.
+    Floors date to the start of nearest calendar point in time indicated by `token`:
+
+    - `'Y'`   Year
+    - `'M'`   Month
+    - `'w'`   Week
+    - `'d'`   Day
+    - `'h'`   Hour
+    - `'m'`   Minute
+    - `'s'`   Second
+    - `'mon'` Monday
+    - `'tue'` Tuesday
+    - `'wed'` Wednesday
+    - `'thu'` Thursday
+    - `'fri'` Friday
+    - `'sat'` Saturday
+    - `'sun'` Sunday
 
     ```
     const dayCounts = times.map(floorTime('days'));
@@ -4335,7 +4379,7 @@ var Sparky = (function (exports) {
     });
 
     /*
-    formatDate(format, date)
+    formatDate(locale, timezone, format, date)
     Formats `date` (a string or number or date accepted by `parseDate(date)`)
     to the format of the string `format`. The format string may contain the tokens:
 
@@ -4346,23 +4390,23 @@ var Sparky = (function (exports) {
     - `'MMMM'` month, full name
     - `'D'`    day of week
     - `'DD'`   day of week, two-digit
-    - `'ddd'`  weekday, 3-letter
-    - `'dddd'` weekday, full name
+    - `'DDD'`  weekday, 3-letter
+    - `'DDDD'` weekday, full name
     - `'hh'`   hours
     - `'mm'`   minutes
     - `'ss'`   seconds
 
     ```
-    const time = formatTime('+-hh:mm:ss', 3600);   // 01:00:00
+    const date = formatDate('en', '', 'YYYY', new Date());   // 2020
     ```
     */
 
-    const formatDate = curry$1(function(string, timezone, locale, date) {
-    	return string === 'ISO' ?
+    const formatDate = curry$1(function (timezone, locale, format, date) {
+    	return format === 'ISO' ?
     		formatDateISO(parseDate(date)) :
     	timezone === 'local' ?
-    		formatDateLocal(string, locale, date) :
-    	_formatDate(string, timezone, locale, parseDate(date)) ;
+    		formatDateLocal(format, locale, date) :
+    	_formatDate(format, timezone, locale, parseDate(date)) ;
     });
 
 
@@ -4379,6 +4423,11 @@ var Sparky = (function (exports) {
     function secondsToDays(n) { return n / 86400; }
     function secondsToWeeks(n) { return n / 604800; }
 
+    /* Months and years are not fixed durations – these are approximate */
+    function secondsToMonths(n) { return n / 2629800; }
+    function secondsToYears(n) { return n / 31557600; }
+
+
     function prefix(n) {
     	return n >= 10 ? '' : '0';
     }
@@ -4387,7 +4436,6 @@ var Sparky = (function (exports) {
     // Minutes: 00-59 -
     // Seconds: 00-60 - 60 is allowed, denoting a leap second
 
-    //var rtime   = /^([+-])?([01]\d|2[0-3])(?::([0-5]\d)(?::([0-5]\d|60)(?:.(\d+))?)?)?$/;
     //                sign   hh       mm           ss
     var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
     var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
@@ -4395,9 +4443,9 @@ var Sparky = (function (exports) {
     /*
     parseTime(time)
 
-    Where `time` is a string it is parsed as a time in ISO time format; as
+    Where `time` is a string it is parsed as a time in ISO time format: as
     hours `'13'`, with minutes `'13:25'`, with seconds `'13:25:14'` or with
-    decimal seconds `'13:25:14.001'`: it is returned as a number in seconds.
+    decimal seconds `'13:25:14.001'`. Returns a number in seconds.
 
     ```
     const time = parseTime('13:25:14.001');   // 48314.001
@@ -4413,7 +4461,7 @@ var Sparky = (function (exports) {
 
     const parseTime = overload(toType, {
     	number:  id,
-    	string:  exec$1(rtime, createTime),
+    	string:  exec$2(rtime, createTime),
     	default: function(object) {
     		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
     	}
@@ -4421,7 +4469,7 @@ var Sparky = (function (exports) {
 
     var parseTimeDiff = overload(toType, {
     	number:  id,
-    	string:  exec$1(rtimediff, createTime),
+    	string:  exec$2(rtimediff, createTime),
     	default: function(object) {
     		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
     	}
@@ -4435,61 +4483,6 @@ var Sparky = (function (exports) {
     	second: function(time) { return time - mod(1, time); }
     });
 
-    var timeFormatters = {
-    	'+-': function sign(time) {
-    		return time < 0 ? '-' : '' ;
-    	},
-
-    	www: function www(time) {
-    		time = time < 0 ? -time : time;
-    		var weeks = Math.floor(secondsToWeeks(time));
-    		return prefix(weeks) + weeks;
-    	},
-
-    	dd: function dd(time) {
-    		time = time < 0 ? -time : time;
-    		var days = Math.floor(secondsToDays(time));
-    		return prefix(days) + days;
-    	},
-
-    	hhh: function hhh(time) {
-    		time = time < 0 ? -time : time;
-    		var hours = Math.floor(secondsToHours(time));
-    		return prefix(hours) + hours;
-    	},
-
-    	hh: function hh(time) {
-    		time = time < 0 ? -time : time;
-    		var hours = Math.floor(secondsToHours(time % 86400));
-    		return prefix(hours) + hours;
-    	},
-
-    	mm: function mm(time) {
-    		time = time < 0 ? -time : time;
-    		var minutes = Math.floor(secondsToMinutes(time % 3600));
-    		return prefix(minutes) + minutes;
-    	},
-
-    	ss: function ss(time) {
-    		time = time < 0 ? -time : time;
-    		var seconds = Math.floor(time % 60);
-    		return prefix(seconds) + seconds ;
-    	},
-
-    	sss: function sss(time) {
-    		time = time < 0 ? -time : time;
-    		var seconds = time % 60;
-    		return prefix(seconds) + toMaxDecimals(precision, seconds);
-    	},
-
-    	ms: function ms(time) {
-    		time = time < 0 ? -time : time;
-    		var ms = Math.floor(secondsToMilliseconds(time % 1));
-    		return ms >= 100 ? ms :
-    			ms >= 10 ? '0' + ms :
-    			'00' + ms ;
-    	}
-    };
 
     function createTime(match, sign, hh, mm, sss) {
     	var time = hoursToSeconds(parseInt(hh, 10))
@@ -4533,23 +4526,119 @@ var Sparky = (function (exports) {
 
     /*
     formatTime(format, time)
-    Formats `time` (a string or a number) to the format of the `format` string.
-    The format string may contain the tokens:
+    Formats `time` (an 'hh:mm:sss' time string or a number in seconds) to match
+    `format`, a string that may contain the tokens:
 
-    - '+-'    sign
-    - `'www'` weeks
-    - `'dd'`  days
-    - `'hhh'` duration hours, unlimited
-    - `'hh'`  time hours, 24-hour cycle
-    - `'mm'`  time minutes
-    - `'ss'`  time seconds
-    - `'sss'` time seconds with decimals
-    - `'ms'`  time milliseconds
+    - `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+    - `'Y'`   Years, approx.
+    - `'M'`   Months, approx.
+    - `'MM'`  Months, remainder from years (max 12), approx.
+    - `'w'`   Weeks
+    - `'ww'`  Weeks, remainder from months (max 4)
+    - `'d'`   Days
+    - `'dd'`  Days, remainder from weeks (max 7)
+    - `'h'`   Hours
+    - `'hh'`  Hours, remainder from days (max 24), 2-digit format
+    - `'m'`   Minutes
+    - `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+    - `'s'`   Seconds
+    - `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+    - `'sss'` Seconds, remainder from minutes (max 60), fractional
+    - `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
 
     ```
-    const time = formatTime('+-hh:mm:ss', 3600);   // 01:00:00
+    const time = formatTime('±hh:mm:ss', 3600);   // 01:00:00
     ```
     */
+
+    var timeFormatters = {
+    	'±': function sign(time) {
+    		return time < 0 ? '-' : '';
+    	},
+
+    	Y: function Y(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToYears(time));
+    	},
+
+    	M: function M(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToMonths(time));
+    	},
+
+    	MM: function MM(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToMonths(time % 31557600));
+    	},
+
+    	W: function W(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToWeeks(time));
+    	},
+
+    	WW: function WW(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToDays(time % 2629800));
+    	},
+
+    	d: function dd(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToDays(time));
+    	},
+
+    	dd: function dd(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToDays(time % 604800));
+    	},
+
+    	h: function hhh(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(secondsToHours(time));
+    	},
+
+    	hh: function hh(time) {
+    		time = time < 0 ? -time : time;
+    		var hours = Math.floor(secondsToHours(time % 86400));
+    		return prefix(hours) + hours;
+    	},
+
+    	m: function mm(time) {
+    		time = time < 0 ? -time : time;
+    		var minutes = Math.floor(secondsToMinutes(time));
+    		return prefix(minutes) + minutes;
+    	},
+
+    	mm: function mm(time) {
+    		time = time < 0 ? -time : time;
+    		var minutes = Math.floor(secondsToMinutes(time % 3600));
+    		return prefix(minutes) + minutes;
+    	},
+
+    	s: function s(time) {
+    		time = time < 0 ? -time : time;
+    		return Math.floor(time);
+    	},
+
+    	ss: function ss(time) {
+    		time = time < 0 ? -time : time;
+    		var seconds = Math.floor(time % 60);
+    		return prefix(seconds) + seconds;
+    	},
+
+    	sss: function sss(time) {
+    		time = time < 0 ? -time : time;
+    		var seconds = time % 60;
+    		return prefix(seconds) + toMaxDecimals(precision, seconds);
+    	},
+
+    	ms: function ms(time) {
+    		time = time < 0 ? -time : time;
+    		var ms = Math.floor(secondsToMilliseconds(time % 1));
+    		return ms >= 100 ? ms :
+    			ms >= 10 ? '0' + ms :
+    				'00' + ms;
+    	}
+    };
 
     const formatTime = curry$1(function(string, time) {
     	return string === 'ISO' ?
@@ -4560,7 +4649,7 @@ var Sparky = (function (exports) {
     /*
     addTime(time1, time2)
     Sums `time2` and `time1`, returning UNIX time as a number in seconds.
-    If `time1` is a string, it is parsed as a time diff, where numbers
+    If `time1` is a string, it is parsed as a duration, where numbers
     are accepted outside the bounds of 0-24 hours or 0-60 minutes or seconds.
     For example, to add 72 minutes to a list of times:
 
@@ -4671,22 +4760,8 @@ var Sparky = (function (exports) {
     const and     = curry$1(function and(a, b) { return !!(a && b); });
     const or      = curry$1(function or(a, b) { return a || b; });
     const xor     = curry$1(function xor(a, b) { return (a || b) && (!!a !== !!b); });
-
-    const assign$3      = curry$1(Object.assign, true, 2);
-    const capture$1     = curry$1(capture);
-    const define      = curry$1(Object.defineProperties, true, 2);
-    const equals$1      = curry$1(equals, true);
-    const exec$2        = curry$1(exec);
-    const get$1         = curry$1(get, true);
-    const has$1         = curry$1(has, true);
-    const is$1          = curry$1(is, true);
-    const invoke$1      = curry$1(invoke, true);
-    const matches$1     = curry$1(matches, true);
-    const parse$1       = curry$1(capture);
-    const set$1         = curry$1(set, true);
-    const toFixed$1     = curry$1(toFixed);
-    const getPath$1     = curry$1(getPath, true);
-    const setPath$1     = curry$1(setPath, true);
+    const assign$3  = curry$1(Object.assign, true, 2);
+    const define  = curry$1(Object.defineProperties, true, 2);
 
     const by$1          = curry$1(by, true);
     const byAlphabet$1  = curry$1(byAlphabet);
@@ -4710,11 +4785,6 @@ var Sparky = (function (exports) {
     const diff$2        = curry$1(diff, true);
     const intersect$1   = curry$1(intersect, true);
     const unite$1       = curry$1(unite, true);
-
-    const append$2      = curry$1(append$1);
-    const prepend$1     = curry$1(prepend);
-    const prepad$1      = curry$1(prepad);
-    const postpad$1     = curry$1(postpad);
 
     const sum$1         = curry$1(sum);
 
@@ -5349,19 +5419,12 @@ var Sparky = (function (exports) {
     }
 
     var mimetypes = {
-    	xml:  'application/xml',
+    	xml: 'application/xml',
     	html: 'text/html',
-    	svg:  'image/svg+xml'
+    	svg: 'image/svg+xml'
     };
 
-    /*
-    parse(type, string)
-
-    Returns a document parsed from `string`, where `type` is one of `'xml'`,
-    `'html'` or `'svg'`.
-    */
-
-    function parse$2(type, string) {
+    function parse$1(type, string) {
     	if (!string) { return; }
 
     	var mimetype = mimetypes[type];
@@ -5381,6 +5444,8 @@ var Sparky = (function (exports) {
     	return xml;
     }
 
+    var parse$2 = curry$1(parse$1, true);
+
     // Types
 
     /*
@@ -5392,6 +5457,22 @@ var Sparky = (function (exports) {
     function isFragmentNode(node) {
     	return node.nodeType === 11;
     }
+
+    function attribute(name, node) {
+    	return node.getAttribute && node.getAttribute(name) || undefined ;
+    }
+
+    curry$1(attribute, true);
+
+    function contains$2(child, node) {
+    	return node.contains ?
+    		node.contains(child) :
+    	child.parentNode ?
+    		child.parentNode === node || contains$2(child.parentNode, node) :
+    	false ;
+    }
+
+    curry$1(contains$2, true);
 
     /*
     tag(node)
@@ -5408,30 +5489,7 @@ var Sparky = (function (exports) {
     	return node.tagName && node.tagName.toLowerCase();
     }
 
-    function contains$2(child, node) {
-    	return node.contains ?
-    		node.contains(child) :
-    	child.parentNode ?
-    		child.parentNode === node || contains$2(child.parentNode, node) :
-    	false ;
-    }
-
-    /*
-    attribute(name, node)
-
-    Returns the string contents of attribute `name`. If the attribute is not set,
-    returns `undefined`.
-    */
-
-    function attribute(name, node) {
-    	return node.getAttribute && node.getAttribute(name) || undefined ;
-    }
-
-    function find$2(selector, node) {
-    	return node.querySelector(selector);
-    }
-
-    function matches$2(selector, node) {
+    function matches$1(selector, node) {
     	return node.matches ? node.matches(selector) :
     		node.matchesSelector ? node.matchesSelector(selector) :
     		node.webkitMatchesSelector ? node.webkitMatchesSelector(selector) :
@@ -5441,6 +5499,8 @@ var Sparky = (function (exports) {
     		// Dumb fall back to simple tag name matching. Nigh-on useless.
     		tag(node) === selector ;
     }
+
+    var matches$2 = curry$1(matches$1, true);
 
     function closest(selector, node) {
     	var root = arguments[2];
@@ -5456,9 +5516,19 @@ var Sparky = (function (exports) {
     		 closest(selector, node.parentNode, root) ;
     }
 
-    function query(selector, node) {
+    var closest$1 = curry$1(closest, true);
+
+    function find$2(selector, node) {
+    	return node.querySelector(selector);
+    }
+
+    curry$1(find$2, true);
+
+    function select(selector, node) {
     	return toArray(node.querySelectorAll(selector));
     }
+
+    var query = curry$1(select, true);
 
     /*
     append(target, node)`
@@ -5472,7 +5542,7 @@ var Sparky = (function (exports) {
         console.warn('A polyfill for Element.append() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/append)');
     }
 
-    function append$3(target, node) {
+    function append$2(target, node) {
         target.append(node);
         return node;
     }
@@ -5537,12 +5607,12 @@ var Sparky = (function (exports) {
     		// Reset the resulting value.
 
     		var clone     = node.cloneNode(true);
-    		var textareas = query('textarea', node);
+    		var textareas = select('textarea', node);
     		var n         = textareas.length;
     		var clones;
 
     		if (n) {
-    			clones = query('textarea', clone);
+    			clones = select('textarea', clone);
 
     			while (n--) {
     				clones[n].value = textareas[n].value;
@@ -5784,7 +5854,7 @@ var Sparky = (function (exports) {
     	var fragment = create$1('fragment');
 
     	while (node.firstChild) {
-    		append$3(fragment, node.firstChild);
+    		append$2(fragment, node.firstChild);
     	}
 
     	return fragment;
@@ -6071,7 +6141,7 @@ var Sparky = (function (exports) {
     	// Create an event handler that looks up the ancestor tree
     	// to find selector.
     	return function handler(e) {
-    		var node = closest(selector, e.target, e.currentTarget);
+    		var node = closest$1(selector, e.target, e.currentTarget);
     		if (!node) { return; }
     		e.delegateTarget = node;
     		fn(e, node);
@@ -6308,16 +6378,6 @@ var Sparky = (function (exports) {
     	}
     });
 
-    const responders = {
-    	'text/html':           respondText,
-    	'application/json':    respondJSON,
-    	'multipart/form-data': respondForm,
-    	'application/x-www-form-urlencoded': respondForm,
-    	'audio':               respondBlob,
-    	'audio/wav':           respondBlob,
-    	'audio/m4a':           respondBlob
-    };
-
     function formDataToJSON(formData) {
     	return JSON.stringify(
     		// formData.entries() is an iterator, not an array
@@ -6370,6 +6430,16 @@ var Sparky = (function (exports) {
     	} ;
     }
 
+    const responders = {
+    	'text/html': respondText,
+    	'application/json': respondJSON,
+    	'multipart/form-data': respondForm,
+    	'application/x-www-form-urlencoded': respondForm,
+    	'audio': respondBlob,
+    	'audio/wav': respondBlob,
+    	'audio/m4a': respondBlob
+    };
+
     function respondBlob(response) {
     	return response.blob();
     }
@@ -6398,8 +6468,8 @@ var Sparky = (function (exports) {
     	// Get mimetype from Content-Type, remembering to hoik off any
     	// parameters first
     	const mimetype = response.headers
-    		.get('Content-Type')
-    		.replace(/\;.*$/, '');
+    	.get('Content-Type')
+    	.replace(/\;.*$/, '');
 
     	return responders[mimetype](response);
     }
@@ -6434,15 +6504,8 @@ var Sparky = (function (exports) {
     if (window.console && window.console.log) {
         window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
     }
-    const parse$3 = curry$1(parse$2, true);
-    const contains$3 = curry$1(contains$2, true);
-    const attribute$1 = curry$1(attribute, true);
-    const find$3 = curry$1(find$2, true);
-    const closest$1 = curry$1(closest, true);
-    const matches$3 = curry$1(matches$2, true);
-    const query$1 = curry$1(query, true);
     const assign$7  = curry$1(assignAttributes, true);
-    const append$4  = curry$1(append$3, true);
+    const append$3  = curry$1(append$2, true);
     const prepend$3 = curry$1(prepend$2, true);
     const before$1  = curry$1(before, true);
     const after$1   = curry$1(after, true);
@@ -6545,19 +6608,28 @@ var Sparky = (function (exports) {
 
     /* The meat and potatoes */
 
-    function fireEach(queue) {
+    function fireEachDEBUG(queue) {
     	var count, renderer;
 
     	for (renderer of queue) {
-    		if (DEBUG$3) {
-    			count = renderer.renderCount;
+    		count = renderer.renderCount;
+
+    		try {
+    			renderer.fire();
+    		}
+    		catch(e) {
+    			throw new Error('failed to render ' + renderer.tokens.map(get$1('label')).join(', ') + '. ' + e.message);
     		}
 
+    		renderCount += (renderer.renderCount - count);
+    	}
+    }
+
+    function fireEach(queue) {
+    	var renderer;
+
+    	for (renderer of queue) {
     		renderer.fire();
-
-    		if (DEBUG$3) {
-    			renderCount += (renderer.renderCount - count);
-    		}
     	}
     }
 
@@ -6573,7 +6645,7 @@ var Sparky = (function (exports) {
 
     			tStart = now$1();
     			frame = true;
-    			fireEach(queue);
+    			fireEachDEBUG(queue);
     			frame = undefined;
     		}
     		catch (e) {
@@ -6681,9 +6753,73 @@ var Sparky = (function (exports) {
         '/>';
     }
 
+    /* config.
+
+    ```js
+    import { config } from './sparky/module.js'
+
+    config.attributeFn = 'data-fn';
+    config.attributeSrc = 'data-src';
+    ```
+    */
+
+    var config$1 = {
+        attributeFn: 'fn',
+        attributeSrc: 'src',
+        attributePrefix: ':',
+        elements: {
+            default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
+            a: { attributes: ['href'] },
+            button: { attributes: ['name', 'value'], booleans: ['disabled'] },
+            circle: { attributes: ['cx', 'cy', 'r', 'transform'] },
+            ellipse: { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
+            form: { attributes: ['method', 'action'] },
+            fieldset: { booleans: ['disabled'] },
+            g: { attributes: ['transform'] },
+            img: { attributes: ['alt', 'src'] },
+            input: {
+                booleans: ['disabled', 'required'],
+                attributes: ['name'],
+                types: {
+                    button: { attributes: ['value'] },
+                    checkbox: { attributes: [], booleans: ['checked'] },
+                    date: { attributes: ['min', 'max', 'step'] },
+                    hidden: { attributes: ['value'] },
+                    image: { attributes: ['src'] },
+                    number: { attributes: ['min', 'max', 'step'] },
+                    radio: { attributes: [], booleans: ['checked'] },
+                    range: { attributes: ['min', 'max', 'step'] },
+                    reset: { attributes: ['value'] },
+                    submit: { attributes: ['value'] },
+                    time: { attributes: ['min', 'max', 'step'] }
+                }
+            },
+            label: { attributes: ['for'] },
+            line: { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
+            link: { attributes: ['href'] },
+            meta: { attributes: ['content'] },
+            meter: { attributes: ['min', 'max', 'low', 'high', 'value'] },
+            option: { attributes: ['value'], booleans: ['disabled'] },
+            output: { attributes: ['for'] },
+            path: { attributes: ['d', 'transform'] },
+            polygon: { attributes: ['points', 'transform'] },
+            polyline: { attributes: ['points', 'transform'] },
+            progress: { attributes: ['max', 'value'] },
+            rect: { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
+            select: { attributes: ['name'], booleans: ['disabled', 'required'] },
+            svg: { attributes: ['viewbox'] },
+            text: { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
+            textarea: { attributes: ['name'], booleans: ['disabled', 'required'] },
+            time: { attributes: ['datetime'] },
+            use: { attributes: ['href', 'transform', 'x', 'y'] }
+        }
+    };
+
+    const translations = {};
+
     const requestDocument = cache(function requestDocument(path) {
         return request$1('GET', 'text/html', path, null)
-        .then(parse$3('html'));
+        .then(parse$2('html'));
     });
 
     let scriptCount = 0;
@@ -6718,7 +6854,7 @@ var Sparky = (function (exports) {
 
         // Wait for scripts to execute
         const promise = Promise.all(
-            query$1('script', doc).map(toScriptPromise)
+            query('script', doc).map(toScriptPromise)
         )
         .then(() => doc);
 
@@ -6841,14 +6977,12 @@ var Sparky = (function (exports) {
         },
     });
 
-    const parseArrayClose = capture$1(/^\]\s*/, nothing);
-
     /*
     parseParams(array, string)
     */
 
-    //                                        number                                     "string"            'string'                    null   true   false    [array] or {object}   function(args)   /regex/             dot  string             comma
-    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\]|\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))\s*(,)?\s*/, {
+    //                                        number                                     "string"            'string'                    null   true   false    [array]      {object}   function(args)   /regex/             dot  string             comma
+    const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|(null)|(true)|(false)|(\[[^\]]*\])|(\{[^}]*\})|(\w+)\(([^)]+)\)|\/((?:[^/]|\.)*)\/|(\.)?([\w.\-#/?:\\]+))/, {
         // number
         1: function(params, tokens) {
             params.push(parseFloat(tokens[1]));
@@ -6885,9 +7019,15 @@ var Sparky = (function (exports) {
             return params;
         },
 
-        // flat [array] or {object}
+        // [array]
         7: function(params, tokens) {
             params.push(JSON.parse(tokens[7]));
+            return params;
+        },
+
+        // flat {object}
+        8: function (params, tokens) {
+            params.push(JSON.parse(tokens[8]));
             return params;
         },
 
@@ -6901,26 +7041,30 @@ var Sparky = (function (exports) {
         //},
 
         // /regexp/
-        10: function(params, tokens) {
-            const regex = RegExp(tokens[10]);
+        11: function(params, tokens) {
+            const regex = RegExp(tokens[11]);
             params.push(regex);
         },
 
         // string
-        12: function(params, tokens) {
-            if (tokens[11]) {
-                params.push(new Value(tokens[12]));
+        13: function(params, tokens) {
+            if (tokens[12]) {
+                params.push(new Value(tokens[13]));
             }
             else {
-                params.push(tokens[12]);
+                params.push(tokens[13]);
             }
             return params;
         },
 
         // Comma terminator - more params to come
-        13: function(params, tokens) {
-            return parseParams(params, tokens);
-        },
+        close: capture$1(/^\s*(,)/, {
+            1: function(params, tokens) {
+                parseParams(params, tokens);
+            },
+
+            catch: id
+        }),
 
         catch: function(params, string) {
             // string is either the input string or a tokens object
@@ -6981,7 +7125,7 @@ var Sparky = (function (exports) {
 
         // Tag close ']}'
         close: function(tag, tokens) {
-            if (!exec$2(/^\s*\]\}/, id, tokens)) {
+            if (!exec$1(/^\s*\]\}/, id, tokens)) {
                 throw new SyntaxError('Unclosed tag in "' + tokens.input + '"');
             }
 
@@ -7006,7 +7150,7 @@ var Sparky = (function (exports) {
 
         close: function(tag, tokens) {
             // Only spaces allowed til end
-            if (!exec$2(/^\s*$/, id, tokens)) {
+            if (!exec$1(/^\s*$/, id, tokens)) {
                 throw new SyntaxError('Invalid characters after token (only spaces valid) "' + tokens.input + '"');
             }
 
@@ -7065,68 +7209,6 @@ var Sparky = (function (exports) {
         // Where nothing is found, don't complain
         catch: noop
     });
-
-    /* config.
-
-    ```js
-    import { config } from './sparky/module.js'
-
-    config.attributeFn = 'data-fn';
-    config.attributeSrc = 'data-src';
-    ```
-    */
-
-    var config$1 = {
-        attributeFn: 'fn',
-        attributeSrc: 'src',
-        attributePrefix: ':',
-        elements: {
-            default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
-            a: { attributes: ['href'] },
-            button: { attributes: ['name', 'value'], booleans: ['disabled'] },
-            circle: { attributes: ['cx', 'cy', 'r', 'transform'] },
-            ellipse: { attributes: ['cx', 'cy', 'rx', 'ry', 'r', 'transform'] },
-            form: { attributes: ['method', 'action'] },
-            fieldset: { booleans: ['disabled'] },
-            g: { attributes: ['transform'] },
-            img: { attributes: ['alt', 'src'] },
-            input: {
-                booleans: ['disabled', 'required'],
-                attributes: ['name'],
-                types: {
-                    button: { attributes: ['value'] },
-                    checkbox: { attributes: [], booleans: ['checked'] },
-                    date: { attributes: ['min', 'max', 'step'] },
-                    hidden: { attributes: ['value'] },
-                    image: { attributes: ['src'] },
-                    number: { attributes: ['min', 'max', 'step'] },
-                    radio: { attributes: [], booleans: ['checked'] },
-                    range: { attributes: ['min', 'max', 'step'] },
-                    reset: { attributes: ['value'] },
-                    submit: { attributes: ['value'] },
-                    time: { attributes: ['min', 'max', 'step'] }
-                }
-            },
-            label: { attributes: ['for'] },
-            line: { attributes: ['x1', 'x2', 'y1', 'y2', 'transform'] },
-            link: { attributes: ['href'] },
-            meta: { attributes: ['content'] },
-            meter: { attributes: ['min', 'max', 'low', 'high', 'value'] },
-            option: { attributes: ['value'], booleans: ['disabled'] },
-            output: { attributes: ['for'] },
-            path: { attributes: ['d', 'transform'] },
-            polygon: { attributes: ['points', 'transform'] },
-            polyline: { attributes: ['points', 'transform'] },
-            progress: { attributes: ['max', 'value'] },
-            rect: { attributes: ['x', 'y', 'width', 'height', 'rx', 'ry', 'transform'] },
-            select: { attributes: ['name'], booleans: ['disabled', 'required'] },
-            svg: { attributes: ['viewbox'] },
-            text: { attributes: ['x', 'y', 'dx', 'dy', 'text-anchor', 'transform'] },
-            textarea: { attributes: ['name'], booleans: ['disabled', 'required'] },
-            time: { attributes: ['datetime'] },
-            use: { attributes: ['href', 'transform', 'x', 'y'] }
-        }
-    };
 
     /*
     fn="name:params"
@@ -7268,7 +7350,6 @@ var Sparky = (function (exports) {
         functions[name] = fn;
     }
 
-    // Import uncurried functions from Fn library
     var A$7         = Array.prototype;
     var S$1         = String.prototype;
 
@@ -7319,7 +7400,7 @@ var Sparky = (function (exports) {
 
     	/* has: property
     	Returns `true` where value is an object with `property`, otherwise `false`. */
-    	has: { tx: function (name, object) { return object && (name in object); } },
+    	has: { tx: has },
 
     /*
     matches: selector
@@ -7464,19 +7545,85 @@ var Sparky = (function (exports) {
 
     	/* dateformat: yyyy-mm-dd
     	Converts an ISO date string, a number (in seconds) or a Date object
-    	to a string in `yyyy-mm-dd`. */
+    	to a string date formatted with the symbols:
+
+    	- `'YYYY'` years
+    	- `'YY'`   2-digit year
+    	- `'MM'`   month, 2-digit
+    	- `'MMM'`  month, 3-letter
+    	- `'MMMM'` month, full name
+    	- `'D'`    day of week
+    	- `'DD'`   day of week, two-digit
+    	- `'ddd'`  weekday, 3-letter
+    	- `'dddd'` weekday, full name
+    	- `'hh'`   hours
+    	- `'mm'`   minutes
+    	- `'ss'`   seconds
+    	- `'sss'`  seconds with decimals
+    	*/
     	dateformat: { tx: formatDate },
 
     	/* Times */
 
-    	/* add: 'hh:mm:ss'
-    	Adds an ISO time in the form `'hh:mm:ss'` to a time value. May be used
-    	for two-way binding. (Note the string must be quoted because it contains
-    	':' characters.) */
+    	/* add: duration
+    	Adds `duration`, an ISO-like time string, to a time value, and
+    	returns a number in seconds.
 
-    	/* timeformat: 'hh:mm:ss'
-    	Converts ISO time string, a number (in seconds) or the UTC time values of
-    	a Date object to a formatted string. */
+    	Add 12 hours:
+
+    	```html
+    	{[ time|add:'12:00' ]}
+    	```
+
+    	Durations may be negative. Subtract an hour and a half:
+
+    	```html
+    	{[ time|add:'-01:30' ]}
+    	```
+
+    	Numbers in a `duration` string are not limited by the cycles of the clock.
+    	Add 212 seconds:
+
+    	```html
+    	{[ time|add:'00:00:212' ]}
+    	```
+
+    	Use `timeformat` to transform the result to a readable format:
+
+    	```html
+    	{[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
+    	```
+
+    	Not that `duration` must be quoted because it contains ':' characters.
+    	May be used for two-way binding.
+    	*/
+
+    	/* timeformat: format
+    	Formats value, which must be an ISO time string or a number in seconds, to
+    	match `format`, a string that may contain the tokens:
+
+    	- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+    	- `'Y'`   Years, approx.
+    	- `'M'`   Months, approx.
+    	- `'MM'`  Months, remainder from years (max 12), approx.
+    	- `'w'`   Weeks
+    	- `'ww'`  Weeks, remainder from months (max 4)
+    	- `'d'`   Days
+    	- `'dd'`  Days, remainder from weeks (max 7)
+    	- `'h'`   Hours
+    	- `'hh'`  Hours, remainder from days (max 24), 2-digit format
+    	- `'m'`   Minutes
+    	- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+    	- `'s'`   Seconds
+    	- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+    	- `'sss'` Seconds, remainder from minutes (max 60), fractional
+    	- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
+
+    	```html
+    	{[ .|timeformat:'±hh:mm' ]}
+    	-13:57
+    	```
+    	*/
     	timeformat: { tx: formatTime },
 
 
@@ -7506,11 +7653,16 @@ var Sparky = (function (exports) {
     	/* boolean-string:
     	Transforms booleans to strings and vice versa. May by used for two-way binding. */
     	'boolean-string': {
-    		tx: toString,
+    		tx: function(value) {
+    			return value === true ? 'true' :
+    				value === false ? 'false' :
+    				undefined;
+    		},
+
     		ix: function (value) {
     			return value === 'true' ? true :
     				value === 'false' ? false :
-    					undefined;
+    				undefined;
     		}
     	},
 
@@ -7535,7 +7687,10 @@ var Sparky = (function (exports) {
     	/* int-string:
     	Transforms numbers to integer strings, and, used for two-way binding,
     	gaurantees integer numbers are set on scope. */
-    	'int-string':   { tx: (value) => value.toFixed(0), ix: parseInteger },
+    	'int-string':   {
+    		tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
+    		ix: parseInteger
+    	},
 
     	/* ints-string: separator
     	Transforms an array of numbers to a string of integers seperated with
@@ -7598,7 +7753,6 @@ var Sparky = (function (exports) {
     };
 
     const transforms = {
-
     	contains:     contains,
     	equals:       equals,
     	escape:       escape,
@@ -7639,6 +7793,18 @@ var Sparky = (function (exports) {
     	divide: function(n, value) {
     		if (typeof value !== 'number') { return; }
     		return value / n;
+    	},
+
+
+    	/* is-in: array
+    	Returns `true` if value is contained in `array`, otherwise `false`.
+
+    	```html
+    	{[ path|is-in:[0,1] ]}
+    	```
+    	*/
+    	'is-in': function(array, value) {
+    		return array.includes(value);
     	},
 
     	'find-in': function(path, id) {
@@ -7756,21 +7922,11 @@ var Sparky = (function (exports) {
     		var warned = {};
 
     		return function(value) {
-    			var translations = translations;
-
-    			if (!translations) {
-    				if (!warned.missingTranslations) {
-    					console.warn('Sparky: Missing lookup object Sparky.translations');
-    					warned.missingTranslations = true;
-    				}
-    				return value;
-    			}
-
     			var text = translations[value] ;
 
     			if (!text) {
     				if (!warned[value]) {
-    					console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
+    					console.warn('Sparky: config.translations contains no translation for "' + value + '"');
     					warned[value] = true;
     				}
 
@@ -7799,21 +7955,21 @@ var Sparky = (function (exports) {
         return fn();
     }
 
-    function observeThing(renderer, token, object, scope, log) {
+    function observeThing(renderer, token, object, scope) {
         // Normally observe() does not fire on undefined initial values.
         // Passing in NaN as an initial value to forces the callback to
         // fire immediately whatever the initial value. It's a bit
         // smelly, but this works because even NaN !== NaN.
-        token.unobservers.push(
-            observe(object.path, (value) => {
-                object.value = value;
+        const unobserve = observe(object.path, (value) => {
+            object.value = value;
 
-                // If token has noRender flag set, it is being updated from
-                // the input and does not need to be rendered back to the input
-                if (token.noRender) { return; }
-                renderer.cue();
-            }, scope, NaN)
-        );
+            // If token has noRender flag set, it is being updated from
+            // the input and does not need to be rendered back to the input
+            if (token.noRender) { return; }
+            renderer.cue();
+        }, scope, NaN);
+
+        token.unobservers.push(unobserve);
     }
 
     function Renderer() {
@@ -8236,7 +8392,7 @@ var Sparky = (function (exports) {
     const $cache = Symbol('cache');
 
     const cased = {
-    	viewbox: 'viewBox'
+        viewbox: 'viewBox'
     };
 
 
@@ -8247,18 +8403,18 @@ var Sparky = (function (exports) {
     const getNodeType = get$1('nodeType');
 
     const types$1 = {
-    	'number':     'number',
-    	'range':      'number'
+        'number':     'number',
+        'range':      'number'
     };
 
     function push(value, pushable) {
-    	pushable.push(value);
-    	return value;
+        pushable.push(value);
+        return value;
     }
 
     function stop(object) {
-    	object.stop();
-    	return object;
+        object.stop();
+        return object;
     }
 
 
@@ -8273,488 +8429,484 @@ var Sparky = (function (exports) {
     }
 
     function createPipe(array, pipes) {
-    	// Cache is dependent on pipes object - a new pipes object
-    	// results in a new cache
-    	const localCache = pipes
-    		&& (pipes[$cache] || (pipes[$cache] = {}));
+        // Cache is dependent on pipes object - a new pipes object
+        // results in a new cache
+        const localCache = pipes
+            && (pipes[$cache] || (pipes[$cache] = {}));
 
-    	// Cache pipes for reuse by other tokens
-    	const key = JSON.stringify(array);
+        // Cache pipes for reuse by other tokens
+        const key = JSON.stringify(array);
 
-    	// Check global and local pipes caches
-    	if (pipesCache[key]) { return pipesCache[key]; }
-    	if (localCache && localCache[key]) { return localCache[key]; }
+        // Check global and local pipes caches
+        if (pipesCache[key]) { return pipesCache[key]; }
+        if (localCache && localCache[key]) { return localCache[key]; }
 
-    	// All a bit dodgy - we cycle over transforms and switch the cache to
-    	// local cache if a global pipe is not found...
-    	var cache = pipesCache;
-    	const fns = array.map((data) => {
-    		// Look in global pipes first
-    		var fn = getTransform(data.name);
+        // All a bit dodgy - we cycle over transforms and switch the cache to
+        // local cache if a global pipe is not found...
+        var cache = pipesCache;
+        const fns = array.map((data) => {
+            // Look in global pipes first
+            var fn = getTransform(data.name);
 
-    		if (!fn) {
-    			if (DEBUG$5 && !pipes) {
-    				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
-    			}
+            if (!fn) {
+                if (DEBUG$5 && !pipes) {
+                    throw new ReferenceError('Template pipe "' + data.name + '" not found.');
+                }
 
-    			// Switch the cache, look in local pipes
-    			cache = localCache;
-    			fn = pipes[data.name];
+                // Switch the cache, look in local pipes
+                cache = localCache;
+                fn = pipes[data.name];
 
-    			if (DEBUG$5 && !fn) {
-    				throw new ReferenceError('Template pipe "' + data.name + '" not found.');
-    			}
-    		}
+                if (DEBUG$5 && !fn) {
+                    throw new ReferenceError('Template pipe "' + data.name + '" not found.');
+                }
+            }
 
-    		// Does the number of arguments supplied match the signature of the
-    		// transform? If not, error of the form
-    		// transform:arg,arg,arg takes 3 arguments, 2 given arg,arg
-    		if (DEBUG$5 && data.args.length !== fn.length - 1) {
-    			throw new Error(data.name + ':'
-    				+ /\(((?:(?:,\s*)?\w*)*),/.exec(fn.toString())[1].replace(/\s*/g, '')
-    				+ ' takes ' + (fn.length - 1) + ' arguments, '
-    				+ data.args.length + ' given ' + data.args);
-    		}
+            // Does the number of arguments supplied match the signature of the
+            // transform? If not, error of the form
+            // transform:arg,arg,arg takes 3 arguments, 2 given arg,arg
+            if (DEBUG$5 && data.args.length !== fn.length - 1) {
+                throw new Error(data.name + ':'
+                    + /\(((?:(?:,\s*)?\w*)*),/.exec(fn.toString())[1].replace(/\s*/g, '')
+                    + ' takes ' + (fn.length - 1) + ' arguments, '
+                    + data.args.length + ' given ' + data.args);
+            }
 
-    		// If there are arguments apply them to fn
-    		return data.args && data.args.length ?
-    			(value) => fn(...data.args, value) :
-    			fn ;
-    	});
+            // If there are arguments apply them to fn
+            return data.args && data.args.length ?
+                (value) => fn(...data.args, value) :
+                fn ;
+        });
 
-    	// Cache the result
-    	return (cache[key] = pipe.apply(null, fns));
+        // Cache the result
+        return (cache[key] = pipe.apply(null, fns));
     }
 
     function assignTransform(pipes, token) {
-    	if (token.pipe) {
-    		token.transform = createPipe(token.pipe, pipes);
-    	}
+        if (token.pipe) {
+            token.transform = createPipe(token.pipe, pipes);
+        }
 
-    	return pipes;
+        return pipes;
     }
 
 
     // Read
 
     function coerceString(value) {
-    	// Reject empty strings
-    	return value || undefined;
+        // Reject empty strings
+        return value || undefined;
     }
 
     function coerceNumber(value) {
-    	// Reject non-number values including NaN
-    	value = +value;
-    	return value || value === 0 ? value : undefined ;
+        // Reject non-number values including NaN
+        value = +value;
+        return value || value === 0 ? value : undefined ;
     }
 
     function readValue(node) {
-    	// Falsy values other than false or 0 should return undefined,
-    	// meaning that an empty <input> represents an undefined property
-    	// on scope.
-    	const value = node.value;
-    	return value || value === 0 ? value : undefined ;
+        // Falsy values other than false or 0 should return undefined,
+        // meaning that an empty <input> represents an undefined property
+        // on scope.
+        const value = node.value;
+        return value || value === 0 ? value : undefined ;
     }
 
     function readCheckbox(node) {
-    	// Check whether value is defined to determine whether we treat
-    	// the input as a value matcher or as a boolean
-    	return isDefined(node.getAttribute('value')) ?
-    		// Return string or undefined
-    		node.checked ? node.value : undefined :
-    		// Return boolean
-    		node.checked ;
+        // Check whether value is defined to determine whether we treat
+        // the input as a value matcher or as a boolean
+        return isDefined(node.getAttribute('value')) ?
+            // Return string or undefined
+            node.checked ? node.value : undefined :
+            // Return boolean
+            node.checked ;
     }
 
     function readRadio(node) {
-    	if (!node.checked) { return; }
+        if (!node.checked) { return; }
 
-    	return isDefined(node.getAttribute('value')) ?
-    		// Return value string
-    		node.value :
-    		// Return boolean
-    		node.checked ;
+        return isDefined(node.getAttribute('value')) ?
+            // Return value string
+            node.value :
+            // Return boolean
+            node.checked ;
     }
 
     function readAttributeValue(node) {
-    	// Get original value from attributes. We cannot read properties here
-    	// because custom elements do not yet have their properties initialised
-    	return node.getAttribute('value') || undefined;
+        // Get original value from attributes. We cannot read properties here
+        // because custom elements do not yet have their properties initialised
+        return node.getAttribute('value') || undefined;
     }
 
     function readAttributeChecked(node) {
-    	// Get original value from attributes. We cannot read properties here
-    	// because custom elements do not yet have their properties initialised
-    	const value    = node.getAttribute('value');
-    	const checked  = !!node.getAttribute('checked');
-    	return value ? value : checked ;
+        // Get original value from attributes. We cannot read properties here
+        // because custom elements do not yet have their properties initialised
+        const value    = node.getAttribute('value');
+        const checked  = !!node.getAttribute('checked');
+        return value ? value : checked ;
     }
 
 
     // Render
 
     function renderText(name, node, value) {
-    	node.nodeValue = value;
+        node.nodeValue = value;
 
-    	// Return DOM mod count
-    	return 1;
+        // Return DOM mod count
+        return 1;
     }
 
     function renderAttribute(name, node, value) {
-    	node.setAttribute(cased[name] || name, value);
+        node.setAttribute(cased[name] || name, value);
 
-    	// Return DOM mod count
-    	return 1;
+        // Return DOM mod count
+        return 1;
     }
 
     function renderProperty$1(name, node, value) {
-    	// Bit of an edge case, but where we have a custom element that has not
-    	// been upgraded yet, but it gets a property defined on its prototype when
-    	// it does upgrade, setting the property on the instance now will mask the
-    	// ultimate get/set definition on the prototype when it does arrive.
-    	//
-    	// So don't, if property is not in node. Set the attribute, it will be
-    	// picked up on upgrade.
-    	if (name in node) {
-    		node[name] = value;
-    	}
-    	else {
-    		node.setAttribute(name, value);
-    	}
+        // Bit of an edge case, but where we have a custom element that has not
+        // been upgraded yet, but it gets a property defined on its prototype when
+        // it does upgrade, setting the property on the instance now will mask the
+        // ultimate get/set definition on the prototype when it does arrive.
+        //
+        // So don't, if property is not in node. Set the attribute, it will be
+        // picked up on upgrade.
+        if (name in node) {
+            node[name] = value;
+        }
+        else {
+            node.setAttribute(name, value);
+        }
 
-    	// Return DOM mutation count
-    	return 1;
+        // Return DOM mutation count
+        return 1;
     }
 
     function renderPropertyBoolean(name, node, value) {
-    	if (name in node) {
-    		node[name] = value;
-    	}
-    	else if (value) {
-    		node.setAttribute(name, name);
-    	}
-    	else {
-    		node.removeAttribute(name);
-    	}
+        if (name in node) {
+            node[name] = value;
+        }
+        else if (value) {
+            node.setAttribute(name, name);
+        }
+        else {
+            node.removeAttribute(name);
+        }
 
-    	// Return DOM mutation count
-    	return 1;
+        // Return DOM mutation count
+        return 1;
     }
 
     function renderValue(name, node, value) {
-    	// Don't render into focused nodes, it makes the cursor jump to the
-    	// end of the field, plus we should cede control to the user anyway
-    	if (document.activeElement === node) {
-    		return 0;
-    	}
+        // Don't render into focused nodes, it makes the cursor jump to the
+        // end of the field, plus we should cede control to the user anyway
+        if (document.activeElement === node) {
+            return 0;
+        }
 
-    	value = typeof value === (types$1[node.type] || 'string') ?
-    		value :
-    		null ;
+        value = typeof value === (types$1[node.type] || 'string') ?
+            value :
+            null ;
 
         // Avoid updating with the same value. Support values that are any
-    	// type as well as values that are always strings
-    	if (value === node.value || (value + '') === node.value) { return 0; }
+        // type as well as values that are always strings
+        if (value === node.value || (value + '') === node.value) { return 0; }
 
-    	const count = renderProperty$1('value', node, value);
+        const count = renderProperty$1('value', node, value);
 
-    	// Event hook (validation in dom lib)
-    	trigger$2('dom-update', node);
+        // Event hook (validation in dom lib)
+        trigger$2('dom-update', node);
 
-    	// Return DOM mod count
-    	return count;
+        // Return DOM mod count
+        return count;
     }
 
     function renderValueNumber(name, node, value) {
-    	// Don't render into focused nodes, it makes the cursor jump to the
-    	// end of the field, and we should cede control to the user anyway
-    	if (document.activeElement === node) { return 0; }
+        // Don't render into focused nodes, it makes the cursor jump to the
+        // end of the field, and we should cede control to the user anyway
+        if (document.activeElement === node) { return 0; }
 
-    	// Be strict about type, dont render non-numbers
-    	value = typeof value === 'number' ? value : null ;
+        // Be strict about type, dont render non-numbers
+        value = typeof value === 'number' ? value : null ;
 
-    	// Avoid updating with the same value. Beware that node.value
-    	// may be a string (<input>) or number (<range-control>)
-    	if (value === (node.value === '' ? null : +node.value)) { return 0; }
+        // Avoid updating with the same value. Beware that node.value
+        // may be a string (<input>) or number (<range-control>)
+        if (value === (node.value === '' ? null : +node.value)) { return 0; }
 
-    	const count = renderProperty$1('value', node, value);
+        const count = renderProperty$1('value', node, value);
 
-    	// Event hook (validation in dom lib)
-    	trigger$2('dom-update', node);
+        // Event hook (validation in dom lib)
+        trigger$2('dom-update', node);
 
-    	// Return DOM mod count
-    	return count;
+        // Return DOM mod count
+        return count;
     }
 
     function renderChecked(name, node, value) {
-    	// Where value is defined check against it, otherwise
-    	// value is "on", uselessly. Set checked state directly.
-    	const checked = isDefined(node.getAttribute('value')) ?
-    		value === node.value :
-    		value === true ;
+        // Where value is defined check against it, otherwise
+        // value is "on", uselessly. Set checked state directly.
+        const checked = isDefined(node.getAttribute('value')) ?
+            value === node.value :
+            value === true ;
 
-    	if (checked === node.checked) { return 0; }
+        if (checked === node.checked) { return 0; }
 
-    	const count = renderPropertyBoolean('checked', node, checked);
+        const count = renderPropertyBoolean('checked', node, checked);
 
-    	// Event hook (validation in dom lib)
-    	trigger$2('dom-update', node);
+        // Event hook (validation in dom lib)
+        trigger$2('dom-update', node);
 
-    	// Return DOM mod count
-    	return count;
+        // Return DOM mod count
+        return count;
     }
-
-
-    // Mount
-
     function mountToken(source, render, renderers, options, node, name) {
-    	// Shortcut empty string
-    	if (!source) { return; }
+        // Shortcut empty string
+        if (!source) { return; }
 
-    	const token = parseToken(source);
-    	if (!token) { return; }
+        const token = parseToken(source);
+        if (!token) { return; }
 
-    	// Create transform from pipe
-    	assignTransform(options.pipes, token);
-    	const renderer = new TokenRenderer(token, render, node, name);
-    	renderers.push(renderer);
-    	return renderer;
+        // Create transform from pipe
+        assignTransform(options.pipes, token);
+        const renderer = new TokenRenderer(token, render, node, name);
+        renderers.push(renderer);
+        return renderer;
     }
 
     function mountString(source, render, renderers, options, node, name) {
-    	// Shortcut empty string
-    	if (!source) { return; }
+        // Shortcut empty string
+        if (!source) { return; }
 
-    	const tokens = parseText([], source);
-    	if (!tokens) { return; }
+        const tokens = parseText([], source);
+        if (!tokens) { return; }
 
-    	// Create transform from pipe
-    	tokens.reduce(assignTransform, options.pipes);
+        // Create transform from pipe
+        tokens.reduce(assignTransform, options.pipes);
 
-    	const renderer = new StringRenderer(tokens, render, node, name);
-    	renderers.push(renderer);
-    	return renderer;
+        const renderer = new StringRenderer(tokens, render, node, name);
+        renderers.push(renderer);
+        return renderer;
     }
 
     function mountAttribute(name, node, renderers, options, prefixed) {
-    	name = cased[name] || name;
+        name = cased[name] || name;
 
-    	var source = prefixed !== false && node.getAttribute(options.attributePrefix + name);
+        var source = prefixed !== false && node.getAttribute(options.attributePrefix + name);
 
-    	if (source) {
-    		node.removeAttribute(options.attributePrefix + name);
-    	}
-    	else {
-    		source = node.getAttribute(name);
-    	}
+        if (source) {
+            node.removeAttribute(options.attributePrefix + name);
+        }
+        else {
+            source = node.getAttribute(name);
+        }
 
-    	return mountString(source, renderAttribute, renderers, options, node, name);
+        return mountString(source, renderAttribute, renderers, options, node, name);
     }
 
     function mountAttributes(names, node, renderers, options) {
-    	var name;
-    	var n = -1;
+        var name;
+        var n = -1;
 
-    	while ((name = names[++n])) {
-    		mountAttribute(name, node, renderers, options);
-    	}
+        while ((name = names[++n])) {
+            mountAttribute(name, node, renderers, options);
+        }
     }
 
     function mountBoolean(name, node, renderers, options) {
-    	// Look for prefixed attributes before attributes.
-    	//
-    	// In FF, the disabled attribute is set to the previous value that the
-    	// element had when the page is refreshed, so it contains no sparky
-    	// tags. The proper way to address this problem is to set
-    	// autocomplete="off" on the parent form or on the field.
-    	const prefixed = node.getAttribute(options.attributePrefix + name);
+        // Look for prefixed attributes before attributes.
+        //
+        // In FF, the disabled attribute is set to the previous value that the
+        // element had when the page is refreshed, so it contains no sparky
+        // tags. The proper way to address this problem is to set
+        // autocomplete="off" on the parent form or on the field.
+        const prefixed = node.getAttribute(options.attributePrefix + name);
 
-    	if (prefixed) {
-    		node.removeAttribute(options.attributePrefix + name);
-    	}
+        if (prefixed) {
+            node.removeAttribute(options.attributePrefix + name);
+        }
 
-    	const source = prefixed || node.getAttribute(name);
-    	if (!source) { return; }
+        const source = prefixed || node.getAttribute(name);
+        if (!source) { return; }
 
-    	const tokens = parseBoolean([], source);
-    	if (!tokens) { return; }
+        const tokens = parseBoolean([], source);
+        if (!tokens) { return; }
 
-    	// Create transform from pipe
-    	tokens.reduce(assignTransform, options.pipes);
+        // Create transform from pipe
+        tokens.reduce(assignTransform, options.pipes);
 
-    	const renderer = new BooleanRenderer(tokens, node, name);
-    	renderers.push(renderer);
-    	return renderer;
+        const renderer = new BooleanRenderer(tokens, node, name);
+        renderers.push(renderer);
+        return renderer;
     }
 
     function mountBooleans(names, node, renderers, options) {
-    	var name;
-    	var n = -1;
+        var name;
+        var n = -1;
 
-    	while ((name = names[++n])) {
-    		mountBoolean(name, node, renderers, options);
-    	}
+        while ((name = names[++n])) {
+            mountBoolean(name, node, renderers, options);
+        }
     }
 
     function mountClass(node, renderers, options) {
-    	const prefixed = node.getAttribute(options.attributePrefix + 'class');
+        const prefixed = node.getAttribute(options.attributePrefix + 'class');
 
-    	if (prefixed) {
-    		node.removeAttribute(options.attributePrefix + 'class');
-    	}
+        if (prefixed) {
+            node.removeAttribute(options.attributePrefix + 'class');
+        }
 
-    	// Are there classes?
-    	const source = prefixed || node.getAttribute('class');
-    	if (!source) { return; }
+        // Are there classes?
+        const source = prefixed || node.getAttribute('class');
+        if (!source) { return; }
 
-    	const tokens = parseText([], source);
-    	if (!tokens) { return; }
+        const tokens = parseText([], source);
+        if (!tokens) { return; }
 
-    	// Create transform from pipe
-    	tokens.reduce(assignTransform, options.pipes);
+        // Create transform from pipe
+        tokens.reduce(assignTransform, options.pipes);
 
-    	const renderer = new ClassRenderer(tokens, node);
-    	renderers.push(renderer);
+        const renderer = new ClassRenderer(tokens, node);
+        renderers.push(renderer);
     }
 
     function mountValueProp(node, renderers, options, render, eventType, read, readAttribute, coerce) {
-    	const prefixed = node.getAttribute(options.attributePrefix + 'value');
+        const prefixed = node.getAttribute(options.attributePrefix + 'value');
 
-    	if (prefixed) {
-    		node.removeAttribute(options.attributePrefix + 'value');
-    	}
+        if (prefixed) {
+            node.removeAttribute(options.attributePrefix + 'value');
+        }
 
-    	const source   = prefixed || node.getAttribute('value');
-    	const renderer = mountToken(source, render, renderers, options, node, 'value');
-    	if (!renderer) { return; }
+        const source   = prefixed || node.getAttribute('value');
+        const renderer = mountToken(source, render, renderers, options, node, 'value');
+        if (!renderer) { return; }
 
         // Insert a new listener ahead of the renderer so that on first
-    	// cue the listener populates scope from the input value first
-    	const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
-    	renderers.splice(renderers.length - 1, 0, listener);
+        // cue the listener populates scope from the input value first
+        const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
+        renderers.splice(renderers.length - 1, 0, listener);
     }
 
     function mountValueChecked(node, renderers, options, render, read, readAttribute, coerce) {
-    	const source = node.getAttribute('value') ;
-    	mountString(source, renderProperty$1, renderers, options, node, 'value');
+        const source = node.getAttribute('value') ;
+        mountString(source, renderProperty$1, renderers, options, node, 'value');
 
-    	const sourcePre = node.getAttribute(options.attributePrefix + 'value');
-    	const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
-    	if (!renderer) { return; }
+        const sourcePre = node.getAttribute(options.attributePrefix + 'value');
+        const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
+        if (!renderer) { return; }
 
-    	// Insert a new listener ahead of the renderer so that on first
-    	// cue the listener populates scope from the input value first
-    	const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
-    	renderers.splice(renderers.length - 1, 0, listener);
+        // Insert a new listener ahead of the renderer so that on first
+        // cue the listener populates scope from the input value first
+        const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
+        renderers.splice(renderers.length - 1, 0, listener);
     }
 
     const mountValue = choose({
-    	number: function(node, renderers, options) {
-    		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
-    	},
+        number: function(node, renderers, options) {
+            return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
+        },
 
-    	range: function(node, renderers, options) {
-    		return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
-    	},
+        range: function(node, renderers, options) {
+            return mountValueProp(node, renderers, options, renderValueNumber, 'input', readValue, readAttributeValue, coerceNumber);
+        },
 
-    	checkbox: function(node, renderers, options) {
-    		return mountValueChecked(node, renderers, options, renderChecked, readCheckbox, readAttributeChecked);
-    	},
+        checkbox: function(node, renderers, options) {
+            return mountValueChecked(node, renderers, options, renderChecked, readCheckbox, readAttributeChecked);
+        },
 
-    	radio: function(node, renderers, options) {
-    		return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
-    	},
+        radio: function(node, renderers, options) {
+            return mountValueChecked(node, renderers, options, renderChecked, readRadio, readAttributeChecked);
+        },
 
-    	file: function(node, renderers, options) {
-    		// Safari does not send input events on file inputs
-    		return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
-    	},
+        file: function(node, renderers, options) {
+            // Safari does not send input events on file inputs
+            return mountValueProp(node, renderers, options, renderValue, 'change', readValue, readAttributeValue, coerceString);
+        },
 
-    	default: function(node, renderers, options) {
-    		return mountValueProp(node, renderers, options, renderValue, 'input', readValue, readAttributeValue, coerceString);
-    	}
+        default: function(node, renderers, options) {
+            return mountValueProp(node, renderers, options, renderValue, 'input', readValue, readAttributeValue, coerceString);
+        }
     });
 
     const kinds = {
-    	text: 'string',
-    	checkbox: 'checkbox',
-    	date: 'string',
-    	number: 'number',
-    	radio: 'radio',
-    	range: 'number',
-    	time: 'string',
-    	'select-one': 'string',
-    	'select-multiple': 'array',
-    	textarea: 'string'
+        text: 'string',
+        checkbox: 'checkbox',
+        date: 'string',
+        number: 'number',
+        radio: 'radio',
+        range: 'number',
+        time: 'string',
+        'select-one': 'string',
+        'select-multiple': 'array',
+        textarea: 'string'
     };
 
     function mountTag(settings, node, renderers, options) {
-    	var name    = tag(node);
-    	var setting = settings[name];
-    	if (!setting) { return; }
-    	if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
-    	if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
+        var name    = tag(node);
+        var setting = settings[name];
+        if (!setting) { return; }
+        if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
+        if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
 
-    	var type = getType(node);
-    	if (!type) { return; }
+        var type = getType(node);
+        if (!type) { return; }
 
-    	var typeSetting = setting.types && setting.types[type];
-    	if (typeSetting) {
-    		if (typeSetting.booleans) { mountBooleans(typeSetting.booleans, node, renderers, options); }
-    		if (typeSetting.attributes) { mountAttributes(typeSetting.attributes, node, renderers, options); }
-    	}
+        var typeSetting = setting.types && setting.types[type];
+        if (typeSetting) {
+            if (typeSetting.booleans) { mountBooleans(typeSetting.booleans, node, renderers, options); }
+            if (typeSetting.attributes) { mountAttributes(typeSetting.attributes, node, renderers, options); }
+        }
 
-    	if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
+        if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
     }
 
     function mountCollection(children, renderers, options) {
-    	var n = -1;
-    	var child;
+        var n = -1;
+        var child;
 
-    	while ((child = children[++n])) {
-    		mountNode(child, renderers, options);
-    	}
+        while ((child = children[++n])) {
+            mountNode(child, renderers, options);
+        }
     }
 
     const mountNode = overload(getNodeType, {
-    	// element
-    	1: function mountElement(node, renderers, options) {
-    		const sparky = options.mount && options.mount(node, options);
-    		if (sparky) {
-    			renderers.push(sparky);
-    			return;
-    		}
+        // element
+        1: function mountElement(node, renderers, options) {
+            const sparky = options.mount && options.mount(node, options);
+            if (sparky) {
+                renderers.push(sparky);
+                return;
+            }
 
-    		// Get an immutable list of children. Remember node.childNodes is
-    		// dynamic, and we don't want to mount elements that may be dynamically
-    		// inserted, so turn childNodes into an array first.
-    		mountCollection(Array.from(node.childNodes), renderers, options);
-    		mountClass(node, renderers, options);
-    		mountBooleans(options.elements.default.booleans, node, renderers, options);
-    		mountAttributes(options.elements.default.attributes, node, renderers, options);
-    		mountTag(options.elements, node, renderers, options);
-    	},
+            // Get an immutable list of children. Remember node.childNodes is
+            // dynamic, and we don't want to mount elements that may be dynamically
+            // inserted, so turn childNodes into an array first.
+            mountCollection(Array.from(node.childNodes), renderers, options);
+            mountClass(node, renderers, options);
+            mountBooleans(options.elements.default.booleans, node, renderers, options);
+            mountAttributes(options.elements.default.attributes, node, renderers, options);
+            mountTag(options.elements, node, renderers, options);
+        },
 
-    	// text
-    	3: function mountText(node, renderers, options) {
-    		mountString(node.nodeValue, renderText, renderers, options, node);
-    	},
+        // text
+        3: function mountText(node, renderers, options) {
+            mountString(node.nodeValue, renderText, renderers, options, node);
+        },
 
-    	// comment
-    	8: noop,
+        // comment
+        8: noop,
 
-    	// document
-    	9: function mountDocument(node, renderers, options) {
-    		mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
-    	},
+        // document
+        9: function mountDocument(node, renderers, options) {
+            mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
+        },
 
-    	// doctype
-    	10: noop,
+        // doctype
+        10: noop,
 
-    	// fragment
-    	11: function mountFragment(node, renderers, options) {
-    		mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
-    	},
+        // fragment
+        11: function mountFragment(node, renderers, options) {
+            mountCollection(A$8.slice.apply(node.childNodes), renderers, options);
+        },
 
         default: function(node) {
             throw new TypeError('mountNode(node) node is not a mountable Node');
@@ -8776,31 +8928,31 @@ var Sparky = (function (exports) {
     */
 
     function Mount(node, options) {
-    	if (!Mount.prototype.isPrototypeOf(this)) {
+        if (!Mount.prototype.isPrototypeOf(this)) {
             return new Mount(node, options);
         }
 
-    	this.renderers = [];
+        this.renderers = [];
         mountNode(node, this.renderers, options);
     }
 
     assign$e(Mount.prototype, {
-    	stop: function() {
-    		this.renderers.forEach(stop);
-    		return this;
-    	},
+        stop: function() {
+            this.renderers.forEach(stop);
+            return this;
+        },
 
-    	push: function(scope) {
-    		// Dedup
-    		if (this.scope === scope) {
-    			return this;
-    		}
+        push: function(scope) {
+            // Dedup
+            if (this.scope === scope) {
+                return this;
+            }
 
-    		// Set new scope
-    		this.scope = scope;
-    		this.renderers.reduce(push, scope);
-    		return this;
-    	}
+            // Set new scope
+            this.scope = scope;
+            this.renderers.reduce(push, scope);
+            return this;
+        }
     });
 
     const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
@@ -8840,7 +8992,7 @@ var Sparky = (function (exports) {
     }
 
     function prepareInput(input, output) {
-        // Support promises and streams
+        // Support promises and streams P
         const stream = output.then ?
             new Stream$1(function(push, stop) {
                 output
@@ -8906,37 +9058,39 @@ var Sparky = (function (exports) {
     function mountContent(content, options) {
         options.mount = function(node, options) {
             // This is a half-assed way of preventing the root node of this
-            // sparky from being remounted. Still needed?
+            // sparky from being remounted. But, Todo, is it still needed?
             if (node === content) { return; }
 
             // Does the node have Sparkyfiable attributes?
-            options.fn      = node.getAttribute(options.attributeFn) || '';
-            options.include = node.getAttribute(options.attributeSrc) || '';
-
-            if (!options.fn && !options.include) { return; }
+            if (!(options.fn = node.getAttribute(options.attributeFn)) && !(
+                    tag(node) === 'template' &&
+                    (options.src = node.getAttribute(options.attributeSrc))
+                )
+            ) { return; }
 
             // Return a writeable stream. A writeable stream
             // must have the methods .push() and .stop().
             // A Sparky() is a write stream.
-            return Sparky(node, options);
+            var sparky =  Sparky(node, options);
+
+            // Options object is still used by the mounter, reset it
+            options.fn  = null;
+            options.src = null;
+
+            return sparky;
         };
 
         // Launch rendering
         return new Mount(content, options);
     }
 
-    function setupTarget(input, render, options) {
-        const src = options.include;
-
+    function setupTarget(src, input, render, options) {
         // If there are no dynamic tokens to render, return the include
         if (!src) {
-            throw new Error('Sparky attribute include cannot be empty');
+            throw new Error('Sparky attribute src cannot be empty');
         }
 
         const tokens = parseText([], src);
-
-        // Reset options.include, it's done its job for now
-        options.include = '';
 
         // If there are no dynamic tokens to render, return the include
         if (!tokens) {
@@ -8953,7 +9107,7 @@ var Sparky = (function (exports) {
         function update(scope) {
             const values = tokens.map(valueOf);
 
-            // Tokens in the include tag MUST evaluate in order that a template
+            // Tokens in the src tag MUST evaluate in order that a template
             // may be rendered.
             //
             // If any tokens evaluated to undefined (which can happen frequently
@@ -8985,7 +9139,7 @@ var Sparky = (function (exports) {
             output.stop();
             //stop();
 
-            // If include is empty string render nothing
+            // If src is empty string render nothing
             if (!src) {
                 if (prevSrc !== null) {
                     render(null);
@@ -9102,11 +9256,10 @@ var Sparky = (function (exports) {
         });
     }
 
-    function setupTemplate(target, input, options, sparky) {
-        const src   = options.include;
+    function setupTemplate(target, src, input, options, sparky) {
         const nodes = { 0: target };
 
-        return setupTarget(input, (content) => {
+        return setupTarget(src, input, (content) => {
             // Store node 0
             const node0 = nodes[0];
 
@@ -9135,7 +9288,7 @@ var Sparky = (function (exports) {
             }
 
             // Replace child 0, which we avoided doing above to keep it as a
-            // position marker in the DOM for exactly this reason this...
+            // position marker in the DOM for exactly this reason...
             replace$2(node0, content);
 
             // Update count for logging
@@ -9143,8 +9296,8 @@ var Sparky = (function (exports) {
         }, options);
     }
 
-    function setupSVG(target, input, options, sparky) {
-        return setupTarget(input, (content) => {
+    function setupSVG(target, src, input, options, sparky) {
+        return setupTarget(src, input, (content) => {
             content.removeAttribute('id');
 
             replace$2(target, content);
@@ -9194,7 +9347,7 @@ var Sparky = (function (exports) {
 
 
     /*
-    include()
+    src=""
 
     Templates may include other templates. Define the `src` attribute
     as an href to a template:
@@ -9266,22 +9419,24 @@ var Sparky = (function (exports) {
         // for example, replacing the original node and Sparky with duplicates.
         if (!output) { return; }
 
-        // We have consumed fn lets make sure it's really empty
-        options.fn = '';
-
-        const tag = target.tagName.toLowerCase();
-        const src = options.include || (
-            tag === 'use' ? target.getAttribute(options.attributeSrc) :
-            tag === 'template' ? target.getAttribute(options.attributeSrc) :
-            ''
+        const name = tag(target);
+        const src = options.src || (
+            name === 'use' ? target.getAttribute(options.attributeSrc) :
+            name === 'template' ? target.getAttribute(options.attributeSrc) :
+            null
         );
 
-        //if (DEBUG) { logNode(target, attrFn, options.include); }
+        // We have consumed fn and src lets make sure they are not read again...
+        // Todo: This shouldn't be needed if we program properly
+        options.fn = null;
+        options.src = null;
+
+        //if (DEBUG) { logNode(name, attrFn, options.src); }
 
         src ?
-            tag === 'use' ?
-                setupSVG(target, output, options, this) :
-            setupTemplate(target, output, options, this) :
+            name === 'use' ?
+                setupSVG(target, src, output, options, this) :
+            setupTemplate(target, src, output, options, this) :
         setupElement(target, output, options, this) ;
     }
 
@@ -9892,7 +10047,6 @@ var Sparky = (function (exports) {
     Sparky.fn = register;
     Sparky.pipe = pipe$1;
 
-
     /*
     Sparky templates
 
@@ -9931,9 +10085,9 @@ var Sparky = (function (exports) {
             extends: 'template',
 
             construct: function() {
-                const fn = this.getAttribute('fn');
+                const fn = this.getAttribute(config$1.attributeFn);
 
-                if (DEBUG) { logNode(this, fn, this.getAttribute('include')); }
+                if (DEBUG) { logNode(this, fn, this.getAttribute(config$1.attributeSrc)); }
 
                 if (fn) {
                     Sparky(this, { fn: fn });
@@ -9958,12 +10112,12 @@ var Sparky = (function (exports) {
 
         // If still not supported, fallback to a dom query for [is="sparky-template"]
         if (!supportsCustomBuiltIn) {
-            log$2("Browser does not support custom built-in elements. Doin' it oldskool selectin' stylee.");
+            log$2("Browser does not support custom built-in elements so we're doin' it oldskool selector stylee.");
 
             window.document
             .querySelectorAll('[is="sparky-template"]')
             .forEach((template) => {
-                const fn = template.getAttribute('fn');
+                const fn = template.getAttribute(config$1.attributeFn);
 
                 if (fn) {
                     Sparky(template, { fn: fn });
