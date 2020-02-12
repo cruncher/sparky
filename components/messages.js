@@ -8,9 +8,9 @@
 //   duration: seconds
 // })
 
-import { Fn, overload, remove, Stream, toType, Observer, observe } from '../../fn/module.js';
-import { events } from '../../dom/module.js';
-import { functions } from '../../sparky/module.js';
+import { overload, remove, Stream, toType, Observer, observe } from '../fn/module.js';
+import { events } from '../dom/module.js';
+import { register } from '../sparky/module.js';
 
 const assign   = Object.assign;
 const messages = Observer([]);
@@ -85,14 +85,14 @@ observe('.', function(messages, changes) {
 
 // Sparky
 
-functions["remove-on-click"] = function(node, scopes) {
-	scopes.tap(function(message) {
+register("remove-on-click", function(node) {
+	return this.tap(function(message) {
 		events('click', node).each(function(e) {
 			e.preventDefault();
 			delayRemove(message);
 		});
 	});
-};
+});
 
 function isError(object) {
 	// Detect error-like object by duck typing
@@ -101,39 +101,53 @@ function isError(object) {
 	&& typeof object.message === 'string' ;
 }
 
+function isDOMError(object) {
+	// Detect error-like object by duck typing
+	return object
+    && typeof object.name === 'string'
+	&& typeof object.message === 'string' ;
+}
+
 // Export
 
-export default Stream
+const stream = Stream
 .of()
 .map(overload(toType, {
-	string: function(string) {
+	string: function (string) {
 		return table[string] || {
 			type: 'info',
 			text: string
 		};
 	},
 
-	number: function(number) {
+	number: function (number) {
 		return table[number] || {
-			type:   'info',
+			type: 'info',
 			status: number
 		};
 	},
 
-	object: function(object) {
+	object: function (object) {
 		return isError(object) ?
 			object.response && object.response.status ?
 				assign({}, table[object.response.status]) :
-			{
-				type:    'error',
-				text: object.message,
-				status:  object.request && object.request.status,
-				error:   object
-			} :
-		object ;
+				{
+					type: 'error',
+					text: object.message,
+					status: object.request && object.request.status,
+					error: object
+				} :
+			isDOMError(object) ?
+				{
+					type: 'error',
+					text: object.message,
+					status: object.name,
+					error: object
+				} :
+				object;
 	},
 
-	default: function(value) {
+	default: function (value) {
 		throw new Error('messages: .push() accepts a string, number or object; you gave it ' + (typeof value));
 	}
 }))
@@ -144,11 +158,19 @@ export default Stream
 // Todo: I wonder if changes.added and changes.removed should be listing the
 // Observers of items to get around this? Maybe some modification
 // of Observer needed...
-.map(Observer)
-.each(function(message) {
-	messages.push(message);
+.map(Observer);
+
+// Wait until DOMContentLoaded to display errors. This avoids having, for
+// example, request errors show up when we navigate away from the page before
+// content load.
+window.addEventListener('DOMContentLoaded', function(e) {
+	stream.each(function (message) {
+		messages.push(message);
+	});
 });
 
-functions.messages = function() {
-	return Fn.of(messages);
-};
+export default stream;
+
+register('messages', function() {
+	return Stream.of(messages);
+});

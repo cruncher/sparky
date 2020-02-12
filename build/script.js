@@ -7072,13 +7072,13 @@ var Sparky = (function (exports) {
     import { config } from './sparky/module.js'
 
     config.attributeFn = 'data-fn';
-    config.attributeInclude = 'data-src';
+    config.attributeSrc = 'data-src';
     ```
     */
 
     var config$1 = {
         attributeFn: 'fn',
-        attributeInclude: 'src',
+        attributeSrc: 'src',
         attributePrefix: ':',
         elements: {
             default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
@@ -8911,7 +8911,7 @@ var Sparky = (function (exports) {
 
             // Does the node have Sparkyfiable attributes?
             options.fn      = node.getAttribute(options.attributeFn) || '';
-            options.include = node.getAttribute(options.attributeInclude) || '';
+            options.include = node.getAttribute(options.attributeSrc) || '';
 
             if (!options.fn && !options.include) { return; }
 
@@ -9271,8 +9271,8 @@ var Sparky = (function (exports) {
 
         const tag = target.tagName.toLowerCase();
         const src = options.include || (
-            tag === 'use' ? target.getAttribute(options.attributeInclude) :
-            tag === 'template' ? target.getAttribute(options.attributeInclude) :
+            tag === 'use' ? target.getAttribute(options.attributeSrc) :
+            tag === 'template' ? target.getAttribute(options.attributeSrc) :
             ''
         );
 
@@ -9307,12 +9307,12 @@ var Sparky = (function (exports) {
         }
 
         var attrFn      = node && node.getAttribute(options ? options.attributeFn : 'fn');
-        var attrInclude = node && node.getAttribute(options ? options.attributeInclude : 'include');
+        var attrInclude = node && node.getAttribute(options ? options.attributeSrc : 'include');
 
         return create$1('comment',
             tag(node) +
             (attrFn ? ' ' + (options ? options.attributeFn : 'fn') + '="' + attrFn + '"' : '') +
-            (attrInclude ? ' ' + (options ? options.attributeInclude : 'include') + '="' + attrInclude + '"' : '')
+            (attrInclude ? ' ' + (options ? options.attributeSrc : 'include') + '="' + attrInclude + '"' : '')
         );
     }
 

@@ -1,3 +1,6 @@
+// Import config
+import { translations } from '../config.js';
+
 // Import uncurried functions from Fn library modules
 import { getPath } from '../../fn/modules/get-path.js';
 import { equals }  from '../../fn/modules/equals.js';
@@ -350,11 +353,16 @@ properties are matched against those of `selector`.
 	/* boolean-string:
 	Transforms booleans to strings and vice versa. May by used for two-way binding. */
 	'boolean-string': {
-		tx: toString,
+		tx: function(value) {
+			return value === true ? 'true' :
+				value === false ? 'false' :
+				undefined;
+		},
+
 		ix: function (value) {
 			return value === 'true' ? true :
 				value === 'false' ? false :
-					undefined;
+				undefined;
 		}
 	},
 
@@ -379,7 +387,10 @@ properties are matched against those of `selector`.
 	/* int-string:
 	Transforms numbers to integer strings, and, used for two-way binding,
 	gaurantees integer numbers are set on scope. */
-	'int-string':   { tx: (value) => value.toFixed(0), ix: toInt },
+	'int-string':   {
+		tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
+		ix: toInt
+	},
 
 	/* ints-string: separator
 	Transforms an array of numbers to a string of integers seperated with
@@ -442,7 +453,6 @@ properties are matched against those of `selector`.
 };
 
 export const transforms = {
-
 	contains:     contains,
 	equals:       equals,
 	escape:       escape,
@@ -483,6 +493,18 @@ export const transforms = {
 	divide: function(n, value) {
 		if (typeof value !== 'number') { return; }
 		return value / n;
+	},
+
+
+	/* is-in: array
+	Returns `true` if value is contained in `array`, otherwise `false`.
+
+	```html
+	{[ path|is-in:[0,1] ]}
+	```
+	*/
+	'is-in': function(array, value) {
+		return array.includes(value);
 	},
 
 	'find-in': function(path, id) {
@@ -600,21 +622,11 @@ export const transforms = {
 		var warned = {};
 
 		return function(value) {
-			var translations = translations;
-
-			if (!translations) {
-				if (!warned.missingTranslations) {
-					console.warn('Sparky: Missing lookup object Sparky.translations');
-					warned.missingTranslations = true;
-				}
-				return value;
-			}
-
 			var text = translations[value] ;
 
 			if (!text) {
 				if (!warned[value]) {
-					console.warn('Sparky: Sparky.translations contains no translation for "' + value + '"');
+					console.warn('Sparky: config.translations contains no translation for "' + value + '"');
 					warned[value] = true;
 				}
 

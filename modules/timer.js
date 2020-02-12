@@ -1,4 +1,4 @@
-
+import { get } from '../../fn/module.js';
 import { now } from '../../dom/module.js';
 
 // Debug mode on by default
@@ -68,19 +68,28 @@ function logRenders(tStart, tStop) {
 
 /* The meat and potatoes */
 
+function fireEachDEBUG(queue) {
+	var count, renderer;
+
+	for (renderer of queue) {
+		count = renderer.renderCount;
+
+		try {
+			renderer.fire();
+		}
+		catch(e) {
+			throw new Error('failed to render ' + renderer.tokens.map(get('label')).join(', ') + '. ' + e.message);
+		}
+
+		renderCount += (renderer.renderCount - count);
+	}
+}
+
 function fireEach(queue) {
 	var count, renderer;
 
 	for (renderer of queue) {
-		if (DEBUG) {
-			count = renderer.renderCount;
-		}
-
 		renderer.fire();
-
-		if (DEBUG) {
-			renderCount += (renderer.renderCount - count);
-		}
 	}
 }
 
@@ -96,7 +105,7 @@ function run(time) {
 
 			tStart = now();
 			frame = true;
-			fireEach(queue);
+			fireEachDEBUG(queue);
 			frame = undefined;
 		}
 		catch (e) {
