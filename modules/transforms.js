@@ -1,3 +1,4 @@
+
 // Import config
 import { translations } from '../config.js';
 
