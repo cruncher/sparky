@@ -26,7 +26,6 @@ import Sparky, { register } from '../module.js';
 
 group('Child sparky', function(test, log, fixture) {
 	var frame = window.requestAnimationFrame;
-
 	var obj1 = { property: 'prop1' };
 	var obj2 = { property: 'prop2' };
 
