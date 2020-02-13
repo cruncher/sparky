@@ -1,6 +1,6 @@
 
-import { Fn, test as group, Observer } from '../../fn/module.js';
-import Sparky from '../module.js';
+import { Stream, test as group, Observer } from '../../fn/module.js';
+import Sparky, { register } from '../module.js';
 
 //Sparky.fn['ctrl'] = function(node, scopes) {
 //	return Fn.of({ property: 'peas' });
@@ -30,27 +30,27 @@ group('Child sparky', function(test, log, fixture) {
 	var obj1 = { property: 'prop1' };
 	var obj2 = { property: 'prop2' };
 
-	Sparky.fn['ctrl'] = function(node, scopes) {
-		return Fn.of({
+	register('ctrl', function(node, scopes) {
+		return Stream.of({
 			'sub-1': obj1,
 			'sub-2': obj2
 		});
-	};
+	});
 
-	Sparky.fn['ctrl-1'] = function(node, scopes) {
-		return Fn.of({ property: 'value1' });
-	};
+	register('ctrl-1', function(node, scopes) {
+		return Stream.of({ property: 'value1' });
+	});
 
-	Sparky.fn['ctrl-2'] = function(node, scopes) {
-		return Fn.of({ property: 'value2' });
-	};
+	register('ctrl-2', function(node, scopes) {
+		return Stream.of({ property: 'value2' });
+	});
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {
-		var div = fixture.querySelector('[sparky-fn="ctrl"]');
-		var p1  = fixture.querySelector('[sparky-fn="ctrl-1"]');
-		var p2  = fixture.querySelector('[sparky-fn="ctrl-2"]');
-		var p3  = fixture.querySelector('[sparky-fn="get:\'sub-1\'"]');
-		var p4  = fixture.querySelector('[sparky-fn="get:\'sub-2\'"]');
+		var div = fixture.querySelector('[fn="ctrl"]');
+		var p1  = fixture.querySelector('[fn="ctrl-1"]');
+		var p2  = fixture.querySelector('[fn="ctrl-2"]');
+		var p3  = fixture.querySelector('[fn="get:\'sub-1\'"]');
+		var p4  = fixture.querySelector('[fn="get:\'sub-2\'"]');
 
 		var sparky = Sparky(div);
 
@@ -82,11 +82,11 @@ group('Child sparky', function(test, log, fixture) {
 
 }, function() {/*
 
-<div sparky-fn="ctrl">
-	<p sparky-fn="ctrl-1">{[ property]}</p>
-	<p sparky-fn="ctrl-2">{[property ]}</p>
-	<p sparky-fn="get:'sub-1'">{[  property]}</p>
-	<p sparky-fn="get:'sub-2'">{[property  ]}</p>
+<div fn="ctrl">
+	<p fn="ctrl-1">{[ property]}</p>
+	<p fn="ctrl-2">{[property ]}</p>
+	<p fn="get:'sub-1'">{[  property]}</p>
+	<p fn="get:'sub-2'">{[property  ]}</p>
 </div>
 
 */});

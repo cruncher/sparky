@@ -1,4 +1,4 @@
-import { get, set, normalise, Observer } from '../../fn/module.js';
+import { get, set, normalise, Observer, Stream } from '../../fn/module.js';
 import dom from '../../dom/module.js';
 import Sparky from '../module.js';
 
@@ -26,7 +26,7 @@ function valueFrom(getValue, sparky, node, stream, target, name) {
     // Handle unbinding
     sparky.then(event.stop);
 
-    return Fn.of(scope);
+    return Stream.of(scope);
 }
 
 Sparky.fn['value-from'] = function(node, stream, params) {

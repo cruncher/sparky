@@ -36,7 +36,7 @@
         .map(getScroll)
         .each(set(name, Observable(scope)));
 
-        return Fn.of(scope);
+        return Stream.of(scope);
     }
 
     Sparky.fn['scrolltop-from'] = function(node, stream, params) {

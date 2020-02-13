@@ -1,5 +1,5 @@
 
-import { Fn, test as group, Observer } from '../../fn/module.js';
+import { Stream, test as group, Observer } from '../../fn/module.js';
 import Sparky from '../module.js';
 
 group('Parent sparky', function(test, log, fixture) {
@@ -10,7 +10,7 @@ group('Parent sparky', function(test, log, fixture) {
 	};
 
 	Sparky.fn['ctrl'] = function(node, scopes) {
-		return Fn.of(obj);
+		return Stream.of(obj);
 	};
 
 	test('[sparky-fn] > [sparky-fn]', function(equals, done) {

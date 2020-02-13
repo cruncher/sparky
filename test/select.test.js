@@ -148,12 +148,14 @@ group('select > async options', function(test, log, fixture) {
 		});
 	}, 3);
 }, function() {/*
-	<form src="#address-editor">HEY</form>
+	<form>
+		<template src="#address-editor"></template>
+	</form>
 
 	<template id="address-editor">
 	    <label class="country-select-button select-button button">
 	        <select :value="{[country]}" name="country">
-	            <option fn="import:json/countries.json each" value="{[code]}">{[value]}</option>
+	            <option fn="fetch:json/countries.json each" value="{[code]}">{[value]}</option>
 	        </select>
 	    </label>
 	</template>

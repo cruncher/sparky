@@ -1,15 +1,15 @@
 import { test as group, noop, Observer, Stream } from '../../fn/module.js';
-import Sparky, { functions } from '../module.js';
+import Sparky, { register } from '../module.js';
 
 var frame = window.requestAnimationFrame;
 
-functions['pass-through'] = function(node, input) {
-	return input;
-};
+register('pass-through', function(node) {
+	return this;
+});
 
-functions['new-stream'] = function(node, input) {
-	return input.pipe(Stream.of());
-};
+register('new-stream', function(node) {
+	return this.pipe(Stream.of());
+});
 
 group('.stop() scopes', function(test, log, fixture) {
 	test('Stops new scopes and property mutations', function(equals, done) {
@@ -156,8 +156,8 @@ group('.stop() scopes to templated child', function(test, log, fixture) {
 	}, 3);
 }, function() {/*
 
-<div src="#stop-test-1">
-	Unrendered
+<div>
+	<template src="#stop-test-1"></template>
 </div>
 
 <template id="stop-test-1">

@@ -52,7 +52,7 @@ group('[sparky-fn]', function(test, log, fixture) {
 }, function() {/*
 
 <div>
-	<p sparky-fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, path.to.something">{[property]}</p>
+	<p fn="ctrl-1 ctrl-2 ctrl-3: 0, '1', true, path.to.something">{[property]}</p>
 </div>
 
 */});

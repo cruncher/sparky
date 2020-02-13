@@ -96,7 +96,7 @@ Sparky.fn.calendar = function(node, scopes, params) {
 
     this.then(clock.stop);
 
-    return Fn.of(calendar);
+    return Stream.of(calendar);
 };
 
 // calendar-move-on-click: duration, min, max

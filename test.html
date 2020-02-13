@@ -133,7 +133,7 @@
 
     <script type="module">
         import { Observer, Stream, Fn } from '../fn/module.js';
-        import Sparky, { functions } from './module.js';
+        import Sparky, { register } from './module.js';
 
         const data1 = [{ id: 1 }, { id: 2 }];
         const data2 = [{ id: 3 }, { id: 4 }];
@@ -148,7 +148,7 @@
             }, 2000);
         }, 4000);
 
-        functions.data = function(node) {
+        register('data', function(node) {
             const scopes = Stream.of();
 
             scopes.label = 'data';
@@ -164,11 +164,11 @@
             }, 1000);
 
             return scopes;
-        };
+        });
 
-        functions.test = function(node, stream, params) {
+        register('test', function(node, stream, params) {
             //console.log('node:', node, 'params:', params);
-        };
+        });
 
         window.Stream = Stream;
     </script>
@@ -177,7 +177,7 @@
     <!-- Tests -->
 
     <template id="range-control-template">
-        <link rel="stylesheet" href="../dom/components/control/range-control.css" />
+        <link rel="stylesheet" href="../dom/elements/range-control.css" />
         <input class="control-input" type="range" id="input" value="{[inputValue]}" min="0" max="1" step="any" />
         <label class="control-label" for="input"><slot></slot></label>
         <output class="control-output">{[prefix]}{[displayValue]}<abbr>{[displayUnit]}</abbr></output>
@@ -194,16 +194,16 @@
     </template-->
 
     <script type="module">
-        import "../dom/components/control/range-control.js";
+        import "../dom/elements/range-control.js";
         import { Observer, Stream, Fn } from '../fn/module.js';
-        import { functions, mountConfig } from './module.js';
+        import { register, config } from './module.js';
 
-        functions.thing = function(node, stream, params) {
+        register('thing', function(node, stream, params) {
             return Stream.of({ value: 0.4 });
-        };
+        });
 
         // Let Sparky know about custom elements
-        Object.assign(mountConfig, {
+        Object.assign(config, {
             'range-control':  { attributes: [], booleans: ['disabled'], value: 'number' }
         });
 
@@ -218,8 +218,8 @@
         import './test/sparky.stop-scopes.test.js';
         import './test/sparky.fn.each-test.js';
 
-        //import './test/fn.entries.js';
-    	//import './test/sparky.test.js';
+        import './test/fn.entries.js';
+    	import './test/sparky.test.js';
     	//import './test/sparky.parent-scope-test.js';
     	//import './test/token-parent-path.js';
     	//import './test/token-parent-each.js';

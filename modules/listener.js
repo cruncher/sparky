@@ -57,9 +57,13 @@ Object.assign(Listener.prototype, {
                 .map((data) => {
                     const fn = getInvert(data.name);
                     if (!fn) { throw new Error('Sparky invert fn ' + data.name + '() not found.'); }
+
+                    console.log(data.args);
+
+                    // If there are arguments apply them to fn
                     return data.args && data.args.length ?
-                        fn.apply(null, data.args) :
-                        fn ;
+                        (value) => fn(...data.args, value) :
+                        fn;
                 })
                 .reverse()
             );

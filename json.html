@@ -61,34 +61,34 @@ small {
     </header>
 
 	<div class="grid-block block">
-		<pre sparky-fn="import:package.json json-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">Waiting for data.</pre>
+		<pre fn="import:package.json json-editor" class="block grid-1/1 @2-grid-left-1/15" id="editor">Waiting for data.</pre>
 	</div>
 
 	<!-- Templates -->
 
 <template id="types-editor">
-	<button sparky-fn="string-on-click" class="type-button {[type|is:'string'|yesno:'on','']}" type="button">str</button>
-	<button sparky-fn="number-on-click" class="type-button {[type|is:'number'|yesno:'on','']}" type="button">num</button>
-	<button sparky-fn="boolean-on-click" class="type-button {[type|is:'boolean'|yesno:'on','']}" type="button">bool</button>
-	<button sparky-fn="object-on-click" class="type-button {[type|is:'object'|yesno:'on','']}" type="button">obj</button>
-	<button sparky-fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button>
+	<button fn="string-on-click" class="type-button {[type|is:'string'|yesno:'on','']}" type="button">str</button>
+	<button fn="number-on-click" class="type-button {[type|is:'number'|yesno:'on','']}" type="button">num</button>
+	<button fn="boolean-on-click" class="type-button {[type|is:'boolean'|yesno:'on','']}" type="button">bool</button>
+	<button fn="object-on-click" class="type-button {[type|is:'object'|yesno:'on','']}" type="button">obj</button>
+	<button fn="array-on-click" class="type-button {[type|is:'array'|yesno:'on','']}" type="button">arr</button>
 </template>
 
-<template id="string-editor"><input class="string-input" type="text" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="string-editor"><input class="string-input" type="text" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|get:'length'|multiply:0.487589|add:0.8125|append:'rem']};" /> <span fn="template:'#types-editor'"></span></template>
 
-<template id="number-editor"><input class="number-input" type="number" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="number-editor"><input class="number-input" type="number" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};" /> <span fn="template:'#types-editor'"></span></template>
 
-<template id="boolean-editor"><input class="masked" type="checkbox" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /><label class="boolean-label" for="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};">{[value]}</label> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="boolean-editor"><input class="masked" type="checkbox" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /><label class="boolean-label" for="{[path]}.{[name]}" style="width: {[value|append:''|get:'length'|multiply:0.5|add:0.8125|append:'rem']};">{[value]}</label> <span fn="template:'#types-editor'"></span></template>
 
-<template id="date-editor"><input class="date-input" type="date" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="date-editor"><input class="date-input" type="date" :value="{[value]}" name="{[path]}.{[name]}" id="{[path]}.{[name]}" /> <span fn="template:'#types-editor'"></span></template>
 
-<template id="object-editor">{<span sparky-fn="entries"><span sparky-fn="each">
-{[indent]}<span class="{[type|append:'-name-editor']} name-editor"><input class="name-input" type="text" sparky-fn="value-on:'change','name' value-on:'input','chars'" style="width: {[chars|get:'length'|multiply:0.5|add:0.0625|append:'rem']};"/>:</span><span class="entry" sparky-fn="entry-editor"></span></span></span>
-{[indent]}} <button sparky-fn="get:'value' set-new" class="add-button" type="button">+</button> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="object-editor">{<span fn="entries"><span fn="each">
+{[indent]}<span class="{[type|append:'-name-editor']} name-editor"><input class="name-input" type="text" fn="value-on:'change','name' value-on:'input','chars'" style="width: {[chars|get:'length'|multiply:0.5|add:0.0625|append:'rem']};"/>:</span><span class="entry" fn="entry-editor"></span></span></span>
+{[indent]}} <button fn="get:'value' set-new" class="add-button" type="button">+</button> <span fn="template:'#types-editor'"></span></template>
 
-<template id="array-editor">[<span sparky-fn="entries"><span sparky-fn="each">
-{[indent]}<span sparky-fn="entry-editor"></span></span></span>
-{[indent]}] <button sparky-fn="get:'value' push-new" class="add-button" type="button">+</button> <small>length: {[value.length]}</small> <span sparky-fn="template:'#types-editor'"></span></template>
+<template id="array-editor">[<span fn="entries"><span fn="each">
+{[indent]}<span fn="entry-editor"></span></span></span>
+{[indent]}] <button fn="get:'value' push-new" class="add-button" type="button">+</button> <small>length: {[value.length]}</small> <span fn="template:'#types-editor'"></span></template>
 
 	<!-- Polyfills -->
 

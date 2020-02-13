@@ -12,7 +12,7 @@ export default {
     attributeFn: 'fn',
     attributeSrc: 'src',
     attributePrefix: ':',
-    elements: {
+    parse: {
         default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
         a: { attributes: ['href'] },
         button: { attributes: ['name', 'value'], booleans: ['disabled'] },

@@ -5271,7 +5271,7 @@ function transferProperty(elem, key) {
 }
 
 function getTemplateById(id) {
-    const template = document.getElementById(options.shadow.slice(1));
+    const template = document.getElementById(id);
 
     if (!template || !template.content) {
         throw new Error('Template "' + options.shadow + '" not found in document');
@@ -6764,7 +6764,7 @@ var config$1 = {
     attributeFn: 'fn',
     attributeSrc: 'src',
     attributePrefix: ':',
-    elements: {
+    parse: {
         default: { attributes: ['id', 'title', 'style'], booleans: ['hidden'] },
         a: { attributes: ['href'] },
         button: { attributes: ['name', 'value'], booleans: ['disabled'] },
@@ -8299,9 +8299,13 @@ Object.assign(Listener.prototype, {
                 .map((data) => {
                     const fn = getInvert(data.name);
                     if (!fn) { throw new Error('Sparky invert fn ' + data.name + '() not found.'); }
+
+                    console.log(data.args);
+
+                    // If there are arguments apply them to fn
                     return data.args && data.args.length ?
-                        fn.apply(null, data.args) :
-                        fn ;
+                        (value) => fn(...data.args, value) :
+                        fn;
                 })
                 .reverse()
             );
@@ -8457,16 +8461,6 @@ function createPipe(array, pipes) {
             if (DEBUG$5 && !fn) {
                 throw new ReferenceError('Template pipe "' + data.name + '" not found.');
             }
-        }
-
-        // Does the number of arguments supplied match the signature of the
-        // transform? If not, error of the form
-        // transform:arg,arg,arg takes 3 arguments, 2 given arg,arg
-        if (DEBUG$5 && data.args.length !== fn.length - 1) {
-            throw new Error(data.name + ':'
-                + /\(((?:(?:,\s*)?\w*)*),/.exec(fn.toString())[1].replace(/\s*/g, '')
-                + ' takes ' + (fn.length - 1) + ' arguments, '
-                + data.args.length + ' given ' + data.args);
         }
 
         // If there are arguments apply them to fn
@@ -8869,6 +8863,7 @@ const mountNode = overload(getNodeType, {
     // element
     1: function mountElement(node, renderers, options) {
         const sparky = options.mount && options.mount(node, options);
+
         if (sparky) {
             renderers.push(sparky);
             return;
@@ -8879,9 +8874,16 @@ const mountNode = overload(getNodeType, {
         // inserted, so turn childNodes into an array first.
         mountCollection(Array.from(node.childNodes), renderers, options);
         mountClass(node, renderers, options);
-        mountBooleans(options.elements.default.booleans, node, renderers, options);
-        mountAttributes(options.elements.default.attributes, node, renderers, options);
-        mountTag(options.elements, node, renderers, options);
+
+        options.parse.default
+        && options.parse.default.booleans
+        && mountBooleans(options.parse.default.booleans, node, renderers, options);
+
+        options.parse.default
+        && options.parse.default.attributes
+        && mountAttributes(options.parse.default.attributes, node, renderers, options);
+
+        mountTag(options.parse, node, renderers, options);
     },
 
     // text

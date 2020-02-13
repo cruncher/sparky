@@ -1,11 +1,11 @@
 import { test as group } from '../../fn/module.js';
 import Sparky from '../module.js';
 
-group('[sparky-fn="template:url"]', function(test, log, fixture) {
+group('[fn="template:url"]', function(test, log, fixture) {
 	var node   = fixture.children[0];
 	var sparky = Sparky(node);
 
-	test('[sparky-fn="template:url"]', function(equals, done) {
+	test('[fn="template:url"]', function(equals, done) {
 		equals('Default content.', node.innerHTML);
 
 		sparky.push({});
@@ -17,6 +17,6 @@ group('[sparky-fn="template:url"]', function(test, log, fixture) {
 	}, 2);
 }, function() {/*
 
-	<p class="{[property]}" sparky-fn="template:'test/fn-template-url.html#hello-template'">Default content.</p>
+	<p class="{[property]}" fn="template:'test/fn-template-url.html#hello-template'">Default content.</p>
 
 */});

@@ -5,7 +5,7 @@ group('Sparky.transformers', function(test, log) {
 	var key, filter;
 	var expected = {
 		add: [
-			{ input: 3.5, expected: 9, params: [5.5] }
+			{ params: [5.5], input: 3.5, expected: 9 }
 		],
 
 		slugify: [
@@ -18,11 +18,11 @@ group('Sparky.transformers', function(test, log) {
 		(function(key, filter, tests) {
 			test("Sparky.transformers." + key + "()", function(equals, done) {
 				tests.forEach(function(data) {
-					var tx = data.params ?
-						filter.apply(filter, data.params) :
-						filter ;
+					var result = data.params ?
+						filter.apply(null, data.params.concat([data.input])) :
+						filter(data.input) ;
 
-					equals(data.expected, tx(data.input), key);
+					equals(data.expected, result, key);
 				});
 
 				done();
@@ -49,11 +49,11 @@ group('Sparky.transformers', function(test, log) {
 	});
 
 	test("Sparky.transformers.yesno", function(equals, done) {
-		equals('1', transforms.yesno('1', '2', true));
-		equals('1', transforms.yesno('1', '2', {}));
-		equals('2', transforms.yesno('1', '2', false));
-		equals('2', transforms.yesno('1', '2', undefined));
-		equals('2', transforms.yesno('1', '2', null));
+		equals('1', transformers.yesno.tx('1', '2', true));
+		equals('1', transformers.yesno.tx('1', '2', {}));
+		equals('2', transformers.yesno.tx('1', '2', false));
+		equals('2', transformers.yesno.tx('1', '2', undefined));
+		equals('2', transformers.yesno.tx('1', '2', null));
 		done();
 	});
 });

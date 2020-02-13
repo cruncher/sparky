@@ -1,11 +1,11 @@
 import { Fn, noop, test as group, Observer } from '../../fn/module.js';
-import Sparky, { functions } from '../module.js';
+import Sparky, { register } from '../module.js';
 
-group('[sparky-fn="each"]', function(test, log, fixture) {
+group('[fn="each"]', function(test, log, fixture) {
 
-	test('[sparky-fn="each"]', function(equals, done) {
-		var ul     = fixture.querySelector('ul');
-		var sparky = Sparky(ul);
+	test('[fn="each"]', function(equals, done) {
+		var ul      = fixture.querySelector('ul');
+		var sparky  = Sparky(ul);
 		var nothing = [];
 		var array   = Observer([
 			{ property: 1 },
@@ -40,13 +40,15 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 					var li = lis[0];
 					var object = array[0];
 
+					// This SHOULD unbind object.property...
 					array.length = 0;
 					object.property = 0;
-
+console.log('li.innerHTML', li.innerHTML);
 					requestAnimationFrame(function() {
 //console.log('• TEST FRAME 4 --------------------------')
 						var lis = ul.querySelectorAll('li');
 						equals(0, ul.querySelectorAll('li').length);
+console.log('li.innerHTML', li.innerHTML);
 						equals('1', li && li.innerHTML);
 
 						done();
@@ -66,8 +68,8 @@ group('[sparky-fn="each"]', function(test, log, fixture) {
 
 
 
-group('[sparky-fn="each"]', function(test, log, fixture) {
-	test('[sparky-fn="each"] empty array', function(equals, done) {
+group('[fn="each"]', function(test, log, fixture) {
+	test('[fn="each"] empty array', function(equals, done) {
 		var ul = fixture.querySelector('ul');
 
 		Sparky(ul).push([]);
