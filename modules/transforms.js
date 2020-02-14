@@ -20,7 +20,8 @@ import toClass     from '../../fn/modules/to-class.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
-import { sum, exp, limit, log, multiply, max, min, mod, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { sum, exp, limit, log, multiply, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { mod }     from '../../fn/modules/maths/mod.js';
 import toCartesian from '../../fn/modules/maths/to-cartesian.js';
 import toPolar     from '../../fn/modules/maths/to-polar.js';
 
@@ -106,7 +107,7 @@ export const transformers = {
 /*
 matches: selector
 
-Returns `true` if value matches `selector`. Behaviour is overloaded to accept
+Renders `true` if value matches `selector`. Behaviour is overloaded to accept
 different types of `selector`. Where `selector` is a RegExp, value is assumed
 to be a string and tested against it.
 
@@ -124,23 +125,23 @@ properties are matched against those of `selector`.
 
 	matches: {
 		tx: overload(toClass, {
-			RegExp: (selector, string) => selector.test(string),
+			RegExp: (regex, string) => regex.test(string),
 			Object: matches
 		})
 	},
 
 	/* class:
-	Returns the Class of value. */
+	Renders the Class – the name of the constructor – of value. */
 	'class': { tx: toClass },
 
 	/* type:
-	Returns the `typeof` value. */
+	Renders `typeof` value. */
 	'type': { tx: toType },
 
 	/* Booleans */
 
 	/* yesno: a, b
-	Where value is truthy returns `a`, otherwise `b`. */
+	Where value is truthy renders `a`, otherwise `b`. */
 	yesno: {
 		tx: function (truthy, falsy, value) {
 			return value ? truthy : falsy;
@@ -149,8 +150,31 @@ properties are matched against those of `selector`.
 
 	/* Numbers */
 
-	/* add: n
-	Adds `n` to value. */
+/* add: n
+
+Adds `n` to value. Behaviour is overloaded to accept various types of 'n'.
+Where `n` is a number, it is summed with value. So to add 1 to any value:
+
+```html
+{[ number|add:1 ]}
+```
+
+Where 'n' is a duration string in date-like format, value is expected to be a
+date and is advanced by the duration. So to advance a date by 18 months:
+
+```html
+{[ date|add:'0000-18-00' ]}
+```
+
+Where 'n' is a duration string in time-like format, value is expected to be a
+time and is advanced by the duration. So to put a time back by 1 hour and 20
+seconds:
+
+```html
+{[ time|add:'-01:00:20' ]}
+```
+
+*/
 	add: {
 		tx: overload(addType, {
 			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
@@ -465,8 +489,8 @@ export const transforms = {
 	last:         last,
 	limit:        limit,
 	log:          log,
-	max:          max,
-	min:          min,
+	max:          Math.max,
+	min:          Math.min,
 	mod:          mod,
 
 	/* Strings */
