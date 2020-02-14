@@ -86,7 +86,7 @@ function fireEachDEBUG(queue) {
 }
 
 function fireEach(queue) {
-	var count, renderer;
+	var renderer;
 
 	for (renderer of queue) {
 		renderer.fire();
