@@ -40,17 +40,17 @@ group('[fn="each"]', function(test, log, fixture) {
 					var li = lis[0];
 					var object = array[0];
 
-					// This SHOULD unbind object.property...
 					array.length = 0;
 					object.property = 0;
-console.log('li.innerHTML', li.innerHTML);
+//console.log('li.innerHTML', li.innerHTML);
 					requestAnimationFrame(function() {
 //console.log('• TEST FRAME 4 --------------------------')
 						var lis = ul.querySelectorAll('li');
 						equals(0, ul.querySelectorAll('li').length);
-console.log('li.innerHTML', li.innerHTML);
+//console.log('li.innerHTML', li.innerHTML);
 						equals('1', li && li.innerHTML);
 
+						object.property = -1;
 						done();
 					});
 				});

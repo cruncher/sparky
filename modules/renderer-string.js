@@ -5,7 +5,6 @@ const assign = Object.assign;
 
 export default function StringRenderer(tokens, render, node, name) {
     Renderer.call(this);
-
     this.label  = 'String';
     this.render = render;
     this.node   = node;

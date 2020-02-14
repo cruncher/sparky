@@ -23,6 +23,7 @@ on each clone.
 import { last, noop, observe } from '../../fn/module.js';
 import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
 import { cue, uncue } from './timer.js';
+import Renderer from './renderer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
 import { register } from './fn.js';
@@ -35,31 +36,32 @@ const assign  = Object.assign;
 const $scope = Symbol('scope');
 
 
-// Renderers
+function EachRenderer(node, marker, isOption, options) {
+	Renderer.call(this);
 
-function EachChild(scope, node, marker, sparkies, isOption, options) {
-	this.label    = 'EachChild';
-	this.scope    = scope;
+	this.label    = 'Each';
 	this.node     = node;
-	this.marker   = marker;
-	this.sparkies = sparkies;
-	this.isOption = isOption;
-	this.options  = options;
-	this.renderCount = 0;
+    this.marker   = marker;
+    this.isOption = isOption;
+    this.options  = options;
+	this.sparkies = [];
 }
 
-assign(EachChild.prototype, {
-	fire: function render(time) {
-		this.render(this.scope);
-		this.value = this.scope;
+
+assign(EachRenderer.prototype, Renderer.prototype, {
+	fire: function renderEach(time) {
+		Renderer.prototype.fire.apply(this);
+		var value = this.value;
+		this.value = undefined;
+		this.render(value);
 	},
 
 	render: function render(array) {
-		const node     = this.node;
-		const marker   = this.marker;
+		const node = this.node;
+		const marker = this.marker;
 		const sparkies = this.sparkies;
-//		const isOption = this.isOption;
-		const options  = this.options;
+		// const isOption = this.isOption;
+		const options = this.options;
 
 		// Selects will lose their value if the selected option is removed
 		// from the DOM, even if there is another <option> of same value
@@ -67,9 +69,9 @@ assign(EachChild.prototype, {
 		// selected <option> is simply moved). Make an effort to have
 		// selects retain their value across scope changes.
 		//
-		// There is also code for something siimilar in render-token.js
+		// There is also code for something similar in render-token.js
 		// maybe have a look and decide on what's right
-//var value = isOption ? marker.parentNode.value : undefined ;
+		//var value = isOption ? marker.parentNode.value : undefined ;
 
 		if (!isArray(array)) {
 			array = Object.entries(array).map(entryToKeyValue);
@@ -77,46 +79,19 @@ assign(EachChild.prototype, {
 
 		this.renderCount += reorderCache(node, array, sparkies, options);
 		this.renderCount += reorderNodes(marker, array, sparkies);
-
+		this.renderedValue = 'Array(' + array.length + ')';
 		// A fudgy workaround because observe() callbacks (like this update
 		// function) are not batched to ticks.
 		// TODO: batch observe callbacks to ticks.
-//		if (isOption && value !== undefined) {
-//			marker.parentNode.value = value;
-//		}
+		//		if (isOption && value !== undefined) {
+		//			marker.parentNode.value = value;
+		//		}
 	},
 
-	renderCount: 0
-});
-
-function EachParent(input, node, marker, sparkies, isOption, options) {
-	this.label = 'EachParent';
-	this.input = input;
-	this.node = node;
-    this.marker = marker;
-    this.sparkies = sparkies;
-    this.isOption = isOption;
-    this.options = options;
-}
-
-assign(EachParent.prototype, {
-	fire: function render(time) {
-		var scope = this.value; //this.input.shift();
-		this.value = undefined;
-		if (!scope) { return; }
-
-        //scope, node, marker, sparkies, isOption, options
-		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
-
-		this.stop();
-		this.stop = observe('.', () => {
-			cue(renderer)
-		}, scope);
-	},
-
-	stop: noop,
-
-	renderCount: 0
+	stop: function() {
+		uncue(this);
+		this.sparkies.forEach((sparky) => sparky.stop());
+	}
 });
 
 
@@ -227,21 +202,6 @@ function reorderNodes(node, array, sparkies) {
 	return renderCount;
 }
 
-function eachFrame(stream, node, marker, sparkies, isOption, options) {
-	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
-
-	// Support streams
-	stream
-    .each(function(value) {
-		renderer.value = value;
-		cue(renderer);
-	})
-    .done(function stop() {
-		renderer.stop();
-		//uncue(renderer);
-	});
-}
-
 function entryToKeyValue(entry) {
 	return {
 		key:   entry[0],
@@ -254,12 +214,12 @@ register('each', function(node, params, options) {
 		throw new Error('Sparky.fn.each cannot be used on fragments.');
 	}
 
-	const sparkies = [];
 	const marker   = Marker(node);
 	const isOption = tag(node) === 'option';
 
 	// Put the marker in place and remove the node
 	before(node, marker);
+	node.remove();
 
 	// The master node has it's fn attribute truncated to avoid setup
 	// functions being run again. Todo: This is a bit clunky - can we avoid
@@ -268,19 +228,33 @@ register('each', function(node, params, options) {
 	if (options.fn) { node.setAttribute(options.attributeFn, options.fn); }
 	else { node.removeAttribute(options.attributeFn); }
 
-	node.remove();
-
 	// Prevent further functions being run on current node
-	options.fn = '';
+	// SHOULD NOT BE NECESSARY - DELETE
+	//options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
-	eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
+	const renderer = new EachRenderer(node, marker, isOption, options);
+	var unobserve = noop;
 
-    this.done(() => {
+	function cueRenderer(scope) {
+		renderer.value = scope;
+		renderer.cue(scope);
+	}
+
+	this
+	.latest()
+	.dedup()
+	.each(function(scope) {
+		renderer.value = scope;
+		renderer.cue(scope);
+		unobserve();
+		unobserve = observe('.', cueRenderer, scope);
+	})
+	.done(function stop() {
+		renderer.stop();
 		remove(marker);
-		sparkies.forEach((sparky) => sparky.stop());
 	});
 
-	// Return false to prevent further processing of this Sparky
+	// Prevent further processing of this Sparky
 	return false;
 });
