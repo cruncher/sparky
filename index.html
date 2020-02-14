@@ -355,7 +355,7 @@ to ignore blocks of static HTML inside a Sparky template.</p>
                 <code class="language-js">matches: selector</code>
             </a>
         </h3>
-    <p>Returns <code>true</code> if value matches <code>selector</code>. Behaviour is overloaded to accept
+    <p>Renders <code>true</code> if value matches <code>selector</code>. Behaviour is overloaded to accept
 different types of <code>selector</code>. Where <code>selector</code> is a RegExp, value is assumed
 to be a string and tested against it.</p>
 <pre><code class="language-html">{[ .|matches:/abc/ ]}     // `true` if value contains 'abc'</code></pre>
@@ -370,7 +370,7 @@ properties are matched against those of <code>selector</code>.</p>
                 <code class="language-js">class</code>
             </a>
         </h3>
-    <p>Returns the Class of value. </p>
+    <p>Renders the Class – the name of the constructor – of value. </p>
 </article>
 
     <article class="toggle-block block" toggleable="" id="type">
@@ -379,7 +379,7 @@ properties are matched against those of <code>selector</code>.</p>
                 <code class="language-js">type</code>
             </a>
         </h3>
-    <p>Returns the <code>typeof</code> value. </p>
+    <p>Renders <code>typeof</code> value. </p>
 </article>
 
     <h3 class="text-4">Booleans </h3>
@@ -390,7 +390,7 @@ properties are matched against those of <code>selector</code>.</p>
                 <code class="language-js">yesno: a, b</code>
             </a>
         </h3>
-    <p>Where value is truthy returns <code>a</code>, otherwise <code>b</code>. </p>
+    <p>Where value is truthy renders <code>a</code>, otherwise <code>b</code>. </p>
 </article>
 
     <h3 class="text-4">Numbers </h3>
@@ -401,7 +401,16 @@ properties are matched against those of <code>selector</code>.</p>
                 <code class="language-js">add: n</code>
             </a>
         </h3>
-    <p>Adds <code>n</code> to value. </p>
+    <p>Adds <code>n</code> to value. Behaviour is overloaded to accept various types of ‘n’.
+Where <code>n</code> is a number, it is summed with value. So to add 1 to any value:</p>
+<pre><code class="language-html">{[ number|add:1 ]}</code></pre>
+<p>Where ‘n’ is a duration string in date-like format, value is expected to be a
+date and is advanced by the duration. So to advance a date by 18 months:</p>
+<pre><code class="language-html">{[ date|add:'0000-18-00' ]}</code></pre>
+<p>Where ‘n’ is a duration string in time-like format, value is expected to be a
+time and is advanced by the duration. So to put a time back by 1 hour and 20
+seconds:</p>
+<pre><code class="language-html">{[ time|add:'-01:00:20' ]}</code></pre>
 </article>
 
     <article class="toggle-block block" toggleable="" id="floor">

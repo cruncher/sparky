@@ -3142,7 +3142,7 @@ var Sparky = (function (exports) {
     callback to be called.
 
     (To force the callback to always be called on setup, pass in `NaN` as an
-    `init` value. In JS `NaN` is not equal to anything (even `NaN`), so it
+    `init` value. In JS `NaN` is not equal to anything, even `NaN`, so it
     always initialises.)
     */
 
@@ -3383,6 +3383,218 @@ var Sparky = (function (exports) {
         // Todo: handle Fns and Streams
     }
 
+    function sum(a, b) { return b + a; }
+    function multiply(a, b) { return b * a; }
+    function pow(n, x) { return Math.pow(x, n); }
+    function exp(n, x) { return Math.pow(n, x); }
+    function log(n, x) { return Math.log(x) / Math.log(n); }
+    function root(n, x) { return Math.pow(x, 1/n); }
+
+    /*
+    limit(min, max, n)
+    */
+
+    function limit(min, max, n) {
+        return n > max ? max : n < min ? min : n;
+    }
+
+    /*
+    wrap(min, max, n)
+    */
+
+    function wrap(min, max, n) {
+        return (n < min ? max : min) + (n - min) % (max - min);
+    }
+
+    const curriedSum   = curry$1(sum);
+    const curriedMultiply = curry$1(multiply);
+    const curriedMin   = curry$1(Math.min, false, 2);
+    const curriedMax   = curry$1(Math.max, false, 2);
+    const curriedPow   = curry$1(pow);
+    const curriedExp   = curry$1(exp);
+    const curriedLog   = curry$1(log);
+    const curriedRoot  = curry$1(root);
+    const curriedLimit = curry$1(limit);
+    const curriedWrap  = curry$1(wrap);
+
+    /*
+    todB(level)
+    */
+
+    // A bit disturbingly, a correction factor is needed to make todB() and
+    // to toLevel() reciprocate more accurately. This is quite a lot to be off
+    // by... Todo: investigate?
+    const dBCorrectionFactor = (60 / 60.205999132796244);
+
+    function todB(n)    { return 20 * Math.log10(n) * dBCorrectionFactor; }
+
+    /*
+    toLevel(dB)
+    */
+
+    function toLevel(n) { return Math.pow(2, n / 6); }
+
+    /*
+    toRad(deg)
+    */
+
+    const angleFactor = 180 / Math.PI;
+
+    function toRad(n) { return n / angleFactor; }
+
+    /*
+    toDeg(rad)
+    */
+
+    function toDeg(n)   { return n * angleFactor; }
+
+    /*
+    gcd(a, b)
+
+    Returns the greatest common divider of a and b.
+    */
+
+    function gcd(a, b) {
+        return b ? gcd(b, a % b) : a;
+    }
+
+    const curriedGcd = curry$1(gcd);
+
+    /*
+    lcm(a, b)
+
+    Returns the lowest common multiple of a and b.
+    */
+
+    function lcm(a, b) {
+        return a * b / gcd(a, b);
+    }
+
+    const curriedLcm = curry$1(lcm);
+
+    /*
+    mod(divisor, n)
+
+    JavaScript's modulu operator (`%`) uses Euclidean division, but for
+    stuff that cycles through 0 the symmetrics of floored division are often
+    are more useful. This function implements floored division.
+    */
+
+    function mod(d, n) {
+        var value = n % d;
+        return value < 0 ? value + d : value;
+    }
+
+    curry$1(mod);
+
+    /*
+    toPolar(cartesian)
+    */
+
+    function toPolar(cartesian) {
+        var x = cartesian[0];
+        var y = cartesian[1];
+
+        return [
+            // Distance
+            x === 0 ?
+                Math.abs(y) :
+            y === 0 ?
+                Math.abs(x) :
+                Math.sqrt(x*x + y*y) ,
+            // Angle
+            Math.atan2(x, y)
+        ];
+    }
+
+    /*
+    toCartesian(polar)
+    */
+
+    function toCartesian(polar) {
+        var d = polar[0];
+        var a = polar[1];
+
+        return [
+            Math.sin(a) * d ,
+            Math.cos(a) * d
+        ];
+    }
+
+    // Cubic bezier function (originally translated from
+
+    function sampleCubicBezier(a, b, c, t) {
+        // `ax t^3 + bx t^2 + cx t' expanded using Horner's rule.
+        return ((a * t + b) * t + c) * t;
+    }
+
+    function sampleCubicBezierDerivative(a, b, c, t) {
+        return (3 * a * t + 2 * b) * t + c;
+    }
+
+    function solveCubicBezierX(a, b, c, x, epsilon) {
+        // Solve x for a cubic bezier
+        var x2, d2, i;
+        var t2 = x;
+
+        // First try a few iterations of Newton's method -- normally very fast.
+        for(i = 0; i < 8; i++) {
+            x2 = sampleCubicBezier(a, b, c, t2) - x;
+            if (Math.abs(x2) < epsilon) {
+                return t2;
+            }
+            d2 = sampleCubicBezierDerivative(a, b, c, t2);
+            if (Math.abs(d2) < 1e-6) {
+                break;
+            }
+            t2 = t2 - x2 / d2;
+        }
+
+        // Fall back to the bisection method for reliability.
+        var t0 = 0;
+        var t1 = 1;
+
+        t2 = x;
+
+        if(t2 < t0) { return t0; }
+        if(t2 > t1) { return t1; }
+
+        while(t0 < t1) {
+            x2 = sampleCubicBezier(a, b, c, t2);
+            if(Math.abs(x2 - x) < epsilon) {
+                return t2;
+            }
+            if (x > x2) { t0 = t2; }
+            else { t1 = t2; }
+            t2 = (t1 - t0) * 0.5 + t0;
+        }
+
+        // Failure.
+        return t2;
+    }
+
+    function cubicBezier(p1, p2, duration, x) {
+        // The epsilon value to pass given that the animation is going
+        // to run over duruation seconds. The longer the animation, the
+        // more precision is needed in the timing function result to
+        // avoid ugly discontinuities.
+        var epsilon = 1 / (200 * duration);
+
+        // Calculate the polynomial coefficients. Implicit first and last
+        // control points are (0,0) and (1,1).
+        var cx = 3 * p1[0];
+        var bx = 3 * (p2[0] - p1[0]) - cx;
+        var ax = 1 - cx - bx;
+        var cy = 3 * p1[1];
+        var by = 3 * (p2[1] - p1[1]) - cy;
+        var ay = 1 - cy - by;
+
+        var y = solveCubicBezierX(ax, bx, cx, x, epsilon);
+        return sampleCubicBezier(ay, by, cy, y);
+    }
+
+    var bezierify = curry$1(cubicBezier, true, 4);
+
     const DEBUG$2 = window.DEBUG === undefined || window.DEBUG;
 
     const defs = {
@@ -3519,85 +3731,6 @@ var Sparky = (function (exports) {
         } : fn ;
     }
 
-    // Cubic bezier function (originally translated from
-    // webkit source by Christian Effenberger):
-    // http://www.netzgesta.de/dev/cubic-bezier-timing-function.html
-
-    /*
-    cubicBezier(point1, point2, duration, x)
-    Where `point1` and `point2` are `[x, y]` arrays describing control points.
-    */
-
-    function sampleCubicBezier(a, b, c, t) {
-        // `ax t^3 + bx t^2 + cx t' expanded using Horner's rule.
-        return ((a * t + b) * t + c) * t;
-    }
-
-    function sampleCubicBezierDerivative(a, b, c, t) {
-        return (3 * a * t + 2 * b) * t + c;
-    }
-
-    function solveCubicBezierX(a, b, c, x, epsilon) {
-        // Solve x for a cubic bezier
-        var x2, d2, i;
-        var t2 = x;
-
-        // First try a few iterations of Newton's method -- normally very fast.
-        for(i = 0; i < 8; i++) {
-            x2 = sampleCubicBezier(a, b, c, t2) - x;
-            if (Math.abs(x2) < epsilon) {
-                return t2;
-            }
-            d2 = sampleCubicBezierDerivative(a, b, c, t2);
-            if (Math.abs(d2) < 1e-6) {
-                break;
-            }
-            t2 = t2 - x2 / d2;
-        }
-
-        // Fall back to the bisection method for reliability.
-        var t0 = 0;
-        var t1 = 1;
-
-        t2 = x;
-
-        if(t2 < t0) { return t0; }
-        if(t2 > t1) { return t1; }
-
-        while(t0 < t1) {
-            x2 = sampleCubicBezier(a, b, c, t2);
-            if(Math.abs(x2 - x) < epsilon) {
-                return t2;
-            }
-            if (x > x2) { t0 = t2; }
-            else { t1 = t2; }
-            t2 = (t1 - t0) * 0.5 + t0;
-        }
-
-        // Failure.
-        return t2;
-    }
-
-    function cubicBezier(p1, p2, duration, x) {
-        // The epsilon value to pass given that the animation is going
-        // to run over duruation seconds. The longer the animation, the
-        // more precision is needed in the timing function result to
-        // avoid ugly discontinuities.
-        var epsilon = 1 / (200 * duration);
-
-        // Calculate the polynomial coefficients. Implicit first and last
-        // control points are (0,0) and (1,1).
-        var cx = 3 * p1[0];
-        var bx = 3 * (p2[0] - p1[0]) - cx;
-        var ax = 1 - cx - bx;
-        var cy = 3 * p1[1];
-        var by = 3 * (p2[1] - p1[1]) - cy;
-        var ay = 1 - cy - by;
-
-        var y = solveCubicBezierX(ax, bx, cx, x, epsilon);
-        return sampleCubicBezier(ay, by, cy, y);
-    }
-
     // Normalisers take a min and max and transform a value in that range
     // to a value on the normal curve of a given type
 
@@ -3638,7 +3771,7 @@ var Sparky = (function (exports) {
 
     const cubicBezier$1 = def(
         'Object, Object, Number => Number',
-        (begin, end, value) => cubicBezier({
+        (begin, end, value) => bezierify({
             0: linear(begin.point[0], end.point[0], begin.handle[0]),
             1: linear(begin.point[0], end.point[0], begin.handle[0])
         }, {
@@ -3697,7 +3830,7 @@ var Sparky = (function (exports) {
 
     const cubicBezier$2 = def(
         'Object, Object, Number => Number',
-        (begin, end, value) => linear$1(begin.point[1], end.point[1], cubicBezier({
+        (begin, end, value) => linear$1(begin.point[1], end.point[1], bezierify({
             0: linear(begin.point[0], end.point[0], begin.handle[0]),
             1: linear(begin.point[1], end.point[1], begin.handle[1])
         }, {
@@ -3716,87 +3849,6 @@ var Sparky = (function (exports) {
         cubicBezier: cubicBezier$2
     });
 
-    // Constant for converting radians to degrees
-    const angleFactor = 180 / Math.PI;
-
-    function sum(a, b)  { return b + a; }
-    function multiply(a, b) { return b * a; }
-    function min(a, b)  { return a > b ? b : a ; }
-    function max(a, b)  { return a < b ? b : a ; }
-    function pow(n, x)  { return Math.pow(x, n); }
-    function exp(n, x)  { return Math.pow(n, x); }
-    function log(n, x)  { return Math.log(x) / Math.log(n); }
-    function root(n, x) { return Math.pow(x, 1/n); }
-
-    /*
-    mod(divisor, n)
-    JavaScript's modulu operator (`%`) uses Euclidean division, but for
-    stuff that cycles through 0 the symmetrics of floored division are often
-    are more useful.
-    */
-
-    function mod(d, n) {
-        var value = n % d;
-        return value < 0 ? value + d : value ;
-    }
-
-    /*
-    limit(min, max, n)
-    */
-
-    function limit(min, max, n) {
-        return n > max ? max : n < min ? min : n ;
-    }
-
-    function wrap(min, max, n) {
-        return (n < min ? max : min) + (n - min) % (max - min);
-    }
-
-    /*
-    gcd(a, b)
-    */
-
-    function gcd(a, b) {
-        // Greatest common divider
-        return b ? gcd(b, a % b) : a ;
-    }
-
-    /*
-    lcm(a, b)
-    */
-
-    function lcm(a, b) {
-        // Lowest common multiple.
-        return a * b / gcd(a, b);
-    }
-
-    function factorise(n, d) {
-        // Reduce a fraction by finding the Greatest Common Divisor and
-        // dividing by it.
-        var f = gcd(n, d);
-        return [n/f, d/f];
-    }
-
-    /*
-    todB(level)
-    */
-
-    // A bit disturbingly, a correction factor is needed to make todB() and
-    // to toLevel() reciprocate more accurately. This is quite a lot to be off
-    // by... Todo: investigate?
-    const dBCorrectionFactor = (60 / 60.205999132796244);
-
-    function todB(n)    { return 20 * Math.log10(n) * dBCorrectionFactor; }
-
-    /*
-    toLevel(dB)
-    */
-
-    function toLevel(n) { return Math.pow(2, n / 6); }
-
-    function toRad(n)   { return n / angleFactor; }
-    function toDeg(n)   { return n * angleFactor; }
-
     // Exponential functions
     //
     // e - exponent
@@ -3809,40 +3861,6 @@ var Sparky = (function (exports) {
 
     function exponentialOut(e, x) {
         return 1 - Math.pow(1 - x, e);
-    }
-
-    /*
-    toPolar(cartesian)
-    */
-
-    function toPolar(cartesian) {
-        var x = cartesian[0];
-        var y = cartesian[1];
-
-        return [
-            // Distance
-            x === 0 ?
-                Math.abs(y) :
-            y === 0 ?
-                Math.abs(x) :
-                Math.sqrt(x*x + y*y) ,
-            // Angle
-            Math.atan2(x, y)
-        ];
-    }
-
-    /*
-    toCartesian(polar)
-    */
-
-    function toCartesian(polar) {
-        var d = polar[0];
-        var a = polar[1];
-
-        return [
-            Math.sin(a) * d ,
-            Math.cos(a) * d
-        ];
     }
 
     function createOrdinals(ordinals) {
@@ -4785,31 +4803,16 @@ var Sparky = (function (exports) {
     const diff$2        = curry$1(diff, true);
     const intersect$1   = curry$1(intersect, true);
     const unite$1       = curry$1(unite, true);
-
-    const sum$1         = curry$1(sum);
-
-    const add         = curry$1(function(a, b) {
-        console.trace('Fn module add() is now sum()');
-        return sum(a, b);
-    });
-
-    const multiply$1    = curry$1(multiply);
-    const min$1         = curry$1(min);
-    const max$1         = curry$1(max);
-    const mod$1         = curry$1(mod);
-    const pow$1         = curry$1(pow);
-    const exp$1         = curry$1(exp);
-    const log$1         = curry$1(log);
-    const gcd$1         = curry$1(gcd);
-    const lcm$1         = curry$1(lcm);
-    const root$1        = curry$1(root);
-    const limit$1       = curry$1(limit);
-    const wrap$1        = curry$1(wrap);
-    const factorise$1   = curry$1(factorise);
-    const cubicBezier$3 = curry$1(cubicBezier);
     const normalise$1   = curry$1(choose(normalise), false, 4);
     const denormalise$1 = curry$1(choose(denormalise), false, 4);
     const exponentialOut$1 = curry$1(exponentialOut);
+
+
+
+    const add = curry$1(function (a, b) {
+        console.trace('Deprecated: module add() is now sum()');
+        return a + b;
+    });
 
     /*
     ready(fn)
@@ -6721,7 +6724,7 @@ var Sparky = (function (exports) {
     	}
     }
 
-    function log$2(text) {
+    function log$1(text) {
         window.console.log('%cSparky%c ' + text,
             'color: #858720; font-weight: 600;',
             'color: #6894ab; font-weight: 400;'
@@ -7405,7 +7408,7 @@ var Sparky = (function (exports) {
     /*
     matches: selector
 
-    Returns `true` if value matches `selector`. Behaviour is overloaded to accept
+    Renders `true` if value matches `selector`. Behaviour is overloaded to accept
     different types of `selector`. Where `selector` is a RegExp, value is assumed
     to be a string and tested against it.
 
@@ -7423,23 +7426,23 @@ var Sparky = (function (exports) {
 
     	matches: {
     		tx: overload(toClass, {
-    			RegExp: (selector, string) => selector.test(string),
+    			RegExp: (regex, string) => regex.test(string),
     			Object: matches
     		})
     	},
 
     	/* class:
-    	Returns the Class of value. */
+    	Renders the Class – the name of the constructor – of value. */
     	'class': { tx: toClass },
 
     	/* type:
-    	Returns the `typeof` value. */
+    	Renders `typeof` value. */
     	'type': { tx: toType },
 
     	/* Booleans */
 
     	/* yesno: a, b
-    	Where value is truthy returns `a`, otherwise `b`. */
+    	Where value is truthy renders `a`, otherwise `b`. */
     	yesno: {
     		tx: function (truthy, falsy, value) {
     			return value ? truthy : falsy;
@@ -7448,8 +7451,31 @@ var Sparky = (function (exports) {
 
     	/* Numbers */
 
-    	/* add: n
-    	Adds `n` to value. */
+    /* add: n
+
+    Adds `n` to value. Behaviour is overloaded to accept various types of 'n'.
+    Where `n` is a number, it is summed with value. So to add 1 to any value:
+
+    ```html
+    {[ number|add:1 ]}
+    ```
+
+    Where 'n' is a duration string in date-like format, value is expected to be a
+    date and is advanced by the duration. So to advance a date by 18 months:
+
+    ```html
+    {[ date|add:'0000-18-00' ]}
+    ```
+
+    Where 'n' is a duration string in time-like format, value is expected to be a
+    time and is advanced by the duration. So to put a time back by 1 hour and 20
+    seconds:
+
+    ```html
+    {[ time|add:'-01:00:20' ]}
+    ```
+
+    */
     	add: {
     		tx: overload(addType, {
     			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
@@ -7764,8 +7790,8 @@ var Sparky = (function (exports) {
     	last:         last,
     	limit:        limit,
     	log:          log,
-    	max:          max,
-    	min:          min,
+    	max:          Math.max,
+    	min:          Math.min,
     	mod:          mod,
 
     	/* Strings */
@@ -10103,7 +10129,7 @@ var Sparky = (function (exports) {
 
         // If still not supported, fallback to a dom query for [is="sparky-template"]
         if (!supportsCustomBuiltIn) {
-            log$2("Browser does not support custom built-in elements so we're doin' it oldskool selector stylee.");
+            log$1("Browser does not support custom built-in elements so we're doin' it oldskool selector stylee.");
 
             window.document
             .querySelectorAll('[is="sparky-template"]')
