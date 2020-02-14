@@ -8170,7 +8170,6 @@ const assign$c = Object.assign;
 
 function StringRenderer(tokens, render, node, name) {
     Renderer.call(this);
-
     this.label  = 'String';
     this.render = render;
     this.node   = node;
@@ -9083,7 +9082,7 @@ function mountContent(content, options) {
     return new Mount(content, options);
 }
 
-function setupTarget(src, input, render, options) {
+function setupTarget(src, input, render, options, renderers) {
     // If there are no dynamic tokens to render, return the include
     if (!src) {
         throw new Error('Sparky attribute src cannot be empty');
@@ -9093,14 +9092,13 @@ function setupTarget(src, input, render, options) {
 
     // If there are no dynamic tokens to render, return the include
     if (!tokens) {
-        return setupSrc(src, input, render, options);
+        return setupSrc(src, input, render, options, renderers);
     }
 
     // Create transform from pipe
 	tokens.reduce(assignTransform, options.pipes);
 
     let output  = nothing;
-    //let stop    = noop;
     let prevSrc = null;
 
     function update(scope) {
@@ -9136,7 +9134,6 @@ function setupTarget(src, input, render, options) {
 
         // Stop the previous
         output.stop();
-        //stop();
 
         // If src is empty string render nothing
         if (!src) {
@@ -9146,13 +9143,12 @@ function setupTarget(src, input, render, options) {
             }
 
             output = nothing;
-            //stop = noop;
             return;
         }
 
         // Push scope to the template renderer
         output = Stream$1.of(scope);
-        setupSrc(src, output, render, options);
+        setupSrc(src, output, render, options, renderers);
     }
 
     input
@@ -9177,11 +9173,10 @@ function setupTarget(src, input, render, options) {
     })
     .done(() => {
         output.stop();
-        //stop();
     });
 }
 
-function setupSrc(src, input, firstRender, options) {
+function setupSrc(src, input, firstRender, options, renderers) {
     // Strip off leading # before running the test
     const source = document.getElementById(src.replace(/^#/, ''));
 
@@ -9190,7 +9185,7 @@ function setupSrc(src, input, firstRender, options) {
             source instanceof SVGElement ? source.cloneNode(true) :
             undefined ;
 
-        return setupInclude(content, input, firstRender, options);
+        return setupInclude(content, input, firstRender, options, renderers);
     }
 
     importTemplate(src)
@@ -9205,7 +9200,7 @@ function setupSrc(src, input, firstRender, options) {
             // Support body elements imported from exernal documents
             fragmentFromChildren(node) ;
 
-        setupInclude(content, input, firstRender, options);
+        setupInclude(content, input, firstRender, options, renderers);
     })
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
@@ -9214,7 +9209,7 @@ function setupSrc(src, input, firstRender, options) {
     });
 }
 
-function setupInclude(content, input, firstRender, options) {
+function setupInclude(content, input, firstRender, options, renderers) {
     var renderer;
 
     input.each((scope) => {
@@ -9226,14 +9221,16 @@ function setupInclude(content, input, firstRender, options) {
             mountContent(content, options) :
             new Sparky(content, options) ;
 
-        input.done(() => renderer.stop());
         renderer.push(scope);
         firstRender(content);
+
+        // This is async, but we also need to stop sync...
+        //input.done(() => renderer.stop());
+        renderers.push(renderer);
     });
 }
 
-function setupElement(target, input, options, sparky) {
-    const content = target.content;
+function setupElement(target, input, options, sparky, renderers) {
     var renderer;
 
     input.each((scope) => {
@@ -9241,21 +9238,24 @@ function setupElement(target, input, options, sparky) {
             return renderer.push(scope);
         }
 
-        renderer = mountContent(content || target, options);
-        input.done(() => renderer.stop());
+        renderer = mountContent(target.content || target, options);
         renderer.push(scope);
 
         // If target is a template, replace it
-        if (content) {
-            replace$2(target, content);
+        if (target.content) {
+            replace$2(target, target.content);
 
             // Increment mutations for logging
             ++sparky.renderCount;
         }
+
+        // This is async, but we also need to stop sync...
+        //input.done(() => renderer.stop());
+        renderers.push(renderer);
     });
 }
 
-function setupTemplate(target, src, input, options, sparky) {
+function setupTemplate(target, src, input, options, sparky, renderers) {
     const nodes = { 0: target };
 
     return setupTarget(src, input, (content) => {
@@ -9292,10 +9292,10 @@ function setupTemplate(target, src, input, options, sparky) {
 
         // Update count for logging
         ++sparky.renderCount;
-    }, options);
+    }, options, renderers);
 }
 
-function setupSVG(target, src, input, options, sparky) {
+function setupSVG(target, src, input, options, sparky, renderers) {
     return setupTarget(src, input, (content) => {
         content.removeAttribute('id');
 
@@ -9304,13 +9304,17 @@ function setupSVG(target, src, input, options, sparky) {
 
         // Increment mutations for logging
         ++sparky.renderCount;
-    }, options);
+    }, options, renderers);
 }
 
 function makeLabel(target, options) {
     return '<'
         + (target.tagName ? target.tagName.toLowerCase() : '')
         + (options.fn ? ' fn="' + options.fn + '">' : '>');
+}
+
+function invokeStop(renderer) {
+    renderer.stop();
 }
 
 /*
@@ -9402,14 +9406,17 @@ function Sparky(selector, settings) {
 
     const input = Stream$1.of().map(toObserverOrSelf);
     const output = run$1(null, target, input, options);
+    const renderers = [];
+    var stop = noop;
 
     this.push = function push() {
         input.push(arguments[arguments.length - 1]);
         return this;
     };
 
-    this.stop = function() {
+    this.stop = function () {
         input.stop();
+        stop();
         return this;
     };
 
@@ -9427,16 +9434,25 @@ function Sparky(selector, settings) {
 
     // We have consumed fn and src lets make sure they are not read again...
     // Todo: This shouldn't be needed if we program properly
-    options.fn = null;
+    options.fn  = null;
     options.src = null;
 
     //if (DEBUG) { logNode(name, attrFn, options.src); }
 
     src ?
         name === 'use' ?
-            setupSVG(target, src, output, options, this) :
-        setupTemplate(target, src, output, options, this) :
-    setupElement(target, output, options, this) ;
+            setupSVG(target, src, output, options, this, renderers) :
+        setupTemplate(target, src, output, options, this, renderers) :
+    setupElement(target, output, options, this, renderers) ;
+
+    stop = function () {
+        // Renderers need to be stopped sync, or they allow one more frame
+        // to render before stopping
+        renderers.forEach(invokeStop);
+        renderers.length = 0;
+    };
+
+    output.done(stop);
 }
 
 const DEBUG$7 = window.DEBUG;
@@ -9499,31 +9515,32 @@ const assign$g  = Object.assign;
 const $scope = Symbol('scope');
 
 
-// Renderers
+function EachRenderer(node, marker, isOption, options) {
+	Renderer.call(this);
 
-function EachChild(scope, node, marker, sparkies, isOption, options) {
-	this.label    = 'EachChild';
-	this.scope    = scope;
+	this.label    = 'Each';
 	this.node     = node;
-	this.marker   = marker;
-	this.sparkies = sparkies;
-	this.isOption = isOption;
-	this.options  = options;
-	this.renderCount = 0;
+    this.marker   = marker;
+    this.isOption = isOption;
+    this.options  = options;
+	this.sparkies = [];
 }
 
-assign$g(EachChild.prototype, {
-	fire: function render(time) {
-		this.render(this.scope);
-		this.value = this.scope;
+
+assign$g(EachRenderer.prototype, Renderer.prototype, {
+	fire: function renderEach(time) {
+		Renderer.prototype.fire.apply(this);
+		var value = this.value;
+		this.value = undefined;
+		this.render(value);
 	},
 
 	render: function render(array) {
-		const node     = this.node;
-		const marker   = this.marker;
+		const node = this.node;
+		const marker = this.marker;
 		const sparkies = this.sparkies;
-//		const isOption = this.isOption;
-		const options  = this.options;
+		// const isOption = this.isOption;
+		const options = this.options;
 
 		// Selects will lose their value if the selected option is removed
 		// from the DOM, even if there is another <option> of same value
@@ -9531,9 +9548,9 @@ assign$g(EachChild.prototype, {
 		// selected <option> is simply moved). Make an effort to have
 		// selects retain their value across scope changes.
 		//
-		// There is also code for something siimilar in render-token.js
+		// There is also code for something similar in render-token.js
 		// maybe have a look and decide on what's right
-//var value = isOption ? marker.parentNode.value : undefined ;
+		//var value = isOption ? marker.parentNode.value : undefined ;
 
 		if (!isArray(array)) {
 			array = Object.entries(array).map(entryToKeyValue);
@@ -9541,46 +9558,19 @@ assign$g(EachChild.prototype, {
 
 		this.renderCount += reorderCache(node, array, sparkies, options);
 		this.renderCount += reorderNodes(marker, array, sparkies);
-
+		this.renderedValue = 'Array(' + array.length + ')';
 		// A fudgy workaround because observe() callbacks (like this update
 		// function) are not batched to ticks.
 		// TODO: batch observe callbacks to ticks.
-//		if (isOption && value !== undefined) {
-//			marker.parentNode.value = value;
-//		}
+		//		if (isOption && value !== undefined) {
+		//			marker.parentNode.value = value;
+		//		}
 	},
 
-	renderCount: 0
-});
-
-function EachParent(input, node, marker, sparkies, isOption, options) {
-	this.label = 'EachParent';
-	this.input = input;
-	this.node = node;
-    this.marker = marker;
-    this.sparkies = sparkies;
-    this.isOption = isOption;
-    this.options = options;
-}
-
-assign$g(EachParent.prototype, {
-	fire: function render(time) {
-		var scope = this.value; //this.input.shift();
-		this.value = undefined;
-		if (!scope) { return; }
-
-        //scope, node, marker, sparkies, isOption, options
-		const renderer = new EachChild(scope, this.node, this.marker, this.sparkies, this.isOption, this.options);
-
-		this.stop();
-		this.stop = observe('.', () => {
-			cue(renderer);
-		}, scope);
-	},
-
-	stop: noop,
-
-	renderCount: 0
+	stop: function() {
+		uncue(this);
+		this.sparkies.forEach((sparky) => sparky.stop());
+	}
 });
 
 
@@ -9691,21 +9681,6 @@ function reorderNodes(node, array, sparkies) {
 	return renderCount;
 }
 
-function eachFrame(stream, node, marker, sparkies, isOption, options) {
-	const renderer = new EachParent(stream, node, marker, sparkies, isOption, options);
-
-	// Support streams
-	stream
-    .each(function(value) {
-		renderer.value = value;
-		cue(renderer);
-	})
-    .done(function stop() {
-		renderer.stop();
-		//uncue(renderer);
-	});
-}
-
 function entryToKeyValue(entry) {
 	return {
 		key:   entry[0],
@@ -9718,12 +9693,12 @@ register('each', function(node, params, options) {
 		throw new Error('Sparky.fn.each cannot be used on fragments.');
 	}
 
-	const sparkies = [];
 	const marker   = MarkerNode(node);
 	const isOption = tag(node) === 'option';
 
 	// Put the marker in place and remove the node
 	before$1(node, marker);
+	node.remove();
 
 	// The master node has it's fn attribute truncated to avoid setup
 	// functions being run again. Todo: This is a bit clunky - can we avoid
@@ -9732,20 +9707,34 @@ register('each', function(node, params, options) {
 	if (options.fn) { node.setAttribute(options.attributeFn, options.fn); }
 	else { node.removeAttribute(options.attributeFn); }
 
-	node.remove();
-
 	// Prevent further functions being run on current node
-	options.fn = '';
+	// SHOULD NOT BE NECESSARY - DELETE
+	//options.fn = '';
 
 	// Get the value of scopes in frames after it has changed
-	eachFrame(this.latest().dedup(), node, marker, sparkies, isOption, options);
+	const renderer = new EachRenderer(node, marker, isOption, options);
+	var unobserve = noop;
 
-    this.done(() => {
+	function cueRenderer(scope) {
+		renderer.value = scope;
+		renderer.cue(scope);
+	}
+
+	this
+	.latest()
+	.dedup()
+	.each(function(scope) {
+		renderer.value = scope;
+		renderer.cue(scope);
+		unobserve();
+		unobserve = observe('.', cueRenderer, scope);
+	})
+	.done(function stop() {
+		renderer.stop();
 		remove$2(marker);
-		sparkies.forEach((sparky) => sparky.stop());
 	});
 
-	// Return false to prevent further processing of this Sparky
+	// Prevent further processing of this Sparky
 	return false;
 });
 
