@@ -1,5 +1,5 @@
 import { cache } from '../../fn/module.js';
-import { parse, query, request } from '../../dom/module.js';
+import { parse, select, request } from '../../dom/module.js';
 
 const requestDocument = cache(function requestDocument(path) {
     return request('GET', 'text/html', path, null)
@@ -38,7 +38,7 @@ function importDependencies(path, doc) {
 
     // Wait for scripts to execute
     const promise = Promise.all(
-        query('script', doc).map(toScriptPromise)
+        select('script', doc).map(toScriptPromise)
     )
     .then(() => doc);
 
