@@ -542,7 +542,7 @@ var Sparky = (function (exports) {
     }
 
 
-    /* Get path */
+    // Get path
 
     function getRegexPathThing(regex, path, object, fn) {
         var tokens = regex.exec(path);
@@ -787,8 +787,6 @@ var Sparky = (function (exports) {
             }
         }
     }
-
-    /* Set path */
 
     function setRegexPath(regex, path, object, thing) {
         var tokens = regex.exec(path);
@@ -1613,18 +1611,6 @@ var Sparky = (function (exports) {
     }
 
     /*
-    remove(array, value)
-    Remove `value` from `array`. Where `value` is not in `array`, does nothing.
-    */
-
-    function remove(array, value) {
-        if (array.remove) { array.remove(value); }
-        var i = array.indexOf(value);
-        if (i !== -1) { array.splice(i, 1); }
-        return value;
-    }
-
-    /*
     Timer(duration, getTime)
 
     Create an object with a request/cancel pair of functions that
@@ -1699,8 +1685,6 @@ var Sparky = (function (exports) {
 
     function isDone$1(stream) {
         return stream.status === 'done';
-        // Accept arrays or streams
-        //return stream.length === 0 || stream.status === 'done';
     }
 
     function notify(object) {
@@ -1954,10 +1938,8 @@ var Sparky = (function (exports) {
 
         /* Map */
 
-        ///*
         //.chunk(n)
         //Batches values into arrays of length `n`.
-        //*/
 
         /*
         .flat()
@@ -2033,11 +2015,9 @@ var Sparky = (function (exports) {
         Filters the stream to the first `n` values.
         */
 
-        ///*
         //.clock(timer)
         //Emits values at the framerate of `timer`, one-per-frame. No values
         //are discarded.
-        //*/
         //
         //clock: function clock(timer) {
         //    return this.pipe(Stream.clock(timer));
@@ -2162,12 +2142,10 @@ var Sparky = (function (exports) {
             });
         },
 
-        ///*
         //.reduce(fn, accumulator)
         //Consumes the stream when stopped, calling `fn(accumulator, value)`
         //for each value in the stream. Returns a promise that resolves to
         //the last value returned by `fn(accumulator, value)`.
-        //*/
 
         reduce: function reduce(fn, accumulator) {
             // Support array.reduce semantics with optional seed
@@ -2655,6 +2633,18 @@ var Sparky = (function (exports) {
             return new ThrottleSource(notify, stop, timer);
         });
     };
+
+    /*
+    remove(array, value)
+    Remove `value` from `array`. Where `value` is not in `array`, does nothing.
+    */
+
+    function remove(array, value) {
+        if (array.remove) { array.remove(value); }
+        var i = array.indexOf(value);
+        if (i !== -1) { array.splice(i, 1); }
+        return value;
+    }
 
     /* Observer */
 
@@ -3192,11 +3182,11 @@ var Sparky = (function (exports) {
     Returns `str1 + str2` as string.
     */
 
-    function append$1(string1, string2) {
+    function append(string1, string2) {
         return '' + string2 + string1;
     }
 
-    curry$1(append$1);
+    curry$1(append);
 
     function prepad(chars, n, value) {
         var string = value + '';
@@ -4038,11 +4028,11 @@ var Sparky = (function (exports) {
     	YY:   function(date)       { return ('0' + date.getFullYear() % 100).slice(-2); },
     	MM:   function(date)       { return ('0' + (date.getMonth() + 1)).slice(-2); },
     	MMM:  function(date, lang) { return this.MMMM(date, lang).slice(0,3); },
-    	MMMM: function(date, lang) { return langs[lang || Time.lang].months[date.getMonth()]; },
+    	MMMM: function(date, lang) { return langs[lang].months[date.getMonth()]; },
     	D:    function(date)       { return '' + date.getDate(); },
     	DD:   function(date)       { return ('0' + date.getDate()).slice(-2); },
     	ddd:  function(date, lang) { return this.dddd(date, lang).slice(0,3); },
-    	dddd: function(date, lang) { return langs[lang || Time.lang].days[date.getDay()]; },
+    	dddd: function(date, lang) { return langs[lang].days[date.getDay()]; },
     	hh:   function(date)       { return ('0' + date.getHours()).slice(-2); },
     	//hh:   function(date)       { return ('0' + date.getHours() % 12).slice(-2); },
     	mm:   function(date)       { return ('0' + date.getMinutes()).slice(-2); },
@@ -4056,7 +4046,7 @@ var Sparky = (function (exports) {
     		return (date.getTimezoneOffset() < 0 ? '+' : '-') +
     			 ('0' + Math.round(100 * Math.abs(date.getTimezoneOffset()) / 60)).slice(-4) ;
     	},
-    	th:   function(date, lang) { return langs[lang || Time.lang].ordinals[date.getDate()]; },
+    	th:   function(date, lang) { return langs[lang].ordinals[date.getDate()]; },
     	n:    function(date) { return +date; },
     	ZZ:   function(date) { return -date.getTimezoneOffset() * 60; }
     };
@@ -4441,7 +4431,7 @@ var Sparky = (function (exports) {
     function secondsToDays(n) { return n / 86400; }
     function secondsToWeeks(n) { return n / 604800; }
 
-    /* Months and years are not fixed durations – these are approximate */
+    // Months and years are not fixed durations – these are approximate
     function secondsToMonths(n) { return n / 2629800; }
     function secondsToYears(n) { return n / 31557600; }
 
@@ -4772,7 +4762,7 @@ var Sparky = (function (exports) {
     // #332256
 
     if (window.console && window.console.log) {
-        window.console.log('%cFn%c          - https://github.com/stephband/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
+        window.console.log('%cFn%c          - https://stephen.band/fn', 'color: #de3b16; font-weight: 600;', 'color: inherit; font-weight: 400;');
     }
     const requestTime$1 = curry$1(requestTime, true, 2);
     const and     = curry$1(function and(a, b) { return !!(a && b); });
@@ -5437,7 +5427,7 @@ var Sparky = (function (exports) {
     	try {
     		xml = (new window.DOMParser()).parseFromString(string, mimetype);
     	} catch (e) {
-    		xml = undefined;
+    		return;
     	}
 
     	if (!xml || xml.getElementsByTagName("parsererror").length) {
@@ -5447,7 +5437,14 @@ var Sparky = (function (exports) {
     	return xml;
     }
 
-    var parse$2 = curry$1(parse$1, true);
+    /*
+    parseHTML(string)
+    Returns an HTML document parsed from `string`, or undefined.
+    */
+
+    function parseHTML(string) {
+    	return parse$1('html', string);
+    }
 
     // Types
 
@@ -5480,7 +5477,7 @@ var Sparky = (function (exports) {
     /*
     tag(node)
 
-    Returns the tag name of `node`.
+    Returns the tag name of `node`, in lowercase.
 
     ```
     const li = create('li', 'Salt and vinegar');
@@ -5531,39 +5528,40 @@ var Sparky = (function (exports) {
     	return toArray(node.querySelectorAll(selector));
     }
 
-    var query = curry$1(select, true);
+    var select$1 = curry$1(select, true);
 
     /*
-    append(target, node)`
+    assign(node, properties)
 
-    Appends node to `target`.
+    Assigns each property of `properties` to `node`, as a property where that
+    property exists in `node`, otherwise as an attribute.
 
-    If `node` is a collection of nodes, appends each node to `target`.
+    If `properties` has a property `'children'` it must be an array of nodes;
+    they are appended to 'node'.
+
+    The property `'html'` is treated as an alias of `'innerHTML'`. The property
+    `'tag'` is treated as an alias of `'tagName'` (which is ignored, as
+    `node.tagName` is read-only). The property `'is'` is also ignored.
     */
 
-    if (!Element.prototype.append) {
-        console.warn('A polyfill for Element.append() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/append)');
-    }
+    const assignProperty = overload(id, {
+    	// Ignore read-only properties or attributes
+    	is: noop,
+    	tag: noop,
 
-    function append$2(target, node) {
-        target.append(node);
-        return node;
-    }
-
-    /*
-    assign(node, attributes)
-
-    Sets the key-value pairs of the object `attributes` as attributes on `node`.
-    */
-
-    const setAttribute = overload(id, {
     	html: function(name, node, content) {
     		node.innerHTML = content;
     	},
 
     	children: function(name, node, content) {
+    		// Empty the node and append children
+    		node.innerHTML = '';
     		content.forEach((child) => { node.appendChild(child); });
     	},
+
+    	// SVG points property must be set as string attribute - SVG elements
+    	// have a read-only API exposed at .points
+    	points: setAttribute,
 
     	default: function(name, node, content) {
     		if (name in node) {
@@ -5575,27 +5573,57 @@ var Sparky = (function (exports) {
     	}
     });
 
-    function assignAttributes(node, attributes) {
+    function setAttribute(name, node, content) {
+    	node.setAttribute(name, content);
+    }
+
+    function assign$4(node, attributes) {
     	var names = Object.keys(attributes);
     	var n = names.length;
 
     	while (n--) {
-    		setAttribute(names[n], node, attributes[names[n]]);
+    		assignProperty(names[n], node, attributes[names[n]]);
     	}
     }
 
+    var assign$5 = curry$1(assign$4, true);
+
+    /*
+    append(target, node)
+
+    Appends `node`, which may be a string or DOM node, to `target`. Returns `node`.
+    */
+
+    if (!Element.prototype.append) {
+        throw new Error('A polyfill for Element.append() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/append)');
+    }
+
+    function append$1(target, node) {
+        target.append(node);
+        return target.lastChild;
+    }
+
+    var append$2 = curry$1(append$1, true);
+
+    /*
+    prepend(target, node)
+
+    Prepends `node`, which may be a string or DOM node, to `target`. Returns `node`.
+    */
+
     if (!Element.prototype.prepend) {
-        console.warn('A polyfill for Element.prepend() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/prepend)');
+        throw new Error('A polyfill for Element.prepend() is needed (https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/prepend)');
     }
 
     function prepend$2(target, node) {
         target.prepend(node);
-        return node;
+        return target.firstChild;
     }
 
-    /*
-    clone(node)`
+    curry$1(prepend$2, true);
 
+    /*
+    clone(node)
     Returns a deep copy of `node`.
     */
 
@@ -5626,104 +5654,124 @@ var Sparky = (function (exports) {
     	} ;
 
     const svgNamespace = 'http://www.w3.org/2000/svg';
-    const testDiv      = document.createElement('div');
+    const div = document.createElement('div');
 
-    const constructors$1 = {
-    	text: function(text) {
-    		return document.createTextNode(text || '');
-    	},
 
-    	comment: function(text) {
+    // Constructors
+
+    const construct = overload(id, {
+    	comment: function(tag, text) {
     		return document.createComment(text || '');
     	},
 
-    	fragment: function(html) {
+    	fragment: function(tag, html) {
     		var fragment = document.createDocumentFragment();
 
     		if (html) {
-    			testDiv.innerHTML = html;
-    			append(fragment, testDiv.childNodes);
-    			testDiv.innerHTML = '';
+    			div.innerHTML = html;
+    			const nodes = div.childNodes;
+    			while (nodes[0]) {
+    				fragment.appendChild(nodes[0]);
+    			}
     		}
 
     		return fragment;
-    	}
-    };
+    	},
 
-    var svgs = [
-    	'circle',
-    	'ellipse',
-    	'g',
-    	'line',
-    	'rect',
-    	//'text',
-    	'use',
-    	'path',
-    	'polygon',
-    	'polyline',
-    	'svg'
-    ];
+    	text: function (tag, text) {
+    		return document.createTextNode(text || '');
+    	},
 
-    svgs.forEach(function(tag) {
-    	constructors$1[tag] = function(attributes) {
-    		var node = document.createElementNS(svgNamespace, tag);
-    		if (attributes) { setSVGAttributes(node, attributes); }
-    		return node;
-    	};
+    	circle:   constructSVG,
+    	ellipse:  constructSVG,
+    	g:        constructSVG,
+    	glyph:    constructSVG,
+    	image:    constructSVG,
+    	line:     constructSVG,
+    	rect:     constructSVG,
+    	use:      constructSVG,
+    	path:     constructSVG,
+    	pattern:  constructSVG,
+    	polygon:  constructSVG,
+    	polyline: constructSVG,
+    	svg:      constructSVG,
+    	default:  constructHTML
     });
 
-    function setSVGAttributes(node, attributes) {
-    	var names = Object.keys(attributes);
-    	var n = names.length;
+    function constructSVG(tag, html) {
+    	var node = document.createElementNS(svgNamespace, tag);
 
-    	while (n--) {
-    		node.setAttributeNS(null, names[n], attributes[names[n]]);
-    	}
-    }
-
-    /*
-    create(tag, text)`
-
-    Returns a new DOM node.
-
-    - If `tag` is `"text"` returns a text node with the content `text`.
-    - If `tag` is `"fragment"` returns a document fragment.
-    - If `tag` is `"comment"` returns a comment `<!-- text -->`.
-    - Anything else returns an element `<tag>text</tag>`, where `text` is inserted
-      as inner html.
-    */
-
-    function create$1(tag, attributes) {
-    	// create(type)
-    	// create(type, text)
-    	// create(type, attributes)
-
-    	let node;
-
-    	if (typeof tag === 'string') {
-    		if (constructors$1[tag]) {
-    			return constructors$1[tag](attributes);
-    		}
-
-    		node = document.createElement(tag);
-    	}
-    	else {
-    		node = document.createElement(tag.tagName);
-    		delete tag.tagName;
-    		assignAttributes(node, tag);
-    	}
-
-    	if (attributes) {
-    		if (typeof attributes === 'string') {
-    			node.innerHTML = attributes;
-    		}
-    		else {
-    			assignAttributes(node, attributes);
-    		}
+    	if (html) {
+    		node.innerHTML = html;
     	}
 
     	return node;
     }
+
+    function constructHTML(tag, html) {
+    	var node = document.createElement(tag);
+
+    	if (html) {
+    		node.innerHTML = html;
+    	}
+
+    	return node;
+    }
+
+
+    /*
+    create(tag, content)
+
+    Constructs and returns a new DOM node.
+
+    - If `tag` is `"text"` a text node is created.
+    - If `tag` is `"fragment"` a fragment is created.
+    - If `tag` is `"comment"` a comment is created.
+    - If `tag` is any other string the element `<tag></tag>` is created.
+    - Where `tag` is an object, it must have a `"tag"` or `"tagName"` property.
+    A node is created according to the above rules for tag strings, and other
+    properties of the object are assigned with dom's `assign(node, object)` function.
+
+    If `content` is a string it is set as text content on a text or comment node,
+    or as inner HTML on an element or fragment. It may also be an object of
+    properties which are assigned with dom's `assign(node, properties)` function.
+    */
+
+    function toTypes() {
+    	return Array.prototype.map.call(arguments, toType).join(' ');
+    }
+
+    function validateTag(tag) {
+    	if (typeof tag !== 'string') {
+    		throw new Error('create(object, content) object must have string property .tag or .tagName');
+    	}
+    }
+
+    var create$1 = overload(toTypes, {
+    	'string string': construct,
+
+    	'string object': function(tag, content) {
+    		return assign$5(construct(tag, ''), content);
+    	},
+
+    	'object string': function(properties, text) {
+    		const tag = properties.tag || properties.tagName;
+    		validateTag(tag);
+    		// Warning: text is set before properties, but text should override
+    		// html or innerHTML property, ie, be set after.
+    		return assign$5(construct(tag, text), properties);
+    	},
+
+    	'object object': function(properties, content) {
+    		const tag = properties.tag || properties.tagName;
+    		validateTag(tag);
+    		return assign$5(assign$5(construct(tag, ''), properties), content);
+    	},
+
+    	default: function() {
+    		throw new Error('create(tag, content) does not accept argument types "' + Array.prototype.map.apply(arguments, toType).join(' ') + '"');
+    	}
+    });
 
     /* DOM Mutation */
 
@@ -5818,10 +5866,10 @@ var Sparky = (function (exports) {
     }
 
     /*
-    box(node)
+    rect(node)
 
-    Returns a `DOMRect` object describing the draw box of `node`.
-    (If `node` is `window` a plain object is returned).
+    Returns a `DOMRect` object describing the draw rectangle of `node`.
+    (If `node` is `window` a preudo-DOMRect object is returned).
     */
 
     function windowBox() {
@@ -5835,15 +5883,15 @@ var Sparky = (function (exports) {
     	};
     }
 
-    function box(node) {
+    function rect(node) {
     	return node === window ?
     		windowBox() :
     		node.getClientRects()[0] ;
     }
 
     function offset(node1, node2) {
-    	var box1 = box(node1);
-    	var box2 = box(node2);
+    	var box1 = rect(node1);
+    	var box2 = rect(node2);
     	return [box2.left - box1.left, box2.top - box1.top];
     }
 
@@ -5863,7 +5911,7 @@ var Sparky = (function (exports) {
     	return fragment;
     }
 
-    const assign$4      = Object.assign;
+    const assign$6      = Object.assign;
     const CustomEvent = window.CustomEvent;
 
     const defaults    = {
@@ -5891,7 +5939,7 @@ var Sparky = (function (exports) {
     	let settings;
 
     	if (typeof type === 'object') {
-    		settings = assign$4({}, defaults, type);
+    		settings = assign$6({}, defaults, type);
     		type = settings.type;
     	}
 
@@ -5900,7 +5948,7 @@ var Sparky = (function (exports) {
     			settings.detail = options.detail;
     		}
     		else {
-    			settings = assign$4({ detail: options.detail }, defaults);
+    			settings = assign$6({ detail: options.detail }, defaults);
     		}
     	}
 
@@ -5908,13 +5956,13 @@ var Sparky = (function (exports) {
 
     	if (options) {
     		delete options.detail;
-    		assign$4(event, options);
+    		assign$6(event, options);
     	}
 
     	return event;
     }
 
-    const assign$5  = Object.assign;
+    const assign$7  = Object.assign;
     const rspaces = /\s+/;
 
     function prefixType(type) {
@@ -5997,7 +6045,7 @@ var Sparky = (function (exports) {
     	types.reduce(listen, this);
     }
 
-    assign$5(Source.prototype, {
+    assign$7(Source.prototype, {
     	shift: function shiftEvent() {
     		const buffer = this.buffer;
     		return buffer.shift();
@@ -6291,7 +6339,7 @@ var Sparky = (function (exports) {
         bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
     });
 
-    const assign$6 = Object.assign;
+    const assign$8 = Object.assign;
 
     /*
     config
@@ -6325,35 +6373,35 @@ var Sparky = (function (exports) {
 
     const createHeaders = choose({
     	'application/x-www-form-urlencoded': function(headers) {
-    		return assign$6(headers, {
+    		return assign$8(headers, {
     			"Content-Type": 'application/x-www-form-urlencoded',
     			"X-Requested-With": "XMLHttpRequest"
     		});
     	},
 
     	'application/json': function(headers) {
-    		return assign$6(headers, {
+    		return assign$8(headers, {
     			"Content-Type": "application/json; charset=utf-8",
     			"X-Requested-With": "XMLHttpRequest"
     		});
     	},
 
     	'multipart/form-data': function(headers) {
-    		return assign$6(headers, {
+    		return assign$8(headers, {
     			"Content-Type": 'multipart/form-data',
     			"X-Requested-With": "XMLHttpRequest"
     		});
     	},
 
     	'audio/wav': function(headers) {
-    		return assign$6(headers, {
+    		return assign$8(headers, {
     			"Content-Type": 'audio/wav',
     			"X-Requested-With": "XMLHttpRequest"
     		});
     	},
 
     	'default': function(headers) {
-    		return assign$6(headers, {
+    		return assign$8(headers, {
     			"Content-Type": 'application/x-www-form-urlencoded',
     			"X-Requested-With": "XMLHttpRequest"
     		});
@@ -6505,11 +6553,8 @@ var Sparky = (function (exports) {
     }
 
     if (window.console && window.console.log) {
-        window.console.log('%cdom%c         – https://github.com/stephband/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
+        window.console.log('%cdom%c         – https://stephen.band/dom', 'color: #3a8ab0; font-weight: 600;', 'color: inherit; font-weight: 400;');
     }
-    const assign$7  = curry$1(assignAttributes, true);
-    const append$3  = curry$1(append$2, true);
-    const prepend$3 = curry$1(prepend$2, true);
     const before$1  = curry$1(before, true);
     const after$1   = curry$1(after, true);
     const replace$1 = curry$1(replace, true);
@@ -6822,7 +6867,7 @@ var Sparky = (function (exports) {
 
     const requestDocument = cache(function requestDocument(path) {
         return request$1('GET', 'text/html', path, null)
-        .then(parse$2('html'));
+        .then(parseHTML);
     });
 
     let scriptCount = 0;
@@ -6857,7 +6902,7 @@ var Sparky = (function (exports) {
 
         // Wait for scripts to execute
         const promise = Promise.all(
-            query('script', doc).map(toScriptPromise)
+            select$1('script', doc).map(toScriptPromise)
         )
         .then(() => doc);
 
@@ -6956,7 +7001,7 @@ var Sparky = (function (exports) {
     	'default': JSON.stringify
     });
 
-    const assign$8 = Object.assign;
+    const assign$9 = Object.assign;
 
     function Value(path) {
         this.path = path;
@@ -6966,7 +7011,7 @@ var Sparky = (function (exports) {
         return Value.prototype.isPrototypeOf(object);
     }
 
-    assign$8(Value.prototype, {
+    assign$9(Value.prototype, {
         valueOf: function valueOf() {
             return this.transform ?
                 this.value === undefined ?
@@ -7798,7 +7843,7 @@ var Sparky = (function (exports) {
 
     	/* append: string
     	Returns value + `string`. */
-    	append:       append$1,
+    	append:       append,
 
     	/* prepend: string
     	Returns `string` + value. */
@@ -7975,7 +8020,7 @@ var Sparky = (function (exports) {
     	}
     };
 
-    const assign$9  = Object.assign;
+    const assign$a  = Object.assign;
 
     function call$1(fn) {
         return fn();
@@ -8002,7 +8047,7 @@ var Sparky = (function (exports) {
         this.renderCount = 0;
     }
 
-    assign$9(Renderer.prototype, {
+    assign$a(Renderer.prototype, {
         fire: function() {
             this.cued = false;
         },
@@ -8072,7 +8117,7 @@ var Sparky = (function (exports) {
         }
     });
 
-    const assign$a = Object.assign;
+    const assign$b = Object.assign;
 
     function isTruthy(token) {
     	return !!token.valueOf();
@@ -8109,7 +8154,7 @@ var Sparky = (function (exports) {
     		renderBooleanAttribute ;
     }
 
-    assign$a(BooleanRenderer.prototype, Renderer.prototype, {
+    assign$b(BooleanRenderer.prototype, Renderer.prototype, {
         fire: function renderBoolean() {
             Renderer.prototype.fire.apply(this);
 
@@ -8124,7 +8169,7 @@ var Sparky = (function (exports) {
         }
     });
 
-    const assign$b = Object.assign;
+    const assign$c = Object.assign;
 
     // Matches anything that contains a non-space character
     const rtext = /\S/;
@@ -8171,7 +8216,7 @@ var Sparky = (function (exports) {
         node.setAttribute('class', types.string.join(' '));
     }
 
-    assign$b(ClassRenderer.prototype, Renderer.prototype, {
+    assign$c(ClassRenderer.prototype, Renderer.prototype, {
         fire: function renderBoolean() {
             Renderer.prototype.fire.apply(this);
 
@@ -8195,7 +8240,7 @@ var Sparky = (function (exports) {
         }
     });
 
-    const assign$c = Object.assign;
+    const assign$d = Object.assign;
 
     function StringRenderer(tokens, render, node, name) {
         Renderer.call(this);
@@ -8206,7 +8251,7 @@ var Sparky = (function (exports) {
         this.tokens = tokens;
     }
 
-    assign$c(StringRenderer.prototype, Renderer.prototype, {
+    assign$d(StringRenderer.prototype, Renderer.prototype, {
         fire: function renderString() {
             Renderer.prototype.fire.apply(this);
 
@@ -8222,7 +8267,7 @@ var Sparky = (function (exports) {
         }
     });
 
-    const assign$d = Object.assign;
+    const assign$e = Object.assign;
 
     function observeMutations(node, fn) {
         var observer = new MutationObserver(fn);
@@ -8252,7 +8297,7 @@ var Sparky = (function (exports) {
         }
     }
 
-    assign$d(TokenRenderer.prototype, Renderer.prototype, {
+    assign$e(TokenRenderer.prototype, Renderer.prototype, {
         fire: function renderValue() {
             Renderer.prototype.fire.apply(this);
 
@@ -8416,7 +8461,7 @@ var Sparky = (function (exports) {
     const DEBUG$5 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
     const A$8      = Array.prototype;
-    const assign$e = Object.assign;
+    const assign$f = Object.assign;
 
     const $cache = Symbol('cache');
 
@@ -8963,7 +9008,7 @@ var Sparky = (function (exports) {
         mountNode(node, this.renderers, options);
     }
 
-    assign$e(Mount.prototype, {
+    assign$f(Mount.prototype, {
         stop: function() {
             this.renderers.forEach(stop);
             return this;
@@ -8984,7 +9029,7 @@ var Sparky = (function (exports) {
 
     const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
-    const assign$f = Object.assign;
+    const assign$g = Object.assign;
 
     const captureFn = capture$1(/^\s*([\w-]+)\s*(:)?/, {
         1: function(output, tokens) {
@@ -9058,7 +9103,7 @@ var Sparky = (function (exports) {
 
             if (fn.settings) {
                 // Overwrite functions / pipes
-                assign$f(options, fn.settings);
+                assign$g(options, fn.settings);
             }
 
             // Return values from Sparky functions mean -
@@ -9303,7 +9348,7 @@ var Sparky = (function (exports) {
 
             // If there is content cache new nodes
             if (content && content.childNodes && content.childNodes.length) {
-                assign$f(nodes, content.childNodes);
+                assign$g(nodes, content.childNodes);
             }
 
             // Otherwise content is a placemarker text node
@@ -9420,7 +9465,7 @@ var Sparky = (function (exports) {
             document.querySelector(selector) :
             selector ;
 
-        const options = assign$f({}, config$1, settings);
+        const options = assign$g({}, config$1, settings);
 
         // Todo: attrFn is just for logging later on... get rid of, maybe?
         options.fn = options.fn
@@ -9537,11 +9582,9 @@ var Sparky = (function (exports) {
     */
 
     const A$9       = Array.prototype;
-
     const isArray = Array.isArray;
-    const assign$g  = Object.assign;
-
-    const $scope = Symbol('scope');
+    const assign$h  = Object.assign;
+    const $scope  = Symbol('scope');
 
 
     function EachRenderer(node, marker, isOption, options) {
@@ -9556,7 +9599,7 @@ var Sparky = (function (exports) {
     }
 
 
-    assign$g(EachRenderer.prototype, Renderer.prototype, {
+    assign$h(EachRenderer.prototype, Renderer.prototype, {
     	fire: function renderEach(time) {
     		Renderer.prototype.fire.apply(this);
     		var value = this.value;
@@ -10058,7 +10101,7 @@ var Sparky = (function (exports) {
     // #282a2b
 
     if (window.console && window.console.log) {
-        console.log('%cSparky%c      - https://github.com/cruncher/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
+        console.log('%cSparky%c      - https://labs.cruncher.ch/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
     }
 
     Sparky.fn = register;

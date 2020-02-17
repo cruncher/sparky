@@ -22,18 +22,16 @@ on each clone.
 
 import { last, noop, observe } from '../../fn/module.js';
 import { before, remove, tag, isFragmentNode } from '../../dom/module.js';
-import { cue, uncue } from './timer.js';
+import { uncue } from './timer.js';
 import Renderer from './renderer.js';
 import Marker from './marker.js';
 import Sparky from './sparky.js';
 import { register } from './fn.js';
 
 const A       = Array.prototype;
-
 const isArray = Array.isArray;
 const assign  = Object.assign;
-
-const $scope = Symbol('scope');
+const $scope  = Symbol('scope');
 
 
 function EachRenderer(node, marker, isOption, options) {

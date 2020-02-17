@@ -1,9 +1,9 @@
 import { cache } from '../../fn/module.js';
-import { parse, select, request } from '../../dom/module.js';
+import { parseHTML, select, request } from '../../dom/module.js';
 
 const requestDocument = cache(function requestDocument(path) {
     return request('GET', 'text/html', path, null)
-    .then(parse('html'));
+    .then(parseHTML);
 });
 
 let scriptCount = 0;
