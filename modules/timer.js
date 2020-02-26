@@ -16,7 +16,7 @@ var renderCount = 0;
 var frame;
 
 
-/* Console logging */
+/** Console logging */
 
 function tokenOrLabel(token) {
 	return typeof token === 'string' ? token : token.label;
@@ -66,7 +66,7 @@ function logRenders(tStart, tStop) {
 }
 
 
-/* The meat and potatoes */
+/** The meat and potatoes */
 
 function fireEachDEBUG(queue) {
 	var count, renderer;

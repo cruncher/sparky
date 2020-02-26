@@ -1,5 +1,5 @@
 
-/*
+/**
 {[path|pipe:params]}
 
 Template tags are made of three parts. Values are read from `path` in the
@@ -54,7 +54,7 @@ The built-in type converter pipes facilitate rendering values into inputs of
 an unmatched type.
 */
 
-/*
+/**
 src="#id"
 
 Sparky extends `<template>` elements (and `<use>` elements in SVG) with a `src`
@@ -111,7 +111,7 @@ with id `no-keywords` is rendered in place of `my-template`:
 import { capture, exec, id, noop, nothing } from '../../fn/module.js'
 import Value from './value.js';
 
-/*
+/**
 parseParams(array, string)
 */
 
@@ -207,7 +207,7 @@ export const parseParams = capture(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"(
     }
 });
 
-/*
+/**
 parsePipe(array, string)
 */
 
@@ -243,7 +243,7 @@ export const parsePipe = capture(/^\s*([\w-]+)\s*(:)?\s*/, {
     }
 });
 
-/*
+/**
 parseTag(string)
 */
 
@@ -270,7 +270,7 @@ export const parseTag = capture(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     catch: id
 }, undefined);
 
-/*
+/**
 parseToken(string)
 */
 
@@ -295,7 +295,7 @@ export const parseToken = capture(/^\s*(\{\[)/, {
     catch: id
 }, undefined);
 
-/*
+/**
 parseBoolean(array, string)
 */
 
@@ -312,7 +312,7 @@ export const parseBoolean = capture(/^\s*(?:(\{\[)|$)/, {
     catch: id
 });
 
-/*
+/**
 parseText(array, string)
 */
 

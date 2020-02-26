@@ -1,7 +1,7 @@
 
 import { register } from './functions.js';
 
-/*
+/**
 stop:
 
 Stops sparkifying the element. No more functions are run, and

@@ -1,4 +1,4 @@
-/*
+/**
 each:
 
 Clones the DOM node and renders a clone for each value in an array.

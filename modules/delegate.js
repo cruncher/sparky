@@ -1,5 +1,5 @@
 
-/*
+/**
 delegate(types)
 
 Create an event delegation controller fn, where `types` is an object of objects

@@ -1,5 +1,5 @@
 
-/* Convert values to strings suitable for rendering to the DOM */
+/** Convert values to strings suitable for rendering to the DOM */
 
 import { id, overload, toType } from '../../fn/module.js';
 

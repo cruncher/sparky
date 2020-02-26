@@ -1,5 +1,5 @@
 
-/*
+/**
 fn="name:params"
 
 A `fn` attribute declares one or more functions to run on a template.
@@ -36,11 +36,11 @@ array of keywords and generate a list:
 ```
 */
 
-/*
+/**
 Functions
 */
 
-/*
+/**
 Sparky.fn(name, fn)
 
 Sparky 'functions' are view-controllers with access to the node where they are
@@ -75,7 +75,7 @@ of the renderer is controlled by the state of that stream. Sparky's streams
 come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
 */
 
-/*
+/**
 Examples
 
 Push a single scope object to the renderer:

@@ -1,4 +1,4 @@
-/*
+/**
 submit:
 
 Hijacks submit events and sends a request with the current scope as the body.

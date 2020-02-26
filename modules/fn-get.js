@@ -1,4 +1,4 @@
-/*
+/**
 get: path
 
 Maps scope to the value at `path` of the current scope:

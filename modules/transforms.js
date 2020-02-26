@@ -96,15 +96,15 @@ function interpolateLinear(xs, ys, x) {
 
 export const transformers = {
 
-	/* is: value
+	/** is: value
 	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
 	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
 
-	/* has: property
+	/** has: property
 	Returns `true` where value is an object with `property`, otherwise `false`. */
 	has: { tx: has },
 
-/*
+/**
 matches: selector
 
 Renders `true` if value matches `selector`. Behaviour is overloaded to accept
@@ -130,17 +130,17 @@ properties are matched against those of `selector`.
 		})
 	},
 
-	/* class:
+	/** class:
 	Renders the Class – the name of the constructor – of value. */
 	'class': { tx: toClass },
 
-	/* type:
+	/** type:
 	Renders `typeof` value. */
 	'type': { tx: toType },
 
-	/* Booleans */
+	/** Booleans */
 
-	/* yesno: a, b
+	/** yesno: a, b
 	Where value is truthy renders `a`, otherwise `b`. */
 	yesno: {
 		tx: function (truthy, falsy, value) {
@@ -148,9 +148,9 @@ properties are matched against those of `selector`.
 		}
 	},
 
-	/* Numbers */
+	/** Numbers */
 
-/* add: n
+/** add: n
 
 Adds `n` to value. Behaviour is overloaded to accept various types of 'n'.
 Where `n` is a number, it is summed with value. So to add 1 to any value:
@@ -195,15 +195,15 @@ seconds:
 		})
 	},
 
-	/* floor:
+	/** floor:
 	Floors a number. */
 	floor: { tx: Math.floor },
 
-	/* root: n
+	/** root: n
 	Returns the `n`th root of value. */
 	root: { tx: root, ix: pow },
 
-	/* normalise: curve, min, max
+	/** normalise: curve, min, max
 	Return a value in the nominal range `0-1` from a value between `min` and
 	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	normalise: {
@@ -218,7 +218,7 @@ seconds:
 		}
 	},
 
-	/* denormalise: curve, min, max
+	/** denormalise: curve, min, max
 	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
 	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	denormalise: {
@@ -233,25 +233,25 @@ seconds:
 		}
 	},
 
-	/* to-db:
+	/** to-db:
 	Transforms values in the nominal range `0-1` to dB scale, and, when used in
 	two-way binding, transforms them back a number in nominal range. */
 	'to-db': { tx: todB, ix: toLevel },
 
-	/* to-cartesian:
+	/** to-cartesian:
 	Transforms a polar coordinate array to cartesian coordinates. */
 	'to-cartesian': { tx: toCartesian, ix: toPolar },
 
-	/* to-polar:
+	/** to-polar:
 	Transforms a polar coordinate array to cartesian coordinates. */
 	'to-polar': { tx: toPolar, ix: toCartesian },
 
-	/* floatformat: n
+	/** floatformat: n
 	Transforms numbers to strings with `n` decimal places. Used for
 	two-way binding, gaurantees numbers are set on scope. */
 	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
 
-	/* floatprecision: n
+	/** floatprecision: n
 	Converts number to string representing number to precision `n`. */
 	floatprecision: {
 		tx: function (n, value) {
@@ -263,12 +263,12 @@ seconds:
 		ix: parseFloat
 	},
 
-	/* Dates */
+	/** Dates */
 
-	/* add: yyyy-mm-dd
+	/** add: yyyy-mm-dd
 	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
 
-	/* dateformat: yyyy-mm-dd
+	/** dateformat: yyyy-mm-dd
 	Converts an ISO date string, a number (in seconds) or a Date object
 	to a string date formatted with the symbols:
 
@@ -288,9 +288,9 @@ seconds:
 	*/
 	dateformat: { tx: formatDate },
 
-	/* Times */
+	/** Times */
 
-	/* add: duration
+	/** add: duration
 	Adds `duration`, an ISO-like time string, to a time value, and
 	returns a number in seconds.
 
@@ -323,7 +323,7 @@ seconds:
 	May be used for two-way binding.
 	*/
 
-	/* timeformat: format
+	/** timeformat: format
 	Formats value, which must be an ISO time string or a number in seconds, to
 	match `format`, a string that may contain the tokens:
 
@@ -373,9 +373,9 @@ seconds:
 	log:         { tx: log,         ix: exp },
 
 
-	/* Type converters */
+	/** Type converters */
 
-	/* boolean-string:
+	/** boolean-string:
 	Transforms booleans to strings and vice versa. May by used for two-way binding. */
 	'boolean-string': {
 		tx: function(value) {
@@ -391,12 +391,12 @@ seconds:
 		}
 	},
 
-	/* float-string:
+	/** float-string:
 	Transforms numbers to float strings, and, used for two-way binding,
 	gaurantees numbers are set on scope. */
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
 
-	/* floats-string: separator
+	/** floats-string: separator
 	Transforms an array of numbers to a string using `separator`, and,
 	used for two-way binding, gaurantees an array of numbers is set on scope. */
 	'floats-string': {
@@ -409,7 +409,7 @@ seconds:
 		}
 	},
 
-	/* int-string:
+	/** int-string:
 	Transforms numbers to integer strings, and, used for two-way binding,
 	gaurantees integer numbers are set on scope. */
 	'int-string':   {
@@ -417,7 +417,7 @@ seconds:
 		ix: toInt
 	},
 
-	/* ints-string: separator
+	/** ints-string: separator
 	Transforms an array of numbers to a string of integers seperated with
 	`separator`, and, used for two-way binding, gaurantees an array of integer
 	numbers is set on scope. */
@@ -431,17 +431,17 @@ seconds:
 		}
 	},
 
-	/* string-float:
+	/** string-float:
 	Transforms strings to numbers, and, used for two-way binding,
 	gaurantees float strings are set on scope. */
 	'string-float': { tx: parseFloat, ix: toString },
 
-	/* string-int:
+	/** string-int:
 	Transforms strings to integer numbers, and, used for two-way binding,
 	gaurantees integer strings are set on scope. */
 	'string-int': { tx: toInt, ix: (value) => value.toFixed(0) },
 
-	/* json:
+	/** json:
 	Transforms objects to json, and used in two-way binding, sets parsed
 	objects on scope. */
 	json: { tx: JSON.stringify, ix: JSON.parse },
@@ -493,25 +493,25 @@ export const transforms = {
 	min:          Math.min,
 	mod:          mod,
 
-	/* Strings */
+	/** Strings */
 
-	/* append: string
+	/** append: string
 	Returns value + `string`. */
 	append:       append,
 
-	/* prepend: string
+	/** prepend: string
 	Returns `string` + value. */
 	prepend:      prepend,
 
-	/* prepad: string, n
+	/** prepad: string, n
 	Prepends value with `string` until the output is `n` characters long. */
 	prepad:       prepad,
 
-	/* postpad: string, n
+	/** postpad: string, n
 	Appends value with `string` until the output is `n` characters long. */
 	postpad:      postpad,
 
-	/* slugify:
+	/** slugify:
 	Returns the slug of value. */
 	slugify:      slugify,
 
@@ -521,7 +521,7 @@ export const transforms = {
 	},
 
 
-	/* is-in: array
+	/** is-in: array
 	Returns `true` if value is contained in `array`, otherwise `false`.
 
 	```html
@@ -550,7 +550,7 @@ export const transforms = {
 		return value1 < value2 ;
 	},
 
-	/* localise:n
+	/** localise:n
 	Localises a number to `n` digits. */
 	localise: function(digits, value) {
 		var locale = document.documentElement.lang;
@@ -566,7 +566,7 @@ export const transforms = {
 	},
 
 
-	/* lowercase:
+	/** lowercase:
 	Returns the lowercase string of value. */
 	lowercase: function(value) {
 		if (typeof value !== 'string') { return; }
@@ -601,7 +601,7 @@ export const transforms = {
 		return array && array.filter((value) => fn(...args, value));
 	},
 
-	/* pluralise: str1, str2, lang
+	/** pluralise: str1, str2, lang
 	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
 	pluralise: function(str1, str2, lang, value) {
 		if (typeof value !== 'number') { return; }

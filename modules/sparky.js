@@ -372,7 +372,7 @@ function invokeStop(renderer) {
     renderer.stop();
 }
 
-/*
+/**
 Sparky(nodeOrSelector)
 
 Mounts any element as a template and returns a pushable stream. Push an object
@@ -404,7 +404,7 @@ Results in:
 
 
 
-/*
+/**
 src=""
 
 Templates may include other templates. Define the `src` attribute

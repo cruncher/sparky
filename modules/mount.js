@@ -541,7 +541,7 @@ const mountNode = overload(getNodeType, {
 });
 
 
-/*
+/**
 Mount(node, options)
 
 `const mount = Mount(node, options);`

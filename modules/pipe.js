@@ -1,4 +1,4 @@
-/*
+/**
 Sparky.pipe(name, fn)
 
 Define a pipe using `Sparky.pipe(name, fn)`.
@@ -35,7 +35,7 @@ export default function pipe(name, fx, ix) {
     };
 }
 
-/*
+/**
 Examples
 
 ```js

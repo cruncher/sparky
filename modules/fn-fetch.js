@@ -1,4 +1,4 @@
-/*
+/**
 fetch: url
 
 Fetches and parses a JSON file and uses it as scope to render the node.
