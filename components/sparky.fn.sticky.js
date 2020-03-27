@@ -1,5 +1,5 @@
 // Dependencies:
-// 
+//
 // window.breakpoint
 
 (function(window) {
@@ -14,7 +14,7 @@
 
 		scopes.tap(function() {
 			var top = dom.offset(node)[1];
-			var gap = dom.toPx(value);
+			var gap = dom.parseValue(value);
 			var fixed;
 
 			breakpoint({

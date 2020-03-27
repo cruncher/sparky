@@ -49,7 +49,7 @@ import {
 // Import uncurried functions from DOM library
 
 import escape from '../../dom/modules/escape.js';
-import { toPx, toRem, toVw, toVh } from '../../dom/modules/values.js';
+import { parseValue, toRem, toVw, toVh } from '../../dom/modules/parse-value.js';
 
 var DEBUG     = window.DEBUG === true || window.DEBUG === 'Sparky';
 var A         = Array.prototype;
@@ -470,10 +470,10 @@ seconds:
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
 	level:     { tx: toLevel, ix: todB },
-	px:        { tx: toPx,  ix: toRem },
-	rem:       { tx: toRem, ix: toPx },
-	vw:        { tx: toVw,  ix: toPx },
-	vh:        { tx: toVh,  ix: toPx },
+	px:        { tx: parseValue, ix: toRem },
+	rem:       { tx: toRem, ix: parseValue },
+	vw:        { tx: toVw,  ix: parseValue },
+	vh:        { tx: toVh,  ix: parseValue },
     not:       { tx: not,   ix: not }
 };
 
