@@ -53,7 +53,7 @@ export { Stream, Observer, observe } from '../fn/module.js';
 //export { events, trigger } from '../dom/module.js';
 export { default as mount } from './modules/mount.js';
 export { getScope } from './modules/fn-scope.js';
-export { transforms, transformers } from './modules/transforms.js';
+export { transforms, transformers, register as registerTransform } from './modules/transforms.js';
 export { register } from './modules/fn.js';
 export { default as delegate } from './modules/delegate.js';
 export { default as ObserveFn } from './modules/fn-observe.js';
