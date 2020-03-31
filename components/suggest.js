@@ -104,7 +104,7 @@ var request = Throttle(function request(url, tip, node) {
 	jQuery
 	.ajax(url)
 	.then(function(data) {
-		activate(Collection(data), tip, node);
+		activate(data, tip, node);
 	});
 }, 320);
 
