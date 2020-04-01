@@ -1,6 +1,6 @@
 
 import { toStringType } from '../../fn/module.js';
-import { append, closest, isElementNode, tag, trigger } from '../../dom/module.js';
+import { append, closest, isElementNode, request, trigger } from '../../dom/module.js';
 import { register, getScope } from '../module.js';
 
 function wrap(i, min, max) {
@@ -100,10 +100,8 @@ function listen(node, fn) {
 	node.addEventListener('click', click);
 }
 
-var request = Throttle(function request(url, tip, node) {
-	jQuery
-	.ajax(url)
-	.then(function(data) {
+var requester = Throttle(function(url, tip, node) {
+	request('GET', url).then(function(data) {
 		activate(data, tip, node);
 	});
 }, 320);
@@ -177,7 +175,7 @@ register('suggest', function(node, scopes) {
 		}
 
 		if (type === 'url') {
-			request(listId + text, tip, node);
+			requester(listId + text, tip, node);
 		}
 		else {
 			activate(scope[prop], tip, node);

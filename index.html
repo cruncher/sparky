@@ -22,7 +22,7 @@
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700">
 
-
+    
         <link rel="stylesheet" href="https://stephen.band/bolt/css/html.css">
         <link rel="stylesheet" href="https://stephen.band/bolt/css/root.css">
         <link rel="stylesheet" href="https://stephen.band/bolt/css/body.css">
@@ -40,113 +40,149 @@
         <link rel="stylesheet" href="https://stephen.band/fn/css/docs.css">
         <link rel="stylesheet" href="css/theme.css">
         <link rel="stylesheet" href="https://stephen.band/fn/css/respond.css">
-
+    
 <template id="header-template" title="/fn/">
-        <h1>{[title]} <span class="text-6">{[version]}</span></h1>
+    <h1>{[title]} <span class="doctext-06">{[version]}</span></h1>
 
-        <p class="text-8">
-            {[description]}
-        </p>
+    <p class="doctext-08">
+        {[description]}
+    </p>
 
-        <ul class="link-index index">
-            <li><strong>repo:</strong> <a href="{[repository.url]}">{[repository.url]}</a></li>
-            <li><strong>bugs:</strong> <a href="{[bugs.url]}">{[bugs.url]}</a></li>
-        </ul>
+    <ul class="link-index index">
+        <li><strong>repo:</strong> <a href="{[repository.url]}">{[repository.url]}</a></li>
+        <li><strong>bugs:</strong> <a href="{[bugs.url]}">{[bugs.url]}</a></li>
+    </ul>
 </template><template id="title-template" title="/fn/">
-    <h3 class="text-4" build-fn="after:body">{[name]}</h3>
-</template><template id="attribute-template" title="/fn/">
-    <article build-fn="append:body" class="attribute-toggle-block toggle-block block" toggleable="" id="{[id]}">
-        <h3 class="text-5">
+    <h3 class="doctext-04" build-fn="after:body">{[name]}</h3>
+</template><template id="h2-template" title="/fn/">
+    <header class="x-1 xspan-4 @1-x-1 @2-x-2">
+        <h2 class="doctext-02">
             <a href="#{[id]}">
-                <code class="token language-js"><span>[</span><span build-fn="append:title"></span><span>]</span></code>
+                <code class="language-js" build-fn="append:title" style="color: inherit;"></code>
+            </a>
+        </h2>
+    </header>
+
+    <div class="x-1 xspan-3 @2-x-2" build-fn="append:body"></div>
+</template><template id="attribute-template" title="/fn/">
+    <article build-fn="append:body" class="attribute-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="attribute-{[id]}">
+        <h3 class="doctext-05">
+            <a href="#attribute-{[id]}">
+                <code class="token language-js">[<span build-fn="append:title"></span>]</code>
+            </a>
+        </h3>
+    </article>
+</template><template id="constructor-template" title="/fn/">
+    <article class="function-doc-toggle-block doc-toggle-block toggle-block block xspan-3" toggleable="" id="{[0.id]}">
+        <h3 build-fn="get:0 after:body" class="doctext-05 dot-indent">
+            <a href="#{[id]}">
+                <code class="property language-js">"{[name|lowercase]}"</code>
             </a>
         </h3>
 
-        <pre><code class="language-js">import '/dom/js/{[name]}.js';</code></pre>
+        <template build-src="/fn/templates.html#property-method-template"></template>
     </article>
 </template><template id="method-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block" toggleable="" id="{[id]}">
-        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
-            <a href="#{[id]}">
+    <article build-fn="append:body" class="method-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="method-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#method-{[id]}">
                 <code build-fn="append:title" class="function language-js"></code>
             </a>
         </h3>
     </article>
 </template><template id="property-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block" toggleable="" id="{[id]}">
-        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
-            <a href="#{[id]}">
+    <article build-fn="append:body" class="property-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="property-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#property-{[id]}">
                 <code build-fn="append:title" class="property language-js"></code>
             </a>
         </h3>
     </article>
+</template><template id="class-template" title="/fn/">
+    <article build-fn="append:body" class="class-doc-toggle-block doc-toggle-block toggle-block block class-grid grid @2-9-grid" toggleable="" id="class-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#class-{[id]}">
+                <code build-fn="append:title" class=""></code>
+            </a>
+        </h3>
+    </article>
+</template><template id="component-template" title="/fn/">
+    <section class="component-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="component-{[0.id]}">
+        <header class="class-grid grid 3-grid @1-6-grid @2-9-grid">
+            <h3 build-fn="after:'0.body'" class="x-1 xspan-3 @1-x-2 @2-x-3 doctext-03 {[0.prefix|is:'.'|yesno:'dot-indent','']}">
+                <a build-fn="append:'0.title'" class="doctoggle-button button" href="#component-{[0.id]}"></a>
+            </h3>
+        </header>
+
+        <section build-fn="rest:1 each append:body" class="block class-grid grid @1-6-grid @2-9-grid">
+            <h4 class="x-1 x-start xspan-3 @2-xspan-2 @2-x-end doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+                <code build-fn="append:title" class=""></code>
+            </h4>
+        </section>
+    </section>
 </template><template id="function-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block" toggleable="" id="{[id]}">
-        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
-            <a href="#{[id]}">
+    <article build-fn="append:body" class="function-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="function-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#function-{[id]}">
                 <code build-fn="append:title" class="function language-js"></code>
             </a>
         </h3>
     </article>
 </template><template id="fn-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block" toggleable="" id="{[id]}">
-        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
-            <a href="#{[id]}">
+    <article build-fn="append:body" class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
+            <a href="#fn-{[id]}">
                 <code build-fn="append:title" class="language-js"></code>
             </a>
         </h3>
     </article>
 </template><template id="section-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block active" id="{[id]}">
-        <h3 class="text-5 {[prefix|is:'.'|yesno:'dot-indent','']}">
+    <article build-fn="append:body" class="section-doc-toggle-block doc-toggle-block toggle-block block active" id="section-{[id]}">
+        <h3 class="doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']}">
             <code build-fn="append:title" class="function language-js"></code>
         </h3>
     </article>
 </template><template id="body-template" title="/fn/">
-    <article build-fn="append:body" class="toggle-block block active" id="{[id]}"></article>
+    <article build-fn="append:body" class="body-doc-toggle-block doc-toggle-block toggle-block block active" id="{[id]}"></article>
+</template><template id="property-method-template" title="/fn/">
+    <section class="x-1 xspan-2 @1-x-1 @2-x-2">
+        <template build-fn="filter-property each" build-src="/fn/templates.html#{[type]}-template"></template>
+    </section>
+
+    <section class="x-1 xspan-2 @1-x-3 @2-x-4">
+        <template build-fn="filter-method each" build-src="/fn/templates.html#{[type]}-template"></template>
+    </section>
 </template></head>
 
 <body class="@3-12-grid grid">
     <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg">
 
     <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
+        
+    <h1>Sparky <span class="doctext-06">3.1.2</span></h1>
 
-        <h1>Sparky <span class="text-6">3.1.2</span></h1>
+    <p class="doctext-08">
+        Sparky is a live data-binding controller who wires up HTML templates with template tags, composeable includes, functional views and a DOM renderer that batches updates to the browser frame rate.
+    </p>
 
-        <p class="text-8">
-            Sparky is a live data-binding controller who wires up HTML templates with template tags, composeable includes, functional views and a DOM renderer that batches updates to the browser frame rate.
-        </p>
-
-        <ul class="link-index index">
-            <li><strong>repo:</strong> <a href="https://github.com/cruncher/sparky.git">https://github.com/cruncher/sparky.git</a></li>
-            <li><strong>bugs:</strong> <a href="https://github.com/cruncher/sparky/issues">https://github.com/cruncher/sparky/issues</a></li>
-        </ul>
+    <ul class="link-index index">
+        <li><strong>repo:</strong> <a href="https://github.com/cruncher/sparky.git">https://github.com/cruncher/sparky.git</a></li>
+        <li><strong>bugs:</strong> <a href="https://github.com/cruncher/sparky/issues">https://github.com/cruncher/sparky/issues</a></li>
+    </ul>
 
     </header>
 
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable="" id="functions">
         <div class="x-1 xspan-3">
             <h2 class="text-2">Sparky templates</h2>
-
-    <article class="toggle-block block active" id="sparky-templates"><p>First, import Sparky:</p>
-<pre><code class="language-js"><span class="token keyword">import</span> <span class="token string">'/sparky/module.js'</span><span class="token punctuation">;</span></code></pre>
-<p>Sparky registers the <code>is="sparky-template"</code> custom element. Sparky templates
-in the DOM are automatically replaced with their own rendered content:</p>
-<pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span> <span class="token attr-name">is</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>sparky-template<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>
-    Hello!
-<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span></code></pre>
-<pre><code class="language-html">Hello!</code></pre>
-<p>Sparky templates extend HTML with 3 features: <strong>template tags</strong>, <strong>functions</strong>
-and <strong>includes</strong>.</p>
-</article>
-
+            
         </div>
 
         <div class="x-1 xspan-3">
             <h3 class="text-3">tags.</h3>
-
-    <article class="toggle-block block active" id="path-pipe-params">
-        <h3 class="text-5 ">
+            
+    <article class="section-doc-toggle-block doc-toggle-block toggle-block block active" id="section-path-pipe-params">
+        <h3 class="doctext-05 ">
             <code class="function language-js">{[path|pipe:params]}</code>
         </h3>
     <p>Template tags are made of three parts. Values are read from <code>path</code> in the
@@ -183,9 +219,9 @@ an unmatched type.</p>
 
         <div class="x-1 xspan-3 @2-x-4">
             <h3 class="text-3">functions.</h3>
-
-    <article class="toggle-block block active" id="fn">
-        <h3 class="text-5 ">
+            
+    <article class="section-doc-toggle-block doc-toggle-block toggle-block block active" id="section-fn">
+        <h3 class="doctext-05 ">
             <code class="function language-js">fn="name:params"</code>
         </h3>
     <p>A <code>fn</code> attribute declares one or more functions to run on a template.
@@ -213,9 +249,9 @@ array of keywords and generate a list:</p>
 
         <div class="x-1 xspan-3 @2-x-7">
             <h3 class="text-3">includes.</h3>
-
-    <article class="toggle-block block active" id="src">
-        <h3 class="text-5 ">
+            
+    <article class="section-doc-toggle-block doc-toggle-block toggle-block block active" id="section-src">
+        <h3 class="doctext-05 ">
             <code class="function language-js">src="#id"</code>
         </h3>
     <p>Sparky extends <code>&lt;template&gt;</code> elements (and <code>&lt;use&gt;</code> elements in SVG) with a <code>src</code>
@@ -258,10 +294,10 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
     <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable="" id="built-ins">
         <div class="x-1 xspan-3">
             <h2 class="text-3">built-in functions.</h2>
-
-    <article class="toggle-block block" toggleable="" id="each">
-        <h3 class="text-5 ">
-            <a href="#each">
+            
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-each">
+        <h3 class="doctext-05 ">
+            <a href="#fn-each">
                 <code class="language-js">each</code>
             </a>
         </h3>
@@ -277,9 +313,9 @@ with id <code>no-keywords</code> is rendered in place of <code>my-template</code
 on each clone.</p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="entries">
-        <h3 class="text-5 ">
-            <a href="#entries">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-entries">
+        <h3 class="doctext-05 ">
+            <a href="#fn-entries">
                 <code class="language-js">entries</code>
             </a>
         </h3>
@@ -293,9 +329,9 @@ on each clone.</p>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ul</span><span class="token punctuation">&gt;</span></span></code></pre>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="fetch">
-        <h3 class="text-5 ">
-            <a href="#fetch">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-fetch">
+        <h3 class="doctext-05 ">
+            <a href="#fn-fetch">
                 <code class="language-js">fetch: url</code>
             </a>
         </h3>
@@ -304,9 +340,9 @@ on each clone.</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>p</span><span class="token punctuation">&gt;</span></span>Sparky!<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>p</span><span class="token punctuation">&gt;</span></span></code></pre>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="get">
-        <h3 class="text-5 ">
-            <a href="#get">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-get">
+        <h3 class="doctext-05 ">
+            <a href="#fn-get">
                 <code class="language-js">get: path</code>
             </a>
         </h3>
@@ -315,9 +351,9 @@ on each clone.</p>
 <pre><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>a</span> <span class="token attr-name">href</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>https://github.com/cruncher/sparky.git<span class="token punctuation">"</span></span><span class="token punctuation">&gt;</span></span>Git repository<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>a</span><span class="token punctuation">&gt;</span></span></code></pre>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="stop">
-        <h3 class="text-5 ">
-            <a href="#stop">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-stop">
+        <h3 class="doctext-05 ">
+            <a href="#fn-stop">
                 <code class="language-js">stop</code>
             </a>
         </h3>
@@ -330,28 +366,28 @@ to ignore blocks of static HTML inside a Sparky template.</p>
 
         <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
             <h2 class="text-3">built-in pipes.</h2>
-
-    <article class="toggle-block block" toggleable="" id="is">
-        <h3 class="text-5 ">
-            <a href="#is">
+            
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-is">
+        <h3 class="doctext-05 ">
+            <a href="#fn-is">
                 <code class="language-js">is: value</code>
             </a>
         </h3>
     <p>Returns <code>true</code> where value is strictly equal to <code>value</code>, otherwise <code>false</code>. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="has">
-        <h3 class="text-5 ">
-            <a href="#has">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-has">
+        <h3 class="doctext-05 ">
+            <a href="#fn-has">
                 <code class="language-js">has: property</code>
             </a>
         </h3>
     <p>Returns <code>true</code> where value is an object with <code>property</code>, otherwise <code>false</code>. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="matches">
-        <h3 class="text-5 ">
-            <a href="#matches">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-matches">
+        <h3 class="doctext-05 ">
+            <a href="#fn-matches">
                 <code class="language-js">matches: selector</code>
             </a>
         </h3>
@@ -364,40 +400,40 @@ properties are matched against those of <code>selector</code>.</p>
 <pre><code class="language-html">{[ .|matches:{key: 3} ]}  // `true` if value.key is `3`.</code></pre>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="class">
-        <h3 class="text-5 ">
-            <a href="#class">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-class">
+        <h3 class="doctext-05 ">
+            <a href="#fn-class">
                 <code class="language-js">class</code>
             </a>
         </h3>
     <p>Renders the Class – the name of the constructor – of value. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="type">
-        <h3 class="text-5 ">
-            <a href="#type">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-type">
+        <h3 class="doctext-05 ">
+            <a href="#fn-type">
                 <code class="language-js">type</code>
             </a>
         </h3>
     <p>Renders <code>typeof</code> value. </p>
 </article>
 
-    <h3 class="text-4">Booleans </h3>
+    <h3 class="doctext-04">Booleans </h3>
 
-    <article class="toggle-block block" toggleable="" id="yesno">
-        <h3 class="text-5 ">
-            <a href="#yesno">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-yesno">
+        <h3 class="doctext-05 ">
+            <a href="#fn-yesno">
                 <code class="language-js">yesno: a, b</code>
             </a>
         </h3>
     <p>Where value is truthy renders <code>a</code>, otherwise <code>b</code>. </p>
 </article>
 
-    <h3 class="text-4">Numbers </h3>
+    <h3 class="doctext-04">Numbers </h3>
 
-    <article class="toggle-block block" toggleable="" id="add">
-        <h3 class="text-5 ">
-            <a href="#add">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-add">
+        <h3 class="doctext-05 ">
+            <a href="#fn-add">
                 <code class="language-js">add: n</code>
             </a>
         </h3>
@@ -413,27 +449,27 @@ seconds:</p>
 <pre><code class="language-html">{[ time|add:'-01:00:20' ]}</code></pre>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="floor">
-        <h3 class="text-5 ">
-            <a href="#floor">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-floor">
+        <h3 class="doctext-05 ">
+            <a href="#fn-floor">
                 <code class="language-js">floor</code>
             </a>
         </h3>
     <p>Floors a number. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="root">
-        <h3 class="text-5 ">
-            <a href="#root">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-root">
+        <h3 class="doctext-05 ">
+            <a href="#fn-root">
                 <code class="language-js">root: n</code>
             </a>
         </h3>
     <p>Returns the <code>n</code>th root of value. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="normalise">
-        <h3 class="text-5 ">
-            <a href="#normalise">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-normalise">
+        <h3 class="doctext-05 ">
+            <a href="#fn-normalise">
                 <code class="language-js">normalise: curve, min, max</code>
             </a>
         </h3>
@@ -441,9 +477,9 @@ seconds:</p>
     <code>max</code> mapped to a <code>curve</code>, which is one of <code>linear</code>, <code>quadratic</code>, <code>exponential</code>. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="denormalise">
-        <h3 class="text-5 ">
-            <a href="#denormalise">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-denormalise">
+        <h3 class="doctext-05 ">
+            <a href="#fn-denormalise">
                 <code class="language-js">denormalise: curve, min, max</code>
             </a>
         </h3>
@@ -451,9 +487,9 @@ seconds:</p>
     reverse mapped to <code>curve</code>, which is one of <code>linear</code>, <code>quadratic</code>, <code>exponential</code>. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="to-db">
-        <h3 class="text-5 ">
-            <a href="#to-db">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-to-db">
+        <h3 class="doctext-05 ">
+            <a href="#fn-to-db">
                 <code class="language-js">to-db</code>
             </a>
         </h3>
@@ -461,27 +497,27 @@ seconds:</p>
     two-way binding, transforms them back a number in nominal range. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="to-cartesian">
-        <h3 class="text-5 ">
-            <a href="#to-cartesian">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-to-cartesian">
+        <h3 class="doctext-05 ">
+            <a href="#fn-to-cartesian">
                 <code class="language-js">to-cartesian</code>
             </a>
         </h3>
     <p>Transforms a polar coordinate array to cartesian coordinates. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="to-polar">
-        <h3 class="text-5 ">
-            <a href="#to-polar">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-to-polar">
+        <h3 class="doctext-05 ">
+            <a href="#fn-to-polar">
                 <code class="language-js">to-polar</code>
             </a>
         </h3>
     <p>Transforms a polar coordinate array to cartesian coordinates. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="floatformat">
-        <h3 class="text-5 ">
-            <a href="#floatformat">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-floatformat">
+        <h3 class="doctext-05 ">
+            <a href="#fn-floatformat">
                 <code class="language-js">floatformat: n</code>
             </a>
         </h3>
@@ -489,29 +525,29 @@ seconds:</p>
     two-way binding, gaurantees numbers are set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="floatprecision">
-        <h3 class="text-5 ">
-            <a href="#floatprecision">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-floatprecision">
+        <h3 class="doctext-05 ">
+            <a href="#fn-floatprecision">
                 <code class="language-js">floatprecision: n</code>
             </a>
         </h3>
     <p>Converts number to string representing number to precision <code>n</code>. </p>
 </article>
 
-    <h3 class="text-4">Dates </h3>
+    <h3 class="doctext-04">Dates </h3>
 
-    <article class="toggle-block block" toggleable="" id="add">
-        <h3 class="text-5 ">
-            <a href="#add">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-add">
+        <h3 class="doctext-05 ">
+            <a href="#fn-add">
                 <code class="language-js">add: yyyy-mm-dd</code>
             </a>
         </h3>
     <p>Adds ISO formatted <code>yyyy-mm-dd</code> to a date value, returning a new date. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="dateformat">
-        <h3 class="text-5 ">
-            <a href="#dateformat">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-dateformat">
+        <h3 class="doctext-05 ">
+            <a href="#fn-dateformat">
                 <code class="language-js">dateformat: yyyy-mm-dd</code>
             </a>
         </h3>
@@ -531,11 +567,11 @@ seconds:</p>
 <span class="token operator">-</span> <span class="token template-string"><span class="token string">`'ss'`</span></span>   seconds
 <span class="token operator">-</span> <span class="token template-string"><span class="token string">`'sss'`</span></span>  seconds <span class="token keyword">with</span> decimals</code></pre></article>
 
-    <h3 class="text-4">Times </h3>
+    <h3 class="doctext-04">Times </h3>
 
-    <article class="toggle-block block" toggleable="" id="add">
-        <h3 class="text-5 ">
-            <a href="#add">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-add">
+        <h3 class="doctext-05 ">
+            <a href="#fn-add">
                 <code class="language-js">add: duration</code>
             </a>
         </h3>
@@ -569,9 +605,9 @@ Use <span class="token template-string"><span class="token string">`timeformat`<
 Not that <span class="token template-string"><span class="token string">`duration`</span></span> must be quoted because it contains <span class="token string">':'</span> characters<span class="token punctuation">.</span>
 May be used <span class="token keyword">for</span> two<span class="token operator">-</span>way binding<span class="token punctuation">.</span></code></pre></article>
 
-    <article class="toggle-block block" toggleable="" id="timeformat">
-        <h3 class="text-5 ">
-            <a href="#timeformat">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-timeformat">
+        <h3 class="doctext-05 ">
+            <a href="#fn-timeformat">
                 <code class="language-js">timeformat: format</code>
             </a>
         </h3>
@@ -599,20 +635,20 @@ May be used <span class="token keyword">for</span> two<span class="token operato
 -13:57
 `</span></span><span class="token template-string"><span class="token string">``</span></span></code></pre></article>
 
-    <h3 class="text-4">Type converters </h3>
+    <h3 class="doctext-04">Type converters </h3>
 
-    <article class="toggle-block block" toggleable="" id="boolean-string">
-        <h3 class="text-5 ">
-            <a href="#boolean-string">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-boolean-string">
+        <h3 class="doctext-05 ">
+            <a href="#fn-boolean-string">
                 <code class="language-js">boolean-string</code>
             </a>
         </h3>
     <p>Transforms booleans to strings and vice versa. May by used for two-way binding. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="float-string">
-        <h3 class="text-5 ">
-            <a href="#float-string">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-float-string">
+        <h3 class="doctext-05 ">
+            <a href="#fn-float-string">
                 <code class="language-js">float-string</code>
             </a>
         </h3>
@@ -620,9 +656,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     gaurantees numbers are set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="floats-string">
-        <h3 class="text-5 ">
-            <a href="#floats-string">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-floats-string">
+        <h3 class="doctext-05 ">
+            <a href="#fn-floats-string">
                 <code class="language-js">floats-string: separator</code>
             </a>
         </h3>
@@ -630,9 +666,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     used for two-way binding, gaurantees an array of numbers is set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="int-string">
-        <h3 class="text-5 ">
-            <a href="#int-string">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-int-string">
+        <h3 class="doctext-05 ">
+            <a href="#fn-int-string">
                 <code class="language-js">int-string</code>
             </a>
         </h3>
@@ -640,9 +676,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     gaurantees integer numbers are set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="ints-string">
-        <h3 class="text-5 ">
-            <a href="#ints-string">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-ints-string">
+        <h3 class="doctext-05 ">
+            <a href="#fn-ints-string">
                 <code class="language-js">ints-string: separator</code>
             </a>
         </h3>
@@ -651,9 +687,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     numbers is set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="string-float">
-        <h3 class="text-5 ">
-            <a href="#string-float">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-string-float">
+        <h3 class="doctext-05 ">
+            <a href="#fn-string-float">
                 <code class="language-js">string-float</code>
             </a>
         </h3>
@@ -661,9 +697,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     gaurantees float strings are set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="string-int">
-        <h3 class="text-5 ">
-            <a href="#string-int">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-string-int">
+        <h3 class="doctext-05 ">
+            <a href="#fn-string-int">
                 <code class="language-js">string-int</code>
             </a>
         </h3>
@@ -671,9 +707,9 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     gaurantees integer strings are set on scope. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="json">
-        <h3 class="text-5 ">
-            <a href="#json">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-json">
+        <h3 class="doctext-05 ">
+            <a href="#fn-json">
                 <code class="language-js">json</code>
             </a>
         </h3>
@@ -681,56 +717,56 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     objects on scope. </p>
 </article>
 
-    <h3 class="text-4">Strings </h3>
+    <h3 class="doctext-04">Strings </h3>
 
-    <article class="toggle-block block" toggleable="" id="append">
-        <h3 class="text-5 ">
-            <a href="#append">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-append">
+        <h3 class="doctext-05 ">
+            <a href="#fn-append">
                 <code class="language-js">append: string</code>
             </a>
         </h3>
     <p>Returns value + <code>string</code>. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="prepend">
-        <h3 class="text-5 ">
-            <a href="#prepend">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-prepend">
+        <h3 class="doctext-05 ">
+            <a href="#fn-prepend">
                 <code class="language-js">prepend: string</code>
             </a>
         </h3>
     <p>Returns <code>string</code> + value. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="prepad">
-        <h3 class="text-5 ">
-            <a href="#prepad">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-prepad">
+        <h3 class="doctext-05 ">
+            <a href="#fn-prepad">
                 <code class="language-js">prepad: string, n</code>
             </a>
         </h3>
     <p>Prepends value with <code>string</code> until the output is <code>n</code> characters long. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="postpad">
-        <h3 class="text-5 ">
-            <a href="#postpad">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-postpad">
+        <h3 class="doctext-05 ">
+            <a href="#fn-postpad">
                 <code class="language-js">postpad: string, n</code>
             </a>
         </h3>
     <p>Appends value with <code>string</code> until the output is <code>n</code> characters long. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="slugify">
-        <h3 class="text-5 ">
-            <a href="#slugify">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-slugify">
+        <h3 class="doctext-05 ">
+            <a href="#fn-slugify">
                 <code class="language-js">slugify</code>
             </a>
         </h3>
     <p>Returns the slug of value. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="is-in">
-        <h3 class="text-5 ">
-            <a href="#is-in">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-is-in">
+        <h3 class="doctext-05 ">
+            <a href="#fn-is-in">
                 <code class="language-js">is-in: array</code>
             </a>
         </h3>
@@ -739,27 +775,27 @@ May be used <span class="token keyword">for</span> two<span class="token operato
 {[ path|is-in:[0,1] ]}
 `</span></span><span class="token template-string"><span class="token string">``</span></span></code></pre></article>
 
-    <article class="toggle-block block" toggleable="" id="localise">
-        <h3 class="text-5 ">
-            <a href="#localise">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-localise">
+        <h3 class="doctext-05 ">
+            <a href="#fn-localise">
                 <code class="language-js">localise: n</code>
             </a>
         </h3>
     <p>Localises a number to <code>n</code> digits. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="lowercase">
-        <h3 class="text-5 ">
-            <a href="#lowercase">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-lowercase">
+        <h3 class="doctext-05 ">
+            <a href="#fn-lowercase">
                 <code class="language-js">lowercase</code>
             </a>
         </h3>
     <p>Returns the lowercase string of value. </p>
 </article>
 
-    <article class="toggle-block block" toggleable="" id="pluralise">
-        <h3 class="text-5 ">
-            <a href="#pluralise">
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-pluralise">
+        <h3 class="doctext-05 ">
+            <a href="#fn-pluralise">
                 <code class="language-js">pluralise: str1, str2, lang</code>
             </a>
         </h3>
@@ -773,8 +809,8 @@ May be used <span class="token keyword">for</span> two<span class="token operato
         <div class="x-1 xspan-3 @2-xspan-5">
             <h2 class="text-2">Write a function</h2>
 
-
-    <h3 class="text-4">Sparky.fn</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
+            
+    <h3 class="doctext-04">Sparky.fn</h3><p>Sparky ‘functions’ are view-controllers with access to the node where they are
 declared and control over the flow of objects being sent to the renderer.</p>
 <pre><code><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
 
@@ -804,8 +840,8 @@ come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
 
             <h3 class="text-3">Examples</h3>
 
-
-    <h3 class="text-4">Examples</h3><p>Push a single scope object to the renderer:</p>
+            
+    <h3 class="doctext-04">Examples</h3><p>Push a single scope object to the renderer:</p>
 <pre><code><span class="token keyword">import</span> <span class="token punctuation">{</span> register<span class="token punctuation">,</span> Stream <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'./sparky/module.js'</span><span class="token punctuation">;</span>
 
 <span class="token function">register</span><span class="token punctuation">(</span><span class="token string">'my-scope'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> params<span class="token punctuation">)</span> <span class="token punctuation">{</span>
@@ -842,10 +878,10 @@ come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
             <h3 class="text-3">Function helpers</h3>
 
-
-    <article class="toggle-block block" toggleable="" id="delegate-types">
-        <h3 class="text-5 ">
-            <a href="#delegate-types">
+            
+    <article class="function-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="function-delegate-types">
+        <h3 class="doctext-05 ">
+            <a href="#function-delegate-types">
                 <code class="function language-js"><span class="token function">delegate</span><span class="token punctuation">(</span>types<span class="token punctuation">)</span></code>
             </a>
         </h3>
@@ -885,8 +921,8 @@ selectors).</p>
         <div class="x-1 xspan-3 @2-xspan-5">
             <h2 class="text-2">Write a pipe</h2>
 
-
-    <h3 class="text-4">Sparky.pipe</h3><p>Define a pipe using <code>Sparky.pipe(name, fn)</code>.</p>
+            
+    <h3 class="doctext-04">Sparky.pipe</h3><p>Define a pipe using <code>Sparky.pipe(name, fn)</code>.</p>
 <pre><code class="language-js"><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
 
 <span class="token comment">// Define {[.|my-pipe:param]}</span>
@@ -905,8 +941,8 @@ too expensive in a pipe to keep the render process fast.</p>
         <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
             <h3 class="text-3">Examples</h3>
 
-
-    <h3 class="text-4">Examples</h3><pre><code class="language-js"><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
+            
+    <h3 class="doctext-04">Examples</h3><pre><code class="language-js"><span class="token keyword">import</span> Sparky <span class="token keyword">from</span> <span class="token string">'./sparky/build/module.js'</span><span class="token punctuation">;</span>
 <span class="token keyword">const</span> tax <span class="token operator">=</span> <span class="token number">1.175</span><span class="token punctuation">;</span>
 
 <span class="token comment">// Define {[number|add-tax]}</span>
@@ -924,7 +960,7 @@ Sparky<span class="token punctuation">.</span><span class="token function">pipe<
         </header>
 
         <div class="x-1 xspan-3">
-
+            
         </div>
     </section>
 
@@ -934,7 +970,7 @@ Sparky<span class="token punctuation">.</span><span class="token function">pipe<
     </aside>
 
     <!-- Build document -->
-
+    
 
     <!-- Document interactivity -->
     <script type="module">

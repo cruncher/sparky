@@ -28,7 +28,7 @@ register('submit', function(node, params) {
         const url      = form.action || '';
         const mimetype = form.getAttribute('enctype') || 'application/json';
 
-        request(method, mimetype, url, scope);
+        request(method, url, scope, mimetype);
         //.then(function (data) {
         //    events.trigger(form, 'dom-submitted', {
         //        detail: data
