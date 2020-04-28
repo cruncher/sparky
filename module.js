@@ -28,7 +28,9 @@ import Sparky from './modules/sparky.js';
 
 // Register base set of Sparky functions
 import './modules/fn-after.js';
+import './modules/fn-before.js';
 import './modules/fn-append.js';
+import './modules/fn-prepend.js';
 import './modules/fn-debug.js';
 import './modules/fn-each.js';
 import './modules/fn-entries.js';

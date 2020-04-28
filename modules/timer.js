@@ -78,7 +78,8 @@ function fireEachDEBUG(queue) {
 			renderer.fire();
 		}
 		catch(e) {
-			throw new Error('failed to render ' + renderer.tokens.map(get('label')).join(', ') + '. ' + e.message);
+			throw e;
+			//throw new Error('failed to render ' + renderer.tokens.map(get('label')).join(', ') + '. ' + e.message);
 		}
 
 		renderCount += (renderer.renderCount - count);

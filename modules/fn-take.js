@@ -1,7 +1,13 @@
 
-import { take } from '../../fn/module.js';
+import { mutations, nothing, take } from '../../fn/module.js';
 import { register } from './fn.js';
 
 register('take', function(node, params) {
-    return this.map(take(params[0]));
+    return this
+    .scan((stream, object) => {
+        stream.stop();
+        return mutations('.', object)
+        .map(take(params[0]));
+    }, nothing)
+    .flat();
 });
