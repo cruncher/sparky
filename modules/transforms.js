@@ -63,7 +63,7 @@ function addType(n) {
 	const type = typeof n;
 	return type === 'string' ?
 		/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-		/^\d\d(?::|$)/.text(n) ? 'time' :
+		/^\d\d(?::|$)/.test(n) ? 'time' :
 		'string' :
 	type;
 }
