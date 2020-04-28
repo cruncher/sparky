@@ -177,7 +177,11 @@ seconds:
 */
 	add: {
 		tx: overload(addType, {
-			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
+			number: function(a, b) {
+				return typeof b === 'number' ? b + a :
+					b && b.add ? b.add(a) :
+					undefined ;
+			},
 			date: addDate,
 			time: addTime,
 			default: function(n) {
@@ -209,6 +213,10 @@ seconds:
 	normalise: {
 		tx: function (curve, min, max, number) {
 			const name = toCamelCase(curve);
+			if (!number) {
+				console.log('HELLO');
+				return;
+			}
 			return normalise[name](min, max, number);
 		},
 
