@@ -239,7 +239,7 @@ function setupSrc(src, input, firstRender, options, renderers) {
         const content = source.content ? source.content.cloneNode(true) :
             source instanceof SVGElement ? source.cloneNode(true) :
             undefined ;
-
+console.log('SETUP', source.innerHTML, content.innerHTML);
         return setupInclude(content, input, firstRender, options, renderers);
     }
 
@@ -266,7 +266,7 @@ function setupSrc(src, input, firstRender, options, renderers) {
 
 function setupInclude(content, input, firstRender, options, renderers) {
     var renderer;
-
+console.log('CONTENT', content)
     input.each((scope) => {
         if (renderer) {
             return renderer.push(scope);

@@ -459,8 +459,7 @@ const kinds = {
     textarea: 'string'
 };
 
-function mountTag(settings, node, renderers, options) {
-    var name    = tag(node);
+function mountTag(settings, node, name, renderers, options) {
     var setting = settings[name];
     if (!setting) { return; }
     if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
@@ -497,6 +496,13 @@ const mountNode = overload(getNodeType, {
             return;
         }
 
+        // Ignore SVG <defs>, which we consider as equivalent to the inert
+        // content of HTML <template>
+        var name = tag(node);
+        if (name === 'defs') {
+            return;
+        }
+
         // Get an immutable list of children. Remember node.childNodes is
         // dynamic, and we don't want to mount elements that may be dynamically
         // inserted, so turn childNodes into an array first.
@@ -511,7 +517,7 @@ const mountNode = overload(getNodeType, {
         && options.parse.default.attributes
         && mountAttributes(options.parse.default.attributes, node, renderers, options);
 
-        mountTag(options.parse, node, renderers, options);
+        mountTag(options.parse, node, name, renderers, options);
     },
 
     // text
