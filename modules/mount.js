@@ -277,7 +277,7 @@ function renderChecked(name, node, value) {
 
 
 // Mount
-var n = 0;
+
 function mountToken(source, render, renderers, options, node, name) {
     // Shortcut empty string
     if (!source) { return; }

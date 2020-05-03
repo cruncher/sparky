@@ -239,7 +239,7 @@ function setupSrc(src, input, firstRender, options, renderers) {
         const content = source.content ? source.content.cloneNode(true) :
             source instanceof SVGElement ? source.cloneNode(true) :
             undefined ;
-console.log('SETUP', source.innerHTML, content.innerHTML);
+
         return setupInclude(content, input, firstRender, options, renderers);
     }
 
@@ -266,7 +266,7 @@ console.log('SETUP', source.innerHTML, content.innerHTML);
 
 function setupInclude(content, input, firstRender, options, renderers) {
     var renderer;
-console.log('CONTENT', content)
+
     input.each((scope) => {
         if (renderer) {
             return renderer.push(scope);
@@ -448,13 +448,9 @@ export default function Sparky(selector, settings) {
 
     const options = assign({}, config, settings);
 
-    // Todo: attrFn is just for logging later on... get rid of, maybe?
     options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
-
-    // Keep hold of attrFn for debugging
-    //if (DEBUG) { var attrFn = options.fn; }
 
     this.label = makeLabel(target, options);
     this.renderCount = 0;
@@ -492,7 +488,7 @@ export default function Sparky(selector, settings) {
     options.fn  = null;
     options.src = null;
 
-    //if (DEBUG) { logNode(name, attrFn, options.src); }
+    if (DEBUG) { logNode(target, options.fn, options.src); }
 
     src ?
         name === 'use' ?
