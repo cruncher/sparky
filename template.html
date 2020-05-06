@@ -46,36 +46,36 @@
 </head>
 
 <body class="@3-12-grid grid">
-    <img class="x-1 xspan-3 @1-xspan-3 @3-x-2 @3-xspan-2" src="images/sparky-logo-dark.svg" />
+    <img class="x-1 3x @1-3x @3-x-2 @3-2x" src="images/sparky-logo-dark.svg" />
 
-    <header class="x-1 xspan-3 @2-xspan-6 @3-x-2" id="header">
+    <header class="x-1 3x @2-6x @3-x-2" id="header">
         <template build-fn="fetch:package.json" build-src="/fn/templates.html#header-template"></template>
     </header>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 grid" locateable id="functions">
-        <div class="x-1 xspan-3">
+    <section class="x-1 3x @1-6x @2-9x @3-x-2 grid" locateable id="functions">
+        <div class="x-1 3x">
             <h2 class="text-2">Sparky templates</h2>
             <template build-fn="docs:module.js each" build-src="/fn/templates.html#body-template"></template>
         </div>
 
-        <div class="x-1 xspan-3">
+        <div class="x-1 3x">
             <h3 class="text-3">tags.</h3>
             <template build-fn="docs:modules/parse.js?path-pipe-params each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-4">
+        <div class="x-1 3x @2-x-4">
             <h3 class="text-3">functions.</h3>
             <template build-fn="docs:modules/fn.js?fn each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-7">
+        <div class="x-1 3x @2-x-7">
             <h3 class="text-3">includes.</h3>
             <template build-fn="docs:modules/parse.js?src each" build-src="/fn/templates.html#section-template"></template>
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="built-ins">
-        <div class="x-1 xspan-3">
+    <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="built-ins">
+        <div class="x-1 3x">
             <h2 class="text-3">built-in functions.</h2>
             <template build-fn="docs:
             modules/fn-each.js,
@@ -86,14 +86,14 @@
             each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-4 @2-xspan-6 @2-columns-2">
+        <div class="x-1 3x @2-x-4 @2-6x @2-columns-2">
             <h2 class="text-3">built-in pipes.</h2>
             <template build-fn="docs:modules/transforms.js each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="customise">
-        <div class="x-1 xspan-3 @2-xspan-5">
+    <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="customise">
+        <div class="x-1 3x @2-5x">
             <h2 class="text-2">Write a function</h2>
 
             <template build-fn="docs:
@@ -107,7 +107,7 @@
             each" build-src="/fn/templates.html#title-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+        <div class="x-1 3x @2-x-6 @2-4x">
             <h3 class="text-3">Function helpers</h3>
 
             <template build-fn="docs:
@@ -116,8 +116,8 @@
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 column-grid grid" locateable id="customise">
-        <div class="x-1 xspan-3 @2-xspan-5">
+    <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="customise">
+        <div class="x-1 3x @2-5x">
             <h2 class="text-2">Write a pipe</h2>
 
             <template build-fn="docs:
@@ -125,7 +125,7 @@
             each" build-src="/fn/templates.html#title-template"></template>
         </div>
 
-        <div class="x-1 xspan-3 @2-x-6 @2-xspan-4">
+        <div class="x-1 3x @2-x-6 @2-4x">
             <h3 class="text-3">Examples</h3>
 
             <template build-fn="docs:
@@ -134,17 +134,17 @@
         </div>
     </section>
 
-    <section class="x-1 xspan-3 @1-xspan-6 @2-xspan-9 @3-x-2 columns-grid grid" locateable id="attributes">
-        <header class="x-1 xspan-3 @1-xspan-4 block">
+    <section class="x-1 3x @1-6x @2-9x @3-x-2 columns-grid grid" locateable id="attributes">
+        <header class="x-1 3x @1-4x block">
             <h2 class="text-2">API</h2>
         </header>
 
-        <div class="x-1 xspan-3">
+        <div class="x-1 3x">
             <template build-fn="docs:modules/sparky.js?Sparky each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 
-    <aside class="x-1 xspan-3 @2-x-2 @2-xspan-6 text-9">
+    <aside class="x-1 3x @2-x-2 @2-6x text-9">
         <h4 class="text-4">A note to the Django enthusiast</h4>
         <p>By now, you'll have noticed some similarities between Django and Sparky: template-led views, tags with filters and so on. Yes, Sparky was influenced by Django at <a href="https://cruncher.ch">Cruncher</a>, where we frequently write hybrid back-end/front-end templates, hence the similar syntax. They play quite nice together!</p>
     </aside>
