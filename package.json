@@ -1,7 +1,7 @@
 {
   "name": "sparky",
   "title": "Sparky",
-  "description": "Sparky is a live data-binding custom <template> element that features tags, composeable includes, functional views and a DOM renderer that batches updates to the browser frame rate.",
+  "description": "Sparky is a live data-binding custom <template> element with render tags, composeable includes, functional views and a DOM renderer that batches to the browser frame rate.",
   "version": "3.1.2",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
