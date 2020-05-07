@@ -26,7 +26,7 @@ body{
 	background-color: #c1e018;
 	background-color: #c4e018;
 	background-color: #c9e018;
-
+	background: #d2e018 linear-gradient(150deg, #d2e018, #cac11f);
 	padding-top: 3.75rem;
 }
 
