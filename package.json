@@ -3,7 +3,6 @@
   "title": "Sparky",
   "description": "Sparky is a live data-binding custom <template> element with render tags, composeable includes, functional views and a DOM renderer that batches changes to the browser frame rate.",
   "version": "3.1.2",
-  "homepage": "http://github.com/cruncher/sparky",
   "author": {
     "name": "stephband",
     "url": "https://stephen.band/",
@@ -32,6 +31,8 @@
     "http-server": "^0.12.1"
   },
   "module": "module.js",
+  "homepage": "https://stephen.band/sparky/",
+  "documentation": "https://stephen.band/sparky/",
   "image": "https://stephen.band/sparky/images/sparky-logo-bg-500.png",
   "scripts": {
     "lint": "eslint modules/*.js",
