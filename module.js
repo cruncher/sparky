@@ -19,6 +19,8 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://labs.cruncher.ch/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
+const DEBUG = window.DEBUG === true || window.DEBUG === 'sparky';
+
 import { requestTick } from '../fn/module.js';
 import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';

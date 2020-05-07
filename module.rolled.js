@@ -1,4 +1,4 @@
-/*
+/**
 cache(fn)
 Returns a function that caches the output values of `fn(input)`
 against input values in a map, such that for each input value
@@ -20,8 +20,9 @@ function cache(fn) {
     };
 }
 
-/*
+/**
 curry(fn [, muteable, arity])
+Returns a function that wraps `fn` and makes it partially applicable.
 */
 const A     = Array.prototype;
 
@@ -110,9 +111,9 @@ function curry(fn, muteable, arity) {
 
 var curry$1 = curry;
 
-/*
+/**
 rest(n, array)
-*/
+**/
 
 function rest(i, object) {
     if (object.slice) { return object.slice(i); }
@@ -124,7 +125,7 @@ function rest(i, object) {
     return a;
 }
 
-/*
+/**
 choose(fn, map)
 Returns a function that takes its first argument as a key and uses it
 to select a function in `map` which is invoked with the remaining arguments.
@@ -149,14 +150,14 @@ function choose(map) {
     };
 }
 
-/*
+/**
 noop()
 Returns undefined.
 */
 
 function noop() {}
 
-/*
+/**
 requestTick(fn)
 Call `fn` on the next tick.
 */
@@ -168,7 +169,7 @@ function requestTick(fn) {
     return fn;
 }
 
-/*
+/**
 toArray(object)
 */
 
@@ -196,7 +197,7 @@ function toArray(object) {
 const A$1 = Array.prototype;
 const S = String.prototype;
 
-/*
+/**
 by(fn, a, b)
 Compares `fn(a)` against `fn(b)` and returns `-1`, `0` or `1`. Useful for sorting
 objects by property:
@@ -204,7 +205,7 @@ objects by property:
 ```
 [{id: '2'}, {id: '1'}].sort(by(get('id')));  // [{id: '1'}, {id: '2'}]
 ```
-*/
+**/
 
 function by(fn, a, b) {
     const fna = fn(a);
@@ -212,9 +213,19 @@ function by(fn, a, b) {
     return fnb === fna ? 0 : fna > fnb ? 1 : -1 ;
 }
 
+/**
+byAlphabet(a, b)
+Compares `a` against `b` alphabetically using the current locale alphabet.
+**/
+
 function byAlphabet(a, b) {
     return S.localeCompare.call(a, b);
 }
+
+/**
+each(fn, array)
+Calls `fn` for each member in `array`.
+**/
 
 function each(fn, object) {
     // A stricter version of .forEach, where the callback fn
@@ -233,15 +244,32 @@ function each(fn, object) {
     return object;
 }
 
+/**
+map(fn, object)
+Delegates to `object.map` or `Array.map` to return a new collection of mapped
+values.
+**/
+
 function map(fn, object) {
     return object && object.map ? object.map(fn) : A$1.map.call(object, fn) ;
 }
+
+/**
+filter(fn, object)
+Delegates to `object.filter` or `Array.filter` to return a new collection of
+filtered objects.
+**/
 
 function filter(fn, object) {
     return object.filter ?
         object.filter(fn) :
         A$1.filter.call(object, fn) ;
 }
+
+/**
+reduce(fn, seed, object)
+Delegates to `object.reduce` or `Array.reduce` to return a reduced value.
+**/
 
 function reduce(fn, seed, object) {
     return object.reduce ?
@@ -252,6 +280,12 @@ function reduce(fn, seed, object) {
 function sort(fn, object) {
     return object.sort ? object.sort(fn) : A$1.sort.call(object, fn);
 }
+
+/**
+concat(array2, array1)
+Where JavaScript's Array.concat only works reliably on arrays, `concat`
+will glue together any old array-like object.
+**/
 
 function concat(array2, array1) {
     // A.concat only works with arrays - it does not flatten array-like
@@ -289,7 +323,7 @@ function slice(n, m, object) {
         A$1.slice.call(object, n, m) ;
 }
 
-/*
+/**
 call(fn)
 Returns a function that calls `fn()` with no arguments.
 */
@@ -298,7 +332,7 @@ function call(fn) {
     return fn();
 }
 
-/*
+/**
 exec(regex, fn, string)
 
 Calls `fn` with the result of `regex.exec(string)` if that result is not null,
@@ -359,7 +393,7 @@ function reduce$1(reducers, acc, tokens) {
         acc ;
 }
 
-/*
+/**
 capture(regex, reducers, accumulator, string)
 Parse `string` with `regex`, calling functions in `reducers` to modify
 and return `accumulator`.
@@ -412,7 +446,7 @@ function capture(regex, reducers, acc, string) {
 
 var capture$1 = curry$1(capture, true);
 
-/*
+/**
 choke(fn, time)
 
 Returns a function that waits for `time` seconds without being invoked
@@ -467,7 +501,7 @@ function choke(fn, time) {
 //		};
 //	}
 
-/*
+/**
 compose(fn2, fn1)
 Calls `fn1`, passes the result to `fn2`, and returns that result.
 */
@@ -575,7 +609,7 @@ function getPath(path, object) {
 
 var getPath$1 = curry$1(getPath, true);
 
-/*
+/**
 has(key, value, object)
 Returns `true` if `object[key]` is strictly equal to `value`.
 */
@@ -586,14 +620,14 @@ function has(key, value, object) {
 
 curry$1(has, true);
 
-/*
+/**
 id(value)
 Returns `value`.
 */
 
 function id(value) { return value; }
 
-/*
+/**
 invoke(name, parameters, object)
 Invokes `object.name()` with `parameters` as arguments. For example:
 
@@ -612,7 +646,7 @@ const is = Object.is || function is(a, b) { return a === b; };
 
 curry$1(is, true);
 
-/*
+/**
 isDefined(value)
 Check for value – where `value` is `undefined`, `NaN` or `null`, returns
 `false`, otherwise `true`.
@@ -630,7 +664,7 @@ function latest(source) {
     return value === undefined ? arguments[1] : latest(source, value) ;
 }
 
-/*
+/**
 matches(selector, object)
 Where `selector` is an object containing properties to be compared against
 properties of `object`. If they are all strictly equal, returns `true`,
@@ -651,7 +685,7 @@ function matches(object, item) {
 
 curry$1(matches, true);
 
-/*
+/**
 not(value)
 Returns `!value`.
 */
@@ -682,7 +716,7 @@ function now() {
     return +new Date() / 1000;
 }
 
-/*
+/**
 overload(fn, map)
 
 Returns a function that calls a function at the property of `object` that
@@ -714,7 +748,7 @@ function overload(fn, map) {
         } ;
 }
 
-/*
+/**
 parseInt(string)
 Parse to integer without having to worry about the radix parameter,
 making it suitable, for example, to use in `array.map(parseInt)`.
@@ -730,7 +764,7 @@ function apply(value, fn) {
     return fn(value);
 }
 
-/*
+/**
 pipe(fn1, fn2, ...)
 Returns a function that calls `fn1`, `fn2`, etc., passing the result of
 calling one function to the next and returning the the last result.
@@ -755,7 +789,7 @@ function privates(object) {
         })[$private] ;
 }
 
-/*
+/**
 set(key, object, value)
 
 ```
@@ -840,7 +874,7 @@ function setPath(path, object, value) {
 
 var setPath$1 = curry$1(setPath, true);
 
-/*
+/**
 toClass(object)
 */
 
@@ -850,7 +884,7 @@ function toClass(object) {
     return O.toString.apply(object).slice(8, -1);
 }
 
-/*
+/**
 toFixed(number)
 */
 
@@ -868,7 +902,7 @@ function toFixed(n, value) {
 
 curry$1(toFixed, true);
 
-/*
+/**
 toString(object)
 Returns `object.toString()`.
 */
@@ -877,7 +911,7 @@ function toString(object) {
 	return object.toString();
 }
 
-/*
+/**
 toType(object)
 Returns `typeof object`.
 */
@@ -885,6 +919,11 @@ Returns `typeof object`.
 function toType(object) {
     return typeof object;
 }
+
+/**
+prepend(string1, string2)
+Returns `str1 + str2`.
+**/
 
 function prepend(string1, string2) {
     return '' + string1 + string2;
@@ -941,9 +980,9 @@ function sortIndex(array, fn) {
     return i;
 }
 
-/* Properties */
+/** Properties */
 
-/*
+/**
 .status
 Reflects the running status of the stream. When all values have been consumed
 status is `'done'`.
@@ -1071,7 +1110,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .unshift(...values)
     Creates a buffer of values at the end of the stream that are read first.
     */
@@ -1220,7 +1259,7 @@ assign(Fn.prototype, {
         return stream;
     },
 
-    /*
+    /**
     .dedup()
 
     Filters out consecutive equal values.
@@ -1235,7 +1274,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .filter(fn)
 
     Filter values according to the truthiness of `fn(value)`.
@@ -1251,7 +1290,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .flat()
     Flattens a list of lists into a single list.
     */
@@ -1277,7 +1316,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .flatMap()
     Maps values to lists – `fn(value)` must return an array, stream
     or other type with a `.shift()` method – and flattens those lists into a
@@ -1293,7 +1332,7 @@ assign(Fn.prototype, {
         return this.map(fn).flat();
     },
 
-    /*
+    /**
     .latest()
 
     When the stream has a values buffered, passes the last value
@@ -1307,7 +1346,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .map(fn)
     Maps values to the result of `fn(value)`.
     */
@@ -1318,10 +1357,10 @@ assign(Fn.prototype, {
         }, this.shift));
     },
 
-    ///*
+    ///**
     //.chunk(n)
     //Batches values into arrays of length `n`.
-    //*/
+    //**/
 
     chunk: function(n) {
         return this
@@ -1392,7 +1431,7 @@ assign(Fn.prototype, {
         return this.scan(fn, seed).latest().shift();
     },
 
-    /*
+    /**
     .scan(fn, seed)
 
     Calls `fn(accumulator, value)` and emits `accumulator` for each value
@@ -1407,7 +1446,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .take(n)
 
     Filters the stream to the first `n` values.
@@ -1480,7 +1519,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .rest(n)
 
     Filters the stream to all values after the `n`th value.
@@ -1495,7 +1534,7 @@ assign(Fn.prototype, {
         });
     },
 
-    /*
+    /**
     .unique()
 
     Filters the stream to remove any value already emitted.
@@ -1540,7 +1579,7 @@ assign(Fn.prototype, {
         };
     },
 
-    /*
+    /**
     .pipe(stream)
 
     Pipes the current stream into `stream`.
@@ -1551,7 +1590,7 @@ assign(Fn.prototype, {
         return stream;
     },
 
-    /*
+    /**
     .tap(fn)
 
     Calls `fn(value)` for each value in the stream without modifying
@@ -1607,7 +1646,7 @@ if (window.Symbol) {
     };
 }
 
-/*
+/**
 Timer(duration, getTime)
 
 Create an object with a request/cancel pair of functions that
@@ -1867,9 +1906,9 @@ assign$1(StopSource.prototype, nothing, {
 });
 
 
-/* Construct */
+/** Construct */
 
-/*
+/**
 Stream(fn)
 
 Construct a new stream. `fn(push, stop)` is invoked when the stream is started,
@@ -1925,20 +1964,20 @@ function Stream$1(Source, buffer) {
 Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
     constructor: Stream$1,
 
-    /* Write */
+    /** Write */
 
-    /*
+    /**
     .push(value)
     Pushes a `value` (or multiple values) into the head of a writeable stream.
     If the stream is not writeable, it does not have a `.push()` method.
     */
 
-    /* Map */
+    /** Map */
 
     //.chunk(n)
     //Batches values into arrays of length `n`.
 
-    /*
+    /**
     .flat()
     Flattens a stream of streams or arrays into a single stream.
     */
@@ -1953,19 +1992,19 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return output;
     },
 
-    /*
+    /**
     .flatMap(fn)
     Maps values to lists – `fn(value)` must return an array, functor, stream
     (or any other duck with a `.shift()` method) and flattens those lists into a
     single stream.
     */
 
-    /*
+    /**
     .map(fn)
     Maps values to the result of `fn(value)`.
     */
 
-    /*
+    /**
     .merge(stream)
     Merges this stream with `stream`, which may be an array, array-like
     or functor.
@@ -1977,37 +2016,37 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return Stream$1.Merge.apply(null, sources);
     },
 
-    /*
+    /**
     .scan(fn, seed)
     Calls `fn(accumulator, value)` and emits `accumulator` for each value
     in the stream.
     */
 
 
-    /* Filter */
+    /** Filter */
 
-    /*
+    /**
     .dedup()
     Filters out consecutive equal values.
     */
 
-    /*
+    /**
     .filter(fn)
     Filter values according to the truthiness of `fn(value)`.
     */
 
-    /*
+    /**
     .latest()
     When the stream has a values buffered, passes the last value
     in the buffer.
     */
 
-    /*
+    /**
     .rest(n)
     Filters the stream to the `n`th value and above.
     */
 
-    /*
+    /**
     .take(n)
     Filters the stream to the first `n` values.
     */
@@ -2020,7 +2059,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
     //    return this.pipe(Stream.clock(timer));
     //},
 
-    /*
+    /**
     .throttle(time)
     Throttles values such that the latest value is emitted every `time` seconds.
     Other values are discarded. The parameter `time` may also be a timer options
@@ -2032,7 +2071,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this.pipe(Stream$1.throttle(timer));
     },
 
-    /*
+    /**
     .wait(time)
     Emits the latest value only after `time` seconds of inactivity.
     Other values are discarded.
@@ -2042,7 +2081,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this.pipe(Stream$1.Choke(time));
     },
 
-    /*
+    /**
     .combine(fn, stream)
     Combines the latest values from this stream and `stream` via the combinator
     `fn` any time a new value is emitted by either stream.
@@ -2055,9 +2094,9 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
     },
 
 
-    /* Read */
+    /** Read */
 
-    /*
+    /**
     .clone()
     Creates a read-only copy of the stream.
     */
@@ -2093,7 +2132,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         });
     },
 
-    /*
+    /**
     .each(fn)
     Thirstilly consumes the stream, calling `fn(value)` whenever
     a value is available.
@@ -2110,7 +2149,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this.on(() => Fn.prototype.each.apply(source, args));
     },
 
-    /*
+    /**
     .last(fn)
     Consumes the stream when stopped, calling `fn(value)` with the
     last value read from the stream.
@@ -2124,7 +2163,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this;
     },
 
-    /*
+    /**
     .fold(fn, accumulator)
     Consumes the stream when stopped, calling `fn(accumulator, value)`
     for each value in the stream. Returns a promise.
@@ -2151,16 +2190,16 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
             this.fold((acc, value) => (acc === undefined ? value : fn(acc, value)), this.shift()) ;
     },
 
-    /*
+    /**
     .shift()
     Reads a value from the stream. If no values are in the stream, returns
     `undefined`. If this is the last value in the stream, `stream.status`
     is `'done'`.
     */
 
-    /* Lifecycle */
+    /** Lifecycle */
 
-    /*
+    /**
     .done(fn)
     Calls `fn()` after the stream is stopped and all values have been drained.
     */
@@ -2177,7 +2216,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this;
     },
 
-    /*
+    /**
     .start()
     If the stream's producer is startable, starts the stream.
     */
@@ -2188,7 +2227,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
         return this;
     },
 
-    /*
+    /**
     .stop()
     Stops the stream. No more values can be pushed to the stream and any
     consumers added will do nothing. However, depending on the stream's source
@@ -2248,7 +2287,7 @@ Stream$1.prototype = assign$1(Object.create(Fn.prototype), {
 });
 
 
-/*
+/**
 Stream.from(values)
 Returns a writeable stream that consumes the array or array-like `values` as
 its buffer.
@@ -2264,7 +2303,7 @@ Stream$1.from = function(values) {
 };
 
 
-/*
+/**
 Stream.fromPromise(promise)
 Returns a stream that uses the given promise as its source. When the promise
 resolves the stream is given its value and stopped. If the promise errors
@@ -2390,7 +2429,7 @@ assign$1(TimeSource.prototype, {
 });
 
 
-/*
+/**
 Stream.fromTimer(timer)
 Create a stream from a `timer` object. A `timer` is an object
 with the properties:
@@ -2424,7 +2463,7 @@ Stream$1.fromTimer = function TimeStream(timer) {
 };
 
 
-/*
+/**
 Stream.of(...values)
 Returns a stream that consumes arguments as a buffer. The stream is pushable.
 */
@@ -2631,10 +2670,10 @@ Stream$1.throttle = function(timer) {
     });
 };
 
-/*
+/**
 remove(array, value)
 Remove `value` from `array`. Where `value` is not in `array`, does nothing.
-*/
+**/
 
 function remove(array, value) {
     if (array.remove) { array.remove(value); }
@@ -2871,12 +2910,12 @@ function isObservable(object) {
 		&& !ArrayBuffer.isView(object) ;
 }
 
-/*
+/**
 Observer(object)
 Create an Observer proxy around `object`. In order for `observe(...)` to detect
 mutations, changes must be made to this proxy rather than the original
 `object`.
-*/
+**/
 
 function Observer(object) {
 	return !object ? undefined :
@@ -2897,12 +2936,12 @@ function Target(object) {
 		|| object ;
 }
 
-/*
+/**
 parseSelector(string)
 
 Takes a string of the form '[key=value, ... ]' and returns a function isMatch
 that returns true when passed an object that matches the selector.
-*/
+**/
 
 //                 1 key                 2 quote 3 value           4 comma 5 closing bracket
 const rselector = /^([^\]=,\s]+)\s*(?:=\s*(['"])?([^\]=,\s]+)\2\s*)?(?:(,)|(])(\s*\.$)?)\s*/;
@@ -3116,7 +3155,7 @@ function observeUnknown(object, path, data) {
         readSelector(object, isMatch, path, data) ;
 }
 
-/*
+/**
 observe(path, fn, object [, init])
 
 Observe `path` in `object` and call `fn(value)` with the value at the
@@ -3131,7 +3170,7 @@ callback to be called.
 (To force the callback to always be called on setup, pass in `NaN` as an
 `init` value. In JS `NaN` is not equal to anything, even `NaN`, so it
 always initialises.)
-*/
+**/
 
 function observe(path, fn, object, initialValue) {
     return observeUnknown(Observer(object) || object, path + '', {
@@ -3173,17 +3212,21 @@ function mutations(path, object) {
 	});
 }
 
-/*
-.append(str2, str1)
+/**
+append(str2, str1)
+Returns `str1 + str2`.
+**/
 
-Returns `str1 + str2` as string.
-*/
-
-function append(string1, string2) {
-    return '' + string2 + string1;
+function append(string2, string1) {
+    return '' + string1 + string2;
 }
 
 curry$1(append);
+
+/**
+prepad(chars, n, string)
+Pads `string` to `n` characters by prepending `chars`.
+**/
 
 function prepad(chars, n, value) {
     var string = value + '';
@@ -3200,6 +3243,11 @@ function prepad(chars, n, value) {
 
 curry$1(prepad);
 
+/**
+postpad(chars, n, string)
+Pads `string` to `n` characters by appending `chars`.
+**/
+
 function postpad(chars, n, value) {
     var string = value + '';
 
@@ -3212,13 +3260,15 @@ function postpad(chars, n, value) {
 
 curry$1(postpad);
 
-/*
+/**
 slugify(string)
 
 Replaces any series of non-word characters with a `'-'` and lowercases the rest.
 
+```js
     slugify('Party on #mydudes!') // 'party-on-mydudes'
-*/
+```
+**/
 
 function slugify(string) {
     if (typeof string !== 'string') { return; }
@@ -3229,6 +3279,11 @@ function slugify(string) {
     .replace(/[\W_]+$/, '')
     .replace(/[\W_]+/g, '-');
 }
+
+/**
+toCamelCase(string)
+Capitalises any Letter following a `'-'` and removes the dash.
+**/
 
 function toCamelCase(string) {
     // Be gracious in what we accept as input
@@ -3249,11 +3304,11 @@ function ap(data, fns) {
 	}
 }
 
-/*
+/**
 insert(fn, array, object)
 Inserts `object` into `array` at the first index where the result of
 `fn(object)` is greater than `fn(array[index])`.
-*/
+**/
 
 const A$5 = Array.prototype;
 
@@ -3266,9 +3321,9 @@ function insert(fn, array, object) {
     return object;
 }
 
-/*
+/**
 take(n, array)
-*/
+**/
 
 function take(i, object) {
     if (object.slice) { return object.slice(0, i); }
@@ -3280,7 +3335,7 @@ function take(i, object) {
     return a;
 }
 
-/*
+/**
 update(create, destroy, fn, target, source)
 
 Returns a new array containing items that are either matched objects from
@@ -3288,7 +3343,7 @@ Returns a new array containing items that are either matched objects from
 new objects created by calling `create` on a `source` object. Any objects
 in `target` that are not matched to `source` objects are destroyed by calling
 `destroy` on them.
-*/
+**/
 
 const assign$2 = Object.assign;
 
@@ -3322,6 +3377,10 @@ function update(create, destroy, fn, target, source) {
 
     return output;
 }
+
+/**
+diff(array1, array2)
+**/
 
 function diff(array, object) {
     var values = toArray(array);
@@ -3357,10 +3416,10 @@ function unite(array, object) {
     .concat(values);
 }
 
-/*
+/**
 last(array)
 Gets the last value from an array.
-*/
+**/
 
 function last(array) {
     if (typeof array.length === 'number') {
@@ -3377,17 +3436,18 @@ function exp(n, x) { return Math.pow(n, x); }
 function log(n, x) { return Math.log(x) / Math.log(n); }
 function root(n, x) { return Math.pow(x, 1/n); }
 
-/*
-limit(min, max, n)
-*/
+/**
+clamp(min, max, n)
+**/
 
 function limit(min, max, n) {
+    console.trace('Deprecated: Fn limit() is now clamp()');
     return n > max ? max : n < min ? min : n;
 }
 
-/*
+/**
 wrap(min, max, n)
-*/
+**/
 
 function wrap(min, max, n) {
     return (n < min ? max : min) + (n - min) % (max - min);
@@ -3404,9 +3464,9 @@ const curriedRoot  = curry$1(root);
 const curriedLimit = curry$1(limit);
 const curriedWrap  = curry$1(wrap);
 
-/*
+/**
 todB(level)
-*/
+**/
 
 // A bit disturbingly, a correction factor is needed to make todB() and
 // to toLevel() reciprocate more accurately. This is quite a lot to be off
@@ -3415,31 +3475,31 @@ const dBCorrectionFactor = (60 / 60.205999132796244);
 
 function todB(n)    { return 20 * Math.log10(n) * dBCorrectionFactor; }
 
-/*
+/**
 toLevel(dB)
-*/
+**/
 
 function toLevel(n) { return Math.pow(2, n / 6); }
 
-/*
+/**
 toRad(deg)
-*/
+**/
 
 const angleFactor = 180 / Math.PI;
 
 function toRad(n) { return n / angleFactor; }
 
-/*
+/**
 toDeg(rad)
-*/
+**/
 
 function toDeg(n)   { return n * angleFactor; }
 
-/*
+/**
 gcd(a, b)
 
 Returns the greatest common divider of a and b.
-*/
+**/
 
 function gcd(a, b) {
     return b ? gcd(b, a % b) : a;
@@ -3447,11 +3507,11 @@ function gcd(a, b) {
 
 const curriedGcd = curry$1(gcd);
 
-/*
+/**
 lcm(a, b)
 
 Returns the lowest common multiple of a and b.
-*/
+**/
 
 function lcm(a, b) {
     return a * b / gcd(a, b);
@@ -3459,13 +3519,13 @@ function lcm(a, b) {
 
 const curriedLcm = curry$1(lcm);
 
-/*
+/**
 mod(divisor, n)
 
 JavaScript's modulu operator (`%`) uses Euclidean division, but for
 stuff that cycles through 0 the symmetrics of floored division are often
 are more useful. This function implements floored division.
-*/
+**/
 
 function mod(d, n) {
     var value = n % d;
@@ -3474,9 +3534,9 @@ function mod(d, n) {
 
 curry$1(mod);
 
-/*
+/**
 toPolar(cartesian)
-*/
+**/
 
 function toPolar(cartesian) {
     var x = cartesian[0];
@@ -3494,9 +3554,9 @@ function toPolar(cartesian) {
     ];
 }
 
-/*
+/**
 toCartesian(polar)
-*/
+**/
 
 function toCartesian(polar) {
     var d = polar[0];
@@ -3901,7 +3961,7 @@ var rdate     = /^(-?\d{4})(?:-(0[1-9]|1[012])(?:-(0[1-9]|[12]\d|3[01])(?:T([01]
 //                sign   year        month       day               T or -
 var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
 
-/*
+/**
 parseDate(date)
 Parse a date, where, `date` may be:
 
@@ -3923,7 +3983,7 @@ const parseDate = overload(toType, {
     }
 });
 
-/*
+/**
 parseDateLocal(date)
 As `parseDate(date)`, but returns a date object with local time set to the
 result of the parse (or the original date object, if it validates).
@@ -4142,7 +4202,7 @@ function _formatDate(string, timezone, locale, date) {
 	});
 }
 
-/*
+/**
 formatDateLocal(format, locale, date)
 */
 
@@ -4156,7 +4216,7 @@ function formatDateLocal(string, locale, date) {
 	});
 }
 
-/*
+/**
 formatDateISO(date)
 Formats `date` (a string or a number or date accepted by `parseDate(date)`) as
 a string in the ISO date format.
@@ -4175,7 +4235,7 @@ var days   = {
 
 var dayMap = [6,0,1,2,3,4,5];
 
-/*
+/**
 toDay(date)
 Returns day of week as a number, where monday is `0`.
 */
@@ -4184,7 +4244,7 @@ function toDay(date) {
 	return dayMap[date.getDay()];
 }
 
-/*
+/**
 cloneDate(date)
 Returns new date object set to same time.
 */
@@ -4338,7 +4398,7 @@ function _floorDate(token, date) {
 	    floorDateByGrain(token, date) ;
 }
 
-/*
+/**
 addDate(diff, date)
 Sums `diff` and `date`, where `diff` is a string in ISO date format. Returns
 a new date object.
@@ -4355,7 +4415,7 @@ const addDate = curry$1(function(diff, date) {
 
 const diffDateDays = curry$1(_diffDateDays);
 
-/*
+/**
 floorDate(token, date)
 Floors date to the start of nearest calendar point in time indicated by `token`:
 
@@ -4383,7 +4443,7 @@ const floorDate = curry$1(function(token, date) {
 	return _floorDate(token, parseDate(date));
 });
 
-/*
+/**
 formatDate(locale, timezone, format, date)
 Formats `date` (a string or number or date accepted by `parseDate(date)`)
 to the format of the string `format`. The format string may contain the tokens:
@@ -4445,7 +4505,7 @@ function prefix(n) {
 var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
 var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
 
-/*
+/**
 parseTime(time)
 
 Where `time` is a string it is parsed as a time in ISO time format: as
@@ -4529,7 +4589,7 @@ function toMaxDecimals(precision, n) {
 	return n.toFixed(precision).replace(/\.?0+$/, '');
 }
 
-/*
+/**
 formatTime(format, time)
 Formats `time` (an 'hh:mm:sss' time string or a number in seconds) to match
 `format`, a string that may contain the tokens:
@@ -4651,7 +4711,7 @@ const formatTime = curry$1(function(string, time) {
 		formatTimeString(string, parseTime(time)) ;
 });
 
-/*
+/**
 addTime(time1, time2)
 Sums `time2` and `time1`, returning UNIX time as a number in seconds.
 If `time1` is a string, it is parsed as a duration, where numbers
@@ -4675,7 +4735,7 @@ const diffTime = curry$1(function(time1, time2) {
 	return parseTime(time1) - parseTime(time2);
 });
 
-/*
+/**
 floorTime(token, time)
 Floors `time` to the nearest `token`, where `token` is one of: `'week'`, `'day'`,
 `'hour'`, `'minute'` or `'second'`. `time` may be an ISO time string or a time
@@ -4801,7 +4861,7 @@ const add = curry$1(function (a, b) {
     return a + b;
 });
 
-/*
+/**
 ready(fn)
 Calls `fn` on DOM content load, or if later than content load, immediately
 (on the next tick).
@@ -4825,7 +4885,7 @@ function now$1() {
    return window.performance.now() / 1000;
 }
 
-/*
+/**
 style(property, node)
 
 Returns the computed style `property` of `node`.
@@ -4906,86 +4966,93 @@ const runit = /(\d*\.?\d+)(r?em|vw|vh)/;
 //var rpercent = /(\d*\.?\d+)%/;
 
 const units = {
-	em: function(n) {
-		return getFontSize() * n;
-	},
+    em: function(n) {
+        return getFontSize() * n;
+    },
 
-	rem: function(n) {
-		return getFontSize() * n;
-	},
+    rem: function(n) {
+        return getFontSize() * n;
+    },
 
-	vw: function(n) {
-		return window.innerWidth * n / 100;
-	},
+    vw: function(n) {
+        return window.innerWidth * n / 100;
+    },
 
-	vh: function(n) {
-		return window.innerHeight * n / 100;
-	}
+    vh: function(n) {
+        return window.innerHeight * n / 100;
+    }
 };
 
 let fontSize;
 
 function getFontSize() {
-	return fontSize ||
-		(fontSize = style("font-size", document.documentElement), 10);
+    return fontSize ||
+        (fontSize = style("font-size", document.documentElement), 10);
 }
 
-/*
-toPx(value)`
+/**
+parseValue(value)`
 
 Takes a string of the form '10rem', '100vw' or '100vh' and returns a number in pixels.
 */
 
-const toPx = overload(toType, {
-	'number': id,
+const parseValue = overload(toType, {
+    'number': id,
 
-	'string': function(string) {
-		var data = runit.exec(string);
+    'string': function(string) {
+        var data = runit.exec(string);
 
-		if (data) {
-			return units[data[2]](parseFloat(data[1]));
-		}
+        if (data) {
+            return units[data[2]](parseFloat(data[1]));
+        }
 
-		throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
-	}
+        throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
+    }
 });
 
 
-/*
+/**
 toRem(value)
 
-Takes number in pixels and returns a string of the form '10rem'.
+Takes number in pixels or a CSS value as a string and returns a string
+of the form '10.25rem'.
 */
 
 function toRem(n) {
-	return (toPx(n) / getFontSize()) + 'rem';
+    return (parseValue(n) / getFontSize())
+        // Chrome needs 7 digit precision for accurate rendering
+        .toFixed(8)
+        // Remove trailing 0s
+        .replace(/\.?0*$/, '')
+        // Postfix
+        + 'rem';
 }
 
-/*
+/**
 toVw(value)
 
 Takes number in pixels and returns a string of the form '10vw'.
 */
 
 function toVw(n) {
-	return (100 * toPx(n) / window.innerWidth) + 'vw';
+    return (100 * parseValue(n) / window.innerWidth) + 'vw';
 }
 
-/*
+/**
 toVh(value)
 
 Takes number in pixels and returns a string of the form '10vh'.
 */
 
 function toVh(n) {
-	return (100 * toPx(n) / window.innerHeight) + 'vh';
+    return (100 * parseValue(n) / window.innerHeight) + 'vh';
 }
 
 const rules = [];
 
 const types = overload(toType, {
     'number':   id,
-    'string':   toPx,
+    'string':   parseValue,
     'function': function(fn) { return fn(); }
 });
 
@@ -5065,7 +5132,7 @@ window.addEventListener('resize', resize);
 ready$1(update$2);
 document.addEventListener('DOMContentLoaded', update$2);
 
-/*
+/**
 prefix(string)
 Returns a prefixed CSS property name where a prefix is required in the current
 browser.
@@ -5100,7 +5167,7 @@ function prefix$1(prop){
 
 const define$1 = Object.defineProperties;
 
-/*
+/**
 features
 
 An object of feature detection results.
@@ -5230,6 +5297,21 @@ var features = define$1({
 		})
 	}
 });
+
+/**
+element(name, options)
+
+- name: 'name'     Custom element tag name
+- options: {
+       extends:    Name of tag to extend, makes the element a custom built-in
+       shadow:     String or template node or id used to create a shadow DOM
+       attributes: A `{name: fn}` map called when named attributes change
+       properties: A `{name: {get, set}}` map called on named property access
+       construct:  Lifecycle handler called during element construction
+       connect:    Lifecycle handler called when element added to DOM
+       disconnect: Lifecycle handler called when element removed from DOM
+   }
+*/
 
 const shadowOptions = { mode: 'open' };
 
@@ -5393,7 +5475,7 @@ function element(name, options) {
     return Element;
 }
 
-/*
+/**
 escape(string)
 Escapes `string` for setting safely as HTML.
 */
@@ -5434,7 +5516,7 @@ function parse$1(type, string) {
 	return xml;
 }
 
-/*
+/**
 parseHTML(string)
 Returns an HTML document parsed from `string`, or undefined.
 */
@@ -5445,7 +5527,7 @@ function parseHTML(string) {
 
 // Types
 
-/*
+/**
 isFragmentNode(node)
 
 Returns `true` if `node` is a fragment.
@@ -5471,7 +5553,7 @@ function contains$2(child, node) {
 
 curry$1(contains$2, true);
 
-/*
+/**
 tag(node)
 
 Returns the tag name of `node`, in lowercase.
@@ -5527,7 +5609,7 @@ function select(selector, node) {
 
 var select$1 = curry$1(select, true);
 
-/*
+/**
 assign(node, properties)
 
 Assigns each property of `properties` to `node`, as a property where that
@@ -5585,7 +5667,7 @@ function assign$4(node, attributes) {
 
 var assign$5 = curry$1(assign$4, true);
 
-/*
+/**
 append(target, node)
 
 Appends `node`, which may be a string or DOM node, to `target`. Returns `node`.
@@ -5602,7 +5684,7 @@ function append$1(target, node) {
 
 var append$2 = curry$1(append$1, true);
 
-/*
+/**
 prepend(target, node)
 
 Prepends `node`, which may be a string or DOM node, to `target`. Returns `node`.
@@ -5619,7 +5701,7 @@ function prepend$2(target, node) {
 
 curry$1(prepend$2, true);
 
-/*
+/**
 clone(node)
 Returns a deep copy of `node`.
 */
@@ -5716,7 +5798,7 @@ function constructHTML(tag, html) {
 }
 
 
-/*
+/**
 create(tag, content)
 
 Constructs and returns a new DOM node.
@@ -5770,9 +5852,9 @@ var create$1 = overload(toTypes, {
 	}
 });
 
-/* DOM Mutation */
+/** DOM Mutation */
 
-/*
+/**
 remove(node)
 
 Removes `node` from the DOM.
@@ -5790,7 +5872,7 @@ function remove$2(node) {
 	return node;
 }
 
-/*
+/**
 before(target, node)
 
 Inserts `node` before target.
@@ -5801,7 +5883,7 @@ function before(target, node) {
 	return node;
 }
 
-/*
+/**
 after(target, node)
 
 Inserts `node` after `target`.
@@ -5812,7 +5894,7 @@ function after(target, node) {
 	return node;
 }
 
-/*
+/**
 replace(target, node)
 
 Swaps `target` for `node`.
@@ -5826,7 +5908,7 @@ function replace(target, node) {
 
 const classes = get$1('classList');
 
-/*
+/**
 addClass(class, node)
 Adds `'class'` to the classList of `node`.
 */
@@ -5835,7 +5917,7 @@ function addClass(string, node) {
 	classes(node).add(string);
 }
 
-/*
+/**
 removeClass(class, node)
 Removes `'class'` from the classList of `node`.
 */
@@ -5862,7 +5944,7 @@ function frameClass(string, node) {
 	requestFrame(2, () => list.remove(string));
 }
 
-/*
+/**
 rect(node)
 
 Returns a `DOMRect` object describing the draw rectangle of `node`.
@@ -5908,6 +5990,24 @@ function fragmentFromChildren(node) {
 	return fragment;
 }
 
+
+/**
+fragmentFromHTML(string)
+Returns a DOM fragment of the parsed html `string`.
+*/
+
+function fragmentFromHTML(html, contextTag) {
+    if (contextTag) {
+        const node = document.createElement(contextTag);
+        node.innerHTML = html;
+        return fragmentFromChildren(node);
+    }
+
+    return document
+    .createRange()
+    .createContextualFragment(html);
+}
+
 const assign$6      = Object.assign;
 const CustomEvent = window.CustomEvent;
 
@@ -5925,7 +6025,7 @@ const defaults    = {
 	//composed: false
 };
 
-/*
+/**
 Event(type, properties)
 
 Creates a CustomEvent of type `type`.
@@ -6004,7 +6104,7 @@ function unlisten(source, type) {
 	return source;
 }
 
-/*
+/**
 events(type, node)
 
 Returns a mappable stream of events heard on `node`:
@@ -6151,7 +6251,7 @@ function off(node, type, fn) {
 	return node;
 }
 
-/*
+/**
 trigger(type, node)
 
 Triggers event of `type` on `node`.
@@ -6274,7 +6374,7 @@ const keyCodes = Object.entries(keyStrings).reduce(function(object, entry) {
 	return object;
 }, {});
 
-/*
+/**
 transition(duration, fn)
 
 Calls `fn` on each animation frame until `duration` seconds has elapsed. `fn`
@@ -6342,111 +6442,111 @@ const assign$8 = Object.assign;
 config
 
 ```{
-	headers:    fn(data),    // Must return an object with properties to add to the header
-	body:       fn(data),    // Must return an object to send as data
-	onresponse: function(response)
+    headers:    fn(data),    // Must return an object with properties to add to the header
+    body:       fn(data),    // Must return an object to send as data
+    onresponse: function(response)
 }```
 */
 
 const config = {
     // Takes data, returns headers
-	headers: function(data) { return {}; },
+    headers: function(data) { return {}; },
 
-	// Takes data (can be FormData object or plain object), returns data
-	body: id,
+    // Takes data (can be FormData object or plain object), returns data
+    body: id,
 
-	// Takes response, returns response
-	onresponse: function(response) {
-		// If redirected, navigate the browser away from here. Can get
-		// annoying when receiving 404s, maybe not a good default...
-		if (response.redirected) {
-			window.location = response.url;
-			return;
-		}
+    // Takes response, returns response
+    onresponse: function(response) {
+        // If redirected, navigate the browser away from here. Can get
+        // annoying when receiving 404s, maybe not a good default...
+        if (response.redirected) {
+            window.location = response.url;
+            return;
+        }
 
-		return response;
-	}
+        return response;
+    }
 };
 
 const createHeaders = choose({
-	'application/x-www-form-urlencoded': function(headers) {
-		return assign$8(headers, {
-			"Content-Type": 'application/x-www-form-urlencoded',
-			"X-Requested-With": "XMLHttpRequest"
-		});
-	},
+    'application/x-www-form-urlencoded': function(headers) {
+        return assign$8(headers, {
+            "Content-Type": 'application/x-www-form-urlencoded',
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    },
 
-	'application/json': function(headers) {
-		return assign$8(headers, {
-			"Content-Type": "application/json; charset=utf-8",
-			"X-Requested-With": "XMLHttpRequest"
-		});
-	},
+    'application/json': function(headers) {
+        return assign$8(headers, {
+            "Content-Type": "application/json; charset=utf-8",
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    },
 
-	'multipart/form-data': function(headers) {
-		return assign$8(headers, {
-			"Content-Type": 'multipart/form-data',
-			"X-Requested-With": "XMLHttpRequest"
-		});
-	},
+    'multipart/form-data': function(headers) {
+        return assign$8(headers, {
+            "Content-Type": 'multipart/form-data',
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    },
 
-	'audio/wav': function(headers) {
-		return assign$8(headers, {
-			"Content-Type": 'audio/wav',
-			"X-Requested-With": "XMLHttpRequest"
-		});
-	},
+    'audio/wav': function(headers) {
+        return assign$8(headers, {
+            "Content-Type": 'audio/wav',
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    },
 
-	'default': function(headers) {
-		return assign$8(headers, {
-			"Content-Type": 'application/x-www-form-urlencoded',
-			"X-Requested-With": "XMLHttpRequest"
-		});
-	}
+    'default': function(headers) {
+        return assign$8(headers, {
+            "Content-Type": 'application/x-www-form-urlencoded',
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    }
 });
 
 const createBody = choose({
-	'application/json': function(data) {
-		return data.get ?
-			formDataToJSON(data) :
-			JSON.stringify(data);
-	},
+    'application/json': function(data) {
+        return data.get ?
+            formDataToJSON(data) :
+            JSON.stringify(data);
+    },
 
-	'application/x-www-form-urlencoded': function(data) {
-		return data.get ?
-			formDataToQuery(data) :
-			dataToQuery(data) ;
-	},
+    'application/x-www-form-urlencoded': function(data) {
+        return data.get ?
+            formDataToQuery(data) :
+            dataToQuery(data) ;
+    },
 
-	'multipart/form-data': function(data) {
-		// Mmmmmhmmm?
-		return data.get ?
+    'multipart/form-data': function(data) {
+        // Mmmmmhmmm?
+        return data.get ?
             data :
             dataToFormData() ;
-	}
+    }
 });
 
 function formDataToJSON(formData) {
-	return JSON.stringify(
-		// formData.entries() is an iterator, not an array
-		Array
-		.from(formData.entries())
-		.reduce(function(output, entry) {
-			output[entry[0]] = entry[1];
-			return output;
-		}, {})
-	);
+    return JSON.stringify(
+        // formData.entries() is an iterator, not an array
+        Array
+        .from(formData.entries())
+        .reduce(function(output, entry) {
+            output[entry[0]] = entry[1];
+            return output;
+        }, {})
+    );
 }
 
 function formDataToQuery(data) {
-	return new URLSearchParams(data).toString();
+    return new URLSearchParams(data).toString();
 }
 
 function dataToQuery(data) {
-	return Object.keys(data).reduce((params, key) => {
-		params.append(key, data[key]);
-		return params;
-	}, new URLSearchParams());
+    return Object.keys(data).reduce((params, key) => {
+        params.append(key, data[key]);
+        return params;
+    }, new URLSearchParams());
 }
 
 function dataToFormData(data) {
@@ -6454,99 +6554,117 @@ function dataToFormData(data) {
 }
 
 function urlFromData(url, data) {
-	// Form data
-	return data instanceof FormData ?
-		url + '?' + formDataToQuery(data) :
-		url + '?' + dataToQuery(data) ;
+    // Form data
+    return data instanceof FormData ?
+        url + '?' + formDataToQuery(data) :
+        url + '?' + dataToQuery(data) ;
 }
 
-function createOptions(method, mimetype, data, controller) {
-	return method === 'GET' ? {
-		method:  method,
-		headers: createHeaders(mimetype, config.headers ? config.headers(data) : {}),
-		credentials: 'same-origin',
-		signal: controller && controller.signal
-	} : {
-		method:  method,
-		// Process headers before body, allowing us to read a CSRFToken,
-        // which may be in data, in createHeaders() before removing it
-        // from data in body().
-		headers: createHeaders(mimetype, config.headers ? config.headers(data) : {}),
-		body:    createBody(mimetype, config.body ? config.body(data) : data),
-		credentials: 'same-origin',
-		signal: controller && controller.signal
-	} ;
+function createOptions(method, data, head, controller) {
+    const contentType = typeof head === 'string' ?
+        head :
+        head['Content-Type'] ;
+
+    const headers = createHeaders(contentType, assign$8(
+        config.headers && data ? config.headers(data) : {},
+        typeof head === 'string' ? nothing : head
+    ));
+
+    const options = {
+        method:  method,
+        headers: headers,
+        credentials: 'same-origin',
+        signal: controller && controller.signal
+    };
+
+    if (method !== 'GET') {
+        options.body = createBody(contentType, config.body ? config.body(data) : data);
+    }
+
+    return options;
 }
 
 const responders = {
-	'text/html': respondText,
-	'application/json': respondJSON,
-	'multipart/form-data': respondForm,
-	'application/x-www-form-urlencoded': respondForm,
-	'audio': respondBlob,
-	'audio/wav': respondBlob,
-	'audio/m4a': respondBlob
+    'text/html': respondText,
+    'application/json': respondJSON,
+    'multipart/form-data': respondForm,
+    'application/x-www-form-urlencoded': respondForm,
+    'audio': respondBlob,
+    'audio/wav': respondBlob,
+    'audio/m4a': respondBlob
 };
 
 function respondBlob(response) {
-	return response.blob();
+    return response.blob();
 }
 
 function respondJSON(response) {
-	return response.json();
+    return response.json();
 }
 
 function respondForm(response) {
-	return response.formData();
+    return response.formData();
 }
 
 function respondText(response) {
-	return response.text();
+    return response.text();
 }
 
 function respond(response) {
-	if (config.onresponse) {
-		response = config.onresponse(response);
-	}
+    if (config.onresponse) {
+        response = config.onresponse(response);
+    }
 
-	if (!response.ok) {
-		throw new Error(response.statusText + '');
-	}
+    if (!response.ok) {
+        throw new Error(response.statusText + '');
+    }
 
-	// Get mimetype from Content-Type, remembering to hoik off any
-	// parameters first
-	const mimetype = response.headers
-	.get('Content-Type')
-	.replace(/\;.*$/, '');
+    // Get mimetype from Content-Type, remembering to hoik off any
+    // parameters first
+    const mimetype = response.headers
+    .get('Content-Type')
+    .replace(/\;.*$/, '');
 
-	return responders[mimetype](response);
+    return responders[mimetype](response);
 }
 
 
-/*
-request(type, mimetype, url, data)
-*/
+/**
+request(type, url, data, mimetype | headers)
 
-function request(type = 'GET', mimetype = 'application/json', url, data) {
-	const method = type.toUpperCase();
+Uses `fetch()` to send a request to `url`. Where `type` is `"GET"`, `data` is
+serialised and appended to the URL, otherwise it is sent as a request body.
+The 4th parameter may be a content type string or a headers object (in which
+case it must have a `'Content-Type'` property).
+**/
 
-	// If this is a GET and there is data, append data to the URL query string
-	if (method === 'GET' && data) {
-		url = urlFromData(url, data);
-	}
+function request(type = 'GET', url, data, mimetype = 'application/json') {
+    if (url.startsWith('application/') || url.startsWith('multipart/') || url.startsWith('text/') || url.startsWith('audio/')) {
+        console.trace('request(type, url, data, mimetype) parameter order has changed. You passed (type, mimetype, url, data).');
+        url      = arguments[1];
+        data     = arguments[2];
+        mimetype = arguments[3];
+    }
 
-	// param[4] is an optional abort controller
-	return fetch(url, createOptions(method, mimetype, data, arguments[4]))
-	.then(respond);
+    const method = type.toUpperCase();
+
+    // If this is a GET and there is data, append data to the URL query string
+    if (method === 'GET' && data) {
+        url = urlFromData(url, data);
+    }
+
+    // param[4] is an optional abort controller
+    return fetch(url, createOptions(method, data, mimetype, arguments[4]))
+    .then(respond);
 }
 
-/*
+/**
 requestGet(url)
 A shortcut for `request('get', 'application/json', url)`
-*/
+**/
 
 function requestGet(url) {
-	return request('GET', 'application/json', url, {});
+    return request('GET', url);
 }
 
 if (window.console && window.console.log) {
@@ -6584,7 +6702,6 @@ const trigger$2 = curry$1(trigger$1, true);
 const delegate$1 = curry$1(delegate, true);
 const animate$1 = curry$1(animate, true);
 const transition$1 = curry$1(transition, true);
-const request$1 = curry$1(request, true, 4);
 
 // Debug mode on by default
 const DEBUG$3 = window.DEBUG === undefined || window.DEBUG;
@@ -6601,7 +6718,7 @@ var renderCount = 0;
 var frame;
 
 
-/* Console logging */
+/** Console logging */
 
 function tokenOrLabel(token) {
 	return typeof token === 'string' ? token : token.label;
@@ -6651,7 +6768,7 @@ function logRenders(tStart, tStop) {
 }
 
 
-/* The meat and potatoes */
+/** The meat and potatoes */
 
 function fireEachDEBUG(queue) {
 	var count, renderer;
@@ -6663,7 +6780,8 @@ function fireEachDEBUG(queue) {
 			renderer.fire();
 		}
 		catch(e) {
-			throw new Error('failed to render ' + renderer.tokens.map(get$1('label')).join(', ') + '. ' + e.message);
+			throw e;
+			//throw new Error('failed to render ' + renderer.tokens.map(get('label')).join(', ') + '. ' + e.message);
 		}
 
 		renderCount += (renderer.renderCount - count);
@@ -6863,7 +6981,7 @@ var config$1 = {
 const translations = {};
 
 const requestDocument = cache(function requestDocument(path) {
-    return request$1('GET', 'text/html', path, null)
+    return request('GET', path)
     .then(parseHTML);
 });
 
@@ -7022,7 +7140,7 @@ assign$9(Value.prototype, {
     },
 });
 
-/*
+/**
 parseParams(array, string)
 */
 
@@ -7118,7 +7236,7 @@ const parseParams = capture$1(/^\s*(?:(-?(?:\d*\.?\d+)(?:[eE][-+]?\d+)?)|"([^"\\
     }
 });
 
-/*
+/**
 parsePipe(array, string)
 */
 
@@ -7154,7 +7272,7 @@ const parsePipe = capture$1(/^\s*([\w-]+)\s*(:)?\s*/, {
     }
 });
 
-/*
+/**
 parseTag(string)
 */
 
@@ -7181,7 +7299,7 @@ const parseTag = capture$1(/^\s*([\w.-]*)\s*(\|)?\s*/, {
     catch: id
 }, undefined);
 
-/*
+/**
 parseToken(string)
 */
 
@@ -7206,7 +7324,7 @@ const parseToken = capture$1(/^\s*(\{\[)/, {
     catch: id
 }, undefined);
 
-/*
+/**
 parseBoolean(array, string)
 */
 
@@ -7223,7 +7341,7 @@ const parseBoolean = capture$1(/^\s*(?:(\{\[)|$)/, {
     catch: id
 });
 
-/*
+/**
 parseText(array, string)
 */
 
@@ -7255,7 +7373,7 @@ const parseText = capture$1(/^([\S\s]*?)(?:(\{\[)|$)/, {
     catch: noop
 });
 
-/*
+/**
 fn="name:params"
 
 A `fn` attribute declares one or more functions to run on a template.
@@ -7292,11 +7410,11 @@ array of keywords and generate a list:
 ```
 */
 
-/*
+/**
 Functions
 */
 
-/*
+/**
 Sparky.fn(name, fn)
 
 Sparky 'functions' are view-controllers with access to the node where they are
@@ -7331,7 +7449,7 @@ of the renderer is controlled by the state of that stream. Sparky's streams
 come from <a href="https://stephen.band/fn/#stream">stephen.band/fn/#stream</a>.
 */
 
-/*
+/**
 Examples
 
 Push a single scope object to the renderer:
@@ -7395,6 +7513,7 @@ function register(name, fn) {
     functions[name] = fn;
 }
 
+var DEBUG$5     = window.DEBUG === true || window.DEBUG === 'Sparky';
 var A$7         = Array.prototype;
 var S$1         = String.prototype;
 
@@ -7406,7 +7525,7 @@ function addType(n) {
 	const type = typeof n;
 	return type === 'string' ?
 		/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-		/^\d\d(?::|$)/.text(n) ? 'time' :
+		/^\d\d(?::|$)/.test(n) ? 'time' :
 		'string' :
 	type;
 }
@@ -7439,15 +7558,15 @@ function interpolateLinear(xs, ys, x) {
 
 const transformers = {
 
-	/* is: value
+	/** is: value
 	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
 	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
 
-	/* has: property
+	/** has: property
 	Returns `true` where value is an object with `property`, otherwise `false`. */
 	has: { tx: has },
 
-/*
+/**
 matches: selector
 
 Renders `true` if value matches `selector`. Behaviour is overloaded to accept
@@ -7473,17 +7592,17 @@ properties are matched against those of `selector`.
 		})
 	},
 
-	/* class:
+	/** class:
 	Renders the Class – the name of the constructor – of value. */
 	'class': { tx: toClass },
 
-	/* type:
+	/** type:
 	Renders `typeof` value. */
 	'type': { tx: toType },
 
-	/* Booleans */
+	/** Booleans */
 
-	/* yesno: a, b
+	/** yesno: a, b
 	Where value is truthy renders `a`, otherwise `b`. */
 	yesno: {
 		tx: function (truthy, falsy, value) {
@@ -7491,9 +7610,9 @@ properties are matched against those of `selector`.
 		}
 	},
 
-	/* Numbers */
+	/** Numbers */
 
-/* add: n
+/** add: n
 
 Adds `n` to value. Behaviour is overloaded to accept various types of 'n'.
 Where `n` is a number, it is summed with value. So to add 1 to any value:
@@ -7520,7 +7639,11 @@ seconds:
 */
 	add: {
 		tx: overload(addType, {
-			number: function(a, b) { return b.add ? b.add(a) : b + a ; },
+			number: function(a, b) {
+				return typeof b === 'number' ? b + a :
+					b && b.add ? b.add(a) :
+					undefined ;
+			},
 			date: addDate,
 			time: addTime,
 			default: function(n) {
@@ -7538,20 +7661,24 @@ seconds:
 		})
 	},
 
-	/* floor:
+	/** floor:
 	Floors a number. */
 	floor: { tx: Math.floor },
 
-	/* root: n
+	/** root: n
 	Returns the `n`th root of value. */
 	root: { tx: root, ix: pow },
 
-	/* normalise: curve, min, max
+	/** normalise: curve, min, max
 	Return a value in the nominal range `0-1` from a value between `min` and
 	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	normalise: {
 		tx: function (curve, min, max, number) {
 			const name = toCamelCase(curve);
+			if (!number) {
+				console.log('HELLO');
+				return;
+			}
 			return normalise[name](min, max, number);
 		},
 
@@ -7561,7 +7688,7 @@ seconds:
 		}
 	},
 
-	/* denormalise: curve, min, max
+	/** denormalise: curve, min, max
 	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
 	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
 	denormalise: {
@@ -7576,25 +7703,25 @@ seconds:
 		}
 	},
 
-	/* to-db:
+	/** to-db:
 	Transforms values in the nominal range `0-1` to dB scale, and, when used in
 	two-way binding, transforms them back a number in nominal range. */
 	'to-db': { tx: todB, ix: toLevel },
 
-	/* to-cartesian:
+	/** to-cartesian:
 	Transforms a polar coordinate array to cartesian coordinates. */
 	'to-cartesian': { tx: toCartesian, ix: toPolar },
 
-	/* to-polar:
+	/** to-polar:
 	Transforms a polar coordinate array to cartesian coordinates. */
 	'to-polar': { tx: toPolar, ix: toCartesian },
 
-	/* floatformat: n
+	/** floatformat: n
 	Transforms numbers to strings with `n` decimal places. Used for
 	two-way binding, gaurantees numbers are set on scope. */
 	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
 
-	/* floatprecision: n
+	/** floatprecision: n
 	Converts number to string representing number to precision `n`. */
 	floatprecision: {
 		tx: function (n, value) {
@@ -7606,12 +7733,12 @@ seconds:
 		ix: parseFloat
 	},
 
-	/* Dates */
+	/** Dates */
 
-	/* add: yyyy-mm-dd
+	/** add: yyyy-mm-dd
 	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
 
-	/* dateformat: yyyy-mm-dd
+	/** dateformat: yyyy-mm-dd
 	Converts an ISO date string, a number (in seconds) or a Date object
 	to a string date formatted with the symbols:
 
@@ -7631,9 +7758,9 @@ seconds:
 	*/
 	dateformat: { tx: formatDate },
 
-	/* Times */
+	/** Times */
 
-	/* add: duration
+	/** add: duration
 	Adds `duration`, an ISO-like time string, to a time value, and
 	returns a number in seconds.
 
@@ -7666,7 +7793,7 @@ seconds:
 	May be used for two-way binding.
 	*/
 
-	/* timeformat: format
+	/** timeformat: format
 	Formats value, which must be an ISO time string or a number in seconds, to
 	match `format`, a string that may contain the tokens:
 
@@ -7716,9 +7843,9 @@ seconds:
 	log:         { tx: log,         ix: exp },
 
 
-	/* Type converters */
+	/** Type converters */
 
-	/* boolean-string:
+	/** boolean-string:
 	Transforms booleans to strings and vice versa. May by used for two-way binding. */
 	'boolean-string': {
 		tx: function(value) {
@@ -7734,12 +7861,12 @@ seconds:
 		}
 	},
 
-	/* float-string:
+	/** float-string:
 	Transforms numbers to float strings, and, used for two-way binding,
 	gaurantees numbers are set on scope. */
 	'float-string': { tx: (value) => value + '', ix: parseFloat },
 
-	/* floats-string: separator
+	/** floats-string: separator
 	Transforms an array of numbers to a string using `separator`, and,
 	used for two-way binding, gaurantees an array of numbers is set on scope. */
 	'floats-string': {
@@ -7752,7 +7879,7 @@ seconds:
 		}
 	},
 
-	/* int-string:
+	/** int-string:
 	Transforms numbers to integer strings, and, used for two-way binding,
 	gaurantees integer numbers are set on scope. */
 	'int-string':   {
@@ -7760,7 +7887,7 @@ seconds:
 		ix: parseInteger
 	},
 
-	/* ints-string: separator
+	/** ints-string: separator
 	Transforms an array of numbers to a string of integers seperated with
 	`separator`, and, used for two-way binding, gaurantees an array of integer
 	numbers is set on scope. */
@@ -7774,17 +7901,17 @@ seconds:
 		}
 	},
 
-	/* string-float:
+	/** string-float:
 	Transforms strings to numbers, and, used for two-way binding,
 	gaurantees float strings are set on scope. */
 	'string-float': { tx: parseFloat, ix: toString },
 
-	/* string-int:
+	/** string-int:
 	Transforms strings to integer numbers, and, used for two-way binding,
 	gaurantees integer strings are set on scope. */
 	'string-int': { tx: parseInteger, ix: (value) => value.toFixed(0) },
 
-	/* json:
+	/** json:
 	Transforms objects to json, and used in two-way binding, sets parsed
 	objects on scope. */
 	json: { tx: JSON.stringify, ix: JSON.parse },
@@ -7813,10 +7940,10 @@ seconds:
 	deg:       { tx: toDeg, ix: toRad },
 	rad:       { tx: toRad, ix: toDeg },
 	level:     { tx: toLevel, ix: todB },
-	px:        { tx: toPx,  ix: toRem },
-	rem:       { tx: toRem, ix: toPx },
-	vw:        { tx: toVw,  ix: toPx },
-	vh:        { tx: toVh,  ix: toPx },
+	px:        { tx: parseValue, ix: toRem },
+	rem:       { tx: toRem, ix: parseValue },
+	vw:        { tx: toVw,  ix: parseValue },
+	vh:        { tx: toVh,  ix: parseValue },
     not:       { tx: not,   ix: not }
 };
 
@@ -7836,25 +7963,25 @@ const transforms = {
 	min:          Math.min,
 	mod:          mod,
 
-	/* Strings */
+	/** Strings */
 
-	/* append: string
+	/** append: string
 	Returns value + `string`. */
 	append:       append,
 
-	/* prepend: string
+	/** prepend: string
 	Returns `string` + value. */
 	prepend:      prepend,
 
-	/* prepad: string, n
+	/** prepad: string, n
 	Prepends value with `string` until the output is `n` characters long. */
 	prepad:       prepad,
 
-	/* postpad: string, n
+	/** postpad: string, n
 	Appends value with `string` until the output is `n` characters long. */
 	postpad:      postpad,
 
-	/* slugify:
+	/** slugify:
 	Returns the slug of value. */
 	slugify:      slugify,
 
@@ -7864,7 +7991,7 @@ const transforms = {
 	},
 
 
-	/* is-in: array
+	/** is-in: array
 	Returns `true` if value is contained in `array`, otherwise `false`.
 
 	```html
@@ -7893,7 +8020,7 @@ const transforms = {
 		return value1 < value2 ;
 	},
 
-	/* localise:n
+	/** localise:n
 	Localises a number to `n` digits. */
 	localise: function(digits, value) {
 		var locale = document.documentElement.lang;
@@ -7909,7 +8036,7 @@ const transforms = {
 	},
 
 
-	/* lowercase:
+	/** lowercase:
 	Returns the lowercase string of value. */
 	lowercase: function(value) {
 		if (typeof value !== 'string') { return; }
@@ -7944,7 +8071,7 @@ const transforms = {
 		return array && array.filter((value) => fn(...args, value));
 	},
 
-	/* pluralise: str1, str2, lang
+	/** pluralise: str1, str2, lang
 	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
 	pluralise: function(str1, str2, lang, value) {
 		if (typeof value !== 'number') { return; }
@@ -8016,6 +8143,23 @@ const transforms = {
 		return String.prototype.toUpperCase.apply(value);
 	}
 };
+
+function register$1(name, fn, inv) {
+	if (DEBUG$5 && transformers[name]) {
+		throw new Error('Sparky: transform already registered with name "' + name + '"');
+	}
+
+	if (inv) {
+		transformers[name] = { tx: fn, ix: inv };
+	}
+	else {
+		if (DEBUG$5 && transforms[name]) {
+			throw new Error('Sparky: transform already registered with name "' + name + '"');
+		}
+
+		transforms[name] = fn;
+	}
+}
 
 const assign$a  = Object.assign;
 
@@ -8455,7 +8599,7 @@ document.addEventListener('change', function(e) {
     fn(e.target.value);
 }, { capture: true });
 
-const DEBUG$5 = window.DEBUG === true || window.DEBUG === 'Sparky';
+const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const A$8      = Array.prototype;
 const assign$f = Object.assign;
@@ -8520,7 +8664,7 @@ function createPipe(array, pipes) {
         var fn = getTransform(data.name);
 
         if (!fn) {
-            if (DEBUG$5 && !pipes) {
+            if (DEBUG$6 && !pipes) {
                 throw new ReferenceError('Template pipe "' + data.name + '" not found.');
             }
 
@@ -8528,7 +8672,7 @@ function createPipe(array, pipes) {
             cache = localCache;
             fn = pipes[data.name];
 
-            if (DEBUG$5 && !fn) {
+            if (DEBUG$6 && !fn) {
                 throw new ReferenceError('Template pipe "' + data.name + '" not found.');
             }
         }
@@ -8720,6 +8864,10 @@ function renderChecked(name, node, value) {
     // Return DOM mod count
     return count;
 }
+
+
+// Mount
+
 function mountToken(source, render, renderers, options, node, name) {
     // Shortcut empty string
     if (!source) { return; }
@@ -8901,8 +9049,7 @@ const kinds = {
     textarea: 'string'
 };
 
-function mountTag(settings, node, renderers, options) {
-    var name    = tag(node);
+function mountTag(settings, node, name, renderers, options) {
     var setting = settings[name];
     if (!setting) { return; }
     if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
@@ -8939,6 +9086,13 @@ const mountNode = overload(getNodeType, {
             return;
         }
 
+        // Ignore SVG <defs>, which we consider as equivalent to the inert
+        // content of HTML <template>
+        var name = tag(node);
+        if (name === 'defs') {
+            return;
+        }
+
         // Get an immutable list of children. Remember node.childNodes is
         // dynamic, and we don't want to mount elements that may be dynamically
         // inserted, so turn childNodes into an array first.
@@ -8953,7 +9107,7 @@ const mountNode = overload(getNodeType, {
         && options.parse.default.attributes
         && mountAttributes(options.parse.default.attributes, node, renderers, options);
 
-        mountTag(options.parse, node, renderers, options);
+        mountTag(options.parse, node, name, renderers, options);
     },
 
     // text
@@ -8983,7 +9137,7 @@ const mountNode = overload(getNodeType, {
 });
 
 
-/*
+/**
 Mount(node, options)
 
 `const mount = Mount(node, options);`
@@ -9024,7 +9178,7 @@ assign$f(Mount.prototype, {
     }
 });
 
-const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
+const DEBUG$7 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const assign$g = Object.assign;
 
@@ -9087,7 +9241,7 @@ function run$1(context, node, input, options) {
         const fn = functions[result.name] || (options.functions && options.functions[result.name]);
 
         if (!fn) {
-            if (DEBUG$6) { console.groupEnd(); }
+            if (DEBUG$7) { console.groupEnd(); }
             throw new Error(
                 'Sparky function "'
                 + result.name
@@ -9351,7 +9505,7 @@ function setupTemplate(target, src, input, options, sparky, renderers) {
         // Otherwise content is a placemarker text node
         else {
             content = nodes[0] = target.content ?
-                DEBUG$6 ?
+                DEBUG$7 ?
                     create$1('comment', ' src="' + src + '" ') :
                     create$1('text', '') :
                 target ;
@@ -9388,7 +9542,7 @@ function invokeStop(renderer) {
     renderer.stop();
 }
 
-/*
+/**
 Sparky(nodeOrSelector)
 
 Mounts any element as a template and returns a pushable stream. Push an object
@@ -9420,7 +9574,7 @@ Results in:
 
 
 
-/*
+/**
 src=""
 
 Templates may include other templates. Define the `src` attribute
@@ -9464,13 +9618,9 @@ function Sparky(selector, settings) {
 
     const options = assign$g({}, config$1, settings);
 
-    // Todo: attrFn is just for logging later on... get rid of, maybe?
     options.fn = options.fn
         || target.getAttribute(options.attributeFn)
         || '';
-
-    // Keep hold of attrFn for debugging
-    //if (DEBUG) { var attrFn = options.fn; }
 
     this.label = makeLabel(target, options);
     this.renderCount = 0;
@@ -9508,7 +9658,7 @@ function Sparky(selector, settings) {
     options.fn  = null;
     options.src = null;
 
-    //if (DEBUG) { logNode(name, attrFn, options.src); }
+    if (DEBUG$7) { logNode(target, options.fn, options.src); }
 
     src ?
         name === 'use' ?
@@ -9526,24 +9676,72 @@ function Sparky(selector, settings) {
     output.done(stop);
 }
 
-const DEBUG$7 = window.DEBUG;
+register('after', function(node, params) {
+    const path = params[0];
+    return this.tap((scope) => {
+        // Avoid having Sparky parse the contents of documentation by waiting
+        // until the next frame
+        requestAnimationFrame(function () {
+            const fragment = fragmentFromHTML(getPath$1(path, scope));
+            node.after(fragment);
+        });
+    });
+});
+
+register('before', function(node, params) {
+    const path = params[0];
+    return this.tap((scope) => {
+        // Avoid having Sparky parse the contents of documentation by waiting
+        // until the next frame
+        requestAnimationFrame(function () {
+            const fragment = fragmentFromHTML(getPath$1(path, scope));
+            node.before(fragment);
+        });
+    });
+});
+
+register('append', function (node, params) {
+    const path = params[0];
+    return this.tap((scope) => {
+        // Avoid having Sparky parse the contents of documentation by waiting
+        // until the next frame
+        requestAnimationFrame(function () {
+            const fragment = fragmentFromHTML(getPath$1(path, scope));
+            node.appendChild(fragment);
+        });
+    });
+});
+
+register('prepend', function (node, params) {
+    const path = params[0];
+    return this.tap((scope) => {
+        // Avoid having Sparky parse the contents of documentation by waiting
+        // until the next frame
+        requestAnimationFrame(function () {
+            const fragment = fragmentFromHTML(getPath$1(path, scope));
+            node.prepend(fragment);
+        });
+    });
+});
+
+const DEBUG$8 = window.DEBUG;
 
 register('debug', function(node) {
-    return DEBUG$7 ? this.tap((scope) => {
+    return DEBUG$8 ? this.tap((scope) => {
         console.log('Sparky fn="debug" node:', node,'scope:', scope);
         debugger;
     }) :
     this ;
 });
 
-const DEBUG$8 = window.DEBUG;
+const DEBUG$9 = window.DEBUG;
 
 function MarkerNode(node, options) {
     // A text node, or comment node in DEBUG mode, for marking a
     // position in the DOM tree so it can be swapped out with some
     // content in the future.
 
-    if (!DEBUG$8) {
+    if (!DEBUG$9) {
         return create$1('text', '');
     }
 
@@ -9557,7 +9755,7 @@ function MarkerNode(node, options) {
     );
 }
 
-/*
+/**
 each:
 
 Clones the DOM node and renders a clone for each value in an array.
@@ -9811,7 +10009,7 @@ register('entries', function(node, params) {
     return this.map(Object.entries);
 });
 
-/*
+/**
 fetch: url
 
 Fetches and parses a JSON file and uses it as scope to render the node.
@@ -9826,7 +10024,7 @@ Fetches and parses a JSON file and uses it as scope to render the node.
 
 */
 
-const DEBUG$9 = window.DEBUG;
+const DEBUG$a = window.DEBUG;
 
 const cache$2 = {};
 
@@ -9846,7 +10044,7 @@ function importScope(url, scopes) {
 register('fetch', function(node, params) {
     var path = params[0];
 
-    if (DEBUG$9 && !path) {
+    if (DEBUG$a && !path) {
         throw new Error('Sparky: ' + Sparky.attributePrefix + 'fn="import:url" requires a url.');
     }
 
@@ -9880,7 +10078,7 @@ register('fetch', function(node, params) {
     return scopes;
 });
 
-/*
+/**
 get: path
 
 Maps scope to the value at `path` of the current scope:
@@ -9903,7 +10101,7 @@ register('get', function(node, params) {
     .flat();
 });
 
-const DEBUG$a = window.DEBUG;
+const DEBUG$b = window.DEBUG;
 
 register('on', function(node, params) {
     const type   = params[0];
@@ -9919,7 +10117,7 @@ register('on', function(node, params) {
 
         const name = params[i + 1];
 
-        if (DEBUG$a && (!scope || !scope[name])) {
+        if (DEBUG$b && (!scope || !scope[name])) {
             console.error('Sparky scope', scope);
             throw new Error('Sparky scope has no method "' + name + '"');
         }
@@ -9941,8 +10139,14 @@ register('on', function(node, params) {
     });
 });
 
-register('rest', function(node, params) {
-    return this.map(rest$1(params[0]));
+register('rest', function (node, params) {
+    return this
+        .scan((stream, object) => {
+            stream.stop();
+            return mutations('.', object)
+                .map(rest$1(params[0]));
+        }, nothing)
+        .flat();
 });
 
 const map$2 = new WeakMap();
@@ -9962,10 +10166,16 @@ register('scope', function(node, params) {
 });
 
 register('take', function(node, params) {
-    return this.map(take$1(params[0]));
+    return this
+    .scan((stream, object) => {
+        stream.stop();
+        return mutations('.', object)
+        .map(take$1(params[0]));
+    }, nothing)
+    .flat();
 });
 
-/*
+/**
 Sparky.pipe(name, fn)
 
 Define a pipe using `Sparky.pipe(name, fn)`.
@@ -9987,10 +10197,10 @@ after the value of a tag has changed. It is best not to do anything
 too expensive in a pipe to keep the render process fast.
 */
 
-const DEBUG$b = !!window.DEBUG;
+const DEBUG$c = !!window.DEBUG;
 
 function pipe$1(name, fx, ix) {
-    if (DEBUG$b && transformers[name]) {
+    if (DEBUG$c && transformers[name]) {
         throw new Error('Sparky pipe "' + name + '" already defined');
     }
 
@@ -10000,7 +10210,7 @@ function pipe$1(name, fx, ix) {
     };
 }
 
-/*
+/**
 Examples
 
 ```js
@@ -10050,7 +10260,7 @@ function delegate$2(types, selector, fn) {
         } ;
 }
 
-/*
+/**
 Observe()
 */
 
@@ -10101,6 +10311,8 @@ if (window.console && window.console.log) {
     console.log('%cSparky%c      - https://labs.cruncher.ch/sparky', 'color: #a3b31f; font-weight: 600;', 'color: inherit; font-weight: 300;');
 }
 
+const DEBUG$d = window.DEBUG === true || window.DEBUG === 'sparky';
+
 Sparky.fn = register;
 Sparky.pipe = pipe$1;
 
@@ -10144,7 +10356,7 @@ requestTick(function() {
         construct: function() {
             const fn = this.getAttribute(config$1.attributeFn);
 
-            if (DEBUG) { logNode(this, fn, this.getAttribute(config$1.attributeSrc)); }
+            if (DEBUG$d) { logNode(this, fn, this.getAttribute(config$1.attributeSrc)); }
 
             if (fn) {
                 Sparky(this, { fn: fn });
@@ -10190,4 +10402,4 @@ requestTick(function() {
 });
 
 export default Sparky;
-export { Observe as ObserveFn, Observer, Stream$1 as Stream, config$1 as config, cue, delegate$2 as delegate, getScope, Mount as mount, observe, register, transformers, transforms, uncue };
+export { Observe as ObserveFn, Observer, Stream$1 as Stream, config$1 as config, cue, delegate$2 as delegate, getScope, Mount as mount, observe, register, register$1 as registerTransform, transformers, transforms, uncue };

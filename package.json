@@ -5,7 +5,8 @@
   "version": "3.1.2",
   "homepage": "http://github.com/cruncher/sparky",
   "author": {
-    "name": "Stephen Band",
+    "name": "stephband",
+    "url": "https://stephen.band/",
     "twitter": "stephband"
   },
   "repository": {
@@ -28,16 +29,46 @@
     "rollup": "^1.27.9",
     "eslint": "^6.5.1",
     "node-sass": "^4.13.1",
-    "puppeteer": "^1.20.0",
-    "http-server":  "^0.12.1"
+    "http-server": "^0.12.1"
   },
   "module": "module.js",
-  "main": "build/script.js",
+  "image": "https://stephen.band/sparky/images/sparky-logo-dark.svg",
   "scripts": {
     "lint": "eslint modules/*.js",
-    "build": "npm run rollup && npm run build-docs",
-    "rollup": "rollup --config rollup.config.js",
-    "build-docs": "node ../fn/render-html.js http://localhost/sparky/template.html ./index.html 8 && git add index.html",
-    "sass": "node-sass --output-style compact --indent-type tab --indent-width 1 -o css css/respond.scss"
-  }
+    "serve": "npx http-server ../ -p 8080 &",
+    "serve-kill": "kill $(lsof -t -i:8080)",
+    "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
+    "build-css": "node ../bolt/build-css.js ./style.min.css ../sparky/package.json",
+    "build-docs": "npm run serve && node ../fn/render-html.js http://127.0.0.1:8080/sparky/index.template.html ./index.html 4 && npm run serve-kill && git add index.html"
+  },
+  "style": [
+    "../bolt/fonts/fira-mono.css",
+    "../bolt/css/html.css",
+    "../bolt/css/svg.css",
+    "../bolt/css/root.css",
+    "../bolt/css/body.css",
+    "../bolt/css/type.css",
+    "../bolt/css/code.css",
+    "../bolt/css/content.css",
+    "../bolt/css/input.css",
+    "../bolt/css/label.css",
+    "../bolt/css/button.css",
+    "../bolt/css/thumb.css",
+    "../bolt/css/index.css",
+    "../bolt/css/block.css",
+    "../bolt/css/color.css",
+    "../bolt/css/text.css",
+    "../bolt/css/modifiers.css",
+    "../bolt/css/respond.css",
+    "../bolt/css/grid.css",
+    "../bolt/components/toggle-block.css",
+    "../bolt/components/toggle-button.css",
+    "../bolt/css/device.css",
+    "../bolt/css/var.css",
+    "../dom/css/dom.css",
+    "../fn/css/prism-cruncher.css",
+    "../fn/css/docs.css",
+    "../fn/css/tests.css",
+    "./css/theme.css"
+  ]
 }

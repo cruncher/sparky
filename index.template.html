@@ -1,51 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" is="sparky">
+<html lang="en">
 <head build-fn="fetch:package.json">
-    <meta charset="utf-8" />
+    <template build-src="/fn/templates.html#head-template"></template>
 
-    <meta name="author" content="@{[author.twitter]}" />
-    <meta name="description" content="Documentation for {[title]}. {[description]}" />
-    <meta name="viewport" content="width=device-width" />
-
-    <title>{[title]}</title>
-
-    <script>
-    document.documentElement.className = 'js';
-    window.DEBUG = false;
-    window.config = {
-        path: 'https://stephen.band/'
-    };
+    <script build-remove>
+    window.DEBUG = true;
     </script>
 
-    <link rel="shortcut icon" href="images/logo-64x64.ico" />
-    <link rel="icon" type="image/png" href="images/logo-32x32.png" sizes="32x32">
-    <link rel="icon" type="image/png" href="images/logo-64x64.png" sizes="64x64">
-    <link rel="icon" type="image/png" href="images/logo-128x128.png" sizes="128x128">
+    <link rel="stylesheet" href="style.min.css" />
 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,300,400,500,700" />
-
-    <template build-fn="config">
-        <link rel="stylesheet" href="{[path]}bolt/css/html.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/root.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/body.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/block.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/bubble.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/button.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/dialog.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/layer.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/type.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/text.css" />
-        <link rel="stylesheet" href="{[path]}bolt/css/color.css" />
-        <link rel="stylesheet" href="{[path]}dom/css/dom.css" />
-        <link rel="stylesheet" href="{[path]}fn/css/prism-cruncher.css" />
-        <link rel="stylesheet" href="{[path]}fn/css/tests.css" />
-        <link rel="stylesheet" href="{[path]}fn/css/docs.css" />
-        <link rel="stylesheet" href="css/theme.css" />
-        <link rel="stylesheet" href="{[path]}fn/css/respond.css" />
-    </template>
+    <!--template build-fn="get:style each">
+        <link rel="stylesheet" href="{[.]}" />
+    </template-->
 </head>
 
-<body class="@3-12-grid grid">
+<body class="@3-12x-grid grid">
     <img class="x-1 3x @1-3x @3-x-2 @3-2x" src="images/sparky-logo-dark.svg" />
 
     <header class="x-1 3x @2-6x @3-x-2" id="header">
@@ -54,29 +23,29 @@
 
     <section class="x-1 3x @1-6x @2-9x @3-x-2 grid" locateable id="functions">
         <div class="x-1 3x">
-            <h2 class="text-2">Sparky templates</h2>
+            <h2 class="doctext-02">Sparky templates</h2>
             <template build-fn="docs:module.js each" build-src="/fn/templates.html#body-template"></template>
         </div>
 
         <div class="x-1 3x">
-            <h3 class="text-3">tags.</h3>
+            <h3 class="doctext-03">tags.</h3>
             <template build-fn="docs:modules/parse.js?path-pipe-params each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 3x @2-x-4">
-            <h3 class="text-3">functions.</h3>
+            <h3 class="doctext-03">functions.</h3>
             <template build-fn="docs:modules/fn.js?fn each" build-src="/fn/templates.html#section-template"></template>
         </div>
 
         <div class="x-1 3x @2-x-7">
-            <h3 class="text-3">includes.</h3>
+            <h3 class="doctext-03">includes.</h3>
             <template build-fn="docs:modules/parse.js?src each" build-src="/fn/templates.html#section-template"></template>
         </div>
     </section>
 
     <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="built-ins">
         <div class="x-1 3x">
-            <h2 class="text-3">built-in functions.</h2>
+            <h2 class="doctext-03">built-in functions.</h2>
             <template build-fn="docs:
             modules/fn-each.js,
             modules/fn-entries.js,
@@ -87,20 +56,20 @@
         </div>
 
         <div class="x-1 3x @2-x-4 @2-6x @2-columns-2">
-            <h2 class="text-3">built-in pipes.</h2>
+            <h2 class="doctext-03">built-in pipes.</h2>
             <template build-fn="docs:modules/transforms.js each" build-src="/fn/templates.html#{[type]}-template"></template>
         </div>
     </section>
 
     <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="customise">
         <div class="x-1 3x @2-5x">
-            <h2 class="text-2">Write a function</h2>
+            <h2 class="doctext-02">Write a function</h2>
 
             <template build-fn="docs:
             modules/fn.js?sparky-fn-name-fn
             each" build-src="/fn/templates.html#title-template"></template>
 
-            <h3 class="text-3">Examples</h3>
+            <h3 class="doctext-03">Examples</h3>
 
             <template build-fn="docs:
             modules/fn.js?examples
@@ -108,7 +77,7 @@
         </div>
 
         <div class="x-1 3x @2-x-6 @2-4x">
-            <h3 class="text-3">Function helpers</h3>
+            <h3 class="doctext-03">Function helpers</h3>
 
             <template build-fn="docs:
             modules/delegate.js
@@ -118,7 +87,7 @@
 
     <section class="x-1 3x @1-6x @2-9x @3-x-2 column-grid grid" locateable id="customise">
         <div class="x-1 3x @2-5x">
-            <h2 class="text-2">Write a pipe</h2>
+            <h2 class="doctext-02">Write a pipe</h2>
 
             <template build-fn="docs:
             modules/pipe.js?sparky-pipe-name-fn
@@ -126,7 +95,7 @@
         </div>
 
         <div class="x-1 3x @2-x-6 @2-4x">
-            <h3 class="text-3">Examples</h3>
+            <h3 class="doctext-03">Examples</h3>
 
             <template build-fn="docs:
             modules/pipe.js?examples
@@ -136,7 +105,7 @@
 
     <section class="x-1 3x @1-6x @2-9x @3-x-2 columns-grid grid" locateable id="attributes">
         <header class="x-1 3x @1-4x block">
-            <h2 class="text-2">API</h2>
+            <h2 class="doctext-02">API</h2>
         </header>
 
         <div class="x-1 3x">
@@ -145,7 +114,7 @@
     </section>
 
     <aside class="x-1 3x @2-x-2 @2-6x text-9">
-        <h4 class="text-4">A note to the Django enthusiast</h4>
+        <h4 class="doctext-04">A note to the Django enthusiast</h4>
         <p>By now, you'll have noticed some similarities between Django and Sparky: template-led views, tags with filters and so on. Yes, Sparky was influenced by Django at <a href="https://cruncher.ch">Cruncher</a>, where we frequently write hybrid back-end/front-end templates, hence the similar syntax. They play quite nice together!</p>
     </aside>
 
@@ -156,13 +125,8 @@
 
     <!-- Document interactivity -->
     <script type="module">
-        import 'https://stephen.band/dom/js/device.js';
-        import 'https://stephen.band/dom/js/popable.js';
-        import 'https://stephen.band/dom/js/toggleable.js';
-        import 'https://stephen.band/dom/js/locateable.js';
-        import 'https://stephen.band/dom/js/switchable.js';
-        import 'https://stephen.band/dom/js/fullscreenable.js';
-        //import * as sparky from './build/module.js';
-        //window = sparky;
+        import '../bolt/module.js';
+        import * as Sparky from './module.js';
+        window.Sparky = Sparky;
     </script>
 </body>
