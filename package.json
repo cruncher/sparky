@@ -32,7 +32,7 @@
     "http-server": "^0.12.1"
   },
   "module": "module.js",
-  "image": "https://stephen.band/sparky/images/sparky-logo-dark.svg",
+  "image": "https://stephen.band/sparky/images/sparky-logo-bg-500.png",
   "scripts": {
     "lint": "eslint modules/*.js",
     "serve": "npx http-server ../ -p 8080 &",
