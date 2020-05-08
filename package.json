@@ -26,9 +26,7 @@
   ],
   "devDependencies": {
     "rollup": "^1.27.9",
-    "eslint": "^6.5.1",
-    "node-sass": "^4.13.1",
-    "http-server": "^0.12.1"
+    "eslint": "^6.5.1"
   },
   "module": "module.js",
   "homepage": "https://stephen.band/sparky/",
@@ -36,11 +34,9 @@
   "image": "https://stephen.band/sparky/images/sparky-logo-bg-500.png",
   "scripts": {
     "lint": "eslint modules/*.js",
-    "serve": "npx http-server ../ -p 8080 &",
-    "serve-kill": "kill $(lsof -t -i:8080)",
-    "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
-    "build-css": "node ../bolt/build-css.js ./style.min.css ../sparky/package.json",
-    "build-docs": "npm run serve && node ../fn/render-html.js http://127.0.0.1:8080/sparky/index.template.html ./index.html 4 && npm run serve-kill && git add index.html"
+        "build-css": "node ../fn/build-css.js package.json style.min.css",
+        "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
+        "build-docs": "node ../fn/build-html.js index.template.html index.html"
   },
   "style": [
     "../bolt/fonts/fira-mono.css",
