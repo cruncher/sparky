@@ -20,7 +20,8 @@ import toClass     from '../../fn/modules/to-class.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
-import { sum, exp, limit, log, multiply, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { sum, exp, log, multiply, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { clamp }   from '../../fn/modules/maths/clamp.js';
 import { mod }     from '../../fn/modules/maths/mod.js';
 import toCartesian from '../../fn/modules/maths/to-cartesian.js';
 import toPolar     from '../../fn/modules/maths/to-polar.js';
@@ -36,13 +37,13 @@ import { contains } from '../../fn/modules/lists/core.js';
 import last from '../../fn/modules/lists/last.js';
 
 import {
-	compose,
-	overload,
-	formatDate,
-	formatTime,
-	addDate,
-	addTime,
-	subTime
+    compose,
+    overload,
+    formatDate,
+    formatTime,
+    addDate,
+    addTime,
+    subTime
 } from '../../fn/module.js';
 
 
@@ -56,53 +57,53 @@ var A         = Array.prototype;
 var S         = String.prototype;
 
 const reducers = {
-	sum: sum
+    sum: sum
 };
 
 function addType(n) {
-	const type = typeof n;
-	return type === 'string' ?
-		/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-		/^\d\d(?::|$)/.test(n) ? 'time' :
-		'string' :
-	type;
+    const type = typeof n;
+    return type === 'string' ?
+        /^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+        /^\d\d(?::|$)/.test(n) ? 'time' :
+        'string' :
+    type;
 }
 
 function interpolateLinear(xs, ys, x) {
-	var n = -1;
-	while (++n < xs.length && xs[n] < x);
+    var n = -1;
+    while (++n < xs.length && xs[n] < x);
 
-	// Shortcut if x is lower than smallest x
-	if (n === 0) {
-		return ys[0];
-	}
+    // Shortcut if x is lower than smallest x
+    if (n === 0) {
+        return ys[0];
+    }
 
-	// Shortcut if x is greater than biggest x
-	if (n >= xs.length) {
-		return last(ys);
-	}
+    // Shortcut if x is greater than biggest x
+    if (n >= xs.length) {
+        return last(ys);
+    }
 
-	// Shortcurt if x corresponds exactly to an interpolation coordinate
-	if (x === xs[n]) {
-		return ys[n];
-	}
+    // Shortcurt if x corresponds exactly to an interpolation coordinate
+    if (x === xs[n]) {
+        return ys[n];
+    }
 
-	// Linear interpolate
-	var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
-	return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
+    // Linear interpolate
+    var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
+    return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
 }
 
 
 
 export const transformers = {
 
-	/** is: value
-	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
-	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
+    /** is: value
+    Returns `true` where value is strictly equal to `value`, otherwise `false`. */
+    is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
 
-	/** has: property
-	Returns `true` where value is an object with `property`, otherwise `false`. */
-	has: { tx: has },
+    /** has: property
+    Returns `true` where value is an object with `property`, otherwise `false`. */
+    has: { tx: has },
 
 /**
 matches: selector
@@ -123,32 +124,32 @@ properties are matched against those of `selector`.
 ```
 */
 
-	matches: {
-		tx: overload(toClass, {
-			RegExp: (regex, string) => regex.test(string),
-			Object: matches
-		})
-	},
+    matches: {
+        tx: overload(toClass, {
+            RegExp: (regex, string) => regex.test(string),
+            Object: matches
+        })
+    },
 
-	/** class:
-	Renders the Class – the name of the constructor – of value. */
-	'class': { tx: toClass },
+    /** class:
+    Renders the Class – the name of the constructor – of value. */
+    'class': { tx: toClass },
 
-	/** type:
-	Renders `typeof` value. */
-	'type': { tx: toType },
+    /** type:
+    Renders `typeof` value. */
+    'type': { tx: toType },
 
-	/** Booleans */
+    /** Booleans */
 
-	/** yesno: a, b
-	Where value is truthy renders `a`, otherwise `b`. */
-	yesno: {
-		tx: function (truthy, falsy, value) {
-			return value ? truthy : falsy;
-		}
-	},
+    /** yesno: a, b
+    Where value is truthy renders `a`, otherwise `b`. */
+    yesno: {
+        tx: function (truthy, falsy, value) {
+            return value ? truthy : falsy;
+        }
+    },
 
-	/** Numbers */
+    /** Numbers */
 
 /** add: n
 
@@ -175,526 +176,561 @@ seconds:
 ```
 
 */
-	add: {
-		tx: overload(addType, {
-			number: function(a, b) {
-				return typeof b === 'number' ? b + a :
-					b && b.add ? b.add(a) :
-					undefined ;
-			},
-			date: addDate,
-			time: addTime,
-			default: function(n) {
-				throw new Error('Sparky add:value does not like values of type ' + typeof n);
-			}
-		}),
+    add: {
+        tx: overload(addType, {
+            number: function(a, b) {
+                return typeof b === 'number' ? b + a :
+                    b && b.add ? b.add(a) :
+                    undefined ;
+            },
+            date: addDate,
+            time: addTime,
+            default: function(n) {
+                throw new Error('Sparky add:value does not like values of type ' + typeof n);
+            }
+        }),
 
-		ix: overload(addType, {
-			number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
-			date: function (d, n) { return addDate('-' + d, n); },
-			time: subTime,
-			default: function (n) {
-				throw new Error('Sparky add:value does not like values of type ' + typeof n);
-			}
-		})
-	},
+        ix: overload(addType, {
+            number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
+            date: function (d, n) { return addDate('-' + d, n); },
+            time: subTime,
+            default: function (n) {
+                throw new Error('Sparky add:value does not like values of type ' + typeof n);
+            }
+        })
+    },
 
-	/** floor:
-	Floors a number. */
-	floor: { tx: Math.floor },
+    /** floor:
+    Floors a number.
+    **/
+    floor: { tx: Math.floor },
 
-	/** root: n
-	Returns the `n`th root of value. */
-	root: { tx: root, ix: pow },
+    /** root: n
+    Returns the `n`th root of value. */
+    root: { tx: root, ix: pow },
 
-	/** normalise: curve, min, max
-	Return a value in the nominal range `0-1` from a value between `min` and
-	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	normalise: {
-		tx: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			if (!number) {
-				console.log('HELLO');
-				return;
-			}
-			return normalise[name](min, max, number);
-		},
+    /** normalise: curve, min, max
+    Return a value in the nominal range `0-1` from a value between `min` and
+    `max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+    normalise: {
+        tx: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            if (!number) {
+                console.log('HELLO');
+                return;
+            }
+            return normalise[name](min, max, number);
+        },
 
-		ix: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
-		}
-	},
+        ix: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return denormalise[name](min, max, number);
+        }
+    },
 
-	/** denormalise: curve, min, max
-	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
-	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	denormalise: {
-		tx: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
-		},
+    /** denormalise: curve, min, max
+    Return a value in the range `min`-`max` of a value in the range `0`-`1`,
+    reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+    denormalise: {
+        tx: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return denormalise[name](min, max, number);
+        },
 
-		ix: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return normalise[name](min, max, number);
-		}
-	},
+        ix: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return normalise[name](min, max, number);
+        }
+    },
 
-	/** to-db:
-	Transforms values in the nominal range `0-1` to dB scale, and, when used in
-	two-way binding, transforms them back a number in nominal range. */
-	'to-db': { tx: todB, ix: toLevel },
+    /** to-db:
+    Transforms values in the nominal range `0-1` to dB scale, and, when used in
+    two-way binding, transforms them back a number in nominal range. */
+    'to-db': { tx: todB, ix: toLevel },
 
-	/** to-cartesian:
-	Transforms a polar coordinate array to cartesian coordinates. */
-	'to-cartesian': { tx: toCartesian, ix: toPolar },
+    /** to-cartesian:
+    Transforms a polar coordinate array to cartesian coordinates. */
+    'to-cartesian': { tx: toCartesian, ix: toPolar },
 
-	/** to-polar:
-	Transforms a polar coordinate array to cartesian coordinates. */
-	'to-polar': { tx: toPolar, ix: toCartesian },
+    /** to-polar:
+    Transforms a polar coordinate array to cartesian coordinates. */
+    'to-polar': { tx: toPolar, ix: toCartesian },
 
-	/** floatformat: n
-	Transforms numbers to strings with `n` decimal places. Used for
-	two-way binding, gaurantees numbers are set on scope. */
-	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
+    /** floatformat: n
+    Transforms numbers to strings with `n` decimal places. Used for
+    two-way binding, gaurantees numbers are set on scope. */
+    floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
 
-	/** floatprecision: n
-	Converts number to string representing number to precision `n`. */
-	floatprecision: {
-		tx: function (n, value) {
-			return Number.isFinite(value) ?
-				value.toPrecision(n) :
-				value;
-		},
+    /** floatprecision: n
+    Converts number to string representing number to precision `n`. */
+    floatprecision: {
+        tx: function (n, value) {
+            return Number.isFinite(value) ?
+                value.toPrecision(n) :
+                value;
+        },
 
-		ix: parseFloat
-	},
+        ix: parseFloat
+    },
 
-	/** Dates */
+    /** Dates */
 
-	/** add: yyyy-mm-dd
-	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
+    /** add: yyyy-mm-dd
+    Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
 
-	/** dateformat: yyyy-mm-dd
-	Converts an ISO date string, a number (in seconds) or a Date object
-	to a string date formatted with the symbols:
+    /** dateformat: yyyy-mm-dd
+    Converts an ISO date string, a number (in seconds) or a Date object
+    to a string date formatted with the symbols:
 
-	- `'YYYY'` years
-	- `'YY'`   2-digit year
-	- `'MM'`   month, 2-digit
-	- `'MMM'`  month, 3-letter
-	- `'MMMM'` month, full name
-	- `'D'`    day of week
-	- `'DD'`   day of week, two-digit
-	- `'ddd'`  weekday, 3-letter
-	- `'dddd'` weekday, full name
-	- `'hh'`   hours
-	- `'mm'`   minutes
-	- `'ss'`   seconds
-	- `'sss'`  seconds with decimals
-	*/
-	dateformat: { tx: formatDate },
+    - `'YYYY'` years
+    - `'YY'`   2-digit year
+    - `'MM'`   month, 2-digit
+    - `'MMM'`  month, 3-letter
+    - `'MMMM'` month, full name
+    - `'D'`    day of week
+    - `'DD'`   day of week, two-digit
+    - `'ddd'`  weekday, 3-letter
+    - `'dddd'` weekday, full name
+    - `'hh'`   hours
+    - `'mm'`   minutes
+    - `'ss'`   seconds
+    - `'sss'`  seconds with decimals
+    */
+    dateformat: { tx: formatDate },
 
-	/** Times */
+    /** Times */
 
-	/** add: duration
-	Adds `duration`, an ISO-like time string, to a time value, and
-	returns a number in seconds.
+    /** add: duration
+    Adds `duration`, an ISO-like time string, to a time value, and
+    returns a number in seconds.
 
-	Add 12 hours:
+    Add 12 hours:
 
-	```html
-	{[ time|add:'12:00' ]}
-	```
+    ```html
+    {[ time|add:'12:00' ]}
+    ```
 
-	Durations may be negative. Subtract an hour and a half:
+    Durations may be negative. Subtract an hour and a half:
 
-	```html
-	{[ time|add:'-01:30' ]}
-	```
+    ```html
+    {[ time|add:'-01:30' ]}
+    ```
 
-	Numbers in a `duration` string are not limited by the cycles of the clock.
-	Add 212 seconds:
+    Numbers in a `duration` string are not limited by the cycles of the clock.
+    Add 212 seconds:
 
-	```html
-	{[ time|add:'00:00:212' ]}
-	```
+    ```html
+    {[ time|add:'00:00:212' ]}
+    ```
 
-	Use `timeformat` to transform the result to a readable format:
+    Use `timeformat` to transform the result to a readable format:
 
-	```html
-	{[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
-	```
+    ```html
+    {[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
+    ```
 
-	Not that `duration` must be quoted because it contains ':' characters.
-	May be used for two-way binding.
-	*/
+    Not that `duration` must be quoted because it contains ':' characters.
+    May be used for two-way binding.
+    */
 
-	/** timeformat: format
-	Formats value, which must be an ISO time string or a number in seconds, to
-	match `format`, a string that may contain the tokens:
+    /** timeformat: format
+    Formats value, which must be an ISO time string or a number in seconds, to
+    match `format`, a string that may contain the tokens:
 
-	- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
-	- `'Y'`   Years, approx.
-	- `'M'`   Months, approx.
-	- `'MM'`  Months, remainder from years (max 12), approx.
-	- `'w'`   Weeks
-	- `'ww'`  Weeks, remainder from months (max 4)
-	- `'d'`   Days
-	- `'dd'`  Days, remainder from weeks (max 7)
-	- `'h'`   Hours
-	- `'hh'`  Hours, remainder from days (max 24), 2-digit format
-	- `'m'`   Minutes
-	- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
-	- `'s'`   Seconds
-	- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
-	- `'sss'` Seconds, remainder from minutes (max 60), fractional
-	- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
+    - `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+    - `'Y'`   Years, approx.
+    - `'M'`   Months, approx.
+    - `'MM'`  Months, remainder from years (max 12), approx.
+    - `'w'`   Weeks
+    - `'ww'`  Weeks, remainder from months (max 4)
+    - `'d'`   Days
+    - `'dd'`  Days, remainder from weeks (max 7)
+    - `'h'`   Hours
+    - `'hh'`  Hours, remainder from days (max 24), 2-digit format
+    - `'m'`   Minutes
+    - `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+    - `'s'`   Seconds
+    - `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+    - `'sss'` Seconds, remainder from minutes (max 60), fractional
+    - `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
 
-	```html
-	{[ .|timeformat:'±hh:mm' ]}
-	-13:57
-	```
-	*/
-	timeformat: { tx: formatTime },
-
-
-
-	join: {
-		tx: function(string, value) {
-			return A.join.call(value, string);
-		},
-
-		ix: function(string, value) {
-			return S.split.call(value, string);
-		}
-	},
+    ```html
+    {[ .|timeformat:'±hh:mm' ]}
+    -13:57
+    ```
+    */
+    timeformat: { tx: formatTime },
 
 
 
-	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
-	degrees:     { tx: toDeg,       ix: toRad },
-	radians:     { tx: toRad,       ix: toDeg },
-	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
-	exp:         { tx: exp,         ix: log },
-	log:         { tx: log,         ix: exp },
+    join: {
+        tx: function(string, value) {
+            return A.join.call(value, string);
+        },
+
+        ix: function(string, value) {
+            return S.split.call(value, string);
+        }
+    },
 
 
-	/** Type converters */
 
-	/** boolean-string:
-	Transforms booleans to strings and vice versa. May by used for two-way binding. */
-	'boolean-string': {
-		tx: function(value) {
-			return value === true ? 'true' :
-				value === false ? 'false' :
-				undefined;
-		},
-
-		ix: function (value) {
-			return value === 'true' ? true :
-				value === 'false' ? false :
-				undefined;
-		}
-	},
-
-	/** float-string:
-	Transforms numbers to float strings, and, used for two-way binding,
-	gaurantees numbers are set on scope. */
-	'float-string': { tx: (value) => value + '', ix: parseFloat },
-
-	/** floats-string: separator
-	Transforms an array of numbers to a string using `separator`, and,
-	used for two-way binding, gaurantees an array of numbers is set on scope. */
-	'floats-string': {
-		tx: function (string, value) {
-			return A.join.call(value, string);
-		},
-
-		ix: function (string, value) {
-			return S.split.call(value, string).map(parseFloat);
-		}
-	},
-
-	/** int-string:
-	Transforms numbers to integer strings, and, used for two-way binding,
-	gaurantees integer numbers are set on scope. */
-	'int-string':   {
-		tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
-		ix: toInt
-	},
-
-	/** ints-string: separator
-	Transforms an array of numbers to a string of integers seperated with
-	`separator`, and, used for two-way binding, gaurantees an array of integer
-	numbers is set on scope. */
-	'ints-string': {
-		tx: function (string, value) {
-			return A.join.call(A.map.call(value, (value) => value.toFixed(0)), string);
-		},
-
-		ix: function (string, value) {
-			return S.split.call(value, string).map(toInt);
-		}
-	},
-
-	/** string-float:
-	Transforms strings to numbers, and, used for two-way binding,
-	gaurantees float strings are set on scope. */
-	'string-float': { tx: parseFloat, ix: toString },
-
-	/** string-int:
-	Transforms strings to integer numbers, and, used for two-way binding,
-	gaurantees integer strings are set on scope. */
-	'string-int': { tx: toInt, ix: (value) => value.toFixed(0) },
-
-	/** json:
-	Transforms objects to json, and used in two-way binding, sets parsed
-	objects on scope. */
-	json: { tx: JSON.stringify, ix: JSON.parse },
-
-	interpolate: {
-		tx: function(point) {
-			var xs = A.map.call(arguments, get('0'));
-			var ys = A.map.call(arguments, get('1'));
-
-			return function(value) {
-				return interpolateLinear(xs, ys, value);
-			};
-		},
-
-		ix: function(point) {
-			var xs = A.map.call(arguments, get('0'));
-			var ys = A.map.call(arguments, get('1'));
-
-			return function(value) {
-				return interpolateLinear(ys, xs, value);
-			}
-		}
-	},
+    multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
+    degrees:     { tx: toDeg,       ix: toRad },
+    radians:     { tx: toRad,       ix: toDeg },
+    pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
+    exp:         { tx: exp,         ix: log },
+    log:         { tx: log,         ix: exp },
 
 
-	deg:       { tx: toDeg, ix: toRad },
-	rad:       { tx: toRad, ix: toDeg },
-	level:     { tx: toLevel, ix: todB },
-	px:        { tx: parseValue, ix: toRem },
-	rem:       { tx: toRem, ix: parseValue },
-	vw:        { tx: toVw,  ix: parseValue },
-	vh:        { tx: toVh,  ix: parseValue },
+    /** Type converters */
+
+    /** boolean-string:
+    Transforms booleans to strings and vice versa. May by used for two-way binding. */
+    'boolean-string': {
+        tx: function(value) {
+            return value === true ? 'true' :
+                value === false ? 'false' :
+                undefined;
+        },
+
+        ix: function (value) {
+            return value === 'true' ? true :
+                value === 'false' ? false :
+                undefined;
+        }
+    },
+
+    /** float-string:
+    Transforms numbers to float strings, and, used for two-way binding,
+    gaurantees numbers are set on scope. */
+    'float-string': { tx: (value) => value + '', ix: parseFloat },
+
+    /** floats-string: separator
+    Transforms an array of numbers to a string using `separator`, and,
+    used for two-way binding, gaurantees an array of numbers is set on scope. */
+    'floats-string': {
+        tx: function (string, value) {
+            return A.join.call(value, string);
+        },
+
+        ix: function (string, value) {
+            return S.split.call(value, string).map(parseFloat);
+        }
+    },
+
+    /** int-string:
+    Transforms numbers to integer strings, and, used for two-way binding,
+    gaurantees integer numbers are set on scope. */
+    'int-string':   {
+        tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
+        ix: toInt
+    },
+
+    /** ints-string: separator
+    Transforms an array of numbers to a string of integers seperated with
+    `separator`, and, used for two-way binding, gaurantees an array of integer
+    numbers is set on scope. */
+    'ints-string': {
+        tx: function (string, value) {
+            return A.join.call(A.map.call(value, (value) => value.toFixed(0)), string);
+        },
+
+        ix: function (string, value) {
+            return S.split.call(value, string).map(toInt);
+        }
+    },
+
+    /** string-float:
+    Transforms strings to numbers, and, used for two-way binding,
+    gaurantees float strings are set on scope. */
+    'string-float': { tx: parseFloat, ix: toString },
+
+    /** string-int:
+    Transforms strings to integer numbers, and, used for two-way binding,
+    gaurantees integer strings are set on scope. */
+    'string-int': { tx: toInt, ix: (value) => value.toFixed(0) },
+
+    /** json:
+    Transforms objects to json, and used in two-way binding, sets parsed
+    objects on scope. */
+    json: { tx: JSON.stringify, ix: JSON.parse },
+
+    interpolate: {
+        tx: function(point) {
+            var xs = A.map.call(arguments, get('0'));
+            var ys = A.map.call(arguments, get('1'));
+
+            return function(value) {
+                return interpolateLinear(xs, ys, value);
+            };
+        },
+
+        ix: function(point) {
+            var xs = A.map.call(arguments, get('0'));
+            var ys = A.map.call(arguments, get('1'));
+
+            return function(value) {
+                return interpolateLinear(ys, xs, value);
+            }
+        }
+    },
+
+    deg:       { tx: toDeg, ix: toRad },
+    rad:       { tx: toRad, ix: toDeg },
+    level:     { tx: toLevel, ix: todB },
+    px:        { tx: parseValue, ix: toRem },
+    rem:       { tx: toRem, ix: parseValue },
+    vw:        { tx: toVw,  ix: parseValue },
+    vh:        { tx: toVh,  ix: parseValue },
     not:       { tx: not,   ix: not }
 };
 
 export const transforms = {
-	contains:     contains,
-	equals:       equals,
-	escape:       escape,
-	exp:          exp,
+    /** contains: n **/
+    contains:     contains,
 
-	get:          getPath,
-	invoke:       invoke,
+    /** equals: n **/
+    equals:       equals,
+    escape:       escape,
+    exp:          exp,
 
-	last:         last,
-	limit:        limit,
-	log:          log,
-	max:          Math.max,
-	min:          Math.min,
-	mod:          mod,
+    /** get: path **/
+    get:          getPath,
 
-	/** Strings */
+    /** invoke: name, args **/
+    invoke:       invoke,
 
-	/** append: string
-	Returns value + `string`. */
-	append:       append,
+    last:         last,
+    limit:        clamp,
 
-	/** prepend: string
-	Returns `string` + value. */
-	prepend:      prepend,
+    /** clamp: min, max **/
+    clamp:        clamp,
 
-	/** prepad: string, n
-	Prepends value with `string` until the output is `n` characters long. */
-	prepad:       prepad,
+    /** log: **/
+    log:          log,
 
-	/** postpad: string, n
-	Appends value with `string` until the output is `n` characters long. */
-	postpad:      postpad,
+    /** max: **/
+    max:          Math.max,
 
-	/** slugify:
-	Returns the slug of value. */
-	slugify:      slugify,
+    /** min: **/
+    min:          Math.min,
 
-	divide: function(n, value) {
-		if (typeof value !== 'number') { return; }
-		return value / n;
-	},
+    /** sin: **/
+    sin:          Math.sin,
 
+    /** cos: **/
+    cos:          Math.cos,
 
-	/** is-in: array
-	Returns `true` if value is contained in `array`, otherwise `false`.
+    /** tan: **/
+    tan:          Math.tan,
 
-	```html
-	{[ path|is-in:[0,1] ]}
-	```
-	*/
-	'is-in': function(array, value) {
-		return array.includes(value);
-	},
+    /** asin: **/
+    asin:         Math.asin,
 
-	'find-in': function(path, id) {
-		if (!isDefined(id)) { return; }
-		var array = getPath(path, window);
-		return array && array.find(compose(is(id), get('id')));
-	},
+    /** acos: **/
+    acos:         Math.acos,
 
-	"greater-than": function(value2, value1) {
-		return value1 > value2;
-	},
+    /** atan: **/
+    atan:         Math.atan,
 
-	invert: function(value) {
-		return typeof value === 'number' ? 1 / value : !value ;
-	},
+    /** mod: **/
+    mod:          mod,
 
-	"less-than": function(value2, value1) {
-		return value1 < value2 ;
-	},
+    /** Strings */
 
-	/** localise:n
-	Localises a number to `n` digits. */
-	localise: function(digits, value) {
-		var locale = document.documentElement.lang;
-		var options = {};
+    /** append: string
+    Returns value + `string`. */
+    append:       append,
 
-		if (isDefined(digits)) {
-			options.minimumFractionDigits = digits;
-			options.maximumFractionDigits = digits;
-		}
+    /** prepend: string
+    Returns `string` + value. */
+    prepend:      prepend,
 
-		// Todo: localise value where toLocaleString not supported
-		return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
-	},
+    /** prepad: string, n
+    Prepends value with `string` until the output is `n` characters long. */
+    prepad:       prepad,
+
+    /** postpad: string, n
+    Appends value with `string` until the output is `n` characters long. */
+    postpad:      postpad,
+
+    /** slugify:
+    Returns the slug of value. */
+    slugify:      slugify,
+
+    divide: function(n, value) {
+        if (typeof value !== 'number') { return; }
+        return value / n;
+    },
 
 
-	/** lowercase:
-	Returns the lowercase string of value. */
-	lowercase: function(value) {
-		if (typeof value !== 'string') { return; }
-		return String.prototype.toLowerCase.apply(value);
-	},
+    /** is-in: array
+    Returns `true` if value is contained in `array`, otherwise `false`.
 
-	map: function(method, params, array) {
-		//var tokens;
-		//
-		//if (params === undefined) {
-		//	tokens = parsePipe([], method);
-		//	fn     = createPipe(tokens, transforms);
-		//	return function(array) {
-		//		return array.map(fn);
-		//	};
-		//}
+    ```html
+    {[ path|is-in:[0,1] ]}
+    ```
+    */
+    'is-in': function(array, value) {
+        return array.includes(value);
+    },
 
-		var fn = (
-			(transformers[method] && transformers[method].tx) ||
-			transforms[method]
-		);
+    'find-in': function(path, id) {
+        if (!isDefined(id)) { return; }
+        var array = getPath(path, window);
+        return array && array.find(compose(is(id), get('id')));
+    },
 
-		return array && array.map((value) => fn(...params, value));
-	},
+    "greater-than": function(value2, value1) {
+        return value1 > value2;
+    },
 
-	filter: function(method, args, array) {
-		var fn = (
-			(transformers[method] && transformers[method].tx) ||
-			transforms[method]
-		);
+    invert: function(value) {
+        return typeof value === 'number' ? 1 / value : !value ;
+    },
 
-		return array && array.filter((value) => fn(...args, value));
-	},
+    "less-than": function(value2, value1) {
+        return value1 < value2 ;
+    },
 
-	/** pluralise: str1, str2, lang
-	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
-	pluralise: function(str1, str2, lang, value) {
-		if (typeof value !== 'number') { return; }
+    /** localise:n
+    Localises a number to `n` digits. */
+    localise: function(digits, value) {
+        var locale = document.documentElement.lang;
+        var options = {};
 
-		str1 = str1 || '';
-		str2 = str2 || 's';
+        if (isDefined(digits)) {
+            options.minimumFractionDigits = digits;
+            options.maximumFractionDigits = digits;
+        }
 
-		// In French, numbers less than 2 are considered singular, where in
-		// English, Italian and elsewhere only 1 is singular.
-		return lang === 'fr' ?
-			(value < 2 && value >= 0) ? str1 : str2 :
-			value === 1 ? str1 : str2 ;
-	},
+        // Todo: localise value where toLocaleString not supported
+        return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
+    },
 
-	reduce: function(name, initialValue, array) {
-		return array && array.reduce(reducers[name], initialValue || 0);
-	},
 
-	replace: function(str1, str2, value) {
-		if (typeof value !== 'string') { return; }
-		return value.replace(RegExp(str1, 'g'), str2);
-	},
+    /** lowercase:
+    Returns the lowercase string of value. */
+    lowercase: function(value) {
+        if (typeof value !== 'string') { return; }
+        return String.prototype.toLowerCase.apply(value);
+    },
 
-	round: function round(n, value) {
-		return Math.round(value / n) * n;
-	},
+    map: function(method, params, array) {
+        //var tokens;
+        //
+        //if (params === undefined) {
+        //	tokens = parsePipe([], method);
+        //	fn     = createPipe(tokens, transforms);
+        //	return function(array) {
+        //		return array.map(fn);
+        //	};
+        //}
 
-	slice: function(i0, i1, value) {
-		return typeof value === 'string' ?
-			value.slice(i0, i1) :
-			Array.prototype.slice.call(value, i0, i1) ;
-	},
+        var fn = (
+            (transformers[method] && transformers[method].tx) ||
+            transforms[method]
+        );
 
-	striptags: (function() {
-		var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
+        return array && array.map((value) => fn(...params, value));
+    },
 
-		return function(value) {
-			return value.replace(rtag, '');
-		};
-	})(),
+    filter: function(method, args, array) {
+        var fn = (
+            (transformers[method] && transformers[method].tx) ||
+            transforms[method]
+        );
 
-	translate: (function() {
-		var warned = {};
+        return array && array.filter((value) => fn(...args, value));
+    },
 
-		return function(value) {
-			var text = translations[value] ;
+    /** pluralise: str1, str2, lang
+    Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
+    pluralise: function(str1, str2, lang, value) {
+        if (typeof value !== 'number') { return; }
 
-			if (!text) {
-				if (!warned[value]) {
-					console.warn('Sparky: config.translations contains no translation for "' + value + '"');
-					warned[value] = true;
-				}
+        str1 = str1 || '';
+        str2 = str2 || 's';
 
-				return value;
-			}
+        // In French, numbers less than 2 are considered singular, where in
+        // English, Italian and elsewhere only 1 is singular.
+        return lang === 'fr' ?
+            (value < 2 && value >= 0) ? str1 : str2 :
+            value === 1 ? str1 : str2 ;
+    },
 
-			return text ;
-		};
-	})(),
+    reduce: function(name, initialValue, array) {
+        return array && array.reduce(reducers[name], initialValue || 0);
+    },
 
-	truncatechars: function(n, value) {
-		return value.length > n ?
-			value.slice(0, n) + '…' :
-			value ;
-	},
+    replace: function(str1, str2, value) {
+        if (typeof value !== 'string') { return; }
+        return value.replace(RegExp(str1, 'g'), str2);
+    },
 
-	uppercase: function(value) {
-		if (typeof value !== 'string') { return; }
-		return String.prototype.toUpperCase.apply(value);
-	}
+    round: function round(n, value) {
+        return Math.round(value / n) * n;
+    },
+
+    slice: function(i0, i1, value) {
+        return typeof value === 'string' ?
+            value.slice(i0, i1) :
+            Array.prototype.slice.call(value, i0, i1) ;
+    },
+
+    striptags: (function() {
+        var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
+
+        return function(value) {
+            return value.replace(rtag, '');
+        };
+    })(),
+
+    translate: (function() {
+        var warned = {};
+
+        return function(value) {
+            var text = translations[value] ;
+
+            if (!text) {
+                if (!warned[value]) {
+                    console.warn('Sparky: config.translations contains no translation for "' + value + '"');
+                    warned[value] = true;
+                }
+
+                return value;
+            }
+
+            return text ;
+        };
+    })(),
+
+    truncatechars: function(n, value) {
+        return value.length > n ?
+            value.slice(0, n) + '…' :
+            value ;
+    },
+
+    uppercase: function(value) {
+        if (typeof value !== 'string') { return; }
+        return String.prototype.toUpperCase.apply(value);
+    }
 };
 
 export function register(name, fn, inv) {
-	if (DEBUG && transformers[name]) {
-		throw new Error('Sparky: transform already registered with name "' + name + '"');
-	}
+    if (DEBUG && transformers[name]) {
+        throw new Error('Sparky: transform already registered with name "' + name + '"');
+    }
 
-	if (inv) {
-		transformers[name] = { tx: fn, ix: inv };
-	}
-	else {
-		if (DEBUG && transforms[name]) {
-			throw new Error('Sparky: transform already registered with name "' + name + '"');
-		}
+    if (inv) {
+        transformers[name] = { tx: fn, ix: inv };
+    }
+    else {
+        if (DEBUG && transforms[name]) {
+            throw new Error('Sparky: transform already registered with name "' + name + '"');
+        }
 
-		transforms[name] = fn;
-	}
+        transforms[name] = fn;
+    }
 }

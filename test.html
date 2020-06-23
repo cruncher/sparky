@@ -178,11 +178,11 @@
 
     <template id="range-control-template">
         <link rel="stylesheet" href="../dom/elements/range-control.css" />
-        <input class="control-input" type="range" id="input" value="{[inputValue]}" min="0" max="1" step="any" />
+        <input class="control-input" type="range" id="input" value="{[unitValue]}" min="0" max="1" step="any" />
         <label class="control-label" for="input"><slot></slot></label>
         <output class="control-output">{[prefix]}{[displayValue]}<abbr>{[displayUnit]}</abbr></output>
         <template fn="get:ticks each">
-            <input class="tick-input" type="radio" name="tick" id="tick-{[value]}" value="{[tickValue|float-string]}" :value="{[root.inputValue|float-string]}" />
+            <input class="tick-input" type="radio" name="tick" id="tick-{[value]}" value="{[tickValue|float-string]}" :value="{[root.unitValue|float-string]}" />
             <label class="tick-label" :style="left: calc(0.5rem + (100% - 1rem) * {[tickValue]});" :for="tick-{[value]}">{[displayValue]}</label>
         </template>
         <slot name="plugs"></slot>
