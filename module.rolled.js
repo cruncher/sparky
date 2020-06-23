@@ -344,8 +344,8 @@ function exec(regex, fn, string) {
 
     // If string looks like a regex result, get rest of string
     // from latest index
-    if (string.input !== undefined && string.index !== undefined) {
-        data   = string;
+    if (typeof string !== 'string' && string.input !== undefined && string.index !== undefined) {
+        data = string;
         string = data.input.slice(
             string.index
             + string[0].length
@@ -3437,15 +3437,6 @@ function log(n, x) { return Math.log(x) / Math.log(n); }
 function root(n, x) { return Math.pow(x, 1/n); }
 
 /**
-clamp(min, max, n)
-**/
-
-function limit(min, max, n) {
-    console.trace('Deprecated: Fn limit() is now clamp()');
-    return n > max ? max : n < min ? min : n;
-}
-
-/**
 wrap(min, max, n)
 **/
 
@@ -3461,11 +3452,12 @@ const curriedPow   = curry$1(pow);
 const curriedExp   = curry$1(exp);
 const curriedLog   = curry$1(log);
 const curriedRoot  = curry$1(root);
-const curriedLimit = curry$1(limit);
 const curriedWrap  = curry$1(wrap);
 
 /**
 todB(level)
+
+Converts a value to decibels relative to unity (dBFS).
 **/
 
 // A bit disturbingly, a correction factor is needed to make todB() and
@@ -3477,6 +3469,8 @@ function todB(n)    { return 20 * Math.log10(n) * dBCorrectionFactor; }
 
 /**
 toLevel(dB)
+
+Converts a dB value relative to unity (dBFS) to unit value.
 **/
 
 function toLevel(n) { return Math.pow(2, n / 6); }
@@ -3518,6 +3512,16 @@ function lcm(a, b) {
 }
 
 const curriedLcm = curry$1(lcm);
+
+/**
+clamp(min, max, n)
+**/
+
+function clamp(min, max, n) {
+    return n > max ? max : n < min ? min : n;
+}
+
+curry$1(clamp);
 
 /**
 mod(divisor, n)
@@ -3910,6 +3914,294 @@ function exponentialOut(e, x) {
     return 1 - Math.pow(1 - x, e);
 }
 
+// Time
+
+// Decimal places to round to when comparing times
+const precision = 9;
+
+// Find template tokens for replacement
+var rtoken = /([YZMDdhmswz]{2,4}|D|\+-)/g;
+function minutesToSeconds(n) { return n * 60; }
+function hoursToSeconds(n) { return n * 3600; }
+
+function secondsToMilliseconds(n) { return n * 1000; }
+function secondsToMinutes(n) { return n / 60; }
+function secondsToHours(n) { return n / 3600; }
+function secondsToDays(n) { return n / 86400; }
+function secondsToWeeks(n) { return n / 604800; }
+
+// Months and years are not fixed durations – these are approximate
+function secondsToMonths(n) { return n / 2629800; }
+function secondsToYears(n) { return n / 31557600; }
+
+
+function prefix(n) {
+	return n >= 10 ? '' : '0';
+}
+
+// Hours:   00-23 - 24 should be allowed according to spec
+// Minutes: 00-59 -
+// Seconds: 00-60 - 60 is allowed, denoting a leap second
+
+//                sign   hh       mm           ss
+var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
+var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
+
+/**
+parseTime(time)
+
+Where `time` is a string it is parsed as a time in ISO time format: as
+hours `'13'`, with minutes `'13:25'`, with seconds `'13:25:14'` or with
+decimal seconds `'13:25:14.001'`. Returns a number in seconds.
+
+```
+const time = parseTime('13:25:14.001');   // 48314.001
+```
+
+Where `time` is a number it is assumed to represent a time in seconds
+and is returned directly.
+
+```
+const time = parseTime(60);               // 60
+```
+**/
+
+const parseTime = overload(toType, {
+	number:  id,
+	string:  exec$1(rtime, createTime),
+	default: function(object) {
+		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
+	}
+});
+
+const parseTimeDiff = overload(toType, {
+	number:  id,
+	string:  exec$1(rtimediff, createTime),
+	default: function(object) {
+		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
+	}
+});
+
+
+function createTime(match, sign, hh, mm, sss) {
+	var time = hoursToSeconds(parseInt(hh, 10))
+        + (mm ? minutesToSeconds(parseInt(mm, 10))
+            + (sss ? parseFloat(sss, 10) : 0)
+        : 0) ;
+
+	return sign === '-' ? -time : time ;
+}
+
+function formatTimeString(string, time) {
+	return string.replace(rtoken, function($0) {
+		return timeFormatters[$0] ? timeFormatters[$0](time) : $0 ;
+	}) ;
+}
+
+function _formatTimeISO(time) {
+	var sign = time < 0 ? '-' : '' ;
+
+	if (time < 0) { time = -time; }
+
+	var hours = Math.floor(time / 3600);
+	var hh = prefix(hours) + hours ;
+	time = time % 3600;
+	if (time === 0) { return sign + hh + ':00'; }
+
+	var minutes = Math.floor(time / 60);
+	var mm = prefix(minutes) + minutes ;
+	time = time % 60;
+	if (time === 0) { return sign + hh + ':' + mm; }
+
+	var sss = prefix(time) + toMaxDecimals(precision, time);
+	return sign + hh + ':' + mm + ':' + sss;
+}
+
+function toMaxDecimals(precision, n) {
+	// Make some effort to keep rounding errors under control by fixing
+	// decimals and lopping off trailing zeros
+	return n.toFixed(precision).replace(/\.?0+$/, '');
+}
+
+/**
+formatTime(format, time)
+Formats `time`, an 'hh:mm:ss' time string or a number in seconds, to match
+`format`, a string that may contain the tokens:
+
+- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+- `'Y'`   Years, approx.
+- `'M'`   Months, approx.
+- `'MM'`  Months, remainder from years (max 12), approx.
+- `'w'`   Weeks
+- `'ww'`  Weeks, remainder from months (max 4)
+- `'d'`   Days
+- `'dd'`  Days, remainder from weeks (max 7)
+- `'h'`   Hours
+- `'hh'`  Hours, remainder from days (max 24), 2-digit format
+- `'m'`   Minutes
+- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+- `'s'`   Seconds
+- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+- `'sss'` Seconds, remainder from minutes (max 60), fractional
+- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
+
+```
+const time = formatTime('±hh:mm:ss', 3600);   // 01:00:00
+```
+**/
+
+var timeFormatters = {
+	'±': function sign(time) {
+		return time < 0 ? '-' : '';
+	},
+
+	Y: function Y(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToYears(time));
+	},
+
+	M: function M(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToMonths(time));
+	},
+
+	MM: function MM(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToMonths(time % 31557600));
+	},
+
+	W: function W(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToWeeks(time));
+	},
+
+	WW: function WW(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToDays(time % 2629800));
+	},
+
+	d: function dd(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToDays(time));
+	},
+
+	dd: function dd(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToDays(time % 604800));
+	},
+
+	h: function hhh(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(secondsToHours(time));
+	},
+
+	hh: function hh(time) {
+		time = time < 0 ? -time : time;
+		var hours = Math.floor(secondsToHours(time % 86400));
+		return prefix(hours) + hours;
+	},
+
+	m: function mm(time) {
+		time = time < 0 ? -time : time;
+		var minutes = Math.floor(secondsToMinutes(time));
+		return prefix(minutes) + minutes;
+	},
+
+	mm: function mm(time) {
+		time = time < 0 ? -time : time;
+		var minutes = Math.floor(secondsToMinutes(time % 3600));
+		return prefix(minutes) + minutes;
+	},
+
+	s: function s(time) {
+		time = time < 0 ? -time : time;
+		return Math.floor(time);
+	},
+
+	ss: function ss(time) {
+		time = time < 0 ? -time : time;
+		var seconds = Math.floor(time % 60);
+		return prefix(seconds) + seconds;
+	},
+
+	sss: function sss(time) {
+		time = time < 0 ? -time : time;
+		var seconds = time % 60;
+		return prefix(seconds) + toMaxDecimals(precision, seconds);
+	},
+
+	ms: function ms(time) {
+		time = time < 0 ? -time : time;
+		var ms = Math.floor(secondsToMilliseconds(time % 1));
+		return ms >= 100 ? ms :
+			ms >= 10 ? '0' + ms :
+				'00' + ms;
+	}
+};
+
+const formatTime = curry$1(function(string, time) {
+	return string === 'ISO' ?
+		_formatTimeISO(parseTime(time)) :
+		formatTimeString(string, parseTime(time)) ;
+});
+
+/**
+addTime(time1, time2)
+
+Sums `time2` and `time1`, which may be 'hh:mm:sss' time strings or numbers in
+seconds, and returns time as a number in seconds. `time1` may contain hours
+outside the range 0-24 or minutes or seconds outside the range 0-60. For
+example, to add 75 minutes to a list of times you may write:
+
+```
+const laters = times.map(addTime('00:75'));
+```
+*/
+
+const addTime = curry$1(function(time1, time2) {
+	return parseTime(time2) + parseTimeDiff(time1);
+});
+
+const subTime = curry$1(function(time1, time2) {
+	return parseTime(time2) - parseTimeDiff(time1);
+});
+
+const diffTime = curry$1(function(time1, time2) {
+	return parseTime(time1) - parseTime(time2);
+});
+
+/**
+floorTime(token, time)
+
+Floors time to the start of the nearest `token`, where `token` is one of:
+
+- `'w'`   Week
+- `'d'`   Day
+- `'h'`   Hour
+- `'m'`   Minute
+- `'s'`   Second
+- `'ms'`  Millisecond
+
+`time` may be an ISO time string or a time in seconds. Returns a time in seconds.
+
+```
+const hourCounts = times.map(floorTime('h'));
+```
+**/
+
+var _floorTime = choose({
+	w:  function(time) { return time - mod(604800, time); },
+	d:  function(time) { return time - mod(86400, time); },
+	h:  function(time) { return time - mod(3600, time); },
+	m:  function(time) { return time - mod(60, time); },
+	s:  function(time) { return time - mod(1, time); },
+	ms: function(time) { return time - mod(0.001, time); }
+});
+
+const floorTime = curry$1(function(token, time) {
+	return _floorTime(token, parseTime(time));
+});
+
 function createOrdinals(ordinals) {
 	var array = [], n = 0;
 
@@ -3963,18 +4255,19 @@ var rdatediff = /^([+-])?(\d{2,})(?:-(\d{2,})(?:-(\d{2,}))?)?(?:([T-])|$)/;
 
 /**
 parseDate(date)
+
 Parse a date, where, `date` may be:
 
 - a string in ISO date format
 - a number in seconds UNIX time
 - a date object
 
-Returns a date object, or *the* date object, if it validates.
-*/
+Returns a date object (or *the* date object, if it represents a valid date).
+**/
 
 const parseDate = overload(toType, {
 	number:  secondsToDate,
-	string:  exec$2(rdate, createDate),
+	string:  exec$1(rdate, createDate),
 	object:  function(date) {
 		return isValidDate(date) ? date : undefined ;
 	},
@@ -3985,13 +4278,14 @@ const parseDate = overload(toType, {
 
 /**
 parseDateLocal(date)
+
 As `parseDate(date)`, but returns a date object with local time set to the
-result of the parse (or the original date object, if it validates).
-*/
+result of the parse.
+**/
 
 const parseDateLocal = overload(toType, {
 	number:  secondsToDate,
-	string:  exec$2(rdate, createDateLocal),
+	string:  exec$1(rdate, createDateLocal),
 	object:  function(date) {
 		return isValidDate(date) ? date : undefined ;
 	},
@@ -4042,18 +4336,8 @@ function createDateLocal(year, month, day, hour, minute, second, ms, zone) {
 		new Date(year) ;
 }
 
-function exec$2(regex, fn, error) {
-	return function exec(string) {
-		var parts = regex.exec(string);
-		if (!parts && error) { throw error; }
-		return parts ?
-			fn.apply(null, parts) :
-			undefined ;
-	};
-}
-
 function secondsToDate(n) {
-	return new Date(secondsToMilliseconds(n));
+	return new Date(n * 1000);
 }
 
 function setTimeZoneOffset(sign, hour, minute, date) {
@@ -4134,7 +4418,7 @@ var componentKeys = {
 	default: ['weekday', 'day', 'month', 'year', 'hour', 'minute', 'second']
 };
 
-var options$1 = {
+var options = {
 	// Time zone
 	timeZone:      'UTC',
 	// Use specified locale matcher
@@ -4152,7 +4436,7 @@ var options$1 = {
 	//timeZoneName:  'short'
 };
 
-var rtoken    = /([YZMDdhmswz]{2,4}|D|\+-)/g;
+var rtoken$1    = /([YZMDdhmswz]{2,4}|D|\+-)/g;
 var rusdate   = /\w{3,}|\d+/g;
 var rdatejson = /^"(-?\d{4,}-\d\d-\d\d)/;
 
@@ -4164,8 +4448,8 @@ function matchEach(regex, fn, text) {
 }
 
 function toLocaleString(timezone, locale, date) {
-	options$1.timeZone = timezone || 'UTC';
-	var string = date.toLocaleString(locale, options$1);
+	options.timeZone = timezone || 'UTC';
+	var string = date.toLocaleString(locale, options);
 	return string;
 }
 
@@ -4195,7 +4479,7 @@ function _formatDate(string, timezone, locale, date) {
 	var data    = toLocaleComponents(timezone, locale, date);
 	var formats = componentFormatters;
 
-	return string.replace(rtoken, function($0) {
+	return string.replace(rtoken$1, function($0) {
 		return formats[$0] ?
 			formats[$0](data, lang) :
 			$0 ;
@@ -4203,15 +4487,53 @@ function _formatDate(string, timezone, locale, date) {
 }
 
 /**
-formatDateLocal(format, locale, date)
+formatDate(format, locale, timezone, date)
+Formats `date`, an ISO string or number in seconds or a JS date object,
+to the format of the string `format`. The format string may contain the tokens:
+
+- `'YYYY'` years
+- `'YY'`   2-digit year
+- `'MM'`   month, 2-digit
+- `'MMM'`  month, 3-letter
+- `'MMMM'` month, full name
+- `'D'`    day of week
+- `'DD'`   day of week, two-digit
+- `'DDD'`  weekday, 3-letter
+- `'DDDD'` weekday, full name
+- `'hh'`   hours
+- `'mm'`   minutes
+- `'ss'`   seconds
+
+The `locale` string may be `'en'` or `'fr'`. The `'timezone'` parameter is
+either `'UTC'` or an IANA timezone such as '`Europe/Zurich`'
+([timezones on Wikipedia](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)).
+
+```
+const date = formatDate('YYYY', 'en', 'UTC', new Date());   // 2020
+```
 */
 
-function formatDateLocal(string, locale, date) {
+const formatDate = curry$1(function (format, locale, timezone, date) {
+	return format === 'ISO' ?
+		formatDateISO(parseDate(date)) :
+	timezone === 'local' ?
+		formatDateLocal(format, locale, date) :
+	_formatDate(format, timezone, locale, parseDate(date)) ;
+});
+
+/**
+formatDateLocal(format, locale, date)
+
+As `formatDate(date)`, but returns a date object with local time set to the
+result of the parse.
+**/
+
+function formatDateLocal(format, locale, date) {
 	var formatters = dateFormatters;
 	var lang = locale.slice(0, 2);
 
 	// Use date formatters to get time as current local time
-	return string.replace(rtoken, function($0) {
+	return format.replace(rtoken$1, function($0) {
 		return formatters[$0] ? formatters[$0](date, lang) : $0 ;
 	});
 }
@@ -4227,26 +4549,29 @@ function formatDateISO(date) {
 }
 
 
+
 // Time operations
 
 var days   = {
 	mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 0
 };
 
-var dayMap = [6,0,1,2,3,4,5];
 
-/**
+
+/*
 toDay(date)
 Returns day of week as a number, where monday is `0`.
 */
+
+const dayMap = [6,0,1,2,3,4,5];
 
 function toDay(date) {
 	return dayMap[date.getDay()];
 }
 
-/**
+/*
 cloneDate(date)
-Returns new date object set to same time.
+Returns new date object set to same date.
 */
 
 function cloneDate(date) {
@@ -4259,7 +4584,7 @@ function addDateComponents(sign, yy, mm, dd, date) {
 	if (!mm) { return; }
 
 	// Adding and subtracting months can give weird results with the JS
-	// date object. For example, taking a montha way from 2018-03-31 results
+	// date object. For example, taking a month away from 2018-03-31 results
 	// in 2018-03-03 (or the 31st of February), whereas adding a month on to
 	// 2018-05-31 results in the 2018-07-01 (31st of June).
 	//
@@ -4417,7 +4742,8 @@ const diffDateDays = curry$1(_diffDateDays);
 
 /**
 floorDate(token, date)
-Floors date to the start of nearest calendar point in time indicated by `token`:
+Floors date to the start of nearest calendar point in increment indicated
+by `token`:
 
 - `'Y'`   Year
 - `'M'`   Month
@@ -4435,319 +4761,12 @@ Floors date to the start of nearest calendar point in time indicated by `token`:
 - `'sun'` Sunday
 
 ```
-const dayCounts = times.map(floorTime('days'));
+const dayCounts = times.map(floorDate('d'));
 ```
 */
 
 const floorDate = curry$1(function(token, date) {
 	return _floorDate(token, parseDate(date));
-});
-
-/**
-formatDate(locale, timezone, format, date)
-Formats `date` (a string or number or date accepted by `parseDate(date)`)
-to the format of the string `format`. The format string may contain the tokens:
-
-- `'YYYY'` years
-- `'YY'`   2-digit year
-- `'MM'`   month, 2-digit
-- `'MMM'`  month, 3-letter
-- `'MMMM'` month, full name
-- `'D'`    day of week
-- `'DD'`   day of week, two-digit
-- `'DDD'`  weekday, 3-letter
-- `'DDDD'` weekday, full name
-- `'hh'`   hours
-- `'mm'`   minutes
-- `'ss'`   seconds
-
-```
-const date = formatDate('en', '', 'YYYY', new Date());   // 2020
-```
-*/
-
-const formatDate = curry$1(function (timezone, locale, format, date) {
-	return format === 'ISO' ?
-		formatDateISO(parseDate(date)) :
-	timezone === 'local' ?
-		formatDateLocal(format, locale, date) :
-	_formatDate(format, timezone, locale, parseDate(date)) ;
-});
-
-
-// Time
-
-// Decimal places to round to when comparing times
-var precision = 9;
-function minutesToSeconds(n) { return n * 60; }
-function hoursToSeconds(n) { return n * 3600; }
-
-function secondsToMilliseconds(n) { return n * 1000; }
-function secondsToMinutes(n) { return n / 60; }
-function secondsToHours(n) { return n / 3600; }
-function secondsToDays(n) { return n / 86400; }
-function secondsToWeeks(n) { return n / 604800; }
-
-// Months and years are not fixed durations – these are approximate
-function secondsToMonths(n) { return n / 2629800; }
-function secondsToYears(n) { return n / 31557600; }
-
-
-function prefix(n) {
-	return n >= 10 ? '' : '0';
-}
-
-// Hours:   00-23 - 24 should be allowed according to spec
-// Minutes: 00-59 -
-// Seconds: 00-60 - 60 is allowed, denoting a leap second
-
-//                sign   hh       mm           ss
-var rtime     = /^([+-])?(\d{2,}):([0-5]\d)(?::((?:[0-5]\d|60)(?:.\d+)?))?$/;
-var rtimediff = /^([+-])?(\d{2,}):(\d{2,})(?::(\d{2,}(?:.\d+)?))?$/;
-
-/**
-parseTime(time)
-
-Where `time` is a string it is parsed as a time in ISO time format: as
-hours `'13'`, with minutes `'13:25'`, with seconds `'13:25:14'` or with
-decimal seconds `'13:25:14.001'`. Returns a number in seconds.
-
-```
-const time = parseTime('13:25:14.001');   // 48314.001
-```
-
-Where `time` is a number it is assumed to represent a time in seconds
-and is returned directly.
-
-```
-const time = parseTime(60);               // 60
-```
-*/
-
-const parseTime = overload(toType, {
-	number:  id,
-	string:  exec$2(rtime, createTime),
-	default: function(object) {
-		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
-	}
-});
-
-var parseTimeDiff = overload(toType, {
-	number:  id,
-	string:  exec$2(rtimediff, createTime),
-	default: function(object) {
-		throw new Error('parseTime() does not accept objects of type ' + (typeof object));
-	}
-});
-
-var _floorTime = choose({
-	week:   function(time) { return time - mod(604800, time); },
-	day:    function(time) { return time - mod(86400, time); },
-	hour:   function(time) { return time - mod(3600, time); },
-	minute: function(time) { return time - mod(60, time); },
-	second: function(time) { return time - mod(1, time); }
-});
-
-
-function createTime(match, sign, hh, mm, sss) {
-	var time = hoursToSeconds(parseInt(hh, 10))
-        + (mm ? minutesToSeconds(parseInt(mm, 10))
-            + (sss ? parseFloat(sss, 10) : 0)
-        : 0) ;
-
-	return sign === '-' ? -time : time ;
-}
-
-function formatTimeString(string, time) {
-	return string.replace(rtoken, function($0) {
-		return timeFormatters[$0] ? timeFormatters[$0](time) : $0 ;
-	}) ;
-}
-
-function _formatTimeISO(time) {
-	var sign = time < 0 ? '-' : '' ;
-
-	if (time < 0) { time = -time; }
-
-	var hours = Math.floor(time / 3600);
-	var hh = prefix(hours) + hours ;
-	time = time % 3600;
-	if (time === 0) { return sign + hh + ':00'; }
-
-	var minutes = Math.floor(time / 60);
-	var mm = prefix(minutes) + minutes ;
-	time = time % 60;
-	if (time === 0) { return sign + hh + ':' + mm; }
-
-	var sss = prefix(time) + toMaxDecimals(precision, time);
-	return sign + hh + ':' + mm + ':' + sss;
-}
-
-function toMaxDecimals(precision, n) {
-	// Make some effort to keep rounding errors under control by fixing
-	// decimals and lopping off trailing zeros
-	return n.toFixed(precision).replace(/\.?0+$/, '');
-}
-
-/**
-formatTime(format, time)
-Formats `time` (an 'hh:mm:sss' time string or a number in seconds) to match
-`format`, a string that may contain the tokens:
-
-- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
-- `'Y'`   Years, approx.
-- `'M'`   Months, approx.
-- `'MM'`  Months, remainder from years (max 12), approx.
-- `'w'`   Weeks
-- `'ww'`  Weeks, remainder from months (max 4)
-- `'d'`   Days
-- `'dd'`  Days, remainder from weeks (max 7)
-- `'h'`   Hours
-- `'hh'`  Hours, remainder from days (max 24), 2-digit format
-- `'m'`   Minutes
-- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
-- `'s'`   Seconds
-- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
-- `'sss'` Seconds, remainder from minutes (max 60), fractional
-- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
-
-```
-const time = formatTime('±hh:mm:ss', 3600);   // 01:00:00
-```
-*/
-
-var timeFormatters = {
-	'±': function sign(time) {
-		return time < 0 ? '-' : '';
-	},
-
-	Y: function Y(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToYears(time));
-	},
-
-	M: function M(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToMonths(time));
-	},
-
-	MM: function MM(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToMonths(time % 31557600));
-	},
-
-	W: function W(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToWeeks(time));
-	},
-
-	WW: function WW(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToDays(time % 2629800));
-	},
-
-	d: function dd(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToDays(time));
-	},
-
-	dd: function dd(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToDays(time % 604800));
-	},
-
-	h: function hhh(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(secondsToHours(time));
-	},
-
-	hh: function hh(time) {
-		time = time < 0 ? -time : time;
-		var hours = Math.floor(secondsToHours(time % 86400));
-		return prefix(hours) + hours;
-	},
-
-	m: function mm(time) {
-		time = time < 0 ? -time : time;
-		var minutes = Math.floor(secondsToMinutes(time));
-		return prefix(minutes) + minutes;
-	},
-
-	mm: function mm(time) {
-		time = time < 0 ? -time : time;
-		var minutes = Math.floor(secondsToMinutes(time % 3600));
-		return prefix(minutes) + minutes;
-	},
-
-	s: function s(time) {
-		time = time < 0 ? -time : time;
-		return Math.floor(time);
-	},
-
-	ss: function ss(time) {
-		time = time < 0 ? -time : time;
-		var seconds = Math.floor(time % 60);
-		return prefix(seconds) + seconds;
-	},
-
-	sss: function sss(time) {
-		time = time < 0 ? -time : time;
-		var seconds = time % 60;
-		return prefix(seconds) + toMaxDecimals(precision, seconds);
-	},
-
-	ms: function ms(time) {
-		time = time < 0 ? -time : time;
-		var ms = Math.floor(secondsToMilliseconds(time % 1));
-		return ms >= 100 ? ms :
-			ms >= 10 ? '0' + ms :
-				'00' + ms;
-	}
-};
-
-const formatTime = curry$1(function(string, time) {
-	return string === 'ISO' ?
-		_formatTimeISO(parseTime(time)) :
-		formatTimeString(string, parseTime(time)) ;
-});
-
-/**
-addTime(time1, time2)
-Sums `time2` and `time1`, returning UNIX time as a number in seconds.
-If `time1` is a string, it is parsed as a duration, where numbers
-are accepted outside the bounds of 0-24 hours or 0-60 minutes or seconds.
-For example, to add 72 minutes to a list of times:
-
-```
-const laters = times.map(addTime('00:72'));
-```
-*/
-
-const addTime = curry$1(function(time1, time2) {
-	return parseTime(time2) + parseTimeDiff(time1);
-});
-
-const subTime = curry$1(function(time1, time2) {
-	return parseTime(time2) - parseTimeDiff(time1);
-});
-
-const diffTime = curry$1(function(time1, time2) {
-	return parseTime(time1) - parseTime(time2);
-});
-
-/**
-floorTime(token, time)
-Floors `time` to the nearest `token`, where `token` is one of: `'week'`, `'day'`,
-`'hour'`, `'minute'` or `'second'`. `time` may be an ISO time string or a time
-in seconds. Returns a time in seconds.
-
-```
-const hourCounts = times.map(floorTime('hour'));
-```
-*/
-
-const floorTime = curry$1(function(token, time) {
-	return _floorTime(token, parseTime(time));
 });
 
 var rcomment = /\s*\/\*([\s\S]*)\*\/\s*/;
@@ -5299,21 +5318,208 @@ var features = define$1({
 });
 
 /**
+assign(node, properties)
+
+Assigns each property of `properties` to `node`, as a property where that
+property exists in `node`, otherwise as an attribute.
+
+If `properties` has a property `'children'` it must be an array of nodes;
+they are appended to 'node'.
+
+The property `'html'` is treated as an alias of `'innerHTML'`. The property
+`'tag'` is treated as an alias of `'tagName'` (which is ignored, as
+`node.tagName` is read-only). The property `'is'` is also ignored.
+*/
+
+const assignProperty = overload(id, {
+	// Ignore read-only properties or attributes
+	is: noop,
+	tag: noop,
+
+	html: function(name, node, content) {
+		node.innerHTML = content;
+	},
+
+	children: function(name, node, content) {
+		// Empty the node and append children
+		node.innerHTML = '';
+		content.forEach((child) => { node.appendChild(child); });
+	},
+
+	// SVG points property must be set as string attribute - SVG elements
+	// have a read-only API exposed at .points
+	points: setAttribute,
+
+	default: function(name, node, content) {
+		if (name in node) {
+			node[name] = content;
+		}
+		else {
+			node.setAttribute(name, content);
+		}
+	}
+});
+
+function setAttribute(name, node, content) {
+	node.setAttribute(name, content);
+}
+
+function assign$4(node, attributes) {
+	var names = Object.keys(attributes);
+	var n = names.length;
+
+	while (n--) {
+		assignProperty(names[n], node, attributes[names[n]]);
+	}
+
+	return node;
+}
+
+var assign$5 = curry$1(assign$4, true);
+
+const svgNamespace = 'http://www.w3.org/2000/svg';
+const div = document.createElement('div');
+
+
+// Constructors
+
+const construct = overload(id, {
+    comment: function(tag, text) {
+        return document.createComment(text || '');
+    },
+
+    fragment: function(tag, html) {
+        var fragment = document.createDocumentFragment();
+
+        if (html) {
+            div.innerHTML = html;
+            const nodes = div.childNodes;
+            while (nodes[0]) {
+                fragment.appendChild(nodes[0]);
+            }
+        }
+
+        return fragment;
+    },
+
+    text: function (tag, text) {
+        return document.createTextNode(text || '');
+    },
+
+    circle:   constructSVG,
+    ellipse:  constructSVG,
+    g:        constructSVG,
+    glyph:    constructSVG,
+    image:    constructSVG,
+    line:     constructSVG,
+    rect:     constructSVG,
+    use:      constructSVG,
+    path:     constructSVG,
+    pattern:  constructSVG,
+    polygon:  constructSVG,
+    polyline: constructSVG,
+    svg:      constructSVG,
+    default:  constructHTML
+});
+
+function constructSVG(tag, html) {
+    var node = document.createElementNS(svgNamespace, tag);
+
+    if (html) {
+        node.innerHTML = html;
+    }
+
+    return node;
+}
+
+function constructHTML(tag, html) {
+    var node = document.createElement(tag);
+
+    if (html) {
+        node.innerHTML = html;
+    }
+
+    return node;
+}
+
+
+/**
+create(tag, content)
+
+Constructs and returns a new DOM node.
+
+- If `tag` is `"text"` a text node is created.
+- If `tag` is `"fragment"` a fragment is created.
+- If `tag` is `"comment"` a comment is created.
+- If `tag` is any other string the element `<tag></tag>` is created.
+- Where `tag` is an object, it must have a `"tag"` or `"tagName"` property.
+A node is created according to the above rules for tag strings, and other
+properties of the object are assigned with dom's `assign(node, object)` function.
+
+If `content` is a string it is set as text content on a text or comment node,
+or as inner HTML on an element or fragment. It may also be an object of
+properties which are assigned with dom's `assign(node, properties)` function.
+*/
+
+function toTypes() {
+    return Array.prototype.map.call(arguments, toType).join(' ');
+}
+
+function validateTag(tag) {
+    if (typeof tag !== 'string') {
+        throw new Error('create(object, content) object must have string property .tag or .tagName');
+    }
+}
+
+var create$1 = overload(toTypes, {
+    'string string': construct,
+
+    'string object': function(tag, content) {
+        return assign$5(construct(tag, ''), content);
+    },
+
+    'object string': function(properties, text) {
+        const tag = properties.tag || properties.tagName;
+        validateTag(tag);
+        // Warning: text is set before properties, but text should override
+        // html or innerHTML property, ie, be set after.
+        return assign$5(construct(tag, text), properties);
+    },
+
+    'object object': function(properties, content) {
+        const tag = properties.tag || properties.tagName;
+        validateTag(tag);
+        return assign$5(assign$5(construct(tag, ''), properties), content);
+    },
+
+    default: function() {
+        throw new Error('create(tag, content) does not accept argument types "' + Array.prototype.map.apply(arguments, toType).join(' ') + '"');
+    }
+});
+
+/**
 element(name, options)
 
-- name: 'name'     Custom element tag name
+- name: 'name'     Custom element tag name, eg. ''
 - options: {
-       extends:    Name of tag to extend, makes the element a custom built-in
-       shadow:     String or template node or id used to create a shadow DOM
+       extends:    Name of tag to extend, makes the element a custom built-in element
+       mode:       'open' or 'closed', defaults to closed
+       template:   String or template node or id used to create a shadow DOM
        attributes: A `{name: fn}` map called when named attributes change
-       properties: A `{name: {get, set}}` map called on named property access
-       construct:  Lifecycle handler called during element construction
-       connect:    Lifecycle handler called when element added to DOM
+       properties: A map of properties defined on the element prototype. Where
+            the property `value` is defined extra work is done to make the
+            element work inside a form
+       construct:  Lifecycle handler called during element construction with shadow as first argument
+       connect:    Lifecycle handler called when element added to DOM with shadow as first argument
        disconnect: Lifecycle handler called when element removed from DOM
+       enable:     Lifecycle handler called when form element enabled
+       disable:    Lifecycle handler called when form element disabled
+       reset:      Lifecycle handler called when form element reset
+       restore:    Lifecycle handler called when form element restored
    }
 */
 
-const shadowOptions = { mode: 'open' };
+const assign$6 = Object.assign;
 
 const constructors = {
     'a':        HTMLAnchorElement,
@@ -5321,6 +5527,32 @@ const constructors = {
     'br':       HTMLBRElement,
     'img':      HTMLImageElement,
     'template': HTMLTemplateElement
+};
+
+//const inputEvent = new CustomEvent('input', eventOptions);
+
+const $internals = Symbol('internals');
+const $shadow    = Symbol('shadow');
+
+const formProperties = {
+    // These properties echo those provided by native form controls.
+    // They are not strictly necessary, but provided for consistency.
+    type: { value: 'text' },
+
+    name: {
+        set: function(name) { return this.setAttribute('name', name); },
+        get: function() { return this.getAttribute('name') || ''; }
+    },
+
+    form: { get: function() { return this[$internals].form; }},
+    labels: { get: function() { return this[$internals].labels; }},
+    validity: { get: function() { return this[$internals].validity; }},
+    validationMessage: { get: function() { return this[$internals].validationMessage; }},
+    willValidate: { get: function() { return this[$internals].willValidate; }},
+
+    // Methods
+    checkValidity: { value: function() { return this[$internals].checkValidity(); }},
+    reportValidity: { value: function() { return this[$internals].reportValidity(); }}
 };
 
 function getElementConstructor(tag) {
@@ -5349,17 +5581,24 @@ function getTemplateById(id) {
     const template = document.getElementById(id);
 
     if (!template || !template.content) {
-        throw new Error('Template "' + options.shadow + '" not found in document');
+        throw new Error('Template id="' + id + '" not found in document');
     }
 
     return template;
 }
 
-function createShadow(template, elem) {
+function createShadow(template, elem, options) {
     if (!template) { return; }
 
-    // Create a shadow root if there is DOM content
-    const shadow = elem.attachShadow(shadowOptions) ;
+    // Create a shadow root if there is DOM content. Shadows may be 'open' or
+    // 'closed'. Closed shadows are not exposed via element.shadowRoot, and
+    // events propagating from inside of them report the element as target.
+    const shadow = elem.attachShadow({
+        mode: options.mode || 'closed',
+        delegatesFocus: true
+    });
+
+    elem[$shadow] = shadow;
 
     // If template is a <template>
     if (typeof template === 'string') {
@@ -5372,42 +5611,60 @@ function createShadow(template, elem) {
     return shadow;
 }
 
-function element(name, options) {
-    // Legacy...
-    // element() has changed signature from (name, template, attributes, properties, options) –
-    // support the old signature with a warning.
-    if (typeof options === 'string') {
-        throw new Error('dom element(): new signature element(name, options). Everything is an option.');
+function attachInternals(elem) {
+    // Use native attachInternals where it exists
+    if (elem.attachInternals) {
+        return elem.attachInternals();
     }
 
-    // Get the element constructor from options.tag, or the
+    // Otherwise polyfill it with a pseudo internals object, actually a hidden
+    // input that we put inside element (but outside the shadow DOM)
+    const hidden = create$1('input', { type: 'hidden', name: elem.name });
+    elem.appendChild(hidden);
+
+    // Polyfill internals object setFormValue
+    hidden.setFormValue = function(value) {
+        this.value = value;
+    };
+
+    return hidden;
+}
+
+
+function element(name, options) {
+
+    // Get the element constructor from options.extends, or the
     // base HTMLElement constructor
     const constructor = options.extends ?
         getElementConstructor(options.extends) :
         HTMLElement ;
 
-    const template = options && options.shadow && (
-        typeof options.shadow === 'string' ?
-            // If options.shadow is an #id, search for <template id="id">
-            options.shadow[0] === '#' ? getTemplateById(options.shadow.slice(1)) :
+    const template = options && options.template && (
+        typeof options.template === 'string' ?
+            // If options.template is an #id, search for <template id="id">
+            options.template[0] === '#' ? getTemplateById(options.template.slice(1)) :
             // It must be a string of HTML
-            options.shadow :
-        options.shadow.content ?
+            options.template :
+        options.template.content ?
             // It must be a template node
-            options.shadow :
+            options.template :
         // Whatever it is, we don't support it
         function(){
-            throw new Error('element() options.shadow not recognised as template node, id or string');
+            throw new Error('element() options.template not recognised as template node, id or string');
         }()
     );
 
     function Element() {
-        // Construct on instance of Constructor using the Element prototype
+        // Construct an instance from Constructor using the Element prototype
         const elem   = Reflect.construct(constructor, arguments, Element);
-        const shadow = createShadow(template, elem);
+        const shadow = createShadow(template, elem, options);
 
-        options.construct
-        && options.construct.call(elem, shadow);
+        if (Element.formAssociated) {
+            // Get access to the internal form control API
+            elem[$internals] = attachInternals(elem);
+        }
+
+        options.construct && options.construct.call(elem, shadow);
 
         // At this point, if properties have already been set before the
         // element was upgraded, they exist on the elem itself, where we have
@@ -5430,15 +5687,40 @@ function element(name, options) {
         return elem;
     }
 
+
     // options.properties
     //
-    // Map of getter/setters called when properties mutate.
+    // Map of getter/setters called when properties mutate. Must be defined
+    // before attributeChangedCallback, but I'm not sure why right now.
     //
     // {
     //     name: { get: fn, set: fn }
     // }
+    //
+    // Where one of the properties is `value`, this element is set up as a form
+    // element.
 
-    Element.prototype = Object.create(constructor.prototype, options.properties || {}) ;
+    if (options.properties && options.properties.value) {
+        // Flag the Element class as formAssociated
+        Element.formAssociated = true;
+
+        Element.prototype = Object.create(constructor.prototype, assign$6({}, formProperties, options.properties, {
+            value: {
+                get: options.properties.value.get,
+                set: function() {
+                    // After setting value
+                    options.properties.value.set.apply(this, arguments);
+
+                    // Copy it to internal form state
+                    this[$internals].setFormValue('' + this.value);
+                }
+            }
+        })) ;
+    }
+    else {
+        Element.prototype = Object.create(constructor.prototype, options.properties || {}) ;
+    }
+
 
     // options.attributes
     //
@@ -5456,22 +5738,65 @@ function element(name, options) {
         };
     }
 
-    // options.connect
+
+    // Lifecycle
+    // https://html.spec.whatwg.org/multipage/custom-elements.html#custom-element-reactions
+    //
+    // More lifecycle reactions are available in the spec:
+    // adoptedCallback
+    // formAssociatedCallback
 
     if (options.connect) {
-        Element.prototype.connectedCallback = options.connect;
-    }
+        // Pass shadow to connect(shadow) function
+        Element.prototype.connectedCallback = function() {
+            return options.connect.call(this, this[$shadow]);
 
-    // options.disconnect
+            // 'input' events are suppused to traverse the shadow boundary
+            // but they do not. At least not in Chrome 2019 - a
+            /*this[$shadow].addEventListener('input', (e) => {
+                if (!e.composed) {
+                    console.warn('Custom element not allowing input event to traverse shadow boundary');
+                    this.dispatchEvent(inputEvent);
+                }
+            });*/
+        };
+    }
 
     if (options.disconnect) {
-        Element.prototype.disconnectedCallback = options.disconnect;
+        Element.prototype.disconnectedCallback = function() {
+            return options.disconnect.call(this, this[$shadow]);
+        };
     }
 
-    // options.extends
+
+    // Form lifecycle
+
+    if (Element.formAssociated) {
+        if (options.enable || options.disable) {
+            Element.prototype.formDisabledCallback = function(disabled) {
+                return disabled ?
+                    options.disable && options.disable.call(this, this[$shadow]) :
+                    options.enable && options.enable.call(this, this[$shadow]) ;
+            };
+        }
+
+        if (options.reset) {
+            Element.prototype.formResetCallback = function() {
+                return options.reset.call(this, this[$shadow]);
+            };
+        }
+
+        if (options.restore) {
+            Element.prototype.formStateRestoreCallback = function() {
+                return options.restore.call(this, this[$shadow]);
+            };
+        }
+    }
+
+
+    // Define element
 
     window.customElements.define(name, Element, options);
-
     return Element;
 }
 
@@ -5610,64 +5935,6 @@ function select(selector, node) {
 var select$1 = curry$1(select, true);
 
 /**
-assign(node, properties)
-
-Assigns each property of `properties` to `node`, as a property where that
-property exists in `node`, otherwise as an attribute.
-
-If `properties` has a property `'children'` it must be an array of nodes;
-they are appended to 'node'.
-
-The property `'html'` is treated as an alias of `'innerHTML'`. The property
-`'tag'` is treated as an alias of `'tagName'` (which is ignored, as
-`node.tagName` is read-only). The property `'is'` is also ignored.
-*/
-
-const assignProperty = overload(id, {
-	// Ignore read-only properties or attributes
-	is: noop,
-	tag: noop,
-
-	html: function(name, node, content) {
-		node.innerHTML = content;
-	},
-
-	children: function(name, node, content) {
-		// Empty the node and append children
-		node.innerHTML = '';
-		content.forEach((child) => { node.appendChild(child); });
-	},
-
-	// SVG points property must be set as string attribute - SVG elements
-	// have a read-only API exposed at .points
-	points: setAttribute,
-
-	default: function(name, node, content) {
-		if (name in node) {
-			node[name] = content;
-		}
-		else {
-			node.setAttribute(name, content);
-		}
-	}
-});
-
-function setAttribute(name, node, content) {
-	node.setAttribute(name, content);
-}
-
-function assign$4(node, attributes) {
-	var names = Object.keys(attributes);
-	var n = names.length;
-
-	while (n--) {
-		assignProperty(names[n], node, attributes[names[n]]);
-	}
-}
-
-var assign$5 = curry$1(assign$4, true);
-
-/**
 append(target, node)
 
 Appends `node`, which may be a string or DOM node, to `target`. Returns `node`.
@@ -5731,126 +5998,6 @@ features.textareaPlaceholderSet ?
 
 		return clone;
 	} ;
-
-const svgNamespace = 'http://www.w3.org/2000/svg';
-const div = document.createElement('div');
-
-
-// Constructors
-
-const construct = overload(id, {
-	comment: function(tag, text) {
-		return document.createComment(text || '');
-	},
-
-	fragment: function(tag, html) {
-		var fragment = document.createDocumentFragment();
-
-		if (html) {
-			div.innerHTML = html;
-			const nodes = div.childNodes;
-			while (nodes[0]) {
-				fragment.appendChild(nodes[0]);
-			}
-		}
-
-		return fragment;
-	},
-
-	text: function (tag, text) {
-		return document.createTextNode(text || '');
-	},
-
-	circle:   constructSVG,
-	ellipse:  constructSVG,
-	g:        constructSVG,
-	glyph:    constructSVG,
-	image:    constructSVG,
-	line:     constructSVG,
-	rect:     constructSVG,
-	use:      constructSVG,
-	path:     constructSVG,
-	pattern:  constructSVG,
-	polygon:  constructSVG,
-	polyline: constructSVG,
-	svg:      constructSVG,
-	default:  constructHTML
-});
-
-function constructSVG(tag, html) {
-	var node = document.createElementNS(svgNamespace, tag);
-
-	if (html) {
-		node.innerHTML = html;
-	}
-
-	return node;
-}
-
-function constructHTML(tag, html) {
-	var node = document.createElement(tag);
-
-	if (html) {
-		node.innerHTML = html;
-	}
-
-	return node;
-}
-
-
-/**
-create(tag, content)
-
-Constructs and returns a new DOM node.
-
-- If `tag` is `"text"` a text node is created.
-- If `tag` is `"fragment"` a fragment is created.
-- If `tag` is `"comment"` a comment is created.
-- If `tag` is any other string the element `<tag></tag>` is created.
-- Where `tag` is an object, it must have a `"tag"` or `"tagName"` property.
-A node is created according to the above rules for tag strings, and other
-properties of the object are assigned with dom's `assign(node, object)` function.
-
-If `content` is a string it is set as text content on a text or comment node,
-or as inner HTML on an element or fragment. It may also be an object of
-properties which are assigned with dom's `assign(node, properties)` function.
-*/
-
-function toTypes() {
-	return Array.prototype.map.call(arguments, toType).join(' ');
-}
-
-function validateTag(tag) {
-	if (typeof tag !== 'string') {
-		throw new Error('create(object, content) object must have string property .tag or .tagName');
-	}
-}
-
-var create$1 = overload(toTypes, {
-	'string string': construct,
-
-	'string object': function(tag, content) {
-		return assign$5(construct(tag, ''), content);
-	},
-
-	'object string': function(properties, text) {
-		const tag = properties.tag || properties.tagName;
-		validateTag(tag);
-		// Warning: text is set before properties, but text should override
-		// html or innerHTML property, ie, be set after.
-		return assign$5(construct(tag, text), properties);
-	},
-
-	'object object': function(properties, content) {
-		const tag = properties.tag || properties.tagName;
-		validateTag(tag);
-		return assign$5(assign$5(construct(tag, ''), properties), content);
-	},
-
-	default: function() {
-		throw new Error('create(tag, content) does not accept argument types "' + Array.prototype.map.apply(arguments, toType).join(' ') + '"');
-	}
-});
 
 /** DOM Mutation */
 
@@ -6008,7 +6155,7 @@ function fragmentFromHTML(html, contextTag) {
     .createContextualFragment(html);
 }
 
-const assign$6      = Object.assign;
+const assign$7      = Object.assign;
 const CustomEvent = window.CustomEvent;
 
 const defaults    = {
@@ -6036,7 +6183,7 @@ function Event$1(type, options) {
 	let settings;
 
 	if (typeof type === 'object') {
-		settings = assign$6({}, defaults, type);
+		settings = assign$7({}, defaults, type);
 		type = settings.type;
 	}
 
@@ -6045,7 +6192,7 @@ function Event$1(type, options) {
 			settings.detail = options.detail;
 		}
 		else {
-			settings = assign$6({ detail: options.detail }, defaults);
+			settings = assign$7({ detail: options.detail }, defaults);
 		}
 	}
 
@@ -6053,13 +6200,13 @@ function Event$1(type, options) {
 
 	if (options) {
 		delete options.detail;
-		assign$6(event, options);
+		assign$7(event, options);
 	}
 
 	return event;
 }
 
-const assign$7  = Object.assign;
+const assign$8  = Object.assign;
 const rspaces = /\s+/;
 
 function prefixType(type) {
@@ -6142,7 +6289,7 @@ function Source(notify, stop, type, options, node) {
 	types.reduce(listen, this);
 }
 
-assign$7(Source.prototype, {
+assign$8(Source.prototype, {
 	shift: function shiftEvent() {
 		const buffer = this.buffer;
 		return buffer.shift();
@@ -6436,7 +6583,7 @@ define$2({
     bottom: { get: function() { return window.innerHeight; }, enumerable: true, configurable: true }
 });
 
-const assign$8 = Object.assign;
+const assign$9 = Object.assign;
 
 /*
 config
@@ -6470,35 +6617,35 @@ const config = {
 
 const createHeaders = choose({
     'application/x-www-form-urlencoded': function(headers) {
-        return assign$8(headers, {
+        return assign$9(headers, {
             "Content-Type": 'application/x-www-form-urlencoded',
             "X-Requested-With": "XMLHttpRequest"
         });
     },
 
     'application/json': function(headers) {
-        return assign$8(headers, {
+        return assign$9(headers, {
             "Content-Type": "application/json; charset=utf-8",
             "X-Requested-With": "XMLHttpRequest"
         });
     },
 
     'multipart/form-data': function(headers) {
-        return assign$8(headers, {
+        return assign$9(headers, {
             "Content-Type": 'multipart/form-data',
             "X-Requested-With": "XMLHttpRequest"
         });
     },
 
     'audio/wav': function(headers) {
-        return assign$8(headers, {
+        return assign$9(headers, {
             "Content-Type": 'audio/wav',
             "X-Requested-With": "XMLHttpRequest"
         });
     },
 
     'default': function(headers) {
-        return assign$8(headers, {
+        return assign$9(headers, {
             "Content-Type": 'application/x-www-form-urlencoded',
             "X-Requested-With": "XMLHttpRequest"
         });
@@ -6565,7 +6712,7 @@ function createOptions(method, data, head, controller) {
         head :
         head['Content-Type'] ;
 
-    const headers = createHeaders(contentType, assign$8(
+    const headers = createHeaders(contentType, assign$9(
         config.headers && data ? config.headers(data) : {},
         typeof head === 'string' ? nothing : head
     ));
@@ -7116,7 +7263,7 @@ var toText = overload(toType, {
 	'default': JSON.stringify
 });
 
-const assign$9 = Object.assign;
+const assign$a = Object.assign;
 
 function Value(path) {
     this.path = path;
@@ -7126,7 +7273,7 @@ function isValue(object) {
     return Value.prototype.isPrototypeOf(object);
 }
 
-assign$9(Value.prototype, {
+assign$a(Value.prototype, {
     valueOf: function valueOf() {
         return this.transform ?
             this.value === undefined ?
@@ -7518,53 +7665,53 @@ var A$7         = Array.prototype;
 var S$1         = String.prototype;
 
 const reducers = {
-	sum: sum
+    sum: sum
 };
 
 function addType(n) {
-	const type = typeof n;
-	return type === 'string' ?
-		/^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
-		/^\d\d(?::|$)/.test(n) ? 'time' :
-		'string' :
-	type;
+    const type = typeof n;
+    return type === 'string' ?
+        /^\d\d\d\d(?:-|$)/.test(n) ? 'date' :
+        /^\d\d(?::|$)/.test(n) ? 'time' :
+        'string' :
+    type;
 }
 
 function interpolateLinear(xs, ys, x) {
-	var n = -1;
-	while (++n < xs.length && xs[n] < x);
+    var n = -1;
+    while (++n < xs.length && xs[n] < x);
 
-	// Shortcut if x is lower than smallest x
-	if (n === 0) {
-		return ys[0];
-	}
+    // Shortcut if x is lower than smallest x
+    if (n === 0) {
+        return ys[0];
+    }
 
-	// Shortcut if x is greater than biggest x
-	if (n >= xs.length) {
-		return last(ys);
-	}
+    // Shortcut if x is greater than biggest x
+    if (n >= xs.length) {
+        return last(ys);
+    }
 
-	// Shortcurt if x corresponds exactly to an interpolation coordinate
-	if (x === xs[n]) {
-		return ys[n];
-	}
+    // Shortcurt if x corresponds exactly to an interpolation coordinate
+    if (x === xs[n]) {
+        return ys[n];
+    }
 
-	// Linear interpolate
-	var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
-	return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
+    // Linear interpolate
+    var ratio = (x - xs[n - 1]) / (xs[n] - xs[n - 1]) ;
+    return ratio * (ys[n] - ys[n - 1]) + ys[n - 1] ;
 }
 
 
 
 const transformers = {
 
-	/** is: value
-	Returns `true` where value is strictly equal to `value`, otherwise `false`. */
-	is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
+    /** is: value
+    Returns `true` where value is strictly equal to `value`, otherwise `false`. */
+    is: { tx: is, ix: (value, bool) => (bool === true ? value : undefined) },
 
-	/** has: property
-	Returns `true` where value is an object with `property`, otherwise `false`. */
-	has: { tx: has },
+    /** has: property
+    Returns `true` where value is an object with `property`, otherwise `false`. */
+    has: { tx: has },
 
 /**
 matches: selector
@@ -7585,32 +7732,32 @@ properties are matched against those of `selector`.
 ```
 */
 
-	matches: {
-		tx: overload(toClass, {
-			RegExp: (regex, string) => regex.test(string),
-			Object: matches
-		})
-	},
+    matches: {
+        tx: overload(toClass, {
+            RegExp: (regex, string) => regex.test(string),
+            Object: matches
+        })
+    },
 
-	/** class:
-	Renders the Class – the name of the constructor – of value. */
-	'class': { tx: toClass },
+    /** class:
+    Renders the Class – the name of the constructor – of value. */
+    'class': { tx: toClass },
 
-	/** type:
-	Renders `typeof` value. */
-	'type': { tx: toType },
+    /** type:
+    Renders `typeof` value. */
+    'type': { tx: toType },
 
-	/** Booleans */
+    /** Booleans */
 
-	/** yesno: a, b
-	Where value is truthy renders `a`, otherwise `b`. */
-	yesno: {
-		tx: function (truthy, falsy, value) {
-			return value ? truthy : falsy;
-		}
-	},
+    /** yesno: a, b
+    Where value is truthy renders `a`, otherwise `b`. */
+    yesno: {
+        tx: function (truthy, falsy, value) {
+            return value ? truthy : falsy;
+        }
+    },
 
-	/** Numbers */
+    /** Numbers */
 
 /** add: n
 
@@ -7637,531 +7784,566 @@ seconds:
 ```
 
 */
-	add: {
-		tx: overload(addType, {
-			number: function(a, b) {
-				return typeof b === 'number' ? b + a :
-					b && b.add ? b.add(a) :
-					undefined ;
-			},
-			date: addDate,
-			time: addTime,
-			default: function(n) {
-				throw new Error('Sparky add:value does not like values of type ' + typeof n);
-			}
-		}),
+    add: {
+        tx: overload(addType, {
+            number: function(a, b) {
+                return typeof b === 'number' ? b + a :
+                    b && b.add ? b.add(a) :
+                    undefined ;
+            },
+            date: addDate,
+            time: addTime,
+            default: function(n) {
+                throw new Error('Sparky add:value does not like values of type ' + typeof n);
+            }
+        }),
 
-		ix: overload(addType, {
-			number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
-			date: function (d, n) { return addDate('-' + d, n); },
-			time: subTime,
-			default: function (n) {
-				throw new Error('Sparky add:value does not like values of type ' + typeof n);
-			}
-		})
-	},
+        ix: overload(addType, {
+            number: function(a, c) { return c.add ? c.add(-a) : c - a ; },
+            date: function (d, n) { return addDate('-' + d, n); },
+            time: subTime,
+            default: function (n) {
+                throw new Error('Sparky add:value does not like values of type ' + typeof n);
+            }
+        })
+    },
 
-	/** floor:
-	Floors a number. */
-	floor: { tx: Math.floor },
+    /** floor:
+    Floors a number.
+    **/
+    floor: { tx: Math.floor },
 
-	/** root: n
-	Returns the `n`th root of value. */
-	root: { tx: root, ix: pow },
+    /** root: n
+    Returns the `n`th root of value. */
+    root: { tx: root, ix: pow },
 
-	/** normalise: curve, min, max
-	Return a value in the nominal range `0-1` from a value between `min` and
-	`max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	normalise: {
-		tx: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			if (!number) {
-				console.log('HELLO');
-				return;
-			}
-			return normalise[name](min, max, number);
-		},
+    /** normalise: curve, min, max
+    Return a value in the nominal range `0-1` from a value between `min` and
+    `max` mapped to a `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+    normalise: {
+        tx: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            if (!number) {
+                console.log('HELLO');
+                return;
+            }
+            return normalise[name](min, max, number);
+        },
 
-		ix: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
-		}
-	},
+        ix: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return denormalise[name](min, max, number);
+        }
+    },
 
-	/** denormalise: curve, min, max
-	Return a value in the range `min`-`max` of a value in the range `0`-`1`,
-	reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
-	denormalise: {
-		tx: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return denormalise[name](min, max, number);
-		},
+    /** denormalise: curve, min, max
+    Return a value in the range `min`-`max` of a value in the range `0`-`1`,
+    reverse mapped to `curve`, which is one of `linear`, `quadratic`, `exponential`. */
+    denormalise: {
+        tx: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return denormalise[name](min, max, number);
+        },
 
-		ix: function (curve, min, max, number) {
-			const name = toCamelCase(curve);
-			return normalise[name](min, max, number);
-		}
-	},
+        ix: function (curve, min, max, number) {
+            const name = toCamelCase(curve);
+            return normalise[name](min, max, number);
+        }
+    },
 
-	/** to-db:
-	Transforms values in the nominal range `0-1` to dB scale, and, when used in
-	two-way binding, transforms them back a number in nominal range. */
-	'to-db': { tx: todB, ix: toLevel },
+    /** to-db:
+    Transforms values in the nominal range `0-1` to dB scale, and, when used in
+    two-way binding, transforms them back a number in nominal range. */
+    'to-db': { tx: todB, ix: toLevel },
 
-	/** to-cartesian:
-	Transforms a polar coordinate array to cartesian coordinates. */
-	'to-cartesian': { tx: toCartesian, ix: toPolar },
+    /** to-cartesian:
+    Transforms a polar coordinate array to cartesian coordinates. */
+    'to-cartesian': { tx: toCartesian, ix: toPolar },
 
-	/** to-polar:
-	Transforms a polar coordinate array to cartesian coordinates. */
-	'to-polar': { tx: toPolar, ix: toCartesian },
+    /** to-polar:
+    Transforms a polar coordinate array to cartesian coordinates. */
+    'to-polar': { tx: toPolar, ix: toCartesian },
 
-	/** floatformat: n
-	Transforms numbers to strings with `n` decimal places. Used for
-	two-way binding, gaurantees numbers are set on scope. */
-	floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
+    /** floatformat: n
+    Transforms numbers to strings with `n` decimal places. Used for
+    two-way binding, gaurantees numbers are set on scope. */
+    floatformat: { tx: toFixed, ix: function (n, str) { return parseFloat(str); } },
 
-	/** floatprecision: n
-	Converts number to string representing number to precision `n`. */
-	floatprecision: {
-		tx: function (n, value) {
-			return Number.isFinite(value) ?
-				value.toPrecision(n) :
-				value;
-		},
+    /** floatprecision: n
+    Converts number to string representing number to precision `n`. */
+    floatprecision: {
+        tx: function (n, value) {
+            return Number.isFinite(value) ?
+                value.toPrecision(n) :
+                value;
+        },
 
-		ix: parseFloat
-	},
+        ix: parseFloat
+    },
 
-	/** Dates */
+    /** Dates */
 
-	/** add: yyyy-mm-dd
-	Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
+    /** add: yyyy-mm-dd
+    Adds ISO formatted `yyyy-mm-dd` to a date value, returning a new date. */
 
-	/** dateformat: yyyy-mm-dd
-	Converts an ISO date string, a number (in seconds) or a Date object
-	to a string date formatted with the symbols:
+    /** dateformat: yyyy-mm-dd
+    Converts an ISO date string, a number (in seconds) or a Date object
+    to a string date formatted with the symbols:
 
-	- `'YYYY'` years
-	- `'YY'`   2-digit year
-	- `'MM'`   month, 2-digit
-	- `'MMM'`  month, 3-letter
-	- `'MMMM'` month, full name
-	- `'D'`    day of week
-	- `'DD'`   day of week, two-digit
-	- `'ddd'`  weekday, 3-letter
-	- `'dddd'` weekday, full name
-	- `'hh'`   hours
-	- `'mm'`   minutes
-	- `'ss'`   seconds
-	- `'sss'`  seconds with decimals
-	*/
-	dateformat: { tx: formatDate },
+    - `'YYYY'` years
+    - `'YY'`   2-digit year
+    - `'MM'`   month, 2-digit
+    - `'MMM'`  month, 3-letter
+    - `'MMMM'` month, full name
+    - `'D'`    day of week
+    - `'DD'`   day of week, two-digit
+    - `'ddd'`  weekday, 3-letter
+    - `'dddd'` weekday, full name
+    - `'hh'`   hours
+    - `'mm'`   minutes
+    - `'ss'`   seconds
+    - `'sss'`  seconds with decimals
+    */
+    dateformat: { tx: formatDate },
 
-	/** Times */
+    /** Times */
 
-	/** add: duration
-	Adds `duration`, an ISO-like time string, to a time value, and
-	returns a number in seconds.
+    /** add: duration
+    Adds `duration`, an ISO-like time string, to a time value, and
+    returns a number in seconds.
 
-	Add 12 hours:
+    Add 12 hours:
 
-	```html
-	{[ time|add:'12:00' ]}
-	```
+    ```html
+    {[ time|add:'12:00' ]}
+    ```
 
-	Durations may be negative. Subtract an hour and a half:
+    Durations may be negative. Subtract an hour and a half:
 
-	```html
-	{[ time|add:'-01:30' ]}
-	```
+    ```html
+    {[ time|add:'-01:30' ]}
+    ```
 
-	Numbers in a `duration` string are not limited by the cycles of the clock.
-	Add 212 seconds:
+    Numbers in a `duration` string are not limited by the cycles of the clock.
+    Add 212 seconds:
 
-	```html
-	{[ time|add:'00:00:212' ]}
-	```
+    ```html
+    {[ time|add:'00:00:212' ]}
+    ```
 
-	Use `timeformat` to transform the result to a readable format:
+    Use `timeformat` to transform the result to a readable format:
 
-	```html
-	{[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
-	```
+    ```html
+    {[ time|add:'12:00'|timeformat:'h hours, mm minutes' ]}
+    ```
 
-	Not that `duration` must be quoted because it contains ':' characters.
-	May be used for two-way binding.
-	*/
+    Not that `duration` must be quoted because it contains ':' characters.
+    May be used for two-way binding.
+    */
 
-	/** timeformat: format
-	Formats value, which must be an ISO time string or a number in seconds, to
-	match `format`, a string that may contain the tokens:
+    /** timeformat: format
+    Formats value, which must be an ISO time string or a number in seconds, to
+    match `format`, a string that may contain the tokens:
 
-	- `'±'`   Sign, renders '-' if time is negative, otherwise nothing
-	- `'Y'`   Years, approx.
-	- `'M'`   Months, approx.
-	- `'MM'`  Months, remainder from years (max 12), approx.
-	- `'w'`   Weeks
-	- `'ww'`  Weeks, remainder from months (max 4)
-	- `'d'`   Days
-	- `'dd'`  Days, remainder from weeks (max 7)
-	- `'h'`   Hours
-	- `'hh'`  Hours, remainder from days (max 24), 2-digit format
-	- `'m'`   Minutes
-	- `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
-	- `'s'`   Seconds
-	- `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
-	- `'sss'` Seconds, remainder from minutes (max 60), fractional
-	- `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
+    - `'±'`   Sign, renders '-' if time is negative, otherwise nothing
+    - `'Y'`   Years, approx.
+    - `'M'`   Months, approx.
+    - `'MM'`  Months, remainder from years (max 12), approx.
+    - `'w'`   Weeks
+    - `'ww'`  Weeks, remainder from months (max 4)
+    - `'d'`   Days
+    - `'dd'`  Days, remainder from weeks (max 7)
+    - `'h'`   Hours
+    - `'hh'`  Hours, remainder from days (max 24), 2-digit format
+    - `'m'`   Minutes
+    - `'mm'`  Minutes, remainder from hours (max 60), 2-digit format
+    - `'s'`   Seconds
+    - `'ss'`  Seconds, remainder from minutes (max 60), 2-digit format
+    - `'sss'` Seconds, remainder from minutes (max 60), fractional
+    - `'ms'`  Milliseconds, remainder from seconds (max 1000), 3-digit format
 
-	```html
-	{[ .|timeformat:'±hh:mm' ]}
-	-13:57
-	```
-	*/
-	timeformat: { tx: formatTime },
-
-
-
-	join: {
-		tx: function(string, value) {
-			return A$7.join.call(value, string);
-		},
-
-		ix: function(string, value) {
-			return S$1.split.call(value, string);
-		}
-	},
+    ```html
+    {[ .|timeformat:'±hh:mm' ]}
+    -13:57
+    ```
+    */
+    timeformat: { tx: formatTime },
 
 
 
-	multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
-	degrees:     { tx: toDeg,       ix: toRad },
-	radians:     { tx: toRad,       ix: toDeg },
-	pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
-	exp:         { tx: exp,         ix: log },
-	log:         { tx: log,         ix: exp },
+    join: {
+        tx: function(string, value) {
+            return A$7.join.call(value, string);
+        },
+
+        ix: function(string, value) {
+            return S$1.split.call(value, string);
+        }
+    },
 
 
-	/** Type converters */
 
-	/** boolean-string:
-	Transforms booleans to strings and vice versa. May by used for two-way binding. */
-	'boolean-string': {
-		tx: function(value) {
-			return value === true ? 'true' :
-				value === false ? 'false' :
-				undefined;
-		},
-
-		ix: function (value) {
-			return value === 'true' ? true :
-				value === 'false' ? false :
-				undefined;
-		}
-	},
-
-	/** float-string:
-	Transforms numbers to float strings, and, used for two-way binding,
-	gaurantees numbers are set on scope. */
-	'float-string': { tx: (value) => value + '', ix: parseFloat },
-
-	/** floats-string: separator
-	Transforms an array of numbers to a string using `separator`, and,
-	used for two-way binding, gaurantees an array of numbers is set on scope. */
-	'floats-string': {
-		tx: function (string, value) {
-			return A$7.join.call(value, string);
-		},
-
-		ix: function (string, value) {
-			return S$1.split.call(value, string).map(parseFloat);
-		}
-	},
-
-	/** int-string:
-	Transforms numbers to integer strings, and, used for two-way binding,
-	gaurantees integer numbers are set on scope. */
-	'int-string':   {
-		tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
-		ix: parseInteger
-	},
-
-	/** ints-string: separator
-	Transforms an array of numbers to a string of integers seperated with
-	`separator`, and, used for two-way binding, gaurantees an array of integer
-	numbers is set on scope. */
-	'ints-string': {
-		tx: function (string, value) {
-			return A$7.join.call(A$7.map.call(value, (value) => value.toFixed(0)), string);
-		},
-
-		ix: function (string, value) {
-			return S$1.split.call(value, string).map(parseInteger);
-		}
-	},
-
-	/** string-float:
-	Transforms strings to numbers, and, used for two-way binding,
-	gaurantees float strings are set on scope. */
-	'string-float': { tx: parseFloat, ix: toString },
-
-	/** string-int:
-	Transforms strings to integer numbers, and, used for two-way binding,
-	gaurantees integer strings are set on scope. */
-	'string-int': { tx: parseInteger, ix: (value) => value.toFixed(0) },
-
-	/** json:
-	Transforms objects to json, and used in two-way binding, sets parsed
-	objects on scope. */
-	json: { tx: JSON.stringify, ix: JSON.parse },
-
-	interpolate: {
-		tx: function(point) {
-			var xs = A$7.map.call(arguments, get('0'));
-			var ys = A$7.map.call(arguments, get('1'));
-
-			return function(value) {
-				return interpolateLinear(xs, ys, value);
-			};
-		},
-
-		ix: function(point) {
-			var xs = A$7.map.call(arguments, get('0'));
-			var ys = A$7.map.call(arguments, get('1'));
-
-			return function(value) {
-				return interpolateLinear(ys, xs, value);
-			}
-		}
-	},
+    multiply:    { tx: multiply,    ix: function(d, n) { return n / d; } },
+    degrees:     { tx: toDeg,       ix: toRad },
+    radians:     { tx: toRad,       ix: toDeg },
+    pow:         { tx: pow,         ix: function(n) { return pow(1/n); } },
+    exp:         { tx: exp,         ix: log },
+    log:         { tx: log,         ix: exp },
 
 
-	deg:       { tx: toDeg, ix: toRad },
-	rad:       { tx: toRad, ix: toDeg },
-	level:     { tx: toLevel, ix: todB },
-	px:        { tx: parseValue, ix: toRem },
-	rem:       { tx: toRem, ix: parseValue },
-	vw:        { tx: toVw,  ix: parseValue },
-	vh:        { tx: toVh,  ix: parseValue },
+    /** Type converters */
+
+    /** boolean-string:
+    Transforms booleans to strings and vice versa. May by used for two-way binding. */
+    'boolean-string': {
+        tx: function(value) {
+            return value === true ? 'true' :
+                value === false ? 'false' :
+                undefined;
+        },
+
+        ix: function (value) {
+            return value === 'true' ? true :
+                value === 'false' ? false :
+                undefined;
+        }
+    },
+
+    /** float-string:
+    Transforms numbers to float strings, and, used for two-way binding,
+    gaurantees numbers are set on scope. */
+    'float-string': { tx: (value) => value + '', ix: parseFloat },
+
+    /** floats-string: separator
+    Transforms an array of numbers to a string using `separator`, and,
+    used for two-way binding, gaurantees an array of numbers is set on scope. */
+    'floats-string': {
+        tx: function (string, value) {
+            return A$7.join.call(value, string);
+        },
+
+        ix: function (string, value) {
+            return S$1.split.call(value, string).map(parseFloat);
+        }
+    },
+
+    /** int-string:
+    Transforms numbers to integer strings, and, used for two-way binding,
+    gaurantees integer numbers are set on scope. */
+    'int-string':   {
+        tx: (value) => (value && value.toFixed && value.toFixed(0) || undefined),
+        ix: parseInteger
+    },
+
+    /** ints-string: separator
+    Transforms an array of numbers to a string of integers seperated with
+    `separator`, and, used for two-way binding, gaurantees an array of integer
+    numbers is set on scope. */
+    'ints-string': {
+        tx: function (string, value) {
+            return A$7.join.call(A$7.map.call(value, (value) => value.toFixed(0)), string);
+        },
+
+        ix: function (string, value) {
+            return S$1.split.call(value, string).map(parseInteger);
+        }
+    },
+
+    /** string-float:
+    Transforms strings to numbers, and, used for two-way binding,
+    gaurantees float strings are set on scope. */
+    'string-float': { tx: parseFloat, ix: toString },
+
+    /** string-int:
+    Transforms strings to integer numbers, and, used for two-way binding,
+    gaurantees integer strings are set on scope. */
+    'string-int': { tx: parseInteger, ix: (value) => value.toFixed(0) },
+
+    /** json:
+    Transforms objects to json, and used in two-way binding, sets parsed
+    objects on scope. */
+    json: { tx: JSON.stringify, ix: JSON.parse },
+
+    interpolate: {
+        tx: function(point) {
+            var xs = A$7.map.call(arguments, get('0'));
+            var ys = A$7.map.call(arguments, get('1'));
+
+            return function(value) {
+                return interpolateLinear(xs, ys, value);
+            };
+        },
+
+        ix: function(point) {
+            var xs = A$7.map.call(arguments, get('0'));
+            var ys = A$7.map.call(arguments, get('1'));
+
+            return function(value) {
+                return interpolateLinear(ys, xs, value);
+            }
+        }
+    },
+
+    deg:       { tx: toDeg, ix: toRad },
+    rad:       { tx: toRad, ix: toDeg },
+    level:     { tx: toLevel, ix: todB },
+    px:        { tx: parseValue, ix: toRem },
+    rem:       { tx: toRem, ix: parseValue },
+    vw:        { tx: toVw,  ix: parseValue },
+    vh:        { tx: toVh,  ix: parseValue },
     not:       { tx: not,   ix: not }
 };
 
 const transforms = {
-	contains:     contains,
-	equals:       equals,
-	escape:       escape,
-	exp:          exp,
+    /** contains: n **/
+    contains:     contains,
 
-	get:          getPath,
-	invoke:       invoke,
+    /** equals: n **/
+    equals:       equals,
+    escape:       escape,
+    exp:          exp,
 
-	last:         last,
-	limit:        limit,
-	log:          log,
-	max:          Math.max,
-	min:          Math.min,
-	mod:          mod,
+    /** get: path **/
+    get:          getPath,
 
-	/** Strings */
+    /** invoke: name, args **/
+    invoke:       invoke,
 
-	/** append: string
-	Returns value + `string`. */
-	append:       append,
+    last:         last,
+    limit:        clamp,
 
-	/** prepend: string
-	Returns `string` + value. */
-	prepend:      prepend,
+    /** clamp: min, max **/
+    clamp:        clamp,
 
-	/** prepad: string, n
-	Prepends value with `string` until the output is `n` characters long. */
-	prepad:       prepad,
+    /** log: **/
+    log:          log,
 
-	/** postpad: string, n
-	Appends value with `string` until the output is `n` characters long. */
-	postpad:      postpad,
+    /** max: **/
+    max:          Math.max,
 
-	/** slugify:
-	Returns the slug of value. */
-	slugify:      slugify,
+    /** min: **/
+    min:          Math.min,
 
-	divide: function(n, value) {
-		if (typeof value !== 'number') { return; }
-		return value / n;
-	},
+    /** sin: **/
+    sin:          Math.sin,
 
+    /** cos: **/
+    cos:          Math.cos,
 
-	/** is-in: array
-	Returns `true` if value is contained in `array`, otherwise `false`.
+    /** tan: **/
+    tan:          Math.tan,
 
-	```html
-	{[ path|is-in:[0,1] ]}
-	```
-	*/
-	'is-in': function(array, value) {
-		return array.includes(value);
-	},
+    /** asin: **/
+    asin:         Math.asin,
 
-	'find-in': function(path, id) {
-		if (!isDefined(id)) { return; }
-		var array = getPath(path, window);
-		return array && array.find(compose(is(id), get('id')));
-	},
+    /** acos: **/
+    acos:         Math.acos,
 
-	"greater-than": function(value2, value1) {
-		return value1 > value2;
-	},
+    /** atan: **/
+    atan:         Math.atan,
 
-	invert: function(value) {
-		return typeof value === 'number' ? 1 / value : !value ;
-	},
+    /** mod: **/
+    mod:          mod,
 
-	"less-than": function(value2, value1) {
-		return value1 < value2 ;
-	},
+    /** Strings */
 
-	/** localise:n
-	Localises a number to `n` digits. */
-	localise: function(digits, value) {
-		var locale = document.documentElement.lang;
-		var options = {};
+    /** append: string
+    Returns value + `string`. */
+    append:       append,
 
-		if (isDefined(digits)) {
-			options.minimumFractionDigits = digits;
-			options.maximumFractionDigits = digits;
-		}
+    /** prepend: string
+    Returns `string` + value. */
+    prepend:      prepend,
 
-		// Todo: localise value where toLocaleString not supported
-		return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
-	},
+    /** prepad: string, n
+    Prepends value with `string` until the output is `n` characters long. */
+    prepad:       prepad,
+
+    /** postpad: string, n
+    Appends value with `string` until the output is `n` characters long. */
+    postpad:      postpad,
+
+    /** slugify:
+    Returns the slug of value. */
+    slugify:      slugify,
+
+    divide: function(n, value) {
+        if (typeof value !== 'number') { return; }
+        return value / n;
+    },
 
 
-	/** lowercase:
-	Returns the lowercase string of value. */
-	lowercase: function(value) {
-		if (typeof value !== 'string') { return; }
-		return String.prototype.toLowerCase.apply(value);
-	},
+    /** is-in: array
+    Returns `true` if value is contained in `array`, otherwise `false`.
 
-	map: function(method, params, array) {
-		//var tokens;
-		//
-		//if (params === undefined) {
-		//	tokens = parsePipe([], method);
-		//	fn     = createPipe(tokens, transforms);
-		//	return function(array) {
-		//		return array.map(fn);
-		//	};
-		//}
+    ```html
+    {[ path|is-in:[0,1] ]}
+    ```
+    */
+    'is-in': function(array, value) {
+        return array.includes(value);
+    },
 
-		var fn = (
-			(transformers[method] && transformers[method].tx) ||
-			transforms[method]
-		);
+    'find-in': function(path, id) {
+        if (!isDefined(id)) { return; }
+        var array = getPath(path, window);
+        return array && array.find(compose(is(id), get('id')));
+    },
 
-		return array && array.map((value) => fn(...params, value));
-	},
+    "greater-than": function(value2, value1) {
+        return value1 > value2;
+    },
 
-	filter: function(method, args, array) {
-		var fn = (
-			(transformers[method] && transformers[method].tx) ||
-			transforms[method]
-		);
+    invert: function(value) {
+        return typeof value === 'number' ? 1 / value : !value ;
+    },
 
-		return array && array.filter((value) => fn(...args, value));
-	},
+    "less-than": function(value2, value1) {
+        return value1 < value2 ;
+    },
 
-	/** pluralise: str1, str2, lang
-	Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
-	pluralise: function(str1, str2, lang, value) {
-		if (typeof value !== 'number') { return; }
+    /** localise:n
+    Localises a number to `n` digits. */
+    localise: function(digits, value) {
+        var locale = document.documentElement.lang;
+        var options = {};
 
-		str1 = str1 || '';
-		str2 = str2 || 's';
+        if (isDefined(digits)) {
+            options.minimumFractionDigits = digits;
+            options.maximumFractionDigits = digits;
+        }
 
-		// In French, numbers less than 2 are considered singular, where in
-		// English, Italian and elsewhere only 1 is singular.
-		return lang === 'fr' ?
-			(value < 2 && value >= 0) ? str1 : str2 :
-			value === 1 ? str1 : str2 ;
-	},
+        // Todo: localise value where toLocaleString not supported
+        return value.toLocaleString ? value.toLocaleString(locale, options) : value ;
+    },
 
-	reduce: function(name, initialValue, array) {
-		return array && array.reduce(reducers[name], initialValue || 0);
-	},
 
-	replace: function(str1, str2, value) {
-		if (typeof value !== 'string') { return; }
-		return value.replace(RegExp(str1, 'g'), str2);
-	},
+    /** lowercase:
+    Returns the lowercase string of value. */
+    lowercase: function(value) {
+        if (typeof value !== 'string') { return; }
+        return String.prototype.toLowerCase.apply(value);
+    },
 
-	round: function round(n, value) {
-		return Math.round(value / n) * n;
-	},
+    map: function(method, params, array) {
+        //var tokens;
+        //
+        //if (params === undefined) {
+        //	tokens = parsePipe([], method);
+        //	fn     = createPipe(tokens, transforms);
+        //	return function(array) {
+        //		return array.map(fn);
+        //	};
+        //}
 
-	slice: function(i0, i1, value) {
-		return typeof value === 'string' ?
-			value.slice(i0, i1) :
-			Array.prototype.slice.call(value, i0, i1) ;
-	},
+        var fn = (
+            (transformers[method] && transformers[method].tx) ||
+            transforms[method]
+        );
 
-	striptags: (function() {
-		var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
+        return array && array.map((value) => fn(...params, value));
+    },
 
-		return function(value) {
-			return value.replace(rtag, '');
-		};
-	})(),
+    filter: function(method, args, array) {
+        var fn = (
+            (transformers[method] && transformers[method].tx) ||
+            transforms[method]
+        );
 
-	translate: (function() {
-		var warned = {};
+        return array && array.filter((value) => fn(...args, value));
+    },
 
-		return function(value) {
-			var text = translations[value] ;
+    /** pluralise: str1, str2, lang
+    Where value is singular in a given `lang`, retuns `str1`, otherwise `str2`. */
+    pluralise: function(str1, str2, lang, value) {
+        if (typeof value !== 'number') { return; }
 
-			if (!text) {
-				if (!warned[value]) {
-					console.warn('Sparky: config.translations contains no translation for "' + value + '"');
-					warned[value] = true;
-				}
+        str1 = str1 || '';
+        str2 = str2 || 's';
 
-				return value;
-			}
+        // In French, numbers less than 2 are considered singular, where in
+        // English, Italian and elsewhere only 1 is singular.
+        return lang === 'fr' ?
+            (value < 2 && value >= 0) ? str1 : str2 :
+            value === 1 ? str1 : str2 ;
+    },
 
-			return text ;
-		};
-	})(),
+    reduce: function(name, initialValue, array) {
+        return array && array.reduce(reducers[name], initialValue || 0);
+    },
 
-	truncatechars: function(n, value) {
-		return value.length > n ?
-			value.slice(0, n) + '…' :
-			value ;
-	},
+    replace: function(str1, str2, value) {
+        if (typeof value !== 'string') { return; }
+        return value.replace(RegExp(str1, 'g'), str2);
+    },
 
-	uppercase: function(value) {
-		if (typeof value !== 'string') { return; }
-		return String.prototype.toUpperCase.apply(value);
-	}
+    round: function round(n, value) {
+        return Math.round(value / n) * n;
+    },
+
+    slice: function(i0, i1, value) {
+        return typeof value === 'string' ?
+            value.slice(i0, i1) :
+            Array.prototype.slice.call(value, i0, i1) ;
+    },
+
+    striptags: (function() {
+        var rtag = /<(?:[^>'"]|"[^"]*"|'[^']*')*>/g;
+
+        return function(value) {
+            return value.replace(rtag, '');
+        };
+    })(),
+
+    translate: (function() {
+        var warned = {};
+
+        return function(value) {
+            var text = translations[value] ;
+
+            if (!text) {
+                if (!warned[value]) {
+                    console.warn('Sparky: config.translations contains no translation for "' + value + '"');
+                    warned[value] = true;
+                }
+
+                return value;
+            }
+
+            return text ;
+        };
+    })(),
+
+    truncatechars: function(n, value) {
+        return value.length > n ?
+            value.slice(0, n) + '…' :
+            value ;
+    },
+
+    uppercase: function(value) {
+        if (typeof value !== 'string') { return; }
+        return String.prototype.toUpperCase.apply(value);
+    }
 };
 
 function register$1(name, fn, inv) {
-	if (DEBUG$5 && transformers[name]) {
-		throw new Error('Sparky: transform already registered with name "' + name + '"');
-	}
+    if (DEBUG$5 && transformers[name]) {
+        throw new Error('Sparky: transform already registered with name "' + name + '"');
+    }
 
-	if (inv) {
-		transformers[name] = { tx: fn, ix: inv };
-	}
-	else {
-		if (DEBUG$5 && transforms[name]) {
-			throw new Error('Sparky: transform already registered with name "' + name + '"');
-		}
+    if (inv) {
+        transformers[name] = { tx: fn, ix: inv };
+    }
+    else {
+        if (DEBUG$5 && transforms[name]) {
+            throw new Error('Sparky: transform already registered with name "' + name + '"');
+        }
 
-		transforms[name] = fn;
-	}
+        transforms[name] = fn;
+    }
 }
 
-const assign$a  = Object.assign;
+const assign$b  = Object.assign;
 
 function call$1(fn) {
     return fn();
@@ -8188,7 +8370,7 @@ function Renderer() {
     this.renderCount = 0;
 }
 
-assign$a(Renderer.prototype, {
+assign$b(Renderer.prototype, {
     fire: function() {
         this.cued = false;
     },
@@ -8258,7 +8440,7 @@ assign$a(Renderer.prototype, {
     }
 });
 
-const assign$b = Object.assign;
+const assign$c = Object.assign;
 
 function isTruthy(token) {
 	return !!token.valueOf();
@@ -8295,7 +8477,7 @@ function BooleanRenderer(tokens, node, name) {
 		renderBooleanAttribute ;
 }
 
-assign$b(BooleanRenderer.prototype, Renderer.prototype, {
+assign$c(BooleanRenderer.prototype, Renderer.prototype, {
     fire: function renderBoolean() {
         Renderer.prototype.fire.apply(this);
 
@@ -8310,7 +8492,7 @@ assign$b(BooleanRenderer.prototype, Renderer.prototype, {
     }
 });
 
-const assign$c = Object.assign;
+const assign$d = Object.assign;
 
 // Matches anything that contains a non-space character
 const rtext = /\S/;
@@ -8357,7 +8539,7 @@ function ClassRenderer(tokens, node) {
     node.setAttribute('class', types.string.join(' '));
 }
 
-assign$c(ClassRenderer.prototype, Renderer.prototype, {
+assign$d(ClassRenderer.prototype, Renderer.prototype, {
     fire: function renderBoolean() {
         Renderer.prototype.fire.apply(this);
 
@@ -8381,7 +8563,7 @@ assign$c(ClassRenderer.prototype, Renderer.prototype, {
     }
 });
 
-const assign$d = Object.assign;
+const assign$e = Object.assign;
 
 function StringRenderer(tokens, render, node, name) {
     Renderer.call(this);
@@ -8392,7 +8574,7 @@ function StringRenderer(tokens, render, node, name) {
     this.tokens = tokens;
 }
 
-assign$d(StringRenderer.prototype, Renderer.prototype, {
+assign$e(StringRenderer.prototype, Renderer.prototype, {
     fire: function renderString() {
         Renderer.prototype.fire.apply(this);
 
@@ -8408,7 +8590,7 @@ assign$d(StringRenderer.prototype, Renderer.prototype, {
     }
 });
 
-const assign$e = Object.assign;
+const assign$f = Object.assign;
 
 function observeMutations(node, fn) {
     var observer = new MutationObserver(fn);
@@ -8438,7 +8620,7 @@ function TokenRenderer(token, render, node, name) {
     }
 }
 
-assign$e(TokenRenderer.prototype, Renderer.prototype, {
+assign$f(TokenRenderer.prototype, Renderer.prototype, {
     fire: function renderValue() {
         Renderer.prototype.fire.apply(this);
 
@@ -8602,7 +8784,7 @@ document.addEventListener('change', function(e) {
 const DEBUG$6 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
 const A$8      = Array.prototype;
-const assign$f = Object.assign;
+const assign$g = Object.assign;
 
 const $cache = Symbol('cache');
 
@@ -9159,7 +9341,7 @@ function Mount(node, options) {
     mountNode(node, this.renderers, options);
 }
 
-assign$f(Mount.prototype, {
+assign$g(Mount.prototype, {
     stop: function() {
         this.renderers.forEach(stop);
         return this;
@@ -9180,7 +9362,7 @@ assign$f(Mount.prototype, {
 
 const DEBUG$7 = window.DEBUG === true || window.DEBUG === 'Sparky';
 
-const assign$g = Object.assign;
+const assign$h = Object.assign;
 
 const captureFn = capture$1(/^\s*([\w-]+)\s*(:)?/, {
     1: function(output, tokens) {
@@ -9254,7 +9436,7 @@ function run$1(context, node, input, options) {
 
         if (fn.settings) {
             // Overwrite functions / pipes
-            assign$g(options, fn.settings);
+            assign$h(options, fn.settings);
         }
 
         // Return values from Sparky functions mean -
@@ -9499,7 +9681,7 @@ function setupTemplate(target, src, input, options, sparky, renderers) {
 
         // If there is content cache new nodes
         if (content && content.childNodes && content.childNodes.length) {
-            assign$g(nodes, content.childNodes);
+            assign$h(nodes, content.childNodes);
         }
 
         // Otherwise content is a placemarker text node
@@ -9616,7 +9798,7 @@ function Sparky(selector, settings) {
         document.querySelector(selector) :
         selector ;
 
-    const options = assign$g({}, config$1, settings);
+    const options = assign$h({}, config$1, settings);
 
     options.fn = options.fn
         || target.getAttribute(options.attributeFn)
@@ -9778,7 +9960,7 @@ on each clone.
 
 const A$9       = Array.prototype;
 const isArray = Array.isArray;
-const assign$h  = Object.assign;
+const assign$i  = Object.assign;
 const $scope  = Symbol('scope');
 
 
@@ -9794,7 +9976,7 @@ function EachRenderer(node, marker, isOption, options) {
 }
 
 
-assign$h(EachRenderer.prototype, Renderer.prototype, {
+assign$i(EachRenderer.prototype, Renderer.prototype, {
 	fire: function renderEach(time) {
 		Renderer.prototype.fire.apply(this);
 		var value = this.value;

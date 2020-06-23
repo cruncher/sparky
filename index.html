@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en" class=" js content-loading loading"><head>
-
+    
     <meta charset="utf-8">
     <meta name="author" content="stephband">
     <meta name="description" content="Documentation for Sparky. Sparky is a live data-binding custom <template> element with render tags, composeable includes, functional views and a DOM renderer that batches changes to the browser frame rate.">
@@ -17,7 +17,10 @@
     <script title="load">
     document.documentElement.className += ' js content-loading loading';
     window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.remove('content-loading'));
-    window.addEventListener('load', () => document.documentElement.classList.remove('loading'));
+    // Wait for other load handlers to run first - Bolt does a few things on
+    // load (eg. locateable scrolls) and we want them to run before the loading
+    // class is removed
+    window.addEventListener('load', () => window.requestAnimationFrame(() => document.documentElement.classList.remove('loading')));
     </script>
 
     <link rel="shortcut icon" href="images/logo-64x64.ico">
@@ -26,10 +29,9 @@
     <link rel="icon" type="image/png" href="images/logo-128x128.png" sizes="128x128">
 
 
-
+    
 
     <link rel="stylesheet" href="style.min.css">
-
     <!--link rel="stylesheet" href="style.css" /-->
 </head>
 
@@ -37,16 +39,12 @@
     <img class="x-1 3x @1-3x @3-x-2 @3-2x" src="images/sparky-logo-dark.svg">
 
     <header class="x-1 3x @2-6x @3-x-2" id="header">
-
+        
     <h1 class="doctext-01">Sparky <span class="doctext-06">3.1.2</span></h1>
-
-    <p class="doctext-08">
-        Sparky is a live data-binding custom &lt;template&gt; element with render tags, composeable includes, functional views and a DOM renderer that batches changes to the browser frame rate.
-    </p>
-
+    <p class="doctext-08">Sparky is a live data-binding custom &lt;template&gt; element with render tags, composeable includes, functional views and a DOM renderer that batches changes to the browser frame rate.</p>
     <ul class="link-index index">
-        <li><strong>repo:</strong> <a href="https://github.com/cruncher/sparky.git">https://github.com/cruncher/sparky.git</a></li>
-        <li><strong>bugs:</strong> <a href="https://github.com/cruncher/sparky/issues">https://github.com/cruncher/sparky/issues</a></li>
+        <li><strong>repo:</strong> <a href="https://github.com/cruncher/sparky.git">github.com/cruncher/sparky.git</a></li>
+        <li><strong>bugs:</strong> <a href="https://github.com/cruncher/sparky/issues">github.com/cruncher/sparky/issues</a></li>
     </ul>
 
     </header>
@@ -334,7 +332,7 @@ seconds:</p>
                 <code class="language-js">floor</code>
             </a>
         </h3>
-    <p>Floors a number. </p>
+    <p>Floors a number.</p>
 </article>
 
     <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-root">
@@ -596,6 +594,126 @@ May be used <span class="token keyword">for</span> two<span class="token operato
     objects on scope. </p>
 </article>
 
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-contains">
+        <h3 class="doctext-05 ">
+            <a href="#fn-contains">
+                <code class="language-js">contains: n </code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-equals">
+        <h3 class="doctext-05 ">
+            <a href="#fn-equals">
+                <code class="language-js">equals: n </code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-get">
+        <h3 class="doctext-05 ">
+            <a href="#fn-get">
+                <code class="language-js">get: path </code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-invoke">
+        <h3 class="doctext-05 ">
+            <a href="#fn-invoke">
+                <code class="language-js">invoke: name, args </code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-clamp">
+        <h3 class="doctext-05 ">
+            <a href="#fn-clamp">
+                <code class="language-js">clamp: min, max </code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-log">
+        <h3 class="doctext-05 ">
+            <a href="#fn-log">
+                <code class="language-js">log</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-max">
+        <h3 class="doctext-05 ">
+            <a href="#fn-max">
+                <code class="language-js">max</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-min">
+        <h3 class="doctext-05 ">
+            <a href="#fn-min">
+                <code class="language-js">min</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-sin">
+        <h3 class="doctext-05 ">
+            <a href="#fn-sin">
+                <code class="language-js">sin</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-cos">
+        <h3 class="doctext-05 ">
+            <a href="#fn-cos">
+                <code class="language-js">cos</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-tan">
+        <h3 class="doctext-05 ">
+            <a href="#fn-tan">
+                <code class="language-js">tan</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-asin">
+        <h3 class="doctext-05 ">
+            <a href="#fn-asin">
+                <code class="language-js">asin</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-acos">
+        <h3 class="doctext-05 ">
+            <a href="#fn-acos">
+                <code class="language-js">acos</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-atan">
+        <h3 class="doctext-05 ">
+            <a href="#fn-atan">
+                <code class="language-js">atan</code>
+            </a>
+        </h3>
+    </article>
+
+    <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-mod">
+        <h3 class="doctext-05 ">
+            <a href="#fn-mod">
+                <code class="language-js">mod</code>
+            </a>
+        </h3>
+    </article>
+
     <h3 class="doctext-04">Strings </h3>
 
     <article class="fn-doc-toggle-block doc-toggle-block toggle-block block" toggleable="" id="fn-append">
@@ -849,7 +967,7 @@ Sparky<span class="token punctuation">.</span><span class="token function">pipe<
     </aside>
 
     <!-- Build document -->
-
+    
 
     <!-- Document interactivity -->
     <script type="module">
