@@ -377,7 +377,7 @@ function error(regex, reducers, string) {
         string = string.input;
     }
 
-    throw new Error('Cannot parse invalid string "' + string + '"');
+    throw new Error('Cannot parse string "' + string + '"');
 }
 
 function reduce$1(reducers, acc, tokens) {
@@ -699,6 +699,7 @@ var nothing = Object.freeze({
     // Standard array methods
     shift: noop,
     push:  noop,
+    join:  function() { return ''; },
 
     // Stream methods
     start: noop,
@@ -759,6 +760,49 @@ function parseInteger(object) {
         undefined :
         parseInt(object, 10);
 }
+
+/**
+parseValue(units, string)
+
+Parse `string` as a value with a unit (such as `"3px"`). Parameter `units` is an
+object of functions keyed by the unit postfix. It may also have a `catch`
+function.
+
+```js=
+const value = parseValue({
+    px: function(n) {
+        return n;
+    },
+
+    catch: function(string) {
+        if (typeof string === 'number') {
+            return string;
+        }
+
+        throw new Error('Cannot parse px value');
+    }
+}, '36px');
+```
+**/
+
+// Be generous in what we accept, space-wise
+const runit = /^\s*(-?\d*\.?\d+)(\w+|%)?\s*$/;
+
+function parseValue(units, string) {
+    var entry = runit.exec(string);
+
+    if (!entry || !units[entry[2]]) {
+        if (!units.catch) {
+            throw new Error('Cannot parse value "' + string + '"');
+        }
+
+        return units.catch(string);
+    }
+
+    return units[entry[2]](parseFloat(entry[1]));
+}
+
+var parseVal = curry$1(parseValue);
 
 function apply(value, fn) {
     return fn(value);
@@ -4904,252 +4948,56 @@ function now$1() {
    return window.performance.now() / 1000;
 }
 
+const assign$4      = Object.assign;
+const CustomEvent = window.CustomEvent;
+
+const defaults    = {
+	// The event bubbles (false by default)
+	// https://developer.mozilla.org/en-US/docs/Web/API/Event/Event
+	bubbles: true,
+
+	// The event may be cancelled (false by default)
+	// https://developer.mozilla.org/en-US/docs/Web/API/Event/Event
+	cancelable: true
+
+	// Trigger listeners outside of a shadow root (false by default)
+	// https://developer.mozilla.org/en-US/docs/Web/API/Event/composed
+	//composed: false
+};
+
 /**
-style(property, node)
+Event(type, properties)
 
-Returns the computed style `property` of `node`.
-
-    style('transform', node);            // returns transform
-
-If `property` is of the form `"property:name"`, a named aspect of the property
-is returned.
-
-    style('transform:rotate', node);     // returns rotation, as a number, in radians
-    style('transform:scale', node);      // returns scale, as a number
-    style('transform:translateX', node); // returns translation, as a number, in px
-    style('transform:translateY', node); // returns translation, as a number, in px
+Creates a CustomEvent of type `type`.
+Additionally, `properties` are assigned to the event object.
 */
 
-var rpx          = /px$/;
-var styleParsers = {
-	"transform:translateX": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		return parseFloat(values[4]);
-	},
+function Event$1(type, options) {
+	let settings;
 
-	"transform:translateY": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		return parseFloat(values[5]);
-	},
-
-	"transform:scale": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		var a = parseFloat(values[0]);
-		var b = parseFloat(values[1]);
-		return Math.sqrt(a * a + b * b);
-	},
-
-	"transform:rotate": function(node) {
-		var matrix = computedStyle('transform', node);
-		if (!matrix || matrix === "none") { return 0; }
-		var values = valuesFromCssFn(matrix);
-		var a = parseFloat(values[0]);
-		var b = parseFloat(values[1]);
-		return Math.atan2(b, a);
+	if (typeof type === 'object') {
+		settings = assign$4({}, defaults, type);
+		type = settings.type;
 	}
-};
 
-function valuesFromCssFn(string) {
-	return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
+	if (options && options.detail) {
+		if (settings) {
+			settings.detail = options.detail;
+		}
+		else {
+			settings = assign$4({ detail: options.detail }, defaults);
+		}
+	}
+
+	var event = new CustomEvent(type, settings || defaults);
+
+	if (options) {
+		delete options.detail;
+		assign$4(event, options);
+	}
+
+	return event;
 }
-
-function computedStyle(name, node) {
-	return window.getComputedStyle ?
-		window
-		.getComputedStyle(node, null)
-		.getPropertyValue(name) :
-		0 ;
-}
-
-function style(name, node) {
-    // If name corresponds to a custom property name in styleParsers...
-    if (styleParsers[name]) { return styleParsers[name](node); }
-
-    var value = computedStyle(name, node);
-
-    // Pixel values are converted to number type
-    return typeof value === 'string' && rpx.test(value) ?
-        parseFloat(value) :
-        value ;
-}
-
-// Units
-
-const runit = /(\d*\.?\d+)(r?em|vw|vh)/;
-//var rpercent = /(\d*\.?\d+)%/;
-
-const units = {
-    em: function(n) {
-        return getFontSize() * n;
-    },
-
-    rem: function(n) {
-        return getFontSize() * n;
-    },
-
-    vw: function(n) {
-        return window.innerWidth * n / 100;
-    },
-
-    vh: function(n) {
-        return window.innerHeight * n / 100;
-    }
-};
-
-let fontSize;
-
-function getFontSize() {
-    return fontSize ||
-        (fontSize = style("font-size", document.documentElement), 10);
-}
-
-/**
-parseValue(value)`
-
-Takes a string of the form '10rem', '100vw' or '100vh' and returns a number in pixels.
-*/
-
-const parseValue = overload(toType, {
-    'number': id,
-
-    'string': function(string) {
-        var data = runit.exec(string);
-
-        if (data) {
-            return units[data[2]](parseFloat(data[1]));
-        }
-
-        throw new Error('dom: "' + string + '" cannot be parsed as rem, em, vw or vh units.');
-    }
-});
-
-
-/**
-toRem(value)
-
-Takes number in pixels or a CSS value as a string and returns a string
-of the form '10.25rem'.
-*/
-
-function toRem(n) {
-    return (parseValue(n) / getFontSize())
-        // Chrome needs 7 digit precision for accurate rendering
-        .toFixed(8)
-        // Remove trailing 0s
-        .replace(/\.?0*$/, '')
-        // Postfix
-        + 'rem';
-}
-
-/**
-toVw(value)
-
-Takes number in pixels and returns a string of the form '10vw'.
-*/
-
-function toVw(n) {
-    return (100 * parseValue(n) / window.innerWidth) + 'vw';
-}
-
-/**
-toVh(value)
-
-Takes number in pixels and returns a string of the form '10vh'.
-*/
-
-function toVh(n) {
-    return (100 * parseValue(n) / window.innerHeight) + 'vh';
-}
-
-const rules = [];
-
-const types = overload(toType, {
-    'number':   id,
-    'string':   parseValue,
-    'function': function(fn) { return fn(); }
-});
-
-const tests = {
-    minWidth: function(value)  { return width >= types(value); },
-    maxWidth: function(value)  { return width <  types(value); },
-    minHeight: function(value) { return height >= types(value); },
-    maxHeight: function(value) { return height <  types(value); },
-    minScrollTop: function(value) { return scrollTop >= types(value); },
-    maxScrollTop: function(value) { return scrollTop <  types(value); },
-    minScrollBottom: function(value) { return (scrollHeight - height - scrollTop) >= types(value); },
-    maxScrollBottom: function(value) { return (scrollHeight - height - scrollTop) <  types(value); }
-};
-
-let width = window.innerWidth;
-let height = window.innerHeight;
-let scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-
-function test(query) {
-    var keys = Object.keys(query);
-    var n = keys.length;
-    var key;
-
-    if (keys.length === 0) { return false; }
-
-    while (n--) {
-        key = keys[n];
-        if (!tests[key](query[key])) { return false; }
-    }
-
-    return true;
-}
-
-function update$2(e) {
-    var l = rules.length;
-    var rule;
-
-    // Run exiting rules
-    while (l--) {
-        rule = rules[l];
-
-        if (rule.state && !test(rule.query)) {
-            rule.state = false;
-            rule.exit && rule.exit(e);
-        }
-    }
-
-    l = rules.length;
-
-    // Run entering rules
-    while (l--) {
-        rule = rules[l];
-
-        if (!rule.state && test(rule.query)) {
-            rule.state = true;
-            rule.enter && rule.enter(e);
-        }
-    }
-}
-
-function scroll(e) {
-    scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-    update$2(e);
-}
-
-function resize(e) {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-    update$2(e);
-}
-
-window.addEventListener('scroll', scroll);
-window.addEventListener('resize', resize);
-
-ready$1(update$2);
-document.addEventListener('DOMContentLoaded', update$2);
 
 /**
 prefix(string)
@@ -5317,6 +5165,457 @@ var features = define$1({
 	}
 });
 
+const assign$5  = Object.assign;
+const rspaces = /\s+/;
+
+function prefixType(type) {
+	return features.events[type] || type ;
+}
+
+
+// Handle event types
+
+// DOM click events may be simulated on inputs when their labels are
+// clicked. The tell-tale is they have the same timeStamp. Track click
+// timeStamps.
+var clickTimeStamp = 0;
+
+window.addEventListener('click', function(e) {
+	clickTimeStamp = e.timeStamp;
+});
+
+function listen(source, type) {
+	if (type === 'click') {
+		source.clickUpdate = function click(e) {
+			// Ignore clicks with the same timeStamp as previous clicks –
+			// they are likely simulated by the browser.
+			if (e.timeStamp <= clickTimeStamp) { return; }
+			source.update(e);
+		};
+
+		source.node.addEventListener(type, source.clickUpdate, source.options);
+		return source;
+	}
+
+	source.node.addEventListener(type, source.update, source.options);
+	return source;
+}
+
+function unlisten(source, type) {
+	source.node.removeEventListener(type, type === 'click' ?
+		source.clickUpdate :
+		source.update
+	);
+
+	return source;
+}
+
+/**
+events(type, node)
+
+Returns a mappable stream of events heard on `node`:
+
+    var stream = events('click', document.body);
+    .map(get('target'))
+    .each(function(node) {
+        // Do something with nodes
+    });
+
+Stopping the stream removes the event listeners:
+
+    stream.stop();
+*/
+
+function Source(notify, stop, type, options, node) {
+	const types  = type.split(rspaces).map(prefixType);
+	const buffer = [];
+
+	function update(value) {
+		buffer.push(value);
+		notify();
+	}
+
+	this._stop   = stop;
+	this.types   = types;
+	this.node    = node;
+	this.buffer  = buffer;
+	this.update  = update;
+	this.options = options;
+
+	// Potential hard-to-find error here if type has repeats, ie 'click click'.
+	// Lets assume nobody is dumb enough to do this, I dont want to have to
+	// check for that every time.
+	types.reduce(listen, this);
+}
+
+assign$5(Source.prototype, {
+	shift: function shiftEvent() {
+		const buffer = this.buffer;
+		return buffer.shift();
+	},
+
+	stop: function stopEvent() {
+		this.types.reduce(unlisten, this);
+		this._stop(this.buffer.length);
+	}
+});
+
+function events(type, node) {
+	let options;
+
+	if (typeof type === 'object') {
+		options = type;
+		type    = options.type;
+	}
+
+	return new Stream$1(function(notify, stop) {
+		return new Source(notify, stop, type, options, node)
+	});
+}
+
+
+// -----------------
+
+const A$6 = Array.prototype;
+const eventsSymbol = Symbol('events');
+
+function applyTail(fn, args) {
+	return function() {
+		A$6.push.apply(arguments, args);
+		fn.apply(null, arguments);
+	};
+}
+
+function on(node, type, fn) {
+	var options;
+
+	if (typeof type === 'object') {
+		options = type;
+		type    = options.type;
+	}
+
+	var types   = type.split(rspaces);
+	var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
+	var handler = arguments.length > 3 ? applyTail(fn, A$6.slice.call(arguments, 3)) : fn ;
+	var handlers, listener;
+	var n = -1;
+
+	while (++n < types.length) {
+		type = types[n];
+		handlers = events[type] || (events[type] = []);
+		listener = type === 'click' ?
+			function(e) {
+				// Ignore clicks with the same timeStamp as previous clicks –
+				// they are likely simulated by the browser on inputs when
+				// their labels are clicked
+				if (e.timeStamp <= clickTimeStamp) { return; }
+				handler(e);
+			} :
+			handler ;
+		handlers.push([fn, listener]);
+		node.addEventListener(type, listener, options);
+	}
+
+	return node;
+}
+
+function once(node, types, fn, data) {
+	on(node, types, function once() {
+		off(node, types, once);
+		fn.apply(null, arguments);
+	}, data);
+}
+
+function off(node, type, fn) {
+	var options;
+
+	if (typeof type === 'object') {
+		options = type;
+		type    = options.type;
+	}
+
+	var types   = type.split(rspaces);
+	var events  = node[eventsSymbol];
+	var handlers, i;
+
+	if (!events) { return node; }
+
+	var n = -1;
+	while (n++ < types.length) {
+		type = types[n];
+		handlers = events[type];
+		if (!handlers) { continue; }
+		i = handlers.length;
+		while (i--) {
+			if (handlers[i][0] === fn) {
+				node.removeEventListener(type, handlers[i][1]);
+				handlers.splice(i, 1);
+			}
+		}
+	}
+
+	return node;
+}
+
+/**
+trigger(type, node)
+
+Triggers event of `type` on `node`.
+
+```
+trigger('dom-activate', node);
+```
+*/
+
+function trigger(node, type, properties) {
+	// Don't cache events. It prevents you from triggering an event of a
+	// given type from inside the handler of another event of that type.
+	var event = Event$1(type, properties);
+	node.dispatchEvent(event);
+}
+
+/**
+style(property, node)
+
+Returns the computed style `property` of `node`.
+
+    style('transform', node);            // returns transform
+
+If `property` is of the form `"property:name"`, a named aspect of the property
+is returned.
+
+    style('transform:rotate', node);     // returns rotation, as a number, in radians
+    style('transform:scale', node);      // returns scale, as a number
+    style('transform:translateX', node); // returns translation, as a number, in px
+    style('transform:translateY', node); // returns translation, as a number, in px
+*/
+
+var rpx          = /px$/;
+var styleParsers = {
+	"transform:translateX": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		return parseFloat(values[4]);
+	},
+
+	"transform:translateY": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		return parseFloat(values[5]);
+	},
+
+	"transform:scale": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		var a = parseFloat(values[0]);
+		var b = parseFloat(values[1]);
+		return Math.sqrt(a * a + b * b);
+	},
+
+	"transform:rotate": function(node) {
+		var matrix = computedStyle('transform', node);
+		if (!matrix || matrix === "none") { return 0; }
+		var values = valuesFromCssFn(matrix);
+		var a = parseFloat(values[0]);
+		var b = parseFloat(values[1]);
+		return Math.atan2(b, a);
+	}
+};
+
+function valuesFromCssFn(string) {
+	return string.split('(')[1].split(')')[0].split(/\s*,\s*/);
+}
+
+function computedStyle(name, node) {
+	return window.getComputedStyle ?
+		window
+		.getComputedStyle(node, null)
+		.getPropertyValue(name) :
+		0 ;
+}
+
+function style(name, node) {
+    // If name corresponds to a custom property name in styleParsers...
+    if (styleParsers[name]) { return styleParsers[name](node); }
+
+    var value = computedStyle(name, node);
+
+    // Pixel values are converted to number type
+    return typeof value === 'string' && rpx.test(value) ?
+        parseFloat(value) :
+        value ;
+}
+
+// Units
+
+
+/* Track document font size */
+
+let fontSize;
+
+function getFontSize() {
+    return fontSize ||
+        (fontSize = style("font-size", document.documentElement));
+}
+
+events('resize', window).each(() => fontSize = undefined);
+
+
+/**
+parseValue(value)`
+Takes a string of the form '10rem', '100vw' or '100vh' and returns a number in pixels.
+*/
+
+const parseValue$1 = overload(toType, {
+    'number': id,
+
+    'string': parseVal({
+        em: function(n) {
+            return getFontSize() * n;
+        },
+
+        px: function(n) {
+            return n;
+        },
+
+        rem: function(n) {
+            return getFontSize() * n;
+        },
+
+        vw: function(n) {
+            return window.innerWidth * n / 100;
+        },
+
+        vh: function(n) {
+            return window.innerHeight * n / 100;
+        }
+    })
+});
+
+
+/**
+toRem(value)
+Takes number in pixels or a CSS value as a string and returns a string
+of the form '10.25rem'.
+*/
+
+function toRem(n) {
+    return (parseValue$1(n) / getFontSize())
+        // Chrome needs min 7 digit precision for accurate rendering
+        .toFixed(8)
+        // Remove trailing 0s
+        .replace(/\.?0*$/, '')
+        // Postfix
+        + 'rem';
+}
+
+
+/**
+toVw(value)
+Takes number in pixels and returns a string of the form '10vw'.
+*/
+
+function toVw(n) {
+    return (100 * parseValue$1(n) / window.innerWidth) + 'vw';
+}
+
+
+/**
+toVh(value)
+Takes number in pixels and returns a string of the form '10vh'.
+*/
+
+function toVh(n) {
+    return (100 * parseValue$1(n) / window.innerHeight) + 'vh';
+}
+
+const rules = [];
+
+const types = overload(toType, {
+    'number':   id,
+    'string':   parseValue$1,
+    'function': function(fn) { return fn(); }
+});
+
+const tests = {
+    minWidth: function(value)  { return width >= types(value); },
+    maxWidth: function(value)  { return width <  types(value); },
+    minHeight: function(value) { return height >= types(value); },
+    maxHeight: function(value) { return height <  types(value); },
+    minScrollTop: function(value) { return scrollTop >= types(value); },
+    maxScrollTop: function(value) { return scrollTop <  types(value); },
+    minScrollBottom: function(value) { return (scrollHeight - height - scrollTop) >= types(value); },
+    maxScrollBottom: function(value) { return (scrollHeight - height - scrollTop) <  types(value); }
+};
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+let scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+
+function test(query) {
+    var keys = Object.keys(query);
+    var n = keys.length;
+    var key;
+
+    if (keys.length === 0) { return false; }
+
+    while (n--) {
+        key = keys[n];
+        if (!tests[key](query[key])) { return false; }
+    }
+
+    return true;
+}
+
+function update$2(e) {
+    var l = rules.length;
+    var rule;
+
+    // Run exiting rules
+    while (l--) {
+        rule = rules[l];
+
+        if (rule.state && !test(rule.query)) {
+            rule.state = false;
+            rule.exit && rule.exit(e);
+        }
+    }
+
+    l = rules.length;
+
+    // Run entering rules
+    while (l--) {
+        rule = rules[l];
+
+        if (!rule.state && test(rule.query)) {
+            rule.state = true;
+            rule.enter && rule.enter(e);
+        }
+    }
+}
+
+function scroll(e) {
+    scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    update$2(e);
+}
+
+function resize(e) {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+    update$2(e);
+}
+
+window.addEventListener('scroll', scroll);
+window.addEventListener('resize', resize);
+
+ready$1(update$2);
+document.addEventListener('DOMContentLoaded', update$2);
+
 /**
 assign(node, properties)
 
@@ -5364,7 +5663,7 @@ function setAttribute(name, node, content) {
 	node.setAttribute(name, content);
 }
 
-function assign$4(node, attributes) {
+function assign$6(node, attributes) {
 	var names = Object.keys(attributes);
 	var n = names.length;
 
@@ -5375,7 +5674,7 @@ function assign$4(node, attributes) {
 	return node;
 }
 
-var assign$5 = curry$1(assign$4, true);
+var assign$7 = curry$1(assign$6, true);
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const div = document.createElement('div');
@@ -5475,7 +5774,7 @@ var create$1 = overload(toTypes, {
     'string string': construct,
 
     'string object': function(tag, content) {
-        return assign$5(construct(tag, ''), content);
+        return assign$7(construct(tag, ''), content);
     },
 
     'object string': function(properties, text) {
@@ -5483,13 +5782,13 @@ var create$1 = overload(toTypes, {
         validateTag(tag);
         // Warning: text is set before properties, but text should override
         // html or innerHTML property, ie, be set after.
-        return assign$5(construct(tag, text), properties);
+        return assign$7(construct(tag, text), properties);
     },
 
     'object object': function(properties, content) {
         const tag = properties.tag || properties.tagName;
         validateTag(tag);
-        return assign$5(assign$5(construct(tag, ''), properties), content);
+        return assign$7(assign$7(construct(tag, ''), properties), content);
     },
 
     default: function() {
@@ -5497,29 +5796,7 @@ var create$1 = overload(toTypes, {
     }
 });
 
-/**
-element(name, options)
-
-- name: 'name'     Custom element tag name, eg. ''
-- options: {
-       extends:    Name of tag to extend, makes the element a custom built-in element
-       mode:       'open' or 'closed', defaults to closed
-       template:   String or template node or id used to create a shadow DOM
-       attributes: A `{name: fn}` map called when named attributes change
-       properties: A map of properties defined on the element prototype. Where
-            the property `value` is defined extra work is done to make the
-            element work inside a form
-       construct:  Lifecycle handler called during element construction with shadow as first argument
-       connect:    Lifecycle handler called when element added to DOM with shadow as first argument
-       disconnect: Lifecycle handler called when element removed from DOM
-       enable:     Lifecycle handler called when form element enabled
-       disable:    Lifecycle handler called when form element disabled
-       reset:      Lifecycle handler called when form element reset
-       restore:    Lifecycle handler called when form element restored
-   }
-*/
-
-const assign$6 = Object.assign;
+const assign$8 = Object.assign;
 
 const constructors = {
     'a':        HTMLAnchorElement,
@@ -5529,14 +5806,12 @@ const constructors = {
     'template': HTMLTemplateElement
 };
 
-//const inputEvent = new CustomEvent('input', eventOptions);
-
 const $internals = Symbol('internals');
 const $shadow    = Symbol('shadow');
 
 const formProperties = {
     // These properties echo those provided by native form controls.
-    // They are not strictly necessary, but provided for consistency.
+    // They are not strictly required, but provided for consistency.
     type: { value: 'text' },
 
     name: {
@@ -5544,15 +5819,13 @@ const formProperties = {
         get: function() { return this.getAttribute('name') || ''; }
     },
 
-    form: { get: function() { return this[$internals].form; }},
-    labels: { get: function() { return this[$internals].labels; }},
-    validity: { get: function() { return this[$internals].validity; }},
+    form:              { get: function() { return this[$internals].form; }},
+    labels:            { get: function() { return this[$internals].labels; }},
+    validity:          { get: function() { return this[$internals].validity; }},
     validationMessage: { get: function() { return this[$internals].validationMessage; }},
-    willValidate: { get: function() { return this[$internals].willValidate; }},
-
-    // Methods
-    checkValidity: { value: function() { return this[$internals].checkValidity(); }},
-    reportValidity: { value: function() { return this[$internals].reportValidity(); }}
+    willValidate:      { get: function() { return this[$internals].willValidate; }},
+    checkValidity:     { value: function() { return this[$internals].checkValidity(); }},
+    reportValidity:    { value: function() { return this[$internals].reportValidity(); }}
 };
 
 function getElementConstructor(tag) {
@@ -5567,16 +5840,6 @@ function getElementConstructor(tag) {
         })();
 }
 
-function transferProperty(elem, key) {
-    if (elem.hasOwnProperty(key)) {
-        const value = elem[key];
-        delete elem[key];
-        elem[key] = value;
-    }
-
-    return elem;
-}
-
 function getTemplateById(id) {
     const template = document.getElementById(id);
 
@@ -5585,6 +5848,33 @@ function getTemplateById(id) {
     }
 
     return template;
+}
+
+function getTemplate(template) {
+    if (!template) { return; }
+
+    return typeof template === 'string' ?
+        // If template is an #id search for <template id="id">
+        template[0] === '#' ? getTemplateById(template.slice(1)) :
+        // It must be a string of HTML
+        template :
+    template.content ?
+        // It must be a template node
+        template :
+        // Whatever it is, we don't support it
+        function(){
+            throw new Error('element() options.template not a template node, id or string');
+        }() ;
+}
+
+function transferProperty(elem, key) {
+    if (elem.hasOwnProperty(key)) {
+        const value = elem[key];
+        delete elem[key];
+        elem[key] = value;
+    }
+
+    return elem;
 }
 
 function createShadow(template, elem, options) {
@@ -5618,9 +5908,11 @@ function attachInternals(elem) {
     }
 
     // Otherwise polyfill it with a pseudo internals object, actually a hidden
-    // input that we put inside element (but outside the shadow DOM)
+    // input that we put inside element (but outside the shadow DOM). We may
+    // not yet put this in the DOM however – it violates the spec to give a
+    // custom element children before it's contents are parsed. Instead we
+    // wait until connectCallback.
     const hidden = create$1('input', { type: 'hidden', name: elem.name });
-    elem.appendChild(hidden);
 
     // Polyfill internals object setFormValue
     hidden.setFormValue = function(value) {
@@ -5630,29 +5922,55 @@ function attachInternals(elem) {
     return hidden;
 }
 
+function appendInternalsCallback() {
+    // If we have simulated form internals, append the hidden input now
+    if (this[$internals] && !this.attachInternals) {
+        this.appendChild(this[$internals]);
+    }
+}
+
+function primeAttributes(elem) {
+    elem._initialAttributes = {};
+    elem._n = 0;
+}
+
+function advanceAttributes(elem, attributes, handlers) {
+    const values = elem._initialAttributes;
+
+    while(elem._n < attributes.length && values[attributes[elem._n]] !== undefined) {
+        //console.log('ADVANCE ATTR', attributes[elem._n]);
+        handlers[attributes[elem._n]].call(elem, values[attributes[elem._n]]);
+        ++elem._n;
+    }
+}
+
+function flushAttributes(elem, attributes, handlers) {
+    if (!elem._initialAttributes) { return; }
+
+    const values = elem._initialAttributes;
+
+    while(elem._n < attributes.length) {
+        //console.log('FLUSH ATTR', attributes[elem._n]);
+        if (values[attributes[elem._n]] !== undefined) {
+            handlers[attributes[elem._n]].call(elem, values[attributes[elem._n]]);
+        }
+        ++elem._n;
+    }
+
+    delete elem._initialAttributes;
+    delete elem._n;
+}
+
 
 function element(name, options) {
-
     // Get the element constructor from options.extends, or the
     // base HTMLElement constructor
     const constructor = options.extends ?
         getElementConstructor(options.extends) :
         HTMLElement ;
 
-    const template = options && options.template && (
-        typeof options.template === 'string' ?
-            // If options.template is an #id, search for <template id="id">
-            options.template[0] === '#' ? getTemplateById(options.template.slice(1)) :
-            // It must be a string of HTML
-            options.template :
-        options.template.content ?
-            // It must be a template node
-            options.template :
-        // Whatever it is, we don't support it
-        function(){
-            throw new Error('element() options.template not recognised as template node, id or string');
-        }()
-    );
+    // Get a template node or HTML string from options.template
+    const template = getTemplate(options.template);
 
     function Element() {
         // Construct an instance from Constructor using the Element prototype
@@ -5665,6 +5983,17 @@ function element(name, options) {
         }
 
         options.construct && options.construct.call(elem, shadow);
+
+        // Preserve initialisation order of attribute initialisation by
+        // queueing them
+        if (options.attributes) {
+            primeAttributes(elem);
+
+            // Wait a tick to flush attributes
+            Promise.resolve(1).then(function() {
+                flushAttributes(elem, Element.observedAttributes, options);
+            });
+        }
 
         // At this point, if properties have already been set before the
         // element was upgraded, they exist on the elem itself, where we have
@@ -5688,23 +6017,17 @@ function element(name, options) {
     }
 
 
-    // options.properties
+    // Properties
     //
-    // Map of getter/setters called when properties mutate. Must be defined
-    // before attributeChangedCallback, but I'm not sure why right now.
-    //
-    // {
-    //     name: { get: fn, set: fn }
-    // }
-    //
-    // Where one of the properties is `value`, this element is set up as a form
-    // element.
+    // Must be defined before attributeChangedCallback, but I cannot figure out
+    // why. Where one of the properties is `value`, the element is set up as a
+    // form element.
 
     if (options.properties && options.properties.value) {
         // Flag the Element class as formAssociated
         Element.formAssociated = true;
 
-        Element.prototype = Object.create(constructor.prototype, assign$6({}, formProperties, options.properties, {
+        Element.prototype = Object.create(constructor.prototype, assign$8({}, formProperties, options.properties, {
             value: {
                 get: options.properties.value.get,
                 set: function() {
@@ -5722,54 +6045,47 @@ function element(name, options) {
     }
 
 
-    // options.attributes
-    //
-    // Map of functions called when named attributes change.
-    //
-    // {
-    //     name: fn
-    // }
+    // Attributes
 
     if (options.attributes) {
         Element.observedAttributes = Object.keys(options.attributes);
 
         Element.prototype.attributeChangedCallback = function(name, old, value) {
-            options.attributes[name].call(this, value, name);
+            if (!this._initialAttributes) {
+                return options.attributes[name].call(this, value);
+            }
+
+            // Keep a record of attribute values to be applied in
+            // observedAttributes order
+            this._initialAttributes[name] = value;
+            advanceAttributes(this, Element.observedAttributes, options.attributes);
         };
     }
 
 
     // Lifecycle
-    // https://html.spec.whatwg.org/multipage/custom-elements.html#custom-element-reactions
-    //
-    // More lifecycle reactions are available in the spec:
-    // adoptedCallback
-    // formAssociatedCallback
 
-    if (options.connect) {
-        // Pass shadow to connect(shadow) function
-        Element.prototype.connectedCallback = function() {
-            return options.connect.call(this, this[$shadow]);
+    Element.prototype.connectedCallback = function() {
+        if (this._initialAttributes) {
+            flushAttributes(this, Element.observedAttributes, options.attributes);
+        }
 
-            // 'input' events are suppused to traverse the shadow boundary
-            // but they do not. At least not in Chrome 2019 - a
-            /*this[$shadow].addEventListener('input', (e) => {
-                if (!e.composed) {
-                    console.warn('Custom element not allowing input event to traverse shadow boundary');
-                    this.dispatchEvent(inputEvent);
-                }
-            });*/
-        };
-    }
+        if (Element.formAssociated) {
+            appendInternalsCallback.call(this);
+        }
+
+        if (options.connect) {
+            options.connect.call(this, this[$shadow]);
+        }
+
+        { console.log('Connected to document:', this); }
+    };
 
     if (options.disconnect) {
         Element.prototype.disconnectedCallback = function() {
             return options.disconnect.call(this, this[$shadow]);
         };
     }
-
-
-    // Form lifecycle
 
     if (Element.formAssociated) {
         if (options.enable || options.disable) {
@@ -5816,29 +6132,30 @@ function escape(value) {
 }
 
 var mimetypes = {
-	xml: 'application/xml',
-	html: 'text/html',
-	svg: 'image/svg+xml'
+    xml: 'application/xml',
+    html: 'text/html',
+    svg: 'image/svg+xml'
 };
 
 function parse$1(type, string) {
-	if (!string) { return; }
+    if (!string) { return; }
 
-	var mimetype = mimetypes[type];
-	var xml;
+    var mimetype = mimetypes[type.toLowerCase()];
+    var xml;
 
-	// From jQuery source...
-	try {
-		xml = (new window.DOMParser()).parseFromString(string, mimetype);
-	} catch (e) {
-		return;
-	}
+    // Cludged from jQuery source...
+    try {
+        xml = (new window.DOMParser()).parseFromString(string, mimetype);
+    }
+    catch (e) {
+        return;
+    }
 
-	if (!xml || xml.getElementsByTagName("parsererror").length) {
-		throw new Error("dom: Invalid XML: " + string);
-	}
+    if (!xml || xml.getElementsByTagName("parsererror").length) {
+        throw new Error("Invalid " + type.toUpperCase() + ": " + string);
+    }
 
-	return xml;
+    return xml;
 }
 
 /**
@@ -5847,7 +6164,7 @@ Returns an HTML document parsed from `string`, or undefined.
 */
 
 function parseHTML(string) {
-	return parse$1('html', string);
+    return parse$1('html', string);
 }
 
 // Types
@@ -6153,266 +6470,6 @@ function fragmentFromHTML(html, contextTag) {
     return document
     .createRange()
     .createContextualFragment(html);
-}
-
-const assign$7      = Object.assign;
-const CustomEvent = window.CustomEvent;
-
-const defaults    = {
-	// The event bubbles (false by default)
-	// https://developer.mozilla.org/en-US/docs/Web/API/Event/Event
-	bubbles: true,
-
-	// The event may be cancelled (false by default)
-	// https://developer.mozilla.org/en-US/docs/Web/API/Event/Event
-	cancelable: true
-
-	// Trigger listeners outside of a shadow root (false by default)
-	// https://developer.mozilla.org/en-US/docs/Web/API/Event/composed
-	//composed: false
-};
-
-/**
-Event(type, properties)
-
-Creates a CustomEvent of type `type`.
-Additionally, `properties` are assigned to the event object.
-*/
-
-function Event$1(type, options) {
-	let settings;
-
-	if (typeof type === 'object') {
-		settings = assign$7({}, defaults, type);
-		type = settings.type;
-	}
-
-	if (options && options.detail) {
-		if (settings) {
-			settings.detail = options.detail;
-		}
-		else {
-			settings = assign$7({ detail: options.detail }, defaults);
-		}
-	}
-
-	var event = new CustomEvent(type, settings || defaults);
-
-	if (options) {
-		delete options.detail;
-		assign$7(event, options);
-	}
-
-	return event;
-}
-
-const assign$8  = Object.assign;
-const rspaces = /\s+/;
-
-function prefixType(type) {
-	return features.events[type] || type ;
-}
-
-
-// Handle event types
-
-// DOM click events may be simulated on inputs when their labels are
-// clicked. The tell-tale is they have the same timeStamp. Track click
-// timeStamps.
-var clickTimeStamp = 0;
-
-window.addEventListener('click', function(e) {
-	clickTimeStamp = e.timeStamp;
-});
-
-function listen(source, type) {
-	if (type === 'click') {
-		source.clickUpdate = function click(e) {
-			// Ignore clicks with the same timeStamp as previous clicks –
-			// they are likely simulated by the browser.
-			if (e.timeStamp <= clickTimeStamp) { return; }
-			source.update(e);
-		};
-
-		source.node.addEventListener(type, source.clickUpdate, source.options);
-		return source;
-	}
-
-	source.node.addEventListener(type, source.update, source.options);
-	return source;
-}
-
-function unlisten(source, type) {
-	source.node.removeEventListener(type, type === 'click' ?
-		source.clickUpdate :
-		source.update
-	);
-
-	return source;
-}
-
-/**
-events(type, node)
-
-Returns a mappable stream of events heard on `node`:
-
-    var stream = events('click', document.body);
-    .map(get('target'))
-    .each(function(node) {
-        // Do something with nodes
-    });
-
-Stopping the stream removes the event listeners:
-
-    stream.stop();
-*/
-
-function Source(notify, stop, type, options, node) {
-	const types  = type.split(rspaces).map(prefixType);
-	const buffer = [];
-
-	function update(value) {
-		buffer.push(value);
-		notify();
-	}
-
-	this._stop   = stop;
-	this.types   = types;
-	this.node    = node;
-	this.buffer  = buffer;
-	this.update  = update;
-	this.options = options;
-
-	// Potential hard-to-find error here if type has repeats, ie 'click click'.
-	// Lets assume nobody is dumb enough to do this, I dont want to have to
-	// check for that every time.
-	types.reduce(listen, this);
-}
-
-assign$8(Source.prototype, {
-	shift: function shiftEvent() {
-		const buffer = this.buffer;
-		return buffer.shift();
-	},
-
-	stop: function stopEvent() {
-		this.types.reduce(unlisten, this);
-		this._stop(this.buffer.length);
-	}
-});
-
-function events(type, node) {
-	let options;
-
-	if (typeof type === 'object') {
-		options = type;
-		type    = options.type;
-	}
-
-	return new Stream$1(function(notify, stop) {
-		return new Source(notify, stop, type, options, node)
-	});
-}
-
-
-// -----------------
-
-const A$6 = Array.prototype;
-const eventsSymbol = Symbol('events');
-
-function applyTail(fn, args) {
-	return function() {
-		A$6.push.apply(arguments, args);
-		fn.apply(null, arguments);
-	};
-}
-
-function on(node, type, fn) {
-	var options;
-
-	if (typeof type === 'object') {
-		options = type;
-		type    = options.type;
-	}
-
-	var types   = type.split(rspaces);
-	var events  = node[eventsSymbol] || (node[eventsSymbol] = {});
-	var handler = arguments.length > 3 ? applyTail(fn, A$6.slice.call(arguments, 3)) : fn ;
-	var handlers, listener;
-	var n = -1;
-
-	while (++n < types.length) {
-		type = types[n];
-		handlers = events[type] || (events[type] = []);
-		listener = type === 'click' ?
-			function(e) {
-				// Ignore clicks with the same timeStamp as previous clicks –
-				// they are likely simulated by the browser on inputs when
-				// their labels are clicked
-				if (e.timeStamp <= clickTimeStamp) { return; }
-				handler(e);
-			} :
-			handler ;
-		handlers.push([fn, listener]);
-		node.addEventListener(type, listener, options);
-	}
-
-	return node;
-}
-
-function once(node, types, fn, data) {
-	on(node, types, function once() {
-		off(node, types, once);
-		fn.apply(null, arguments);
-	}, data);
-}
-
-function off(node, type, fn) {
-	var options;
-
-	if (typeof type === 'object') {
-		options = type;
-		type    = options.type;
-	}
-
-	var types   = type.split(rspaces);
-	var events  = node[eventsSymbol];
-	var handlers, i;
-
-	if (!events) { return node; }
-
-	var n = -1;
-	while (n++ < types.length) {
-		type = types[n];
-		handlers = events[type];
-		if (!handlers) { continue; }
-		i = handlers.length;
-		while (i--) {
-			if (handlers[i][0] === fn) {
-				node.removeEventListener(type, handlers[i][1]);
-				handlers.splice(i, 1);
-			}
-		}
-	}
-
-	return node;
-}
-
-/**
-trigger(type, node)
-
-Triggers event of `type` on `node`.
-
-```
-trigger('dom-activate', node);
-```
-*/
-
-function trigger(node, type, properties) {
-	// Don't cache events. It prevents you from triggering an event of a
-	// given type from inside the handler of another event of that type.
-	var event = Event$1(type, properties);
-	node.dispatchEvent(event);
 }
 
 // trigger('type', node)
@@ -8087,10 +8144,10 @@ seconds:
     deg:       { tx: toDeg, ix: toRad },
     rad:       { tx: toRad, ix: toDeg },
     level:     { tx: toLevel, ix: todB },
-    px:        { tx: parseValue, ix: toRem },
-    rem:       { tx: toRem, ix: parseValue },
-    vw:        { tx: toVw,  ix: parseValue },
-    vh:        { tx: toVh,  ix: parseValue },
+    px:        { tx: parseValue$1, ix: toRem },
+    rem:       { tx: toRem, ix: parseValue$1 },
+    vw:        { tx: toVw,  ix: parseValue$1 },
+    vh:        { tx: toVh,  ix: parseValue$1 },
     not:       { tx: not,   ix: not }
 };
 
