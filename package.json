@@ -26,7 +26,8 @@
   ],
   "devDependencies": {
     "rollup": "^1.27.9",
-    "eslint": "^6.5.1"
+    "eslint": "^6.5.1",
+    "madge": "^3.9.2"
   },
   "module": "module.js",
   "homepage": "https://stephen.band/sparky/",
@@ -37,6 +38,7 @@
     "build": "npm run build-module && npm run build-css && npm run build-docs",
     "build-css": "node ../fn/build-css.js style.css style.min.css",
     "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
-    "build-docs": "node ../fn/build-html.js index.template.html index.html"
+    "build-docs": "node ../fn/build-html.js index.template.html index.html",
+    "graph": "madge --image ./module.svg ./module.js",
   }
 }
