@@ -10646,19 +10646,19 @@ requestTick(function() {
     element('sparky-template', {
         extends: 'template',
 
-        construct: function() {
-            const fn = this.getAttribute(config$1.attributeFn);
+        construct: function(elem) {
+            const fn = elem.getAttribute(config$1.attributeFn);
 
-            if (DEBUG$d) { logNode(this, fn, this.getAttribute(config$1.attributeSrc)); }
+            if (DEBUG$d) { logNode(elem, fn, elem.getAttribute(config$1.attributeSrc)); }
 
             if (fn) {
-                Sparky(this, { fn: fn });
+                Sparky(elem, { fn: fn });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(this).push({});
+                Sparky(elem).push({});
             }
 
             // Flag
