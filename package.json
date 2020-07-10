@@ -38,6 +38,6 @@
     "build-css": "node ../fn/build-css.js style.css style.min.css",
     "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
     "build-docs": "node ../fn/build-html.js index.template.html index.html",
-    "graph": "madge --image ./module.svg ./module.js",
+    "graph": "madge --image ./module.svg ./module.js"
   }
 }
