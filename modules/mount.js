@@ -477,23 +477,26 @@ function mountTag(settings, node, name, renderers, options) {
     if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
 }
 
-function mountCollection(children, renderers, options) {
+function mountCollection(children, renderers, options, level) {
     var n = -1;
     var child;
 
     while ((child = children[++n])) {
-        mountNode(child, renderers, options);
+        mountNode(child, renderers, options, level);
     }
 }
 
 const mountNode = overload(getNodeType, {
     // element
-    1: function mountElement(node, renderers, options) {
-        const sparky = options.mount && options.mount(node, options);
+    1: function mountElement(node, renderers, options, level) {
+        // Avoid remounting the node we are already trying to mount
+        if (level !== 0) {
+            const sparky = options.mount && options.mount(node, options);
 
-        if (sparky) {
-            renderers.push(sparky);
-            return;
+            if (sparky) {
+                renderers.push(sparky);
+                return;
+            }
         }
 
         // Ignore SVG <defs>, which we consider as equivalent to the inert
@@ -505,8 +508,8 @@ const mountNode = overload(getNodeType, {
 
         // Get an immutable list of children. Remember node.childNodes is
         // dynamic, and we don't want to mount elements that may be dynamically
-        // inserted, so turn childNodes into an array first.
-        mountCollection(Array.from(node.childNodes), renderers, options);
+        // inserted during mounting, so turn childNodes into an array first.
+        mountCollection(Array.from(node.childNodes), renderers, options, ++level);
         mountClass(node, renderers, options);
 
         options.parse.default
@@ -529,16 +532,16 @@ const mountNode = overload(getNodeType, {
     8: noop,
 
     // document
-    9: function mountDocument(node, renderers, options) {
-        mountCollection(A.slice.apply(node.childNodes), renderers, options);
+    9: function mountDocument(node, renderers, options, level) {
+        mountCollection(A.slice.apply(node.childNodes), renderers, options, ++level);
     },
 
     // doctype
     10: noop,
 
     // fragment
-    11: function mountFragment(node, renderers, options) {
-        mountCollection(A.slice.apply(node.childNodes), renderers, options);
+    11: function mountFragment(node, renderers, options, level) {
+        mountCollection(A.slice.apply(node.childNodes), renderers, options, ++level);
     },
 
     default: function(node) {
@@ -566,7 +569,9 @@ export default function Mount(node, options) {
     }
 
     this.renderers = [];
-    mountNode(node, this.renderers, options);
+
+    // mountNode(node, renderers, options, level)
+    mountNode(node, this.renderers, options, 0);
 }
 
 assign(Mount.prototype, {

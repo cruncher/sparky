@@ -26,7 +26,7 @@ import { element } from '../dom/module.js';
 import { cue, uncue } from './modules/timer.js';
 import { log, logNode } from './modules/log.js';
 import config from './config.js';
-import Sparky from './modules/sparky.js';
+import Sparky, { setupSparky, mountSparky } from './modules/sparky.js';
 
 // Register base set of Sparky functions
 import './modules/fn-after.js';
@@ -61,6 +61,8 @@ export { transforms, transformers, register as registerTransform } from './modul
 export { register } from './modules/fn.js';
 export { default as delegate } from './modules/delegate.js';
 export { default as ObserveFn } from './modules/fn-observe.js';
+
+const assign = Object.assign;
 
 /*
 Sparky templates
@@ -99,23 +101,39 @@ requestTick(function() {
     element('sparky-template', {
         extends: 'template',
 
+        properties: {},
+
+        attributes: {
+            src: function(src) {
+                this.options.src = src;
+            },
+
+            fn: function(fn) {
+                this.options.fn = fn;
+            }
+        },
+
         construct: function(elem) {
-            const fn = elem.getAttribute(config.attributeFn);
+            elem.options = assign({
+                mount: mountSparky
+            }, config);
 
-            if (DEBUG) { logNode(elem, fn, elem.getAttribute(config.attributeSrc)); }
+            // Flag
+            supportsCustomBuiltIn = true;
+        },
 
-            if (fn) {
-                Sparky(elem, { fn: fn });
+        connect: function(elem) {
+            if (DEBUG) { logNode(elem, elem.options.fn, elem.options.src); }
+
+            if (elem.options.fn) {
+                setupSparky(elem, elem, elem.options);
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(elem).push({});
+                setupSparky(elem, elem, elem.options).push({});
             }
-
-            // Flag
-            supportsCustomBuiltIn = true;
         }
     });
 
@@ -132,16 +150,17 @@ requestTick(function() {
         window.document
         .querySelectorAll('[is="sparky-template"]')
         .forEach((template) => {
-            const fn = template.getAttribute(config.attributeFn);
+            const fn  = template.getAttribute(config.attributeFn) || undefined;
+            const src = template.getAttribute(config.attributeSrc) || undefined;
 
             if (fn) {
-                Sparky(template, { fn: fn });
+                Sparky(template, { fn: fn, src: src });
             }
             else {
                 // If there is no attribute fn, there is no way for this sparky
                 // to launch as it will never get scope. Enable sparky templates
                 // with just an include by passing in blank scope.
-                Sparky(template).push({});
+                Sparky(template, { src: src }).push({});
             }
         });
     }

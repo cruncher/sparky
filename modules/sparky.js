@@ -109,30 +109,6 @@ function run(context, node, input, options) {
 }
 
 function mountContent(content, options) {
-    options.mount = function(node, options) {
-        // This is a half-assed way of preventing the root node of this
-        // sparky from being remounted. But, Todo, is it still needed?
-        if (node === content) { return; }
-
-        // Does the node have Sparkyfiable attributes?
-        if (!(options.fn = node.getAttribute(options.attributeFn)) && !(
-                tag(node) === 'template' &&
-                (options.src = node.getAttribute(options.attributeSrc))
-            )
-        ) { return; }
-
-        // Return a writeable stream. A writeable stream
-        // must have the methods .push() and .stop().
-        // A Sparky() is a write stream.
-        var sparky =  Sparky(node, options);
-
-        // Options object is still used by the mounter, reset it
-        options.fn  = null;
-        options.src = null;
-
-        return sparky;
-    };
-
     // Launch rendering
     return new Mount(content, options);
 }
@@ -437,48 +413,31 @@ I am Sparky.
 ```
 */
 
-export default function Sparky(selector, settings) {
-    if (!Sparky.prototype.isPrototypeOf(this)) {
-        return new Sparky(selector, settings);
-    }
-
-    const target = typeof selector === 'string' ?
-        document.querySelector(selector) :
-        selector ;
-
-    const options = assign({}, config, settings);
-
-    options.fn = options.fn
-        || target.getAttribute(options.attributeFn)
-        || '';
-
-    this.label = makeLabel(target, options);
-    this.renderCount = 0;
-
+export function setupSparky(sparky, target, options) {
     const input = Stream.of().map(toObserverOrSelf);
     const output = run(null, target, input, options);
-    const renderers = [];
-    var stop = noop;
 
-    this.push = function push() {
+    sparky.push = function push() {
         input.push(arguments[arguments.length - 1]);
-        return this;
-    };
-
-    this.stop = function () {
-        input.stop();
-        stop();
         return this;
     };
 
     // If output is false do not go on to parse and mount content,
     // a fn is signalling that it will take over. fn="each" does this,
     // for example, replacing the original node and Sparky with duplicates.
-    if (!output) { return; }
+    if (!output) {
+        sparky.stop = function () {
+            input.stop();
+            return this;
+        };
 
-    const name = tag(target);
+        return sparky;
+    }
+
+    const renderers = [];
+    const name = tag(target) || 'fragment';
     const src = options.src || (
-        name === 'use' ? target.getAttribute(options.attributeSrc) :
+        name === 'use' ?      target.getAttribute(options.attributeSrc) :
         name === 'template' ? target.getAttribute(options.attributeSrc) :
         null
     );
@@ -488,20 +447,78 @@ export default function Sparky(selector, settings) {
     options.fn  = null;
     options.src = null;
 
-    if (DEBUG) { logNode(target, options.fn, options.src); }
+    //if (DEBUG) { logNode(target, options.fn, options.src); }
 
     src ?
         name === 'use' ?
-            setupSVG(target, src, output, options, this, renderers) :
-        setupTemplate(target, src, output, options, this, renderers) :
-    setupElement(target, output, options, this, renderers) ;
+            setupSVG(target, src, output, options, sparky, renderers) :
+            setupTemplate(target, src, output, options, sparky, renderers) :
+        name === 'fragment' ?
+            setupElement(target, output, options, sparky, renderers) :
+            setupElement(target, output, options, sparky, renderers) ;
 
-    stop = function () {
+    sparky.stop = function () {
+        input.stop();
+
         // Renderers need to be stopped sync, or they allow one more frame
         // to render before stopping
         renderers.forEach(invokeStop);
         renderers.length = 0;
+
+        return this;
     };
 
     output.done(stop);
+
+    return sparky;
+}
+
+export function mountSparky(node, options) {
+    // Does the node have Sparkyfiable attributes?
+    if (!(options.fn = node.getAttribute(options.attributeFn))
+        && !(
+            tag(node) === 'template' &&
+            (options.src = node.getAttribute(options.attributeSrc)))
+        && !(
+            tag(node) === 'use' &&
+            (options.src = node.getAttribute(options.attributeSrc)))
+    ) {
+        return;
+    }
+
+    // Return a writeable stream. A writeable stream
+    // must have the methods .push() and .stop().
+    // A Sparky() is a write stream.
+    var sparky = setupSparky({
+        label: makeLabel(node, options),
+        renderCount: 0
+    }, node, options);
+
+    // Options object is still used by the mounter, reset it
+    options.fn  = null;
+    options.src = null;
+
+    return sparky;
+}
+
+export default function Sparky(selector, settings) {
+    if (!Sparky.prototype.isPrototypeOf(this)) {
+        return new Sparky(selector, settings);
+    }
+
+    const target = typeof selector === 'string' ?
+        document.querySelector(selector) :
+        selector ;
+
+    const options = assign({ mount: mountSparky }, config, settings);
+
+    options.fn = options.fn
+        // Fragments and shadows have no getAttribute
+        || (target.getAttribute && target.getAttribute(options.attributeFn))
+        || '';
+
+    this.label = makeLabel(target, options);
+    this.renderCount = 0;
+
+    setupSparky(this, target, options);
 }

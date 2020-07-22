@@ -1,11 +1,37 @@
 
-import { getPath, setPath, id, noop, pipe, Target } from '../../fn/module.js';
+import { getPath, setPath, id, noop, pipe, Target, weakCache } from '../../fn/module.js';
 import Renderer from './renderer.js';
 import { transformers } from './transforms.js';
 import { cue, uncue }   from './timer.js';
 
 const inputMap  = new WeakMap();
 const changeMap = new WeakMap();
+
+const listenRootNode = weakCache(function(rootNode) {
+    if (!rootNode) {
+        throw new Error('listenRootNode called with ' + rootNode);
+    }
+
+    // Delegate input and change handlers to the document at the cost of
+    // one WeakMap lookup, and using the capture phase so that accompanying
+    // scope is updated before any other handlers do anything
+
+    rootNode.addEventListener('input', function(e) {
+        const fn = inputMap.get(e.target);
+        if (!fn) { return; }
+        fn(e.target.value);
+    }, { capture: true });
+
+    rootNode.addEventListener('change', function(e) {
+        const fn = changeMap.get(e.target);
+        if (!fn) { return; }
+        fn(e.target.value);
+    }, { capture: true });
+
+    console.log('Sparky listening to rootNode', rootNode);
+
+    return rootNode;
+});
 
 function getInvert(name) {
     return transformers[name] && transformers[name].ix;
@@ -76,6 +102,8 @@ Object.assign(Listener.prototype, {
             this.set(value !== undefined ? this.transform(value) : undefined);
         };
 
+        listenRootNode(this.node.getRootNode());
+
         // Add it to the delegate pool
         this.fns.set(this.node, this.fn);
 
@@ -125,20 +153,3 @@ Object.assign(Listener.prototype, {
         return this;
     }
 });
-
-
-// Delegate input and change handlers to the document at the cost of
-// one WeakMap lookup, and using the capture phase so that accompanying
-// scope is updated before any other handlers do anything
-
-document.addEventListener('input', function(e) {
-    const fn = inputMap.get(e.target);
-    if (!fn) { return; }
-    fn(e.target.value);
-}, { capture: true });
-
-document.addEventListener('change', function(e) {
-    const fn = changeMap.get(e.target);
-    if (!fn) { return; }
-    fn(e.target.value);
-}, { capture: true });
