@@ -51,13 +51,13 @@ console.log('DATA ON DRAG', node);
 		var dragend   = delegate('[draggable]', dragendButton);
 
 		//.on('selectstart', '.node-button', cache, selectstartIE9)
-		on(node, 'dragstart', dragstart);
+		on('dragstart', dragstart, node);
 		//.on('drag', '.node-button', cache, dragButton)
-		on(node, 'dragend', dragend);
+		on('dragend', dragend, node);
 
 		this.then(function() {
-			off(node, 'dragstart', dragstart);
-			off(node, 'dragend', dragend);
+			off('dragstart', dragstart, node);
+			off('dragend', dragend, node);
 		});
 
 		//doc

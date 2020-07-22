@@ -137,7 +137,7 @@
 		classes(dropzone).add('dragover');
 	}
 
-    on(document, 'dragenter', dragenterDoc);
+    on('dragenter', dragenterDoc, document);
 
 	Sparky.fn['sort-on-drag'] = function(node, scopes, params) {
         var delegateDragEnter = delegate('.dropzone', dragenterZone);
@@ -154,10 +154,10 @@
 		}
 
 		function bind(ids) {
-			on(node, 'dragenter', delegateDragEnter);
-			on(node, 'dragenter', dragenter);
-			on(node, 'dragover',  preventDefault);
-			on(node, 'drop', drop, {
+			on('dragenter', delegateDragEnter, node);
+			on('dragenter', dragenter, node);
+			on('dragover',  preventDefault, node);
+			on('drop', drop, node, {
 				ids: ids,
 				fn: function(i0, i1) {
 					if (!scope) { return; }
@@ -170,10 +170,10 @@
 		}
 
 		function unbind() {
-			off(node, 'dragenter', delegateDragEnter);
-			off(node, 'dragenter', dragenter);
-			off(node, 'dragover',  preventDefault);
-			off(node, 'drop',      drop);
+			off('dragenter', delegateDragEnter, node);
+			off('dragenter', dragenter, node);
+			off('dragover', preventDefault, node);
+			off('drop', drop, node);
 		}
 
 		bind(ids);

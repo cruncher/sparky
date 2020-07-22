@@ -25,8 +25,8 @@
     }
   ],
   "devDependencies": {
-    "rollup": "^1.27.9",
-    "eslint": "^6.5.1",
+    "puppeteer": "^5.0.0",
+    "rollup": "^2.21.0",
     "madge": "^3.9.2"
   },
   "module": "module.js",
@@ -34,7 +34,6 @@
   "documentation": "https://stephen.band/sparky/",
   "image": "https://stephen.band/sparky/images/sparky-logo-bg-500.png",
   "scripts": {
-    "lint": "eslint modules/*.js",
     "build": "npm run build-module && npm run build-css && npm run build-docs",
     "build-css": "node ../fn/build-css.js style.css style.min.css",
     "build-module": "rollup ./module.js --o ./module.rolled.js --f esm",
