@@ -1,0 +1,62 @@
+
+<template remove id="head-template">
+    <meta charset="utf-8" />
+    <meta name="author" content="{[author.name]}" />
+    <meta name="description" content="Documentation for {[title]}. {[description]}" />
+    <meta name="viewport" content="width=device-width" />
+
+    <meta name="twitter:card" content="summary"></meta>
+    <meta name="twitter:site" content="@{[author.twitter]}"></meta>
+    <meta property="og:url" content="{[homepage]}" />
+    <meta property="og:title" content="{[title]}" />
+    <meta property="og:description" content="{[description]}" />
+    <meta property="og:image" content="{[image]}" />
+
+    <title>{[title]}</title>
+
+    <script title="load">
+    document.documentElement.className += ' js content-loading loading';
+    window.addEventListener('DOMContentLoaded', () => document.documentElement.classList.remove('content-loading'));
+    // Wait for other load handlers to run first - Bolt does a few things on
+    // load (eg. locateable scrolls) and we want them to run before the loading
+    // class is removed
+    window.addEventListener('load', () => window.requestAnimationFrame(() => document.documentElement.classList.remove('loading')));
+    </script>
+
+    <link rel="shortcut icon" href="images/logo-64x64.ico" />
+    <link rel="icon" type="image/png" href="images/logo-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="images/logo-64x64.png" sizes="64x64">
+    <link rel="icon" type="image/png" href="images/logo-128x128.png" sizes="128x128">
+</template>
+
+<template remove id="header-template">
+    <h1 class="doctext-01">{[title]} <span class="doctext-06">{[version]}</span></h1>
+    <p class="doctext-08">{[description]}</p>
+    <ul class="link-index index">
+        <li><strong>repo:</strong> <a href="{[repository.url]}">{[repository.url|replace:'https://','']}</a></li>
+        <li><strong>bugs:</strong> <a href="{[bugs.url]}">{[bugs.url|replace:'https://','']}</a></li>
+    </ul>
+</template>
+
+<template remove id="styleguide-template">
+    <section class="x-1 9x 6x-grid @2-9x-grid grid" style="--row-gap: var(--input-margin);" id="components" locateable>
+        <header class="x-1 3x @1-x-3 @1-4x @2-2x x-start">
+            <h3 fn="get:0 after:body" class="doctext-03 {[prefix|is:'.'|yesno:'dot-indent','']}">
+                <a fn="append:title" class="doctoggle-button button" href="#component-{[id]}"></a>
+            </h3>
+        </header>
+
+        <section fn="rest:1 filter-not-var" class="x-1 6x @1-6x @2-6x y-2 grid" style="grid-auto-flow: row; align-content: start;" id="component-{[0.id]}">
+            <template fn="each">
+                <h4 class="x-1 2x x-start @1-2x @1-x-end y-baseline doctext-05 {[prefix|is:'.'|yesno:'dot-indent','']} right-align">
+                    <a href="#{[id]}-description" title="Show HTML markup"><code fn="title-replace-comma-br append:title"></code></a>
+                </h4>
+                <div class="x-1 3x @1-x-3 @1-4x @2-2x x-stretch y-baseline block" fn="prepend:example"></div>
+                <div class="x-1 3x @1-2x @2-x-5 x-stretch y-baseline block">
+                    <a class="docbubble-thumb thumb" href="#{[id]}-description" style="text-decoration: none;">Code</a>
+                    <div class="bottom-right-bubble right-bubble bubble" style="width: calc(300% + 2 * var(--column-gap)); max-width: calc(300% + 2 * var(--column-gap)); min-width: 20rem; top: 0.75rem; left: 2.5rem;" popable fn="append:body" id="{[id]}-description"></div>
+                </div>
+            </template>
+        </section>
+    </section>
+</template>
