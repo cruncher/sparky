@@ -264,7 +264,7 @@ function setupSrc(src, input, firstRender, options) {
     // Swallow errors – unfound templates should not stop the rendering of
     // the rest of the tree – but log them to the console as errors.
     .catch((error) => {
-        console.error(error.stack);
+        console.error('Sparky: missing template "' + src + '"', error.stack);
     });
 }
 
