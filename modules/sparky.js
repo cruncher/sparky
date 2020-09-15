@@ -208,14 +208,14 @@ function setupTarget(src, input, render, options, renderers) {
 }
 
 function setupSrc(src, input, firstRender, options, renderers) {
-    // Strip off leading # before running the test
-    const source = document.getElementById(src.replace(/^#/, ''));
-
-    if (source) {
-        const content = source.content ? source.content.cloneNode(true) :
-            source instanceof SVGElement ? source.cloneNode(true) :
-            undefined ;
-
+    // If src is a hashref
+    if (src[0] === '#') {
+        const source  = document.getElementById(src.slice(1));
+        const content = source.content ?
+            source.content.cloneNode(true) :
+            source instanceof SVGElement ?
+                source.cloneNode(true) :
+                undefined ;
         return setupInclude(content, input, firstRender, options, renderers);
     }
 

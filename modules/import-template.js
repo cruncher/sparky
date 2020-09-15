@@ -1,6 +1,8 @@
 import { cache } from '../../fn/module.js';
 import { parseHTML, select, request } from '../../dom/module.js';
 
+const DEBUG = true;
+
 const requestDocument = cache(function requestDocument(path) {
     return request('GET', path)
     .then(parseHTML);

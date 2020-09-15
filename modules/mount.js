@@ -278,7 +278,7 @@ function renderChecked(name, node, value) {
 
 // Mount
 
-function mountToken(source, render, renderers, options, node, name) {
+function mountToken(source, render, options, node, name) {
     // Shortcut empty string
     if (!source) { return; }
 
@@ -287,12 +287,10 @@ function mountToken(source, render, renderers, options, node, name) {
 
     // Create transform from pipe
     assignTransform(options.pipes, token);
-    const renderer = new TokenRenderer(token, render, node, name);
-    renderers.push(renderer);
-    return renderer;
+    return new TokenRenderer(token, render, node, name);
 }
 
-function mountString(source, render, renderers, options, node, name) {
+function mountString(source, render, mounter, options, node, name) {
     // Shortcut empty string
     if (!source) { return; }
 
@@ -303,8 +301,7 @@ function mountString(source, render, renderers, options, node, name) {
     tokens.reduce(assignTransform, options.pipes);
 
     const renderer = new StringRenderer(tokens, render, node, name);
-    renderers.push(renderer);
-    return renderer;
+    mounter.add(renderer);
 }
 
 function mountAttribute(name, node, renderers, options, prefixed) {
@@ -319,7 +316,7 @@ function mountAttribute(name, node, renderers, options, prefixed) {
         source = node.getAttribute(name);
     }
 
-    return mountString(source, renderAttribute, renderers, options, node, name);
+    mountString(source, renderAttribute, renderers, options, node, name);
 }
 
 function mountAttributes(names, node, renderers, options) {
@@ -331,7 +328,7 @@ function mountAttributes(names, node, renderers, options) {
     }
 }
 
-function mountBoolean(name, node, renderers, options) {
+function mountBoolean(name, node, mounter, options) {
     // Look for prefixed attributes before attributes.
     //
     // In FF, the disabled attribute is set to the previous value that the
@@ -354,8 +351,7 @@ function mountBoolean(name, node, renderers, options) {
     tokens.reduce(assignTransform, options.pipes);
 
     const renderer = new BooleanRenderer(tokens, node, name);
-    renderers.push(renderer);
-    return renderer;
+    mounter.add(renderer);
 }
 
 function mountBooleans(names, node, renderers, options) {
@@ -367,7 +363,7 @@ function mountBooleans(names, node, renderers, options) {
     }
 }
 
-function mountClass(node, renderers, options) {
+function mountClass(node, mounter, options) {
     const prefixed = node.getAttribute(options.attributePrefix + 'class');
 
     if (prefixed) {
@@ -385,10 +381,10 @@ function mountClass(node, renderers, options) {
     tokens.reduce(assignTransform, options.pipes);
 
     const renderer = new ClassRenderer(tokens, node);
-    renderers.push(renderer);
+    mounter.add(renderer);
 }
 
-function mountValueProp(node, renderers, options, render, eventType, read, readAttribute, coerce) {
+function mountValueProp(node, mounter, options, render, eventType, read, readAttribute, coerce) {
     const prefixed = node.getAttribute(options.attributePrefix + 'value');
 
     if (prefixed) {
@@ -396,27 +392,29 @@ function mountValueProp(node, renderers, options, render, eventType, read, readA
     }
 
     const source   = prefixed || node.getAttribute('value');
-    const renderer = mountToken(source, render, renderers, options, node, 'value');
+    const renderer = mountToken(source, render, options, node, 'value');
     if (!renderer) { return; }
 
     // Insert a new listener ahead of the renderer so that on first
     // cue the listener populates scope from the input value first
     const listener = new Listener(node, renderer.tokens[0], eventType, read, readAttribute, coerce);
-    renderers.splice(renderers.length - 1, 0, listener);
+    mounter.add(listener);
+    mounter.add(renderer);
 }
 
-function mountValueChecked(node, renderers, options, render, read, readAttribute, coerce) {
+function mountValueChecked(node, mounter, options, render, read, readAttribute, coerce) {
     const source = node.getAttribute('value') ;
-    mountString(source, renderProperty, renderers, options, node, 'value');
+    mountString(source, renderProperty, mounter, options, node, 'value');
 
     const sourcePre = node.getAttribute(options.attributePrefix + 'value');
-    const renderer = mountToken(sourcePre, render, renderers, options, node, 'value');
+    const renderer = mountToken(sourcePre, render, options, node, 'value');
     if (!renderer) { return; }
 
     // Insert a new listener ahead of the renderer so that on first
     // cue the listener populates scope from the input value first
     const listener = new Listener(node, renderer.tokens[0], 'change', read, readAttribute, coerce);
-    renderers.splice(renderers.length - 1, 0, listener);
+    mounter.add(listener);
+    mounter.add(renderer);
 }
 
 const mountValue = choose({
@@ -459,9 +457,7 @@ const kinds = {
     textarea: 'string'
 };
 
-function mountTag(settings, node, name, renderers, options) {
-    var setting = settings[name];
-    if (!setting) { return; }
+function mountTag2(node, name, renderers, options, setting) {
     if (setting.booleans)   { mountBooleans(setting.booleans, node, renderers, options); }
     if (setting.attributes) { mountAttributes(setting.attributes, node, renderers, options); }
 
@@ -477,6 +473,26 @@ function mountTag(settings, node, name, renderers, options) {
     if (kinds[type]) { mountValue(kinds[type], node, renderers, options); }
 }
 
+function mountTag(settings, node, name, renderers, options) {
+    var setting = settings[name];
+    if (!setting) { return; }
+
+    // Custom element names contain a '-', wait until they are upgraded
+    if (/-/.test(name)) {
+        window
+        .customElements
+        .whenDefined(name)
+        .then(() => {
+            mountTag2(node, name, renderers, options, setting);
+        });
+    }
+
+    // Otherwise mount directly
+    else {
+        mountTag2(node, name, renderers, options, setting);
+    }
+}
+
 function mountCollection(children, renderers, options, level) {
     var n = -1;
     var child;
@@ -488,13 +504,13 @@ function mountCollection(children, renderers, options, level) {
 
 const mountNode = overload(getNodeType, {
     // element
-    1: function mountElement(node, renderers, options, level) {
+    1: function mountElement(node, mounter, options, level) {
         // Avoid remounting the node we are already trying to mount
         if (level !== 0) {
             const sparky = options.mount && options.mount(node, options);
 
             if (sparky) {
-                renderers.push(sparky);
+                mounter.add(sparky);
                 return;
             }
         }
@@ -509,18 +525,18 @@ const mountNode = overload(getNodeType, {
         // Get an immutable list of children. Remember node.childNodes is
         // dynamic, and we don't want to mount elements that may be dynamically
         // inserted during mounting, so turn childNodes into an array first.
-        mountCollection(Array.from(node.childNodes), renderers, options, ++level);
-        mountClass(node, renderers, options);
+        mountCollection(Array.from(node.childNodes), mounter, options, ++level);
+        mountClass(node, mounter, options);
 
         options.parse.default
         && options.parse.default.booleans
-        && mountBooleans(options.parse.default.booleans, node, renderers, options);
+        && mountBooleans(options.parse.default.booleans, node, mounter, options);
 
         options.parse.default
         && options.parse.default.attributes
-        && mountAttributes(options.parse.default.attributes, node, renderers, options);
+        && mountAttributes(options.parse.default.attributes, node, mounter, options);
 
-        mountTag(options.parse, node, name, renderers, options);
+        mountTag(options.parse, node, name, mounter, options);
     },
 
     // text
@@ -571,7 +587,7 @@ export default function Mount(node, options) {
     this.renderers = [];
 
     // mountNode(node, renderers, options, level)
-    mountNode(node, this.renderers, options, 0);
+    mountNode(node, this, options, 0);
 }
 
 assign(Mount.prototype, {
@@ -590,5 +606,12 @@ assign(Mount.prototype, {
         this.scope = scope;
         this.renderers.reduce(push, scope);
         return this;
+    },
+
+    add: function(renderer) {
+        this.renderers.push(renderer);
+        if (this.scope !== undefined) {
+            renderer.push(this.scope);
+        }
     }
 });
