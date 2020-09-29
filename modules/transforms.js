@@ -20,7 +20,9 @@ import toClass          from '../../fn/modules/to-class.js';
 import * as normalise   from '../../fn/modules/normalisers.js';
 import * as denormalise from '../../fn/modules/denormalisers.js';
 
-import { sum, exp, log, multiply, pow, root, todB, toLevel, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import { sum, exp, log, multiply, pow, root, toRad, toDeg } from '../../fn/modules/maths/core.js';
+import toLevel          from '../../fn/modules/maths/to-gain.js';
+import todB             from '../../fn/modules/maths/to-db.js';
 import { clamp }        from '../../fn/modules/maths/clamp.js';
 import { mod }          from '../../fn/modules/maths/mod.js';
 import toCartesian      from '../../fn/modules/maths/to-cartesian.js';
