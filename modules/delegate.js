@@ -62,17 +62,26 @@ function listen(scopes, type, selector, fn, node) {
     scopes.done(() => stream.stop());
 }
 
-export default function delegate(types, selector, fn) {
-    return typeof types === 'object' ?
-        function delegate(node) {
-            var type;
-            for (type in types) {
-                for (selector in types[type]) {
+function listenSelf(scopes, type, fn, node) {
+    var stream = events(type, node)
+    .filter((e) => e.target === e.currentTarget)
+    .each((args) => fn.apply(null, args));
+    scopes.done(() => stream.stop());
+}
+
+export default function delegate(types) {
+    return function delegate(node) {
+        var type, selector;
+        for (type in types) {
+            for (selector in types[type]) {
+                // Support :scope selector, which selects the currentTarget
+                if (selector === ':scope') {
+                    listenSelf(this, type, types[type][':scope'], node);
+                }
+                else {
                     listen(this, type, selector, types[type][selector], node);
                 }
             }
-        } :
-        function delegate(node) {
-            listen(this, types, selector, fn, node);
-        } ;
+        }
+    };
 }
