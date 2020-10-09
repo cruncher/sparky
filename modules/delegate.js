@@ -65,7 +65,7 @@ function listen(scopes, type, selector, fn, node) {
 function listenSelf(scopes, type, fn, node) {
     var stream = events(type, node)
     .filter((e) => e.target === e.currentTarget)
-    .each((args) => fn.apply(null, args));
+    .each((e) => fn(e.target, e));
     scopes.done(() => stream.stop());
 }
 
