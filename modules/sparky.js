@@ -228,7 +228,7 @@ function setupSrc(src, input, firstRender, options, renderers) {
             node.content ? node.content.cloneNode(true) :
             // Support SVG elements
             node instanceof SVGElement ? node.cloneNode(true) :
-            // Support body elements imported from exernal documents
+            // Support body elements imported from external documents
             fragmentFromChildren(node) ;
 
         setupInclude(content, input, firstRender, options, renderers);

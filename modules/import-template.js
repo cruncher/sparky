@@ -68,7 +68,74 @@ function toScriptPromise(node) {
     });
 }
 
-export default function importTemplate(src) {
+function rewritePaths(doc, url) {
+    const path = url.replace(/\/[^\s\/]*$/, '');
+
+    doc.body.querySelectorAll('[src]').forEach((elem) => {
+        const url = elem.getAttribute('src').replace(/^\.\//, '');
+
+        // If path is absolute
+        if (/^https?:/.test(url)) {
+            return;
+        }
+
+        // If path begins with a letter it is relative to doc
+        if (/^\w/.test(url)) {
+            elem.src = path + url;
+            return;
+        }
+
+        // If path begins with multiple `../`
+        // Todo: this only currently handles cases where url is INSIDE path, ie:
+        //
+        // url    ../images/bollocks.jpg
+        // path   path/to/template.html
+        // result path/images/bollocks.jpg
+        // 
+        // This won't work yet:
+        //
+        // url    ../../../images/bollocks.jpg
+        // path   path/to/template.html
+        // result ../images/bollocks.jpg
+        const prefix = /^((?:\.\.\/)+)([^\.\s\/]+)/.exec(url);
+        if (prefix[1]) {
+            const count = prefix[1].length / 3;
+            const split = path.split('/');
+            split.length -= count;
+            elem.src = (split.length ? split.join('/') + '/' : '') + url.slice(prefix[1].length);
+            return;
+        }
+    });
+
+    doc.body.querySelectorAll('[href]').forEach((elem) => {
+        const url = elem.getAttribute('href').replace(/^\.\//, '');
+
+        // If path is absolute
+        if (/^https?:/.test(url)) {
+            return;
+        }
+
+        // If path begins with a letter it is relative to doc
+        if (/^\w/.test(url)) {
+            elem.href = path + url;
+        }
+    });
+
+    return doc;
+}
+
+function sanitise(doc) {
+    doc.querySelectorAll('script').forEach((elem) => elem.remove());
+
+    // Todo: This is purely to support imports of already rendered <slide-show> 
+    // elements, which are going to be rendered again when placed in the 
+    // new DOM. It doesn't really belong here. SHould be pluggable somehow.
+    doc.querySelectorAll('slide-show > [data-id]').forEach((elem) => elem.remove());
+
+    return doc;
+}
+
+export default cache(function importTemplate(src) {
     const parts = src.split('#');
     const path  = parts[0] || '';
     const id    = parts[1] || '';
@@ -84,6 +151,8 @@ export default function importTemplate(src) {
             }) :
 
         requestDocument(path)
+        .then(sanitise)
+        .then((doc) => rewritePaths(doc, path))
         .then((doc) => document.adoptNode(doc.body)) :
 
     id ?
@@ -98,4 +167,4 @@ export default function importTemplate(src) {
 
     // If no path and no id
     Promise.reject(new Error('Sparky template "' + src + '" not found. URL must have a path or a hash ref')) ;
-}
+});
