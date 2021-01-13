@@ -1,7 +1,9 @@
 
 /** Convert values to strings suitable for rendering to the DOM */
 
-import { id, overload, toType } from '../../fn/module.js';
+import id       from '../../fn/modules/id.js';
+import overload from '../../fn/modules/overload.js';
+import toType   from '../../fn/modules/to-type.js';
 
 // Matches the arguments list in the result of fn.toString()
 const rarguments = /function(?:\s+\w+)?\s*(\([\w,\s]*\))/;

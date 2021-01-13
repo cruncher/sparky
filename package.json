@@ -29,6 +29,7 @@
     "rollup": "^2.21.0",
     "madge": "^3.9.2"
   },
+  "type": "module",
   "module": "module.js",
   "homepage": "https://stephen.band/sparky/",
   "documentation": "https://stephen.band/sparky/",

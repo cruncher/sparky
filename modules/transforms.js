@@ -37,16 +37,20 @@ import toCamelCase      from '../../fn/modules/strings/to-camel-case.js';
 
 import { contains }     from '../../fn/modules/lists/core.js';
 import last             from '../../fn/modules/lists/last.js';
+import rest             from '../../fn/modules/lists/rest.js';
 
-import { compose, overload, formatDate, formatTime, addDate, addTime, subTime } from '../../fn/module.js';
+import compose          from '../../fn/modules/compose.js';
+import overload         from '../../fn/modules/overload.js';
+import { formatDate, addDate } from '../../fn/modules/date.js';
+import { formatTime, addTime, subTime } from '../../fn/modules/time.js';
 
 
 // Import uncurried functions from DOM library
 
-import escape from '../../dom/modules/escape.js';
-import { parseValue, toRem, toVw, toVh } from '../../dom/modules/parse-value.js';
+//import escape from '../../dom/modules/escape.js';
+//import { parseValue, toRem, toVw, toVh } from '../../dom/modules/parse-value.js';
 
-var DEBUG     = window.DEBUG === true || window.DEBUG === 'Sparky';
+var DEBUG     = true;//window.DEBUG === true || window.DEBUG === 'Sparky';
 var A         = Array.prototype;
 var S         = String.prototype;
 
@@ -473,10 +477,10 @@ seconds:
     deg:       { tx: toDeg, ix: toRad },
     rad:       { tx: toRad, ix: toDeg },
     level:     { tx: toLevel, ix: todB },
-    px:        { tx: parseValue, ix: toRem },
-    rem:       { tx: toRem, ix: parseValue },
-    vw:        { tx: toVw,  ix: parseValue },
-    vh:        { tx: toVh,  ix: parseValue },
+    //px:        { tx: parseValue, ix: toRem },
+    //rem:       { tx: toRem, ix: parseValue },
+    //vw:        { tx: toVw,  ix: parseValue },
+    //vh:        { tx: toVh,  ix: parseValue },
     not:       { tx: not,   ix: not }
 };
 
@@ -486,7 +490,7 @@ export const transforms = {
 
     /** equals: n **/
     equals:       equals,
-    escape:       escape,
+    //escape:       escape,
     exp:          exp,
 
     /** get: path **/
@@ -662,6 +666,8 @@ export const transforms = {
         if (typeof value !== 'string') { return; }
         return value.replace(RegExp(str1, 'g'), str2);
     },
+
+    rest: rest,
 
     round: function round(n, value) {
         return Math.round(value / n) * n;
